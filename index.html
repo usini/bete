@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TODOMAPPA</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230d0f12'/%3E%3Crect x='3' y='5' width='10' height='6' fill='none' stroke='%2339ff14' stroke-width='2'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <canvas id="board"></canvas>
+  <canvas id="minimap"></canvas>
+
+  <!-- Overlay d'édition de texte -->
+  <textarea id="editor" spellcheck="false"></textarea>
+
+  <!-- Menu radial (clic droit) -->
+  <div id="radial" class="radial hidden"></div>
+
+  <!-- Palette de couleurs -->
+  <div id="palette" class="palette hidden"></div>
+
+  <!-- Astuce coin haut-gauche -->
+  <div id="hint">CLIC DROIT&nbsp;=&nbsp;MENU</div>
+
+  <!-- Input fichier caché pour l'import -->
+  <input id="fileInput" type="file" accept="application/json,.json" hidden />
+
+  <!-- Overlay scanlines CRT -->
+  <div id="crt"></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
