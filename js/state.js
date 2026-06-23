@@ -90,8 +90,12 @@ export function load(obj) {
 
 // ---- Persistance localStorage (throttle) ----
 let _saveTimer = null;
+let _saveSuppressed = false;
+// Quand on ouvre un fichier via ?file=, on n'écrase pas le localStorage perso.
+export function setSaveSuppressed(v) { _saveSuppressed = v; }
+
 export function scheduleSave() {
-  if (_saveTimer) return;
+  if (_saveSuppressed || _saveTimer) return;
   _saveTimer = setTimeout(() => {
     _saveTimer = null;
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(serialize())); } catch (e) { /* quota */ }

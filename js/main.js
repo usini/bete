@@ -1,5 +1,5 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle } from './state.js';
+import { state, restore, addRect, addCircle, load, setSaveSuppressed } from './state.js';
 import { setView } from './camera.js';
 import { render } from './render.js';
 import { step, reset } from './physics.js';
@@ -23,9 +23,31 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// Restauration ou seed de démo.
-if (!restore()) seedDemo();
+// Source des données : ?file=<url> sinon localStorage sinon seed de démo.
+const fileUrl = new URLSearchParams(location.search).get('file');
+if (fileUrl) {
+  // Mode "ouverture de fichier" : on n'écrase pas le localStorage perso.
+  setSaveSuppressed(true);
+  loadFromUrl(fileUrl);
+} else if (!restore()) {
+  seedDemo();
+}
 state.nodes.forEach(reset);
+
+async function loadFromUrl(url) {
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (!load(await res.json())) throw new Error('JSON invalide');
+    state.nodes.forEach(reset);
+  } catch (err) {
+    console.warn('TODOMAPPA: échec du chargement de', url, err);
+    // Repli : localStorage ou démo, et on réactive la sauvegarde.
+    setSaveSuppressed(false);
+    if (!restore()) seedDemo();
+    state.nodes.forEach(reset);
+  }
+}
 
 function seedDemo() {
   const c = addCircle(0, 0, '#107c10');

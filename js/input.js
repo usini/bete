@@ -1,6 +1,6 @@
 // Entrées : souris/clavier, drag élastique, menu radial, palette, édition texte.
 import {
-  state, addRect, addCircle, removeById, scheduleSave, COLORS, findById,
+  state, addRect, addCircle, removeById, scheduleSave, COLORS, findById, newId,
 } from './state.js';
 import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js';
 import { dragTo, reset } from './physics.js';
@@ -11,6 +11,8 @@ let drag = null;        // { mode, id, offx, offy }
 let lastPos = { x: 0, y: 0, t: 0 };
 let editing = null;     // { type:'rect'|'circle', id }
 let onChange = () => {};
+let clipboard = null;   // { isCircle, data } pour le copier/coller
+let lastMouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 
 const RESIZE_TOL = 12;  // tolérance (px écran) pour saisir le bord d'un cercle
 
@@ -20,6 +22,7 @@ export function init(boardCanvas, changeCb) {
 
   canvas.addEventListener('mousedown', onMouseDown);
   window.addEventListener('mousemove', onMouseMove);
+  window.addEventListener('mousemove', (e) => { lastMouse.x = e.clientX; lastMouse.y = e.clientY; });
   window.addEventListener('mouseup', onMouseUp);
   canvas.addEventListener('dblclick', onDblClick);
   canvas.addEventListener('wheel', onWheel, { passive: false });
@@ -183,11 +186,53 @@ function onDblClick(e) {
 
 function onKeyDown(e) {
   if (editing) return;
+
+  // Copier / coller l'élément sélectionné.
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && (e.key === 'c' || e.key === 'C')) {
+    copySelection();
+    e.preventDefault();
+    return;
+  }
+  if (mod && (e.key === 'v' || e.key === 'V')) {
+    pasteClipboard();
+    e.preventDefault();
+    return;
+  }
+
   if ((e.key === 'Delete' || e.key === 'Backspace') && state.selected) {
     removeById(state.selected);
     scheduleSave();
     e.preventDefault();
   }
+}
+
+// ---- Copier / coller ----
+function copySelection() {
+  const el = state.selected && findById(state.selected);
+  if (!el) return;
+  const isCircle = state.circles.includes(el);
+  // Copie superficielle sans les champs physiques (préfixés _).
+  const data = {};
+  for (const k in el) if (k[0] !== '_' && k !== 'id') data[k] = el[k];
+  clipboard = { isCircle, data };
+}
+
+function pasteClipboard() {
+  if (!clipboard) return;
+  const w = screenToWorld(lastMouse.x, lastMouse.y);
+  if (clipboard.isCircle) {
+    const c = { ...clipboard.data, id: newId(), x: w.x, y: w.y };
+    state.circles.push(c);
+    state.selected = c.id;
+  } else {
+    const d = clipboard.data;
+    const n = { ...d, id: newId(), x: w.x - (d.w || 150) / 2, y: w.y - (d.h || 70) / 2 };
+    state.nodes.push(n);
+    reset(n);
+    state.selected = n.id;
+  }
+  scheduleSave();
 }
 
 // ---- Menu radial ----
