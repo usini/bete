@@ -57,9 +57,10 @@ Côté confidentialité : le contenu transite en WebRTC chiffré (DTLS), en dire
 
 ### Mobile / tactile
 
-- **1 doigt** : glisser le fond (pan) ou déplacer un élément.
+- **Interaction verrouillée par défaut** (pour ne pas déplacer un bloc par accident) : seuls le pan (1 doigt) et le zoom (pince) marchent. L'**appui long** propose alors uniquement **« Activer »**. Une fois activé, le menu radial standard revient (avec **« Désactiver »** pour reverrouiller).
+- **1 doigt** : glisser le fond (pan) ou, une fois activé, déplacer un élément.
 - **2 doigts** : pincer pour zoomer.
-- **Appui long** : menu radial · **double-tap** : éditer / voir l'image.
+- **Appui long** : menu radial · **double-tap** : éditer / voir l'image (interaction activée).
 
 Sauvegarde automatique dans le navigateur (localStorage). Export/Import JSON via le menu radial.
 

@@ -25,6 +25,17 @@ let longPressTimer = null;
 let lastTap = 0;
 let lastTapPos = null;
 
+// Mode tactile : sur mobile, l'interaction est désactivée par défaut (on ne peut
+// que naviguer : pan/zoom) pour éviter de déplacer des blocs par accident.
+const isCoarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+let interactionEnabled = !isCoarse;
+
+function updateHint() {
+  const h = document.getElementById('hint');
+  if (!h || !isCoarse) return;
+  h.textContent = interactionEnabled ? 'INTERACTION ON · APPUI LONG = MENU' : 'VUE SEULE · APPUI LONG POUR ACTIVER';
+}
+
 const RESIZE_TOL = 12;  // tolérance (px écran) pour saisir le bord d'une zone
 
 export function init(boardCanvas, changeCb) {
@@ -59,6 +70,8 @@ export function init(boardCanvas, changeCb) {
   const pop = document.getElementById('imgpopup');
   pop.addEventListener('mousedown', closeImagePopup);
   pop.addEventListener('touchstart', (e) => { e.preventDefault(); closeImagePopup(); });
+
+  updateHint();
 }
 
 // ---- Hit testing (du plus haut au plus bas) ----
@@ -105,6 +118,8 @@ function hexagonAt(px, py) {
 // ---- Pointeur générique (souris + tactile) ----
 function pointerDown(sx, sy) {
   closeMenus();
+  // Interaction verrouillée (mobile par défaut) : on ne fait que paner.
+  if (!interactionEnabled) { drag = { mode: 'pan', px: sx, py: sy }; state.selected = null; return; }
   const w = screenToWorld(sx, sy);
 
   const r = hitRect(w);
@@ -367,6 +382,7 @@ function processImage(file, cb) {
 
 // ---- Double-clic / double-tap ----
 function handleDouble(sx, sy) {
+  if (!interactionEnabled) return; // verrouillé : pas d'édition/ouverture
   const w = screenToWorld(sx, sy);
   const r = hitRect(w);
   if (r) {
@@ -469,6 +485,11 @@ function pasteClipboard() {
 // ---- Menu radial ----
 function openContextAt(sx, sy) {
   closeMenus();
+  // Verrouillé (mobile) : le menu ne propose que d'activer l'interaction.
+  if (!interactionEnabled) {
+    openRadial(sx, sy, [{ label: 'Activer', fn: () => { interactionEnabled = true; updateHint(); } }]);
+    return;
+  }
   const w = screenToWorld(sx, sy);
   const r = hitRect(w);
   const hz = !r ? (hitHexagon(w) || hitCircle(w)) : null;
@@ -505,6 +526,8 @@ function openContextAt(sx, sy) {
       { label: 'Export', fn: () => exportJSON() },
       { label: 'Import', fn: () => importJSON(() => { onChange(); }) },
     ];
+    // Sur mobile : possibilité de reverrouiller l'interaction.
+    if (isCoarse) items.push({ label: 'Désactiver', fn: () => { interactionEnabled = false; state.selected = null; updateHint(); } });
   }
   openRadial(sx, sy, items);
 }
