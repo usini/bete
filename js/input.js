@@ -8,7 +8,7 @@ import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js';
 import { dragTo, reset } from './physics.js';
 import { exportJSON, importJSON } from './io.js';
 import { pointInHex } from './geom.js';
-import { startHost, stopHost, pushMove, pushDelete } from './sync.js';
+import { startHost, stopHost, refreshHostId, pushMove, pushDelete } from './sync.js';
 import { explodeElementCascade } from './fx.js';
 
 let canvas;
@@ -477,6 +477,7 @@ function openContextAt(sx, sy) {
   if (r && r.kind === 'liaison') {
     items = [
       { label: 'Copier', fn: () => copyLink(r) },
+      { label: 'Nouveau lien', fn: () => refreshHostId(r) },
       { label: 'Suppr', fn: () => removeElement(r) },
     ];
   } else if (r) {

@@ -342,6 +342,22 @@ export function stopHost() {
   if (hostPeer) { try { hostPeer.destroy(); } catch (e) { /* */ } hostPeer = null; }
 }
 
+// Régénère un nouvel id (l'ancien lien/QR devient invalide) sans perdre le board.
+// Utile si l'URL a fuité. Les clients déjà connectés sur l'ancien id sont coupés.
+export function refreshHostId(node) {
+  if (mode !== 'host' || !node) return;
+  hostNode = node;
+  node.status = 'init';
+  node.peerId = undefined;
+  node.url = undefined;
+  node.code = undefined;
+  stopTick();
+  conns = [];
+  if (hostPeer) { try { hostPeer.destroy(); } catch (e) { /* */ } hostPeer = null; }
+  idRetries = 0;
+  openHostPeer(rotateStableId());
+}
+
 // Libère l'id au broker quand on ferme/rafraîchit (pour le récupérer ensuite).
 window.addEventListener('beforeunload', () => { if (hostPeer) { try { hostPeer.destroy(); } catch (e) { /* */ } } });
 
