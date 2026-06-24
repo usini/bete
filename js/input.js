@@ -234,6 +234,10 @@ function onWheel(e) {
 
 // ---- Tactile ----
 function onTouchStart(e) {
+  // En édition : un tap hors du textarea valide et ferme (sinon preventDefault
+  // empêcherait le blur, et on resterait coincé dans l'édition sur mobile).
+  if (editing) { document.getElementById('editor').blur(); e.preventDefault(); return; }
+
   if (e.touches.length === 1) {
     const t = e.touches[0];
     const now = performance.now();
