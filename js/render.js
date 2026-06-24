@@ -26,8 +26,94 @@ export function render(ctx) {
   for (const c of state.circles) drawCircle(ctx, c, c.id === state.selected);
   for (const h of state.hexagons) drawHexagon(ctx, h, h.id === state.selected);
 
-  // Rectangles (au-dessus).
-  for (const n of state.nodes) drawRect(ctx, n, effectiveColor(n), n.id === state.selected, zoom);
+  // Rectangles & blocs Liaison (au-dessus).
+  for (const n of state.nodes) {
+    if (n.kind === 'liaison') drawLiaison(ctx, n, n.id === state.selected, zoom);
+    else drawRect(ctx, n, effectiveColor(n), n.id === state.selected, zoom);
+  }
+}
+
+// Bloc de liaison P2P : QR code + statut. Clic = copie le lien.
+function ensureQR(n) {
+  if (!n.url || !window.qrcode || n._qrUrl === n.url) return;
+  try {
+    const qr = window.qrcode(0, 'M');
+    qr.addData(n.url);
+    qr.make();
+    const cnt = qr.getModuleCount();
+    const mods = [];
+    for (let r = 0; r < cnt; r++) {
+      const row = [];
+      for (let c = 0; c < cnt; c++) row.push(qr.isDark(r, c));
+      mods.push(row);
+    }
+    n._qrMods = mods;
+    n._qrUrl = n.url;
+  } catch (e) { /* lib pas prête */ }
+}
+
+function drawLiaison(ctx, n, selected, zoom) {
+  const rx = n._rx !== undefined ? n._rx : n.x;
+  const ry = n._ry !== undefined ? n._ry : n.y;
+  const p = worldToScreen(rx + n.w / 2, ry + n.h / 2);
+  const w = n.w * zoom, h = n.h * zoom;
+
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.shadowColor = '#39ff14';
+  ctx.shadowBlur = selected ? 22 : 12;
+  ctx.fillStyle = '#11151a';
+  ctx.fillRect(-w / 2, -h / 2, w, h);
+  ctx.lineWidth = selected ? 5 : 3;
+  ctx.strokeStyle = '#39ff14';
+  ctx.strokeRect(-w / 2, -h / 2, w, h);
+  ctx.shadowBlur = 0;
+
+  ensureQR(n);
+  const pad = w * 0.1;
+  const qrSide = w - pad * 2;
+  const qrX = -qrSide / 2, qrY = -h / 2 + pad;
+
+  if (n._qrMods) {
+    ctx.fillStyle = '#f2f2f2';
+    ctx.fillRect(qrX - 3, qrY - 3, qrSide + 6, qrSide + 6);
+    const cnt = n._qrMods.length;
+    const ms = qrSide / cnt;
+    ctx.fillStyle = '#0d0f12';
+    for (let r = 0; r < cnt; r++) {
+      for (let c = 0; c < cnt; c++) {
+        if (n._qrMods[r][c]) {
+          ctx.fillRect(Math.floor(qrX + c * ms), Math.floor(qrY + r * ms), Math.ceil(ms), Math.ceil(ms));
+        }
+      }
+    }
+  } else {
+    ctx.fillStyle = '#1a1f26';
+    ctx.fillRect(qrX, qrY, qrSide, qrSide);
+    ctx.fillStyle = '#39ff14';
+    ctx.font = `${clamp(10 * zoom, 7, 16)}px ${FONT}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('...', 0, qrY + qrSide / 2);
+  }
+
+  const now = performance.now();
+  let label;
+  if (n._copiedUntil && now < n._copiedUntil) label = 'LIEN COPIE !';
+  else if (n.status === 'connected') label = 'CONNECTE - CLIC=COPIER';
+  else if (n.status === 'online') label = 'CLIC = COPIER LIEN';
+  else if (n.status === 'error') label = 'ERREUR RESEAU';
+  else label = 'CONNEXION...';
+
+  const fs = clamp(7 * zoom, 5, 11);
+  ctx.fillStyle = '#39ff14';
+  ctx.shadowColor = '#39ff14';
+  ctx.shadowBlur = 6;
+  ctx.font = `${fs}px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, 0, (qrY + qrSide + h / 2) / 2);
+  ctx.restore();
 }
 
 function drawHexagon(ctx, hgn, selected) {

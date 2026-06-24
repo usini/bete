@@ -162,6 +162,27 @@ html, body {
   box-shadow: 0 0 28px rgba(57, 255, 20, 0.4);
 }
 
+/* ---- Toast de statut ---- */
+#toast {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-12px);
+  z-index: 47;
+  padding: 10px 14px;
+  background: var(--node-bg);
+  color: var(--green);
+  border: 3px solid var(--green);
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-shadow: 0 0 6px rgba(57, 255, 20, 0.6);
+  box-shadow: 0 0 16px rgba(57, 255, 20, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
 /* ---- Adaptations tactiles (mobile) ---- */
 @media (pointer: coarse) {
   body { cursor: default; }

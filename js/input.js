@@ -8,6 +8,7 @@ import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js';
 import { dragTo, reset } from './physics.js';
 import { exportJSON, importJSON } from './io.js';
 import { pointInHex } from './geom.js';
+import { startHost, stopHost } from './sync.js';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -164,6 +165,12 @@ function pointerUp() {
 function finishDrag() {
   if (drag.mode === 'rect') {
     const n = findById(drag.id);
+    // Bloc Liaison : un clic (déplacement négligeable) copie le lien.
+    if (n && n.kind === 'liaison') {
+      if (Math.hypot(n.x - drag.startX, n.y - drag.startY) < 3 && n.url) copyLink(n);
+      scheduleSave();
+      return;
+    }
     if (n && !n.ref) {
       const cx = n.x + n.w / 2, cy = n.y + n.h / 2;
       const hex = hexagonAt(cx, cy);
@@ -332,16 +339,42 @@ function onKeyDown(e) {
   if (mod && (e.key === 'v' || e.key === 'V')) { pasteClipboard(); e.preventDefault(); return; }
 
   if ((e.key === 'Delete' || e.key === 'Backspace') && state.selected) {
-    removeById(state.selected);
-    scheduleSave();
+    removeElement(findById(state.selected));
     e.preventDefault();
   }
+}
+
+// Crée un bloc Liaison (HOST) et démarre le peer P2P.
+function createLiaison(wx, wy) {
+  const n = { id: newId(), kind: 'liaison', x: wx - 100, y: wy - 115, w: 200, h: 230, status: 'init' };
+  state.nodes.push(n);
+  reset(n);
+  state.selected = n.id;
+  startHost(n);
+}
+
+// Copie le lien d'un bloc Liaison dans le presse-papier + feedback visuel.
+function copyLink(n) {
+  const done = () => { n._copiedUntil = performance.now() + 1400; };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(n.url).then(done).catch(done);
+  } else {
+    done();
+  }
+}
+
+// Supprime un élément (et coupe le host si c'est un bloc Liaison).
+function removeElement(el) {
+  if (el && el.kind === 'liaison') stopHost();
+  removeById(el.id);
+  scheduleSave();
 }
 
 // ---- Copier / coller ----
 function copySelection() {
   const el = state.selected && findById(state.selected);
-  if (!el) return;
+  if (!el || el.kind === 'liaison') return; // un lien P2P ne se copie pas
+
   const data = {};
   for (const k in el) if (k[0] !== '_' && k !== 'id') data[k] = el[k];
   clipboard = {
@@ -376,7 +409,12 @@ function openContextAt(sx, sy) {
   const hz = !r ? (hitHexagon(w) || hitCircle(w)) : null;
 
   let items;
-  if (r) {
+  if (r && r.kind === 'liaison') {
+    items = [
+      { label: 'Copier', fn: () => copyLink(r) },
+      { label: 'Suppr', fn: () => removeElement(r) },
+    ];
+  } else if (r) {
     const isLink = !!r.ref;
     items = [{ label: 'Éditer', fn: () => { const t = isLink ? sourceOf(r) : r; if (t) startEdit('rect', t, r); } }];
     const img = displayImage(r);
@@ -395,6 +433,7 @@ function openContextAt(sx, sy) {
       { label: '+ Rect', fn: () => { const n = addRect(w.x - 75, w.y - 35); reset(n); state.selected = n.id; startEdit('rect', n, n); scheduleSave(); } },
       { label: '+ Cercle', fn: () => { const c = addCircle(w.x, w.y); state.selected = c.id; scheduleSave(); } },
       { label: '+ Hexa', fn: () => { const h = addHexagon(w.x, w.y); state.selected = h.id; scheduleSave(); } },
+      { label: '+ Liaison', fn: () => createLiaison(w.x, w.y) },
       { label: 'Export', fn: () => exportJSON() },
       { label: 'Import', fn: () => importJSON(() => { onChange(); }) },
     ];

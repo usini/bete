@@ -36,6 +36,16 @@ Glisse un rectangle (d'un cercle) dans un hexagone : un **lien** (bordure pointi
 l'original revient à sa place. Le lien garde la **couleur du cercle source** et reflète son texte/image ;
 renommer ou supprimer la source met à jour (ou retire) le lien. Les liens se placent librement dans l'hexagone.
 
+### Synchro entre appareils (P2P)
+
+Pour recopier ton board d'un appareil à l'autre (ex. desktop → téléphone) :
+
+1. Sur l'appareil **source** (HOST) : menu radial → **« + Liaison »**. Un bloc QR code apparaît.
+2. Sur l'autre appareil (CLIENT) : **scanne le QR** (ou ouvre le lien — clic sur le bloc le copie).
+3. Le client se connecte, **son board est écrasé** par celui du host, puis reste **synchronisé en direct** tant que la fenêtre du host reste ouverte.
+
+Connexion **P2P chiffrée** (WebRTC via PeerJS) ; seuls des identifiants transitent par le broker de signalisation, le board passe en direct entre les deux navigateurs. Si le host ferme sa fenêtre, la synchro s'arrête (le board déjà reçu reste sur le client). Les libs PeerJS / QR sont chargées à la demande (CDN), l'app reste sans dépendance au repos.
+
 ### Mobile / tactile
 
 - **1 doigt** : glisser le fond (pan) ou déplacer un élément.

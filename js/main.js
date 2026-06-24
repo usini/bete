@@ -1,10 +1,20 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, newId } from './state.js';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId } from './state.js';
 import { setView } from './camera.js';
 import { render } from './render.js';
 import { step, reset } from './physics.js';
 import * as minimap from './minimap.js';
 import * as input from './input.js';
+import { joinHost } from './sync.js';
+
+let toastTimer = null;
+function toast(msg, ms = 2400) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+}
 
 const board = document.getElementById('board');
 const ctx = board.getContext('2d');
@@ -23,16 +33,35 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// Source des données : ?file=<url> sinon localStorage sinon seed de démo.
-const fileUrl = new URLSearchParams(location.search).get('file');
-if (fileUrl) {
+// Source des données : ?peer=<id> (client P2P), ?file=<url>, sinon localStorage.
+const params = new URLSearchParams(location.search);
+const peerId = params.get('peer');
+const fileUrl = params.get('file');
+
+if (peerId) {
+  // Mode CLIENT : affiche le board local puis le remplace par celui du host.
+  if (!restore()) seedDemo();
+  state.nodes.forEach(reset);
+  toast('CONNEXION AU HOST...');
+  joinHost(
+    peerId,
+    () => { state.nodes.forEach(reset); scheduleSave(); }, // board reçu : écrase le local
+    (st) => {
+      if (st === 'synced') toast('SYNCHRONISE ✓');
+      else if (st === 'connected') toast('CONNECTE - RECEPTION...');
+      else if (st === 'error') toast('HOST INJOIGNABLE', 4000);
+      else if (st === 'closed') toast('HOST DECONNECTE', 4000);
+    },
+  );
+} else if (fileUrl) {
   // Mode "ouverture de fichier" : on n'écrase pas le localStorage perso.
   setSaveSuppressed(true);
   loadFromUrl(fileUrl);
-} else if (!restore()) {
-  seedDemo();
+  state.nodes.forEach(reset);
+} else {
+  if (!restore()) seedDemo();
+  state.nodes.forEach(reset);
 }
-state.nodes.forEach(reset);
 
 async function loadFromUrl(url) {
   try {
@@ -64,6 +93,9 @@ function seedDemo() {
 
 minimap.init();
 input.init(board, () => { state.nodes.forEach(reset); });
+
+// Handle de debug (inspection console : todomappa.state).
+window.todomappa = { state };
 
 let last = performance.now();
 function loop(now) {
