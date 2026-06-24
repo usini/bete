@@ -196,15 +196,20 @@ function mergeZones(arr, rem, remote, win, applied) {
 function handleData(msg, origin) {
   if (!msg) return;
   if (msg.type === 'sync') {
+    let justFirst = false;
     if (mode === 'client' && clientFirstSync) {
       // Première synchro côté client : on écrase le board local par celui du host.
       clientFirstSync = false;
+      justFirst = true;
       state.nodes.length = 0;
       state.circles.length = 0;
       state.hexagons.length = 0;
       tombstones = new Set(); mtimes = {}; prevSigs = {}; prevLocalIds = null;
     }
     merge(msg);
+    // Le client ne commence à ÉMETTRE qu'après avoir adopté l'état du host
+    // (sinon il pousserait ses anciens blocs au host avant d'être réinitialisé).
+    if (justFirst) startTick();
   } else if (msg.type === 'move') {
     applyMove(msg);
   } else if (msg.type === 'delete') {
@@ -306,7 +311,9 @@ export async function joinHost(peerId, onStatus) {
   peer.on('open', () => {
     const conn = peer.connect(peerId, { reliable: true });
     conns = [conn];
-    conn.on('open', () => { onStatus && onStatus('connected'); startTick(); });
+    // On NE démarre PAS le tick ici : le client doit d'abord recevoir et adopter
+    // l'état du host (cf. handleData), sinon il lui pousserait ses anciens blocs.
+    conn.on('open', () => { onStatus && onStatus('connected'); });
     conn.on('data', (msg) => {
       const wasFirst = clientFirstSync && msg && msg.type === 'sync';
       handleData(msg);
