@@ -66,6 +66,11 @@ export function init(boardCanvas, changeCb) {
 
   document.getElementById('editor').addEventListener('blur', commitEdit);
 
+  // Bouton "OK" pour valider/fermer l'édition (sortie fiable au tactile).
+  const done = document.getElementById('editDone');
+  done.addEventListener('mousedown', (e) => { e.preventDefault(); commitEdit(); });
+  done.addEventListener('touchstart', (e) => { e.preventDefault(); commitEdit(); });
+
   // Fermeture de la popup image.
   const pop = document.getElementById('imgpopup');
   pop.addEventListener('mousedown', closeImagePopup);
@@ -633,6 +638,7 @@ function startEdit(type, target, posNode) {
   }
   ed.style.fontSize = Math.max(8, Math.min(18, 11 * z)) + 'px';
   ed.classList.add('show');
+  document.getElementById('editDone').classList.add('show');
   ed.focus();
   ed.select();
 }
@@ -649,6 +655,7 @@ function commitEdit() {
   }
   editing = null;
   ed.classList.remove('show');
+  document.getElementById('editDone').classList.remove('show');
 }
 
 // Échap : ferme l'éditeur ou la popup image.
