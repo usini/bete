@@ -26,7 +26,8 @@ python -m http.server 8000
 - **Glisser un rectangle** : déplacement élastique.
 - **Glisser le bord d'un cercle/hexagone** : redimensionner · **glisser son intérieur** : déplacer.
 - **Double-clic** : éditer le texte (Échap pour valider). Sur un **rectangle-image** : ouvre l'image en grand.
-- **Glisser-déposer une image** : sur un rectangle pour la mettre dedans, sur le vide pour créer un rectangle-image. (« Img ✕ » dans le menu radial pour la retirer.)
+- **Glisser-déposer une image** (ou **Ctrl-V** une image du presse-papier) : sur un rectangle pour la mettre dedans, sur le vide pour créer un rectangle-image (« Img ✕ » pour la retirer). L'image est toujours affichée **en entier** ; le rectangle garde une taille à peu près constante.
+- **Lien** (menu radial sur un rectangle) : associe une URL ; un badge ↗ apparaît et un **clic** ouvre le lien dans un nouvel onglet.
 - **Suppr** : effacer l'élément sélectionné.
 - **Ctrl-C / Ctrl-V** : copier-coller l'élément sélectionné (collé à la position de la souris).
 - Un rectangle dont le centre est dans un cercle/hexagone prend sa couleur.
@@ -48,7 +49,9 @@ Pour recopier ton board d'un appareil à l'autre (ex. desktop → téléphone) :
 
 **Synchronisé** : le contenu (texte, image, couleur, description, liens, créations/suppressions) et la **position des objets** — mais celle-ci seulement **au lâcher** (pas pendant le glissement), et l'autre écran l'**anime**. **La caméra reste indépendante** : chaque écran garde son zoom/cadrage (ex. un écran en vue large, un autre zoomé sur un cercle). En cas de modification simultanée du même élément, **l'hôte l'emporte**.
 
-Connexion **P2P chiffrée** (WebRTC via PeerJS) ; seuls des identifiants transitent par le broker de signalisation, le contenu passe en direct entre les deux navigateurs. Si le host ferme sa fenêtre, la synchro s'arrête (le board déjà reçu reste sur le client). Les libs PeerJS / QR sont chargées à la demande (CDN), l'app reste sans dépendance au repos.
+Connexion **P2P chiffrée** (WebRTC via PeerJS) ; seuls des identifiants transitent par le broker de signalisation, le contenu passe en direct entre les deux navigateurs. Les libs PeerJS / QR sont chargées à la demande (CDN), l'app reste sans dépendance au repos.
+
+L'id de liaison est **stable** (mémorisé) : rafraîchir la page du host et recréer la liaison redonne **le même lien/QR**. En cas de coupure réseau, le host se reconnecte automatiquement au broker (même id) et les clients retentent la connexion — pas besoin de rescanner.
 
 ### Mobile / tactile
 

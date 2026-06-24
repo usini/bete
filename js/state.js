@@ -79,6 +79,10 @@ export function displayImage(node) {
   if (node.ref) { const s = sourceOf(node); return s ? s.image : null; }
   return node.image;
 }
+export function displayLink(node) {
+  if (node.ref) { const s = sourceOf(node); return s ? s.link : undefined; }
+  return node.link;
+}
 
 // ---- Couleur effective d'un rectangle ----
 // Lien : couleur de sa source (donc du cercle source). Sinon : couleur du dernier
@@ -110,7 +114,7 @@ export function serialize() {
       .filter(n => n.kind !== 'liaison') // blocs de liaison = transitoires
       .map(n => n.ref
         ? { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, ref: n.ref }
-        : { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, text: n.text, image: n.image || undefined, kind: n.kind === 'pancarte' ? 'pancarte' : undefined }),
+        : { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, text: n.text, image: n.image || undefined, link: n.link || undefined, kind: n.kind === 'pancarte' ? 'pancarte' : undefined }),
     circles: state.circles.map(c => ({
       id: c.id, x: c.x, y: c.y, r: c.r, color: c.color, description: c.description || '',
     })),

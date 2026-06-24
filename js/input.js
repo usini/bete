@@ -2,7 +2,7 @@
 // palette, édition texte, popup image.
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
-  findById, newId, sourceOf, displayImage,
+  findById, newId, sourceOf, displayImage, displayLink,
 } from './state.js';
 import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js';
 import { dragTo, reset } from './physics.js';
@@ -39,6 +39,7 @@ export function init(boardCanvas, changeCb) {
   canvas.addEventListener('wheel', onWheel, { passive: false });
   canvas.addEventListener('contextmenu', (e) => { e.preventDefault(); openContextAt(e.clientX, e.clientY); });
   window.addEventListener('keydown', onKeyDown);
+  window.addEventListener('paste', onPaste);
 
   // Tactile.
   canvas.addEventListener('touchstart', onTouchStart, { passive: false });
@@ -172,6 +173,11 @@ function finishDrag() {
       scheduleSave();
       return;
     }
+    // Clic (déplacement négligeable) sur un nœud à lien => ouvre l'onglet.
+    if (n) {
+      const lk = displayLink(n);
+      if (lk && Math.hypot(n.x - drag.startX, n.y - drag.startY) < 3) { openLink(lk); scheduleSave(); return; }
+    }
     if (n && !n.ref) {
       const cx = n.x + n.w / 2, cy = n.y + n.h / 2;
       const hex = hexagonAt(cx, cy);
@@ -287,10 +293,7 @@ function onDrop(e) {
       target.image = src;
       state.selected = target.id;
     } else {
-      const MAX = 220;
-      let nw = MAX, nh = MAX;
-      if (ratio >= 1) nh = Math.round(MAX / ratio);
-      else nw = Math.round(MAX * ratio);
+      const { w: nw, h: nh } = imageRectSize(ratio);
       const n = addRect(w.x - nw / 2, w.y - nh / 2, '');
       n.w = nw; n.h = nh; n.image = src;
       reset(n);
@@ -298,6 +301,47 @@ function onDrop(e) {
     }
     scheduleSave();
   });
+}
+
+// Dimensions d'un rectangle-image : aire ~ constante, ratio = celui de l'image.
+function imageRectSize(ratio) {
+  const TARGET = 185;
+  let w = TARGET * Math.sqrt(ratio);
+  let h = TARGET / Math.sqrt(ratio);
+  w = Math.max(70, Math.min(340, Math.round(w)));
+  h = Math.max(70, Math.min(340, Math.round(h)));
+  return { w, h };
+}
+
+// Crée un rectangle-image (centré sur wx,wy) à partir d'un fichier.
+function spawnImageRect(file, wx, wy) {
+  processImage(file, (src, ratio) => {
+    const { w: nw, h: nh } = imageRectSize(ratio);
+    const n = addRect(wx - nw / 2, wy - nh / 2, '');
+    n.w = nw; n.h = nh; n.image = src;
+    reset(n);
+    state.selected = n.id;
+    scheduleSave();
+  });
+}
+
+// Coller (Ctrl-V) : une image du presse-papier crée un rectangle-image ;
+// sinon on colle l'élément interne copié.
+function onPaste(e) {
+  if (editing) return; // pendant l'édition, le textarea colle normalement
+  const items = (e.clipboardData && e.clipboardData.items) || [];
+  for (const it of items) {
+    if (it.type && it.type.startsWith('image/')) {
+      const file = it.getAsFile();
+      if (file) {
+        e.preventDefault();
+        const w = screenToWorld(lastMouse.x, lastMouse.y);
+        spawnImageRect(file, w.x, w.y);
+        return;
+      }
+    }
+  }
+  if (clipboard) { e.preventDefault(); pasteClipboard(); }
 }
 
 // Redimensionne (max 800px) et ré-encode pour ménager le localStorage.
@@ -341,7 +385,8 @@ function onKeyDown(e) {
 
   const mod = e.ctrlKey || e.metaKey;
   if (mod && (e.key === 'c' || e.key === 'C')) { copySelection(); e.preventDefault(); return; }
-  if (mod && (e.key === 'v' || e.key === 'V')) { pasteClipboard(); e.preventDefault(); return; }
+  // Le collage (Ctrl-V) est géré par l'événement 'paste' (cf. onPaste) pour
+  // pouvoir lire une image du presse-papier.
 
   if ((e.key === 'Delete' || e.key === 'Backspace') && state.selected) {
     removeElement(findById(state.selected));
@@ -366,6 +411,18 @@ function copyLink(n) {
   } else {
     done();
   }
+}
+
+// Ouvre un lien dans un nouvel onglet (préfixe https:// si besoin).
+let _lastLinkOpen = 0;
+function openLink(url) {
+  const t = performance.now();
+  if (t - _lastLinkOpen < 600) return; // évite le double-ouverture (double-clic)
+  _lastLinkOpen = t;
+  let u = String(url).trim();
+  if (!u) return;
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(u)) u = 'https://' + u;
+  window.open(u, '_blank', 'noopener,noreferrer');
 }
 
 // Supprime un élément (explosion + propagation ; coupe le host si Liaison).
@@ -425,6 +482,7 @@ function openContextAt(sx, sy) {
   } else if (r) {
     const isLink = !!r.ref;
     items = [{ label: 'Éditer', fn: () => { const t = isLink ? sourceOf(r) : r; if (t) startEdit('rect', t, r); } }];
+    items.push({ label: 'Lien', fn: () => { const t = isLink ? sourceOf(r) : r; if (t) startEdit('link', t, r); } });
     const img = displayImage(r);
     if (img) items.push({ label: 'Voir img', fn: () => openImagePopup(img) });
     if (!isLink && r.image) items.push({ label: 'Img ✕', fn: () => { delete r.image; scheduleSave(); } });
@@ -529,13 +587,13 @@ function startEdit(type, target, posNode) {
   const ed = document.getElementById('editor');
   const z = state.camera.zoom;
 
-  if (type === 'rect') {
+  if (type === 'rect' || type === 'link') {
     const p = worldToScreen(posNode.x, posNode.y);
     ed.style.left = p.x + 'px';
     ed.style.top = p.y + 'px';
     ed.style.width = (posNode.w * z) + 'px';
-    ed.style.height = (posNode.h * z) + 'px';
-    ed.value = target.text || '';
+    ed.style.height = (type === 'link' ? 40 : posNode.h * z) + 'px';
+    ed.value = type === 'link' ? (target.link || '') : (target.text || '');
   } else {
     const p = worldToScreen(posNode.x, posNode.y - posNode.r);
     const wpx = 220;
@@ -557,6 +615,7 @@ function commitEdit() {
   const target = findById(editing.id);
   if (target) {
     if (editing.type === 'rect') target.text = ed.value;
+    else if (editing.type === 'link') { const v = ed.value.trim(); if (v) target.link = v; else delete target.link; }
     else target.description = ed.value.replace(/\n/g, ' ').trim();
     scheduleSave();
   }

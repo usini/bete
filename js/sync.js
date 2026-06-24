@@ -62,9 +62,10 @@ function nodeEntry(n) {
   if (n.ref !== undefined) return { ref: n.ref, x: n.x, y: n.y, w: n.w, h: n.h };
   const e = { t: n.text || '', img: n.image || null, x: n.x, y: n.y, w: n.w, h: n.h };
   if (n.kind === 'pancarte') e.k = 'pancarte';
+  if (n.link) e.lk = n.link;
   return e;
 }
-function sigNode(e) { return e.ref !== undefined ? 'R' + e.ref : 'T' + e.t + '' + (e.img || ''); }
+function sigNode(e) { return e.ref !== undefined ? 'R' + e.ref : 'T' + e.t + '|' + (e.img || '') + '|' + (e.lk || ''); }
 function sigZone(e) { return 'Z' + e.col + '' + e.d; }
 
 function buildContent() {
@@ -145,6 +146,7 @@ function merge(remote) {
         ? { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, ref: rd.ref }
         : { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, text: rd.t || '', image: rd.img || undefined };
       if (rd.k) node.kind = rd.k;
+      if (rd.lk) node.link = rd.lk;
       state.nodes.push(node); reset(node);
       mtimes[id] = (remote.mt && remote.mt[id]) || now();
       applied.add(id); changed = true;
@@ -154,6 +156,8 @@ function merge(remote) {
         if ((ex.text || '') !== (rd.t || '')) { ex.text = rd.t || ''; changed = true; }
         const img = rd.img || undefined;
         if ((ex.image || undefined) !== img) { if (img) ex.image = img; else delete ex.image; changed = true; }
+        const lk = rd.lk || undefined;
+        if ((ex.link || undefined) !== lk) { if (lk) ex.link = lk; else delete ex.link; changed = true; }
       }
       mtimes[id] = remote.mt[id];
       applied.add(id);
@@ -254,12 +258,30 @@ export function pushDelete(id) {
   conns.forEach((c) => { try { if (c.open) c.send({ type: 'delete', id }); } catch (e) { /* */ } });
 }
 
+// Id de peer stable, persisté : un refresh du host garde le même lien/QR.
+function makeId() { return 'tm-' + Math.random().toString(36).slice(2, 10); }
+function getStableId() {
+  try {
+    let id = localStorage.getItem('todomappa-peer');
+    if (!id) { id = makeId(); localStorage.setItem('todomappa-peer', id); }
+    return id;
+  } catch (e) { return makeId(); }
+}
+function rotateStableId() {
+  const id = makeId();
+  try { localStorage.setItem('todomappa-peer', id); } catch (e) { /* */ }
+  return id;
+}
+
 // ---- HOST ----
 let hostPeer = null;
+let hostNode = null;
+let idRetries = 0;
 
 export async function startHost(node) {
   stopHost();
   mode = 'host';
+  hostNode = node;
   node.status = 'init';
   try {
     await Promise.all([loadPeer(), loadQR()]);
@@ -268,20 +290,41 @@ export async function startHost(node) {
     console.warn('TODOMAPPA: chargement PeerJS/QR échoué', e);
     return;
   }
-  const peer = new Peer();
+  idRetries = 0;
+  openHostPeer(getStableId());
+}
+
+function openHostPeer(id) {
+  const peer = new Peer(id);
   hostPeer = peer;
 
-  peer.on('open', (id) => {
-    node.peerId = id; node.code = id; node.url = buildUrl(id); node.status = 'online';
+  peer.on('open', (realId) => {
+    idRetries = 0;
+    hostNode.peerId = realId; hostNode.code = realId; hostNode.url = buildUrl(realId); hostNode.status = 'online';
     startTick();
   });
-  peer.on('error', (err) => { node.status = 'error'; console.warn('TODOMAPPA: erreur peer (host)', err); });
+  peer.on('disconnected', () => {
+    // Perte de la liaison au broker : on garde le même id et on retente.
+    if (hostNode) hostNode.status = 'reconnexion';
+    try { if (hostPeer && !hostPeer.destroyed) hostPeer.reconnect(); } catch (e) { /* */ }
+  });
+  peer.on('error', (err) => {
+    if (err && err.type === 'unavailable-id') {
+      // Id encore occupé (refresh trop rapide / autre onglet) : on retente le
+      // même quelques fois, puis on bascule sur un nouvel id en dernier recours.
+      try { peer.destroy(); } catch (e) { /* */ }
+      const next = idRetries < 3 ? (idRetries++, id) : rotateStableId();
+      setTimeout(() => { if (mode === 'host') openHostPeer(next); }, idRetries ? 1500 : 300);
+      return;
+    }
+    if (hostNode) hostNode.status = 'error';
+    console.warn('TODOMAPPA: erreur peer (host)', err);
+  });
   peer.on('connection', (conn) => {
     conns.push(conn);
-    node.status = 'connected';
+    if (hostNode) hostNode.status = 'connected';
     conn.on('open', () => {
-      // Envoi immédiat de l'état courant au nouveau venu.
-      const content = buildContent();
+      const content = buildContent(); // état courant envoyé immédiatement au nouveau venu
       try { conn.send({ type: 'sync', from: 'host', n: content.n, c: content.c, h: content.h, mt: { ...mtimes }, del: [...tombstones] }); } catch (e) { /* */ }
     });
     conn.on('data', (msg) => handleData(msg, conn));
@@ -294,13 +337,23 @@ export function stopHost() {
   stopTick();
   resetSyncState();
   mode = null;
+  hostNode = null;
+  idRetries = 0;
   if (hostPeer) { try { hostPeer.destroy(); } catch (e) { /* */ } hostPeer = null; }
 }
 
+// Libère l'id au broker quand on ferme/rafraîchit (pour le récupérer ensuite).
+window.addEventListener('beforeunload', () => { if (hostPeer) { try { hostPeer.destroy(); } catch (e) { /* */ } } });
+
 // ---- CLIENT ----
 let clientPeer = null;
+let clientPeerId = null;
+let clientStatus = null;
+let clientRetry = null;
 
 export async function joinHost(peerId, onStatus) {
+  clientPeerId = peerId;
+  clientStatus = onStatus;
   try { await loadPeer(); } catch (e) { onStatus && onStatus('error'); return; }
   mode = 'client';
   clientFirstSync = true;
@@ -308,19 +361,34 @@ export async function joinHost(peerId, onStatus) {
   const peer = new Peer();
   clientPeer = peer;
 
-  peer.on('open', () => {
-    const conn = peer.connect(peerId, { reliable: true });
-    conns = [conn];
-    // On NE démarre PAS le tick ici : le client doit d'abord recevoir et adopter
-    // l'état du host (cf. handleData), sinon il lui pousserait ses anciens blocs.
-    conn.on('open', () => { onStatus && onStatus('connected'); });
-    conn.on('data', (msg) => {
-      const wasFirst = clientFirstSync && msg && msg.type === 'sync';
-      handleData(msg);
-      if (wasFirst) onStatus && onStatus('synced');
-    });
-    conn.on('error', () => onStatus && onStatus('error'));
-    conn.on('close', () => onStatus && onStatus('closed'));
+  peer.on('open', () => connectToHost());
+  peer.on('disconnected', () => { try { if (clientPeer && !clientPeer.destroyed) clientPeer.reconnect(); } catch (e) { /* */ } });
+  peer.on('error', (err) => { console.warn('TODOMAPPA: erreur peer (client)', err); scheduleClientRetry(); });
+}
+
+function connectToHost() {
+  if (!clientPeer || clientPeer.destroyed) return;
+  const conn = clientPeer.connect(clientPeerId, { reliable: true });
+  conns = [conn];
+  // Le tick (émission) ne démarre qu'après la 1re synchro reçue (cf. handleData).
+  conn.on('open', () => { clientStatus && clientStatus('connected'); });
+  conn.on('data', (msg) => {
+    const wasFirst = clientFirstSync && msg && msg.type === 'sync';
+    handleData(msg);
+    if (wasFirst) clientStatus && clientStatus('synced');
   });
-  peer.on('error', (err) => { onStatus && onStatus('error'); console.warn('TODOMAPPA: erreur peer (client)', err); });
+  conn.on('close', () => { clientStatus && clientStatus('closed'); scheduleClientRetry(); });
+  conn.on('error', () => scheduleClientRetry());
+}
+
+// Reconnexion automatique du client si le host tombe (erreur réseau / refresh).
+function scheduleClientRetry() {
+  if (mode !== 'client' || clientRetry) return;
+  clientStatus && clientStatus('reconnecting');
+  clientRetry = setTimeout(() => {
+    clientRetry = null;
+    clientFirstSync = true; // on ré-adoptera l'état du host
+    stopTick();
+    connectToHost();
+  }, 3000);
 }

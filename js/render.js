@@ -1,5 +1,5 @@
 // Rendu du board : grille pixel, cercles, hexagones, rectangles, glow néon, sélection.
-import { state, effectiveColor, sourceOf } from './state.js';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js';
 import { view, worldToScreen } from './camera.js';
 import { stretch } from './physics.js';
 import { hexCorners } from './geom.js';
@@ -314,7 +314,8 @@ function drawRect(ctx, n, color, selected, zoom) {
       ctx.beginPath();
       ctx.rect(-w / 2, -h / 2, w, h);
       ctx.clip();
-      const sc = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+      // contain : image entière, centrée (letterbox si besoin).
+      const sc = Math.min(w / img.naturalWidth, h / img.naturalHeight);
       const dw = img.naturalWidth * sc, dh = img.naturalHeight * sc;
       ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
       ctx.restore();
@@ -327,6 +328,26 @@ function drawRect(ctx, n, color, selected, zoom) {
   if (isLink) ctx.setLineDash([6 * zoom, 4 * zoom]);
   ctx.strokeRect(-w / 2, -h / 2, w, h);
   ctx.setLineDash([]);
+
+  // Badge "lien cliquable" (flèche ↗ cyan en haut à droite).
+  if (displayLink(n)) {
+    const bs = Math.max(9, 12 * zoom);
+    const bx = w / 2 - bs - 4 * zoom, by = -h / 2 + 4 * zoom;
+    ctx.fillStyle = '#00b7eb';
+    ctx.shadowColor = '#00b7eb';
+    ctx.shadowBlur = 6;
+    ctx.fillRect(bx, by, bs, bs);
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#04130a';
+    ctx.lineWidth = Math.max(1, 1.4 * zoom);
+    ctx.beginPath();
+    ctx.moveTo(bx + bs * 0.28, by + bs * 0.72);
+    ctx.lineTo(bx + bs * 0.72, by + bs * 0.28);
+    ctx.moveTo(bx + bs * 0.46, by + bs * 0.28);
+    ctx.lineTo(bx + bs * 0.72, by + bs * 0.28);
+    ctx.lineTo(bx + bs * 0.72, by + bs * 0.54);
+    ctx.stroke();
+  }
 
   // Texte.
   if (text) {
