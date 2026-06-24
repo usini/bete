@@ -1,6 +1,7 @@
 // Minimap : vue d'ensemble + viewport courant, clic pour recentrer.
 import { state, effectiveColor } from './state.js';
 import { view, centerOn } from './camera.js';
+import { hexCorners } from './geom.js';
 
 let canvas, ctx, W, H;
 
@@ -11,15 +12,21 @@ export function init() {
   ctx = canvas.getContext('2d');
   ctx.imageSmoothingEnabled = false;
 
-  canvas.addEventListener('mousedown', (e) => {
+  const recenter = (clientX, clientY) => {
     const rect = canvas.getBoundingClientRect();
-    const mx = (e.clientX - rect.left) / rect.width * W;
-    const my = (e.clientY - rect.top) / rect.height * H;
+    const mx = (clientX - rect.left) / rect.width * W;
+    const my = (clientY - rect.top) / rect.height * H;
     const b = bounds();
     const w = b.maxx - b.minx, h = b.maxy - b.miny;
     centerOn(b.minx + (mx / W) * w, b.miny + (my / H) * h);
+  };
+  canvas.addEventListener('mousedown', (e) => { recenter(e.clientX, e.clientY); e.stopPropagation(); });
+  canvas.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    if (t) recenter(t.clientX, t.clientY);
     e.stopPropagation();
-  });
+    e.preventDefault();
+  }, { passive: false });
 }
 
 // Bounding box monde de tout le contenu (+ padding), avec garde-fous.
@@ -31,6 +38,7 @@ function bounds() {
   };
   for (const n of state.nodes) { push(n.x, n.y); push(n.x + n.w, n.y + n.h); }
   for (const c of state.circles) { push(c.x - c.r, c.y - c.r); push(c.x + c.r, c.y + c.r); }
+  for (const h of state.hexagons) { push(h.x - h.r, h.y - h.r); push(h.x + h.r, h.y + h.r); }
   // Inclut la caméra pour rester repérable même sans contenu.
   push(state.camera.x, state.camera.y);
   if (!isFinite(minx)) { minx = -200; miny = -200; maxx = 200; maxy = 200; }
@@ -56,9 +64,20 @@ export function render() {
     ctx.lineWidth = 1.5;
     ctx.stroke();
   }
+  // Hexagones.
+  for (const h of state.hexagons) {
+    const pts = hexCorners(X(h.x), Y(h.y), Math.max(2, h.r * sx));
+    ctx.beginPath();
+    pts.forEach((pt, i) => (i ? ctx.lineTo(pt.x, pt.y) : ctx.moveTo(pt.x, pt.y)));
+    ctx.closePath();
+    ctx.strokeStyle = h.color;
+    ctx.globalAlpha = 0.8;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
   ctx.globalAlpha = 1;
 
-  // Rectangles (couleur effective = celle de leur cercle englobant).
+  // Rectangles (couleur effective = celle de leur cercle/hexagone englobant).
   for (const n of state.nodes) {
     ctx.fillStyle = effectiveColor(n);
     ctx.fillRect(X(n.x), Y(n.y), Math.max(2, n.w * sx), Math.max(2, n.h * sy));

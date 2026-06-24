@@ -1,20 +1,29 @@
-// Entrées : souris/clavier, drag élastique, menu radial, palette, édition texte.
+// Entrées : souris + tactile, drag élastique, liens hexagone, menu radial,
+// palette, édition texte, popup image.
 import {
-  state, addRect, addCircle, removeById, scheduleSave, COLORS, findById, newId,
+  state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
+  findById, newId, sourceOf, displayImage,
 } from './state.js';
 import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js';
 import { dragTo, reset } from './physics.js';
 import { exportJSON, importJSON } from './io.js';
+import { pointInHex } from './geom.js';
 
 let canvas;
-let drag = null;        // { mode, id, offx, offy }
+let drag = null;        // { mode, id, offx, offy, startX, startY }
 let lastPos = { x: 0, y: 0, t: 0 };
-let editing = null;     // { type:'rect'|'circle', id }
+let editing = null;     // { type, id }
 let onChange = () => {};
-let clipboard = null;   // { isCircle, data } pour le copier/coller
+let clipboard = null;   // { isCircle?, isHex?, isLink?, data }
 let lastMouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 
-const RESIZE_TOL = 12;  // tolérance (px écran) pour saisir le bord d'un cercle
+// Tactile.
+let pinch = null;
+let longPressTimer = null;
+let lastTap = 0;
+let lastTapPos = null;
+
+const RESIZE_TOL = 12;  // tolérance (px écran) pour saisir le bord d'une zone
 
 export function init(boardCanvas, changeCb) {
   canvas = boardCanvas;
@@ -24,10 +33,16 @@ export function init(boardCanvas, changeCb) {
   window.addEventListener('mousemove', onMouseMove);
   window.addEventListener('mousemove', (e) => { lastMouse.x = e.clientX; lastMouse.y = e.clientY; });
   window.addEventListener('mouseup', onMouseUp);
-  canvas.addEventListener('dblclick', onDblClick);
+  canvas.addEventListener('dblclick', (e) => handleDouble(e.clientX, e.clientY));
   canvas.addEventListener('wheel', onWheel, { passive: false });
-  canvas.addEventListener('contextmenu', onContextMenu);
+  canvas.addEventListener('contextmenu', (e) => { e.preventDefault(); openContextAt(e.clientX, e.clientY); });
   window.addEventListener('keydown', onKeyDown);
+
+  // Tactile.
+  canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+  canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+  canvas.addEventListener('touchend', onTouchEnd, { passive: false });
+  canvas.addEventListener('touchcancel', onTouchEnd, { passive: false });
 
   // Drag & drop d'images.
   canvas.addEventListener('dragover', (e) => { e.preventDefault(); });
@@ -36,6 +51,11 @@ export function init(boardCanvas, changeCb) {
   window.addEventListener('drop', (e) => e.preventDefault());
 
   document.getElementById('editor').addEventListener('blur', commitEdit);
+
+  // Fermeture de la popup image.
+  const pop = document.getElementById('imgpopup');
+  pop.addEventListener('mousedown', closeImagePopup);
+  pop.addEventListener('touchstart', (e) => { e.preventDefault(); closeImagePopup(); });
 }
 
 // ---- Hit testing (du plus haut au plus bas) ----
@@ -58,42 +78,61 @@ function hitCircle(w) {
   return null;
 }
 
-// ---- Souris ----
-function onMouseDown(e) {
-  if (e.button === 1 || e.button === 2) return; // milieu/droit gérés ailleurs
+function hitHexagon(w) {
+  const tol = RESIZE_TOL / state.camera.zoom;
+  for (let i = state.hexagons.length - 1; i >= 0; i--) {
+    const h = state.hexagons[i];
+    if (pointInHex(w.x, w.y, h.x, h.y, h.r + tol)) {
+      const edge = !pointInHex(w.x, w.y, h.x, h.y, h.r - tol);
+      return { c: h, edge };
+    }
+  }
+  return null;
+}
+
+// Hexagone (corps) contenant un point, le plus haut d'abord.
+function hexagonAt(px, py) {
+  for (let i = state.hexagons.length - 1; i >= 0; i--) {
+    const h = state.hexagons[i];
+    if (pointInHex(px, py, h.x, h.y, h.r)) return h;
+  }
+  return null;
+}
+
+// ---- Pointeur générique (souris + tactile) ----
+function pointerDown(sx, sy) {
   closeMenus();
-  const w = screenToWorld(e.clientX, e.clientY);
+  const w = screenToWorld(sx, sy);
 
   const r = hitRect(w);
   if (r) {
     state.selected = r.id;
-    drag = { mode: 'rect', id: r.id, offx: w.x - r.x, offy: w.y - r.y };
+    drag = { mode: 'rect', id: r.id, offx: w.x - r.x, offy: w.y - r.y, startX: r.x, startY: r.y };
     lastPos = { x: w.x, y: w.y, t: performance.now() };
     return;
   }
 
-  const hc = hitCircle(w);
-  if (hc) {
-    state.selected = hc.c.id;
-    drag = hc.edge
-      ? { mode: 'resize', id: hc.c.id }
-      : { mode: 'circle', id: hc.c.id, offx: w.x - hc.c.x, offy: w.y - hc.c.y };
+  const hz = hitHexagon(w) || hitCircle(w);
+  if (hz) {
+    state.selected = hz.c.id;
+    drag = hz.edge
+      ? { mode: 'resize', id: hz.c.id }
+      : { mode: 'zone', id: hz.c.id, offx: w.x - hz.c.x, offy: w.y - hz.c.y };
     return;
   }
 
-  // Fond : pan + désélection.
   state.selected = null;
-  drag = { mode: 'pan', px: e.clientX, py: e.clientY };
+  drag = { mode: 'pan', px: sx, py: sy };
 }
 
-function onMouseMove(e) {
+function pointerMove(sx, sy) {
   if (!drag) return;
   if (drag.mode === 'pan') {
-    panBy(e.clientX - drag.px, e.clientY - drag.py);
-    drag.px = e.clientX; drag.py = e.clientY;
+    panBy(sx - drag.px, sy - drag.py);
+    drag.px = sx; drag.py = sy;
     return;
   }
-  const w = screenToWorld(e.clientX, e.clientY);
+  const w = screenToWorld(sx, sy);
 
   if (drag.mode === 'rect') {
     const n = findById(drag.id);
@@ -103,7 +142,7 @@ function onMouseMove(e) {
     dragTo(n, w.x - drag.offx, w.y - drag.offy, dt);
     lastPos = { x: w.x, y: w.y, t: now };
     scheduleSave();
-  } else if (drag.mode === 'circle') {
+  } else if (drag.mode === 'zone') {
     const c = findById(drag.id);
     if (!c) return;
     c.x = w.x - drag.offx; c.y = w.y - drag.offy;
@@ -116,10 +155,42 @@ function onMouseMove(e) {
   }
 }
 
-function onMouseUp() {
-  if (drag) scheduleSave();
+function pointerUp() {
+  if (drag) finishDrag();
   drag = null;
 }
+
+// Lâcher un vrai rectangle dans un hexagone => crée un lien, l'original revient.
+function finishDrag() {
+  if (drag.mode === 'rect') {
+    const n = findById(drag.id);
+    if (n && !n.ref) {
+      const cx = n.x + n.w / 2, cy = n.y + n.h / 2;
+      const hex = hexagonAt(cx, cy);
+      if (hex) {
+        const startedOutside = !pointInHex(drag.startX + n.w / 2, drag.startY + n.h / 2, hex.x, hex.y, hex.r);
+        const dupInHex = state.nodes.some(m =>
+          m.ref === n.id && pointInHex(m.x + m.w / 2, m.y + m.h / 2, hex.x, hex.y, hex.r));
+        if (startedOutside && !dupInHex) {
+          const link = { id: newId(), x: cx - n.w / 2, y: cy - n.h / 2, w: n.w, h: n.h, ref: n.id };
+          state.nodes.push(link);
+          reset(link);
+          n.x = drag.startX; n.y = drag.startY; reset(n);
+          state.selected = link.id;
+        }
+      }
+    }
+  }
+  scheduleSave();
+}
+
+// ---- Souris ----
+function onMouseDown(e) {
+  if (e.button === 1 || e.button === 2) return; // milieu/droit gérés ailleurs
+  pointerDown(e.clientX, e.clientY);
+}
+function onMouseMove(e) { pointerMove(e.clientX, e.clientY); }
+function onMouseUp() { pointerUp(); }
 
 function onWheel(e) {
   e.preventDefault();
@@ -128,20 +199,82 @@ function onWheel(e) {
   scheduleSave();
 }
 
+// ---- Tactile ----
+function onTouchStart(e) {
+  if (e.touches.length === 1) {
+    const t = e.touches[0];
+    const now = performance.now();
+    if (now - lastTap < 300 && lastTapPos &&
+        Math.hypot(t.clientX - lastTapPos.x, t.clientY - lastTapPos.y) < 30) {
+      // Double-tap.
+      lastTap = 0;
+      handleDouble(t.clientX, t.clientY);
+      e.preventDefault();
+      return;
+    }
+    lastTap = now;
+    lastTapPos = { x: t.clientX, y: t.clientY };
+    pointerDown(t.clientX, t.clientY);
+    // Appui long => menu radial.
+    clearTimeout(longPressTimer);
+    longPressTimer = setTimeout(() => {
+      drag = null;
+      openContextAt(t.clientX, t.clientY);
+    }, 450);
+  } else if (e.touches.length === 2) {
+    clearTimeout(longPressTimer);
+    drag = null;
+    const [a, b] = e.touches;
+    pinch = {
+      dist: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY),
+      mx: (a.clientX + b.clientX) / 2,
+      my: (a.clientY + b.clientY) / 2,
+    };
+  }
+  e.preventDefault();
+}
+
+function onTouchMove(e) {
+  if (e.touches.length === 2 && pinch) {
+    const [a, b] = e.touches;
+    const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    const mx = (a.clientX + b.clientX) / 2, my = (a.clientY + b.clientY) / 2;
+    if (pinch.dist > 0) zoomAt(mx, my, dist / pinch.dist);
+    panBy(mx - pinch.mx, my - pinch.my);
+    pinch = { dist, mx, my };
+    scheduleSave();
+  } else if (e.touches.length === 1) {
+    const t = e.touches[0];
+    if (lastTapPos && Math.hypot(t.clientX - lastTapPos.x, t.clientY - lastTapPos.y) > 10) {
+      clearTimeout(longPressTimer);
+    }
+    pointerMove(t.clientX, t.clientY);
+  }
+  e.preventDefault();
+}
+
+function onTouchEnd(e) {
+  clearTimeout(longPressTimer);
+  if (e.touches.length < 2) pinch = null;
+  if (e.touches.length === 0) pointerUp();
+  e.preventDefault();
+}
+
 // ---- Drop d'image ----
 function onDrop(e) {
   e.preventDefault();
   const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
   if (!file || !file.type.startsWith('image/')) return;
   const w = screenToWorld(e.clientX, e.clientY);
-  const target = hitRect(w);
+  let target = hitRect(w);
+  // Sur un lien : on remplit la source.
+  if (target && target.ref) target = sourceOf(target);
 
   processImage(file, (src, ratio) => {
     if (target) {
-      target.image = src;          // remplit le rectangle visé
+      target.image = src;
       state.selected = target.id;
     } else {
-      // Crée un rectangle au ratio de l'image.
       const MAX = 220;
       let nw = MAX, nh = MAX;
       if (ratio >= 1) nh = Math.round(MAX / ratio);
@@ -176,29 +309,27 @@ function processImage(file, cb) {
   reader.readAsDataURL(file);
 }
 
-function onDblClick(e) {
-  const w = screenToWorld(e.clientX, e.clientY);
+// ---- Double-clic / double-tap ----
+function handleDouble(sx, sy) {
+  const w = screenToWorld(sx, sy);
   const r = hitRect(w);
-  if (r) { startEdit('rect', r); return; }
-  const hc = hitCircle(w);
-  if (hc) startEdit('circle', hc.c);
+  if (r) {
+    const img = displayImage(r);
+    if (img) { openImagePopup(img); return; }
+    const editTarget = r.ref ? sourceOf(r) : r; // éditer un lien = éditer sa source
+    if (editTarget) startEdit('rect', editTarget, r);
+    return;
+  }
+  const hz = hitHexagon(w) || hitCircle(w);
+  if (hz) startEdit('zone', hz.c, hz.c);
 }
 
 function onKeyDown(e) {
   if (editing) return;
 
-  // Copier / coller l'élément sélectionné.
   const mod = e.ctrlKey || e.metaKey;
-  if (mod && (e.key === 'c' || e.key === 'C')) {
-    copySelection();
-    e.preventDefault();
-    return;
-  }
-  if (mod && (e.key === 'v' || e.key === 'V')) {
-    pasteClipboard();
-    e.preventDefault();
-    return;
-  }
+  if (mod && (e.key === 'c' || e.key === 'C')) { copySelection(); e.preventDefault(); return; }
+  if (mod && (e.key === 'v' || e.key === 'V')) { pasteClipboard(); e.preventDefault(); return; }
 
   if ((e.key === 'Delete' || e.key === 'Backspace') && state.selected) {
     removeById(state.selected);
@@ -211,20 +342,22 @@ function onKeyDown(e) {
 function copySelection() {
   const el = state.selected && findById(state.selected);
   if (!el) return;
-  const isCircle = state.circles.includes(el);
-  // Copie superficielle sans les champs physiques (préfixés _).
   const data = {};
   for (const k in el) if (k[0] !== '_' && k !== 'id') data[k] = el[k];
-  clipboard = { isCircle, data };
+  clipboard = {
+    isCircle: state.circles.includes(el),
+    isHex: state.hexagons.includes(el),
+    data,
+  };
 }
 
 function pasteClipboard() {
   if (!clipboard) return;
   const w = screenToWorld(lastMouse.x, lastMouse.y);
-  if (clipboard.isCircle) {
-    const c = { ...clipboard.data, id: newId(), x: w.x, y: w.y };
-    state.circles.push(c);
-    state.selected = c.id;
+  if (clipboard.isCircle || clipboard.isHex) {
+    const z = { ...clipboard.data, id: newId(), x: w.x, y: w.y };
+    (clipboard.isHex ? state.hexagons : state.circles).push(z);
+    state.selected = z.id;
   } else {
     const d = clipboard.data;
     const n = { ...d, id: newId(), x: w.x - (d.w || 150) / 2, y: w.y - (d.h || 70) / 2 };
@@ -236,34 +369,37 @@ function pasteClipboard() {
 }
 
 // ---- Menu radial ----
-function onContextMenu(e) {
-  e.preventDefault();
+function openContextAt(sx, sy) {
   closeMenus();
-  const w = screenToWorld(e.clientX, e.clientY);
+  const w = screenToWorld(sx, sy);
   const r = hitRect(w);
-  const hc = !r ? hitCircle(w) : null;
+  const hz = !r ? (hitHexagon(w) || hitCircle(w)) : null;
 
   let items;
   if (r) {
-    items = [{ label: 'Éditer', fn: () => startEdit('rect', r) }];
-    if (r.image) items.push({ label: 'Img ✕', fn: () => { delete r.image; scheduleSave(); } });
-    items.push({ label: 'Suppr', fn: () => { removeById(r.id); scheduleSave(); } });
-  } else if (hc) {
-    const c = hc.c;
+    const isLink = !!r.ref;
+    items = [{ label: 'Éditer', fn: () => { const t = isLink ? sourceOf(r) : r; if (t) startEdit('rect', t, r); } }];
+    const img = displayImage(r);
+    if (img) items.push({ label: 'Voir img', fn: () => openImagePopup(img) });
+    if (!isLink && r.image) items.push({ label: 'Img ✕', fn: () => { delete r.image; scheduleSave(); } });
+    items.push({ label: isLink ? 'Délier' : 'Suppr', fn: () => { removeById(r.id); scheduleSave(); } });
+  } else if (hz) {
+    const c = hz.c;
     items = [
-      { label: 'Couleur', fn: () => openPalette(e.clientX, e.clientY, c) },
-      { label: 'Texte', fn: () => startEdit('circle', c) },
+      { label: 'Couleur', fn: () => openPalette(sx, sy, c) },
+      { label: 'Texte', fn: () => startEdit('zone', c, c) },
       { label: 'Suppr', fn: () => { removeById(c.id); scheduleSave(); } },
     ];
   } else {
     items = [
-      { label: '+ Rect', fn: () => { const n = addRect(w.x - 75, w.y - 35); reset(n); state.selected = n.id; startEdit('rect', n); scheduleSave(); } },
+      { label: '+ Rect', fn: () => { const n = addRect(w.x - 75, w.y - 35); reset(n); state.selected = n.id; startEdit('rect', n, n); scheduleSave(); } },
       { label: '+ Cercle', fn: () => { const c = addCircle(w.x, w.y); state.selected = c.id; scheduleSave(); } },
+      { label: '+ Hexa', fn: () => { const h = addHexagon(w.x, w.y); state.selected = h.id; scheduleSave(); } },
       { label: 'Export', fn: () => exportJSON() },
       { label: 'Import', fn: () => importJSON(() => { onChange(); }) },
     ];
   }
-  openRadial(e.clientX, e.clientY, items);
+  openRadial(sx, sy, items);
 }
 
 function openRadial(x, y, items) {
@@ -274,78 +410,86 @@ function openRadial(x, y, items) {
   radial.classList.remove('hidden');
 
   const n = items.length;
-  const radius = 78;
-  const start = -Math.PI / 2; // premier item en haut
+  const radius = 84;
+  const start = -Math.PI / 2;
   items.forEach((it, i) => {
     const ang = start + (i / Math.max(n, 1)) * Math.PI * 2;
-    const dx = Math.cos(ang) * radius;
-    const dy = Math.sin(ang) * radius;
     const el = document.createElement('div');
     el.className = 'item';
     el.textContent = it.label;
-    el.style.left = dx + 'px';
-    el.style.top = dy + 'px';
+    el.style.left = Math.cos(ang) * radius + 'px';
+    el.style.top = Math.sin(ang) * radius + 'px';
     el.addEventListener('mousedown', (ev) => ev.stopPropagation());
-    el.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      closeMenus();
-      it.fn();
-    });
+    el.addEventListener('touchstart', (ev) => ev.stopPropagation());
+    el.addEventListener('click', (ev) => { ev.stopPropagation(); closeMenus(); it.fn(); });
     radial.appendChild(el);
-    // Déclenche l'animation de pop.
     requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('pop')));
   });
-
-  // Fermeture au prochain clic ailleurs.
-  setTimeout(() => document.addEventListener('mousedown', closeMenusOnce, { once: true }), 0);
+  armCloseOnce();
 }
 
 // ---- Palette de couleurs ----
-function openPalette(x, y, circle) {
+function openPalette(x, y, zone) {
   const pal = document.getElementById('palette');
   pal.innerHTML = '';
-  pal.style.left = Math.min(x, window.innerWidth - 134) + 'px';
-  pal.style.top = Math.min(y, window.innerHeight - 120) + 'px';
+  pal.style.left = Math.min(x, window.innerWidth - 150) + 'px';
+  pal.style.top = Math.min(y, window.innerHeight - 130) + 'px';
   pal.classList.remove('hidden');
   COLORS.forEach((col) => {
     const sw = document.createElement('div');
     sw.className = 'swatch';
     sw.style.background = col;
     sw.addEventListener('mousedown', (ev) => ev.stopPropagation());
-    sw.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      circle.color = col;
-      scheduleSave();
-      closeMenus();
-    });
+    sw.addEventListener('touchstart', (ev) => ev.stopPropagation());
+    sw.addEventListener('click', (ev) => { ev.stopPropagation(); zone.color = col; scheduleSave(); closeMenus(); });
     pal.appendChild(sw);
   });
-  setTimeout(() => document.addEventListener('mousedown', closeMenusOnce, { once: true }), 0);
+  armCloseOnce();
 }
 
+function armCloseOnce() {
+  setTimeout(() => {
+    document.addEventListener('mousedown', closeMenusOnce, { once: true });
+    document.addEventListener('touchstart', closeMenusOnce, { once: true });
+  }, 0);
+}
 function closeMenusOnce() { closeMenus(); }
 function closeMenus() {
   document.getElementById('radial').classList.add('hidden');
   document.getElementById('palette').classList.add('hidden');
   document.removeEventListener('mousedown', closeMenusOnce);
+  document.removeEventListener('touchstart', closeMenusOnce);
+}
+
+// ---- Popup image ----
+function openImagePopup(src) {
+  closeMenus();
+  const pop = document.getElementById('imgpopup');
+  pop.querySelector('img').src = src;
+  pop.classList.add('show');
+}
+function closeImagePopup() {
+  document.getElementById('imgpopup').classList.remove('show');
 }
 
 // ---- Édition de texte ----
-function startEdit(type, target) {
+// target = élément édité (pour un lien : sa source) ; posNode = élément à survoler.
+function startEdit(type, target, posNode) {
+  posNode = posNode || target;
   closeMenus();
   editing = { type, id: target.id };
   const ed = document.getElementById('editor');
   const z = state.camera.zoom;
 
   if (type === 'rect') {
-    const p = worldToScreen(target.x, target.y);
+    const p = worldToScreen(posNode.x, posNode.y);
     ed.style.left = p.x + 'px';
     ed.style.top = p.y + 'px';
-    ed.style.width = (target.w * z) + 'px';
-    ed.style.height = (target.h * z) + 'px';
+    ed.style.width = (posNode.w * z) + 'px';
+    ed.style.height = (posNode.h * z) + 'px';
     ed.value = target.text || '';
   } else {
-    const p = worldToScreen(target.x, target.y - target.r);
+    const p = worldToScreen(posNode.x, posNode.y - posNode.r);
     const wpx = 220;
     ed.style.left = (p.x - wpx / 2) + 'px';
     ed.style.top = p.y + 'px';
@@ -372,10 +516,9 @@ function commitEdit() {
   ed.classList.remove('show');
 }
 
-// Échap pour valider/fermer l'éditeur.
+// Échap : ferme l'éditeur ou la popup image.
 window.addEventListener('keydown', (e) => {
-  if (editing && e.key === 'Escape') {
-    e.preventDefault();
-    document.getElementById('editor').blur();
-  }
+  if (e.key !== 'Escape') return;
+  if (editing) { e.preventDefault(); document.getElementById('editor').blur(); }
+  closeImagePopup();
 });

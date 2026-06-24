@@ -1,7 +1,8 @@
-// Rendu du board : grille pixel, cercles, rectangles, glow néon, sélection.
-import { state, effectiveColor } from './state.js';
+// Rendu du board : grille pixel, cercles, hexagones, rectangles, glow néon, sélection.
+import { state, effectiveColor, sourceOf } from './state.js';
 import { view, worldToScreen } from './camera.js';
 import { stretch } from './physics.js';
+import { hexCorners } from './geom.js';
 
 const FONT = "'Press Start 2P', monospace";
 const BG = '#0d0f12';
@@ -21,11 +22,44 @@ export function render(ctx) {
 
   drawGrid(ctx);
 
-  // Cercles (sous les rectangles).
+  // Zones (sous les rectangles) : cercles puis hexagones.
   for (const c of state.circles) drawCircle(ctx, c, c.id === state.selected);
+  for (const h of state.hexagons) drawHexagon(ctx, h, h.id === state.selected);
 
   // Rectangles (au-dessus).
   for (const n of state.nodes) drawRect(ctx, n, effectiveColor(n), n.id === state.selected, zoom);
+}
+
+function drawHexagon(ctx, hgn, selected) {
+  const p = worldToScreen(hgn.x, hgn.y);
+  const R = hgn.r * state.camera.zoom;
+  const pts = hexCorners(p.x, p.y, R);
+
+  ctx.save();
+  ctx.beginPath();
+  pts.forEach((pt, i) => (i ? ctx.lineTo(pt.x, pt.y) : ctx.moveTo(pt.x, pt.y)));
+  ctx.closePath();
+  ctx.fillStyle = hexToRgba(hgn.color, 0.08);
+  ctx.fill();
+  ctx.shadowColor = hgn.color;
+  ctx.shadowBlur = selected ? 24 : 12;
+  ctx.lineWidth = selected ? 5 : 3;
+  ctx.strokeStyle = hgn.color;
+  ctx.stroke();
+  ctx.restore();
+
+  if (hgn.description) {
+    const fs = clamp(11 * state.camera.zoom, 7, 22);
+    ctx.save();
+    ctx.font = `${fs}px ${FONT}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle = hgn.color;
+    ctx.shadowColor = hgn.color;
+    ctx.shadowBlur = 8;
+    ctx.fillText(hgn.description, p.x, p.y - R - 4);
+    ctx.restore();
+  }
 }
 
 function drawGrid(ctx) {
@@ -76,6 +110,12 @@ function drawCircle(ctx, c, selected) {
 }
 
 function drawRect(ctx, n, color, selected, zoom) {
+  // Liens : contenu dérivé de la source.
+  const isLink = !!n.ref;
+  const src = isLink ? sourceOf(n) : null;
+  const text = isLink ? (src ? src.text : '') : n.text;
+  const image = isLink ? (src ? src.image : null) : n.image;
+
   // Position rendue (physique) + centre.
   const rx = n._rx !== undefined ? n._rx : n.x;
   const ry = n._ry !== undefined ? n._ry : n.y;
@@ -103,8 +143,8 @@ function drawRect(ctx, n, color, selected, zoom) {
   ctx.fillRect(-w / 2, -h / 2, w, h);
 
   // Image éventuelle (cover-fit, clippée au rectangle).
-  if (n.image) {
-    const img = getImg(n.image);
+  if (image) {
+    const img = getImg(image);
     if (img.complete && img.naturalWidth) {
       ctx.save();
       ctx.shadowBlur = 0;
@@ -118,19 +158,22 @@ function drawRect(ctx, n, color, selected, zoom) {
     }
   }
 
+  // Bordure (pointillés pour un lien).
   ctx.lineWidth = selected ? 5 : 3;
   ctx.strokeStyle = color;
+  if (isLink) ctx.setLineDash([6 * zoom, 4 * zoom]);
   ctx.strokeRect(-w / 2, -h / 2, w, h);
+  ctx.setLineDash([]);
 
   // Texte.
-  if (n.text) {
+  if (text) {
     const fs = clamp(11 * zoom, 6, 26);
     ctx.shadowBlur = 6;
     ctx.fillStyle = color;
     ctx.font = `${fs}px ${FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    drawWrapped(ctx, n.text, w - 16 * zoom, fs);
+    drawWrapped(ctx, text, w - 16 * zoom, fs);
   }
   ctx.restore();
 }

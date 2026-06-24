@@ -1,5 +1,5 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, load, setSaveSuppressed } from './state.js';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, newId } from './state.js';
 import { setView } from './camera.js';
 import { render } from './render.js';
 import { step, reset } from './physics.js';
@@ -50,11 +50,16 @@ async function loadFromUrl(url) {
 }
 
 function seedDemo() {
-  const c = addCircle(0, 0, '#107c10');
+  const c = addCircle(-140, 0, '#107c10');
   c.description = 'TODO';
-  const a = addRect(-110, -40, 'Clic droit\npour creer');
-  const b = addRect(40, 10, 'Glisse-moi !');
-  reset(a); reset(b);
+  const a = addRect(-230, -30, 'Tache A');
+  const b = addRect(-180, 50, 'Glisse-moi\ndans l\'hexa');
+  // Hexagone "AUJOURDHUI" avec un lien vers Tache A.
+  const hx = addHexagon(190, 0, '#ff8c00');
+  hx.description = 'AUJOURDHUI';
+  const link = { id: newId(), x: 130, y: -30, w: 150, h: 70, ref: a.id };
+  state.nodes.push(link);
+  reset(a); reset(b); reset(link);
 }
 
 minimap.init();
