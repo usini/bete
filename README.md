@@ -42,9 +42,11 @@ Pour recopier ton board d'un appareil à l'autre (ex. desktop → téléphone) :
 
 1. Sur l'appareil **source** (HOST) : menu radial → **« + Liaison »**. Un bloc QR code apparaît.
 2. Sur l'autre appareil (CLIENT) : **scanne le QR** (ou ouvre le lien — clic sur le bloc le copie).
-3. Le client se connecte, **son board est écrasé** par celui du host, puis reste **synchronisé en direct** tant que la fenêtre du host reste ouverte.
+3. À la connexion, le board du client est remplacé par celui du host, puis les deux restent **synchronisés en direct, dans les deux sens**, tant que la fenêtre du host reste ouverte.
 
-Connexion **P2P chiffrée** (WebRTC via PeerJS) ; seuls des identifiants transitent par le broker de signalisation, le board passe en direct entre les deux navigateurs. Si le host ferme sa fenêtre, la synchro s'arrête (le board déjà reçu reste sur le client). Les libs PeerJS / QR sont chargées à la demande (CDN), l'app reste sans dépendance au repos.
+**Ce qui est synchronisé = uniquement le contenu** : texte, image, couleur, description, liens, créations/suppressions. **La vue et les positions ne le sont pas** : chaque écran garde sa propre caméra et sa disposition (ex. un écran en vue large, un autre zoomé sur un cercle). En cas de modification simultanée du même élément, **l'hôte l'emporte**.
+
+Connexion **P2P chiffrée** (WebRTC via PeerJS) ; seuls des identifiants transitent par le broker de signalisation, le contenu passe en direct entre les deux navigateurs. Si le host ferme sa fenêtre, la synchro s'arrête (le board déjà reçu reste sur le client). Les libs PeerJS / QR sont chargées à la demande (CDN), l'app reste sans dépendance au repos.
 
 ### Mobile / tactile
 

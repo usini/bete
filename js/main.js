@@ -39,20 +39,16 @@ const peerId = params.get('peer');
 const fileUrl = params.get('file');
 
 if (peerId) {
-  // Mode CLIENT : affiche le board local puis le remplace par celui du host.
+  // Mode CLIENT : affiche le board local puis se synchronise (bidirectionnel).
   if (!restore()) seedDemo();
   state.nodes.forEach(reset);
   toast('CONNEXION AU HOST...');
-  joinHost(
-    peerId,
-    () => { state.nodes.forEach(reset); scheduleSave(); }, // board reçu : écrase le local
-    (st) => {
-      if (st === 'synced') toast('SYNCHRONISE ✓');
-      else if (st === 'connected') toast('CONNECTE - RECEPTION...');
-      else if (st === 'error') toast('HOST INJOIGNABLE', 4000);
-      else if (st === 'closed') toast('HOST DECONNECTE', 4000);
-    },
-  );
+  joinHost(peerId, (st) => {
+    if (st === 'synced') toast('SYNCHRONISE ✓');
+    else if (st === 'connected') toast('CONNECTE - RECEPTION...');
+    else if (st === 'error') toast('HOST INJOIGNABLE', 4000);
+    else if (st === 'closed') toast('HOST DECONNECTE', 4000);
+  });
 } else if (fileUrl) {
   // Mode "ouverture de fichier" : on n'écrase pas le localStorage perso.
   setSaveSuppressed(true);
