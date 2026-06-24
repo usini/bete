@@ -26,11 +26,88 @@ export function render(ctx) {
   for (const c of state.circles) drawCircle(ctx, c, c.id === state.selected);
   for (const h of state.hexagons) drawHexagon(ctx, h, h.id === state.selected);
 
-  // Rectangles & blocs Liaison (au-dessus).
+  // Rectangles, pancartes & blocs Liaison (au-dessus).
   for (const n of state.nodes) {
     if (n.kind === 'liaison') drawLiaison(ctx, n, n.id === state.selected, zoom);
+    else if (n.kind === 'pancarte') drawPancarte(ctx, n, n.id === state.selected, zoom);
     else drawRect(ctx, n, effectiveColor(n), n.id === state.selected, zoom);
   }
+}
+
+// Pancarte : rectangle plus grand avec texture bois et texte gravé.
+function drawPancarte(ctx, n, selected, zoom) {
+  const rx = n._rx !== undefined ? n._rx : n.x;
+  const ry = n._ry !== undefined ? n._ry : n.y;
+  const p = worldToScreen(rx + n.w / 2, ry + n.h / 2);
+  const w = n.w * zoom, h = n.h * zoom;
+  const st = stretch(n);
+
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  if (st.sx !== 1 || st.sy !== 1) {
+    ctx.rotate(st.angle);
+    ctx.scale(st.sx, st.sy);
+    ctx.rotate(-st.angle);
+  }
+
+  // Planches de bois (clippées au rectangle).
+  ctx.shadowColor = '#000';
+  ctx.shadowBlur = selected ? 20 : 8;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(-w / 2, -h / 2, w, h);
+  ctx.clip();
+  const shades = ['#6b4a2b', '#5c3f24', '#74522f'];
+  const planks = 3;
+  const ph = h / planks;
+  for (let i = 0; i < planks; i++) {
+    const top = -h / 2 + i * ph;
+    ctx.fillStyle = shades[i % shades.length];
+    ctx.fillRect(-w / 2, top, w, ph);
+    ctx.fillStyle = '#3d2917'; // séparateur de planche
+    ctx.fillRect(-w / 2, top, w, Math.max(1, 2 * zoom));
+    ctx.strokeStyle = 'rgba(40,25,12,0.4)'; // veines
+    ctx.lineWidth = Math.max(1, zoom);
+    for (let g = 0; g < 2; g++) {
+      const gy = top + ph * (0.35 + g * 0.35);
+      ctx.beginPath();
+      ctx.moveTo(-w / 2, gy);
+      ctx.lineTo(w / 2, gy + (g ? -3 : 3) * zoom);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+
+  // Cadre + clous + liseré de sélection.
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = selected ? 5 : 3;
+  ctx.strokeStyle = '#3d2917';
+  ctx.strokeRect(-w / 2, -h / 2, w, h);
+  if (selected) {
+    ctx.strokeStyle = '#39ff14';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-w / 2 - 3, -h / 2 - 3, w + 6, h + 6);
+  }
+  ctx.fillStyle = '#2a1a0e';
+  const nail = Math.max(2, 3 * zoom), off = 9 * zoom;
+  [[-w / 2 + off, -h / 2 + off], [w / 2 - off, -h / 2 + off], [-w / 2 + off, h / 2 - off], [w / 2 - off, h / 2 - off]]
+    .forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x, y, nail, 0, Math.PI * 2); ctx.fill(); });
+
+  // Texte gravé (clair avec ombre sombre).
+  if (n.text) {
+    const fs = clamp(11 * zoom, 6, 24);
+    ctx.fillStyle = '#f3e3c0';
+    ctx.shadowColor = '#2a1a0e';
+    ctx.shadowOffsetX = 1.5 * zoom;
+    ctx.shadowOffsetY = 1.5 * zoom;
+    ctx.font = `${fs}px ${FONT}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    drawWrapped(ctx, n.text, w - 22 * zoom, fs);
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+  }
+  ctx.restore();
 }
 
 // Bloc de liaison P2P : QR code + statut. Clic = copie le lien.

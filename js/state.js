@@ -110,7 +110,7 @@ export function serialize() {
       .filter(n => n.kind !== 'liaison') // blocs de liaison = transitoires
       .map(n => n.ref
         ? { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, ref: n.ref }
-        : { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, text: n.text, image: n.image || undefined }),
+        : { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, text: n.text, image: n.image || undefined, kind: n.kind === 'pancarte' ? 'pancarte' : undefined }),
     circles: state.circles.map(c => ({
       id: c.id, x: c.x, y: c.y, r: c.r, color: c.color, description: c.description || '',
     })),

@@ -19,7 +19,9 @@ python -m http.server 8000
 
 ## Utilisation
 
-- **Clic droit** : menu radial (créer rectangle/cercle/hexagone, couleur, texte, suppr, export/import).
+- **Clic droit** : menu radial (créer rectangle/pancarte/cercle/hexagone/liaison, couleur, texte, suppr, export/import).
+- **Pancarte** : un rectangle plus grand à texture bois, pour les titres/panneaux.
+- **Supprimer** un objet le fait **exploser en morceaux** (animation, synchronisée avec les clients).
 - **Molette** : zoom · **glisser le fond** : déplacer la vue.
 - **Glisser un rectangle** : déplacement élastique.
 - **Glisser le bord d'un cercle/hexagone** : redimensionner · **glisser son intérieur** : déplacer.
@@ -44,7 +46,7 @@ Pour recopier ton board d'un appareil à l'autre (ex. desktop → téléphone) :
 2. Sur l'autre appareil (CLIENT) : **scanne le QR** (ou ouvre le lien — clic sur le bloc le copie).
 3. À la connexion, le board du client est remplacé par celui du host, puis les deux restent **synchronisés en direct, dans les deux sens**, tant que la fenêtre du host reste ouverte.
 
-**Ce qui est synchronisé = uniquement le contenu** : texte, image, couleur, description, liens, créations/suppressions. **La vue et les positions ne le sont pas** : chaque écran garde sa propre caméra et sa disposition (ex. un écran en vue large, un autre zoomé sur un cercle). En cas de modification simultanée du même élément, **l'hôte l'emporte**.
+**Synchronisé** : le contenu (texte, image, couleur, description, liens, créations/suppressions) et la **position des objets** — mais celle-ci seulement **au lâcher** (pas pendant le glissement), et l'autre écran l'**anime**. **La caméra reste indépendante** : chaque écran garde son zoom/cadrage (ex. un écran en vue large, un autre zoomé sur un cercle). En cas de modification simultanée du même élément, **l'hôte l'emporte**.
 
 Connexion **P2P chiffrée** (WebRTC via PeerJS) ; seuls des identifiants transitent par le broker de signalisation, le contenu passe en direct entre les deux navigateurs. Si le host ferme sa fenêtre, la synchro s'arrête (le board déjà reçu reste sur le client). Les libs PeerJS / QR sont chargées à la demande (CDN), l'app reste sans dépendance au repos.
 

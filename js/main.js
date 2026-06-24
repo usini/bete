@@ -5,6 +5,7 @@ import { render } from './render.js';
 import { step, reset } from './physics.js';
 import * as minimap from './minimap.js';
 import * as input from './input.js';
+import * as fx from './fx.js';
 import { joinHost } from './sync.js';
 
 let toastTimer = null;
@@ -91,20 +92,22 @@ minimap.init();
 input.init(board, () => { state.nodes.forEach(reset); });
 
 // Handle de debug (inspection console : todomappa.state).
-window.todomappa = { state };
+window.todomappa = { state, fx };
 
 let last = performance.now();
 function loop(now) {
   const dt = (now - last) / 1000;
   last = now;
 
-  // Physique des rectangles.
+  // Physique des rectangles + particules.
   for (const n of state.nodes) step(n, dt);
+  fx.update(dt);
 
   // Rendu board (en coordonnées CSS px grâce au scale DPR).
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.imageSmoothingEnabled = false;
   render(ctx);
+  fx.render(ctx);
 
   minimap.render();
   requestAnimationFrame(loop);

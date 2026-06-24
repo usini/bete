@@ -4,6 +4,7 @@
 // garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
 import { state, removeById, scheduleSave } from './state.js';
 import { reset } from './physics.js';
+import { explodeElementCascade } from './fx.js';
 
 const PEERJS_SRC = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
 const QR_SRC = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
@@ -58,9 +59,10 @@ function localIds() {
   return ids;
 }
 function nodeEntry(n) {
-  return n.ref !== undefined
-    ? { ref: n.ref, x: n.x, y: n.y, w: n.w, h: n.h }
-    : { t: n.text || '', img: n.image || null, x: n.x, y: n.y, w: n.w, h: n.h };
+  if (n.ref !== undefined) return { ref: n.ref, x: n.x, y: n.y, w: n.w, h: n.h };
+  const e = { t: n.text || '', img: n.image || null, x: n.x, y: n.y, w: n.w, h: n.h };
+  if (n.kind === 'pancarte') e.k = 'pancarte';
+  return e;
 }
 function sigNode(e) { return e.ref !== undefined ? 'R' + e.ref : 'T' + e.t + '' + (e.img || ''); }
 function sigZone(e) { return 'Z' + e.col + '' + e.d; }
@@ -124,7 +126,8 @@ function merge(remote) {
 
   for (const id of remote.del || []) {
     tombstones.add(id);
-    if (findLocal(id)) { removeById(id); delete mtimes[id]; applied.add(id); changed = true; }
+    const el = findLocal(id);
+    if (el) { explodeElementCascade(el); removeById(id); delete mtimes[id]; applied.add(id); changed = true; }
   }
 
   const win = (id) => {
@@ -141,6 +144,7 @@ function merge(remote) {
       const node = rd.ref !== undefined
         ? { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, ref: rd.ref }
         : { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, text: rd.t || '', image: rd.img || undefined };
+      if (rd.k) node.kind = rd.k;
       state.nodes.push(node); reset(node);
       mtimes[id] = (remote.mt && remote.mt[id]) || now();
       applied.add(id); changed = true;
@@ -189,17 +193,60 @@ function mergeZones(arr, rem, remote, win, applied) {
   return changed;
 }
 
-function handleData(msg) {
-  if (!msg || msg.type !== 'sync') return;
-  if (mode === 'client' && clientFirstSync) {
-    // Première synchro côté client : on écrase le board local par celui du host.
-    clientFirstSync = false;
-    state.nodes.length = 0;
-    state.circles.length = 0;
-    state.hexagons.length = 0;
-    tombstones = new Set(); mtimes = {}; prevSigs = {}; prevLocalIds = null;
+function handleData(msg, origin) {
+  if (!msg) return;
+  if (msg.type === 'sync') {
+    if (mode === 'client' && clientFirstSync) {
+      // Première synchro côté client : on écrase le board local par celui du host.
+      clientFirstSync = false;
+      state.nodes.length = 0;
+      state.circles.length = 0;
+      state.hexagons.length = 0;
+      tombstones = new Set(); mtimes = {}; prevSigs = {}; prevLocalIds = null;
+    }
+    merge(msg);
+  } else if (msg.type === 'move') {
+    applyMove(msg);
+  } else if (msg.type === 'delete') {
+    applyDelete(msg);
   }
-  merge(msg);
+  // Le host relaie les événements ponctuels aux autres clients.
+  if (mode === 'host' && (msg.type === 'move' || msg.type === 'delete')) {
+    conns.forEach((c) => { if (c !== origin) { try { if (c.open) c.send(msg); } catch (e) { /* */ } } });
+  }
+}
+
+// Position déposée : on met à jour la cible (le ressort anime côté node).
+function applyMove(msg) {
+  const el = findLocal(msg.id);
+  if (!el) return;
+  if (msg.x != null) el.x = msg.x;
+  if (msg.y != null) el.y = msg.y;
+  if (msg.w != null) el.w = msg.w;
+  if (msg.h != null) el.h = msg.h;
+  if (msg.r != null) el.r = msg.r;
+  scheduleSave();
+}
+
+function applyDelete(msg) {
+  tombstones.add(msg.id);
+  const el = findLocal(msg.id);
+  if (el) { explodeElementCascade(el); removeById(msg.id); delete mtimes[msg.id]; delete prevSigs[msg.id]; scheduleSave(); }
+}
+
+// Appelé au lâcher d'un objet (drop) : diffuse sa position finale.
+export function pushMove(el) {
+  if (!conns.length || !el) return;
+  const msg = el.r !== undefined
+    ? { type: 'move', id: el.id, x: el.x, y: el.y, r: el.r }
+    : { type: 'move', id: el.id, x: el.x, y: el.y, w: el.w, h: el.h };
+  conns.forEach((c) => { try { if (c.open) c.send(msg); } catch (e) { /* */ } });
+}
+
+// Appelé à la suppression : déclenche l'explosion chez les pairs.
+export function pushDelete(id) {
+  if (!conns.length) return;
+  conns.forEach((c) => { try { if (c.open) c.send({ type: 'delete', id }); } catch (e) { /* */ } });
 }
 
 // ---- HOST ----
@@ -232,7 +279,7 @@ export async function startHost(node) {
       const content = buildContent();
       try { conn.send({ type: 'sync', from: 'host', n: content.n, c: content.c, h: content.h, mt: { ...mtimes }, del: [...tombstones] }); } catch (e) { /* */ }
     });
-    conn.on('data', handleData);
+    conn.on('data', (msg) => handleData(msg, conn));
     conn.on('close', () => { conns = conns.filter(c => c !== conn); });
     conn.on('error', () => { conns = conns.filter(c => c !== conn); });
   });
@@ -261,7 +308,7 @@ export async function joinHost(peerId, onStatus) {
     conns = [conn];
     conn.on('open', () => { onStatus && onStatus('connected'); startTick(); });
     conn.on('data', (msg) => {
-      const wasFirst = clientFirstSync;
+      const wasFirst = clientFirstSync && msg && msg.type === 'sync';
       handleData(msg);
       if (wasFirst) onStatus && onStatus('synced');
     });

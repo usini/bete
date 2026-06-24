@@ -8,7 +8,8 @@ import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js';
 import { dragTo, reset } from './physics.js';
 import { exportJSON, importJSON } from './io.js';
 import { pointInHex } from './geom.js';
-import { startHost, stopHost } from './sync.js';
+import { startHost, stopHost, pushMove, pushDelete } from './sync.js';
+import { explodeElementCascade } from './fx.js';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -188,6 +189,10 @@ function finishDrag() {
       }
     }
   }
+
+  // Position déposée : on synchronise la position finale (pas pendant le drag).
+  const el = findById(drag.id);
+  if (el && el.kind !== 'liaison') pushMove(el);
   scheduleSave();
 }
 
@@ -363,9 +368,12 @@ function copyLink(n) {
   }
 }
 
-// Supprime un élément (et coupe le host si c'est un bloc Liaison).
+// Supprime un élément (explosion + propagation ; coupe le host si Liaison).
 function removeElement(el) {
-  if (el && el.kind === 'liaison') stopHost();
+  if (!el) return;
+  if (el.kind === 'liaison') { stopHost(); removeById(el.id); scheduleSave(); return; }
+  explodeElementCascade(el); // explosion locale
+  pushDelete(el.id);         // explosion + suppression chez les pairs
   removeById(el.id);
   scheduleSave();
 }
@@ -431,6 +439,7 @@ function openContextAt(sx, sy) {
   } else {
     items = [
       { label: '+ Rect', fn: () => { const n = addRect(w.x - 75, w.y - 35); reset(n); state.selected = n.id; startEdit('rect', n, n); scheduleSave(); } },
+      { label: '+ Pancarte', fn: () => { const n = { id: newId(), kind: 'pancarte', x: w.x - 120, y: w.y - 65, w: 240, h: 130, text: '' }; state.nodes.push(n); reset(n); state.selected = n.id; startEdit('rect', n, n); scheduleSave(); } },
       { label: '+ Cercle', fn: () => { const c = addCircle(w.x, w.y); state.selected = c.id; scheduleSave(); } },
       { label: '+ Hexa', fn: () => { const h = addHexagon(w.x, w.y); state.selected = h.id; scheduleSave(); } },
       { label: '+ Liaison', fn: () => createLiaison(w.x, w.y) },
