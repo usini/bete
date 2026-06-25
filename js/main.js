@@ -1,12 +1,13 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId } from './state.js?v=mqtz65m8';
-import { setView } from './camera.js?v=mqtz65m8';
-import { render } from './render.js?v=mqtz65m8';
-import { step, reset } from './physics.js?v=mqtz65m8';
-import * as minimap from './minimap.js?v=mqtz65m8';
-import * as input from './input.js?v=mqtz65m8';
-import * as fx from './fx.js?v=mqtz65m8';
-import { joinHost, getNetMode } from './sync.js?v=mqtz65m8';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName } from './state.js?v=mqtzsqpv';
+import { setView } from './camera.js?v=mqtzsqpv';
+import { render } from './render.js?v=mqtzsqpv';
+import { step, reset } from './physics.js?v=mqtzsqpv';
+import * as minimap from './minimap.js?v=mqtzsqpv';
+import * as input from './input.js?v=mqtzsqpv';
+import * as fx from './fx.js?v=mqtzsqpv';
+import { joinHost, getNetMode } from './sync.js?v=mqtzsqpv';
+import { recordBoard, getBoardEntry } from './boards.js?v=mqtzsqpv';
 
 let toastTimer = null;
 function toast(msg, ms = 2400) {
@@ -34,8 +35,23 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
+// Board tutoriel intégré (lecture seule).
+const TUTORIAL = {
+  name: 'Tutoriel',
+  camera: { x: 0, y: 0, zoom: 1 },
+  circles: [{ id: 't-c', x: -110, y: 10, r: 210, color: '#39ff14', description: 'BIENVENUE' }],
+  hexagons: [],
+  nodes: [
+    { id: 't1', x: -260, y: -120, w: 230, h: 60, text: 'Clic droit / appui long\n= menu' },
+    { id: 't2', x: -260, y: -40, w: 230, h: 60, text: 'Glisse les blocs\n(effet elastique)' },
+    { id: 't3', x: -260, y: 40, w: 230, h: 60, text: 'Molette / pince\n= zoom' },
+    { id: 't4', x: -260, y: 120, w: 230, h: 60, text: 'Cercles & hexagones\nregroupent les blocs' },
+    { id: 't5', kind: 'pancarte', x: 110, y: -150, w: 250, h: 110, text: 'TUTORIEL\nlecture seule' },
+    { id: 't6', x: 150, y: 70, w: 190, h: 70, text: 'Aller a HOME', link: location.origin + location.pathname + '?id=home' },
+  ],
+};
+
 // ---- Choix du board (multi pense-bêtes) ----
-// ?id=nom -> board nommé ; sinon ?peer=X -> slot dédié à l'hôte ; sinon 'home'.
 function sanitizeId(s) {
   return String(s).toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'home';
 }
@@ -43,37 +59,98 @@ const params = new URLSearchParams(location.search);
 const idParam = params.get('id');
 const peerId = params.get('peer');
 const fileUrl = params.get('file');
+const nameParam = params.get('name');
 
-let boardId, boardLabel;
-if (idParam) { boardId = sanitizeId(idParam); boardLabel = boardId; }
-else if (peerId) { boardId = 'peer-' + sanitizeId(peerId); boardLabel = 'partagé'; }
-else { boardId = 'home'; boardLabel = ''; }
-setBoardId(boardId);
-document.title = 'TODOMAPPA' + (boardLabel ? ' · ' + boardLabel : '');
+// Premier lancement : on envoie l'utilisateur vers le tutoriel (puis l'app vit sur home).
+const REDIRECT = !localStorage.getItem('todomappa:seen') && !idParam && !peerId && !fileUrl;
+if (REDIRECT) {
+  try { localStorage.setItem('todomappa:seen', '1'); } catch (e) { /* */ }
+  recordBoard('home', 'Home', null);
+  recordBoard('tutorial', 'Tutoriel', null);
+  location.replace(location.pathname + '?id=tutorial');
+}
 
-// Les boards nommés démarrent vides ; seul 'home' a la démo au premier lancement.
+let boardId = 'home';
 function seedIfHome() { if (boardId === 'home') seedDemo(); }
 
-if (peerId) {
-  // Mode CLIENT : affiche le board local puis se synchronise (bidirectionnel).
-  if (!restore()) seedIfHome();
-  state.nodes.forEach(reset);
-  toast('CONNEXION AU HOST...');
-  joinHost(peerId, (st) => {
-    if (st === 'synced') toast('SYNCHRONISE ✓');
-    else if (st === 'connected') toast('CONNECTE - RECEPTION...');
-    else if (st === 'error') toast('HOST INJOIGNABLE', 4000);
-    else if (st === 'closed') toast('HOST DECONNECTE', 4000);
-  });
-} else if (fileUrl) {
-  // Mode "ouverture de fichier" : on n'écrase pas le localStorage perso.
-  setSaveSuppressed(true);
-  loadFromUrl(fileUrl);
-  state.nodes.forEach(reset);
-} else {
-  if (!restore()) seedIfHome();
-  state.nodes.forEach(reset);
-  if (boardLabel) toast('BOARD : ' + boardLabel.toUpperCase());
+if (!REDIRECT) {
+  if (idParam) boardId = sanitizeId(idParam);
+  else if (peerId) boardId = 'peer-' + sanitizeId(peerId);
+  else boardId = 'home';
+  setBoardId(boardId);
+
+  if (boardId === 'tutorial') {
+    load(TUTORIAL);                 // board intégré, lecture seule
+    setSaveSuppressed(true);
+    state.nodes.forEach(reset);
+  } else if (peerId) {
+    if (!restore()) seedIfHome();
+    state.nodes.forEach(reset);
+    toast('CONNEXION AU HOST...');
+    joinHost(peerId, (st) => {
+      if (st === 'synced') toast('SYNCHRONISE ✓');
+      else if (st === 'connected') toast('CONNECTE - RECEPTION...');
+      else if (st === 'error') toast('HOST INJOIGNABLE', 4000);
+      else if (st === 'closed') toast('HOST DECONNECTE', 4000);
+    });
+  } else if (fileUrl) {
+    setSaveSuppressed(true);
+    loadFromUrl(fileUrl);
+    state.nodes.forEach(reset);
+  } else {
+    if (!restore()) seedIfHome();
+    state.nodes.forEach(reset);
+  }
+
+  // Nom du board : sérialisé > ?name= > historique > défaut. Puis affichage + historique.
+  resolveBoardName(boardId);
+  recordBoard(boardId, getBoardName(), peerId || null);
+  applyBoardNameUI();
+}
+
+// Résout et applique le nom affiché du board.
+function resolveBoardName(id) {
+  let name;
+  if (id === 'home') name = 'Home';
+  else if (id === 'tutorial') name = 'Tutoriel';
+  else {
+    name = getBoardName() || nameParam || (getBoardEntry(id) && getBoardEntry(id).name) || id;
+  }
+  setBoardName(name);
+  document.title = 'TODOMAPPA' + (id === 'home' ? '' : ' · ' + name);
+}
+
+function applyBoardNameUI() {
+  const el = document.getElementById('boardname');
+  el.textContent = getBoardName();
+  const editable = boardId !== 'home' && boardId !== 'tutorial';
+  el.classList.toggle('editable', editable);
+  if (editable && !el._wired) { el._wired = true; el.addEventListener('click', beginRenameBoard); }
+}
+
+function beginRenameBoard() {
+  const el = document.getElementById('boardname');
+  if (el.getAttribute('contenteditable') === 'true') return;
+  el.setAttribute('contenteditable', 'true');
+  el.focus();
+  const range = document.createRange(); range.selectNodeContents(el);
+  const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+  const onKey = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+    else if (e.key === 'Escape') { el.textContent = getBoardName(); el.blur(); }
+  };
+  const commit = () => {
+    el.removeAttribute('contenteditable');
+    el.removeEventListener('blur', commit);
+    el.removeEventListener('keydown', onKey);
+    const nm = (el.textContent || '').replace(/\n/g, ' ').trim().slice(0, 40) || getBoardName();
+    setBoardName(nm); el.textContent = nm;
+    document.title = 'TODOMAPPA · ' + nm;
+    recordBoard(boardId, nm, peerId || null);
+    scheduleSave();
+  };
+  el.addEventListener('keydown', onKey);
+  el.addEventListener('blur', commit);
 }
 
 async function loadFromUrl(url) {
@@ -104,11 +181,13 @@ function seedDemo() {
   reset(a); reset(b); reset(link);
 }
 
-minimap.init();
-input.init(board, () => { state.nodes.forEach(reset); });
-
-// Handle de debug (inspection console : todomappa.state).
-window.todomappa = { state, fx };
+if (!REDIRECT) {
+  minimap.init();
+  input.init(board, () => { state.nodes.forEach(reset); });
+  // Handle de debug (inspection console : todomappa.state).
+  window.todomappa = { state, fx };
+  requestAnimationFrame(loop);
+}
 
 let last = performance.now();
 function loop(now) {
@@ -129,7 +208,6 @@ function loop(now) {
   updateNetMode();
   requestAnimationFrame(loop);
 }
-requestAnimationFrame(loop);
 
 // Indicateur P2P direct / relais TURN (mis à jour seulement quand ça change).
 let lastNet;

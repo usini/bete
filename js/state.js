@@ -1,5 +1,5 @@
 // Modèle de données partagé + persistance localStorage.
-import { pointInHex } from './geom.js?v=mqtz65m8';
+import { pointInHex } from './geom.js?v=mqtzsqpv';
 
 export const DEFAULT_GREEN = '#39ff14';
 
@@ -17,9 +17,12 @@ export const COLORS = [
 
 // Clé de stockage par board (multi pense-bêtes). 'home' = page perso par défaut.
 let _boardId = 'home';
+let _boardName = '';
 let storageKey = 'todomappa:home';
 export function setBoardId(id) { _boardId = id || 'home'; storageKey = 'todomappa:' + _boardId; }
 export function getBoardId() { return _boardId; }
+export function setBoardName(n) { _boardName = n || ''; }
+export function getBoardName() { return _boardName; }
 
 // État vivant de l'app. Les champs préfixés par _ ne sont jamais sérialisés.
 export const state = {
@@ -113,6 +116,7 @@ export function effectiveColor(node) {
 export function serialize() {
   return {
     version: state.version,
+    name: _boardName || undefined,
     camera: { ...state.camera },
     nodes: state.nodes
       .filter(n => n.kind !== 'liaison') // blocs de liaison = transitoires
@@ -130,6 +134,7 @@ export function serialize() {
 
 export function load(obj) {
   if (!obj || typeof obj !== 'object') return false;
+  if (obj.name != null) _boardName = obj.name;
   state.camera = obj.camera ? { ...obj.camera } : { x: 0, y: 0, zoom: 1 };
   state.nodes = Array.isArray(obj.nodes) ? obj.nodes.map(n => ({ ...n })) : [];
   state.circles = Array.isArray(obj.circles) ? obj.circles.map(c => ({ ...c })) : [];

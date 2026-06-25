@@ -2,9 +2,9 @@
 // On ne synchronise QUE le contenu (texte, image, couleur, description, liens,
 // création/suppression) : ni la caméra, ni les positions/tailles. Chaque écran
 // garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqtz65m8';
-import { reset } from './physics.js?v=mqtz65m8';
-import { explodeElementCascade } from './fx.js?v=mqtz65m8';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqtzsqpv';
+import { reset } from './physics.js?v=mqtzsqpv';
+import { explodeElementCascade } from './fx.js?v=mqtzsqpv';
 
 const PEERJS_SRC = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
 const QR_SRC = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';

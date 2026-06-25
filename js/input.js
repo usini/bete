@@ -2,14 +2,15 @@
 // palette, édition texte, popup image.
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
-  findById, newId, sourceOf, displayImage, displayLink,
-} from './state.js?v=mqtz65m8';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqtz65m8';
-import { dragTo, reset } from './physics.js?v=mqtz65m8';
-import { exportJSON, importJSON } from './io.js?v=mqtz65m8';
-import { pointInHex } from './geom.js?v=mqtz65m8';
-import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqtz65m8';
-import { explodeElementCascade } from './fx.js?v=mqtz65m8';
+  findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId,
+} from './state.js?v=mqtzsqpv';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqtzsqpv';
+import { dragTo, reset } from './physics.js?v=mqtzsqpv';
+import { exportJSON, importJSON } from './io.js?v=mqtzsqpv';
+import { pointInHex } from './geom.js?v=mqtzsqpv';
+import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqtzsqpv';
+import { explodeElementCascade } from './fx.js?v=mqtzsqpv';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqtzsqpv';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -63,8 +64,10 @@ const ICONS = {
   unlock: '<rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/>',
   lock: '<rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
   close: '<line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>',
+  board: '<path d="M3 7a1 1 0 0 1 1-1h5l2 2h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M14 4h6v6"/><line x1="20" y1="4" x2="13" y2="11"/>',
   dot: '<circle cx="12" cy="12" r="3"/>',
 };
+let pendingBoardPos = null; // position monde où poser le prochain lien-board
 function svgEl(key) { return '<svg viewBox="0 0 24 24">' + (ICONS[key] || ICONS.dot) + '</svg>'; }
 
 export function init(boardCanvas, changeCb) {
@@ -104,6 +107,11 @@ export function init(boardCanvas, changeCb) {
   const pop = document.getElementById('imgpopup');
   pop.addEventListener('mousedown', closeImagePopup);
   pop.addEventListener('touchstart', (e) => { e.preventDefault(); closeImagePopup(); });
+
+  // Le sélecteur de board ne se ferme pas quand on clique dedans.
+  const bp = document.getElementById('boardpicker');
+  bp.addEventListener('mousedown', (e) => e.stopPropagation());
+  bp.addEventListener('touchstart', (e) => e.stopPropagation());
 
   updateHint();
 }
@@ -225,7 +233,11 @@ function finishDrag() {
     // Clic (déplacement négligeable) sur un nœud à lien => ouvre l'onglet.
     if (n) {
       const lk = displayLink(n);
-      if (lk && Math.hypot(n.x - drag.startX, n.y - drag.startY) < 3) { openLink(lk); scheduleSave(); return; }
+      if (lk && Math.hypot(n.x - drag.startX, n.y - drag.startY) < 3) {
+        const bu = parseBoardUrl(lk);
+        if (bu) recordBoard(bu.id, bu.name || displayText(n), bu.peer); // garde le board dans l'historique
+        openLink(lk); scheduleSave(); return;
+      }
     }
     if (n && !n.ref) {
       const cx = n.x + n.w / 2, cy = n.y + n.h / 2;
@@ -570,6 +582,7 @@ function openContextAt(sx, sy) {
       { label: 'Cercle', icon: 'circle', color: COL.cyan, fn: () => { const c = addCircle(w.x, w.y); state.selected = c.id; scheduleSave(); } },
       { label: 'Hexagone', icon: 'hexa', color: COL.orange, fn: () => { const h = addHexagon(w.x, w.y); state.selected = h.id; scheduleSave(); } },
       { label: 'Liaison', icon: 'share', color: COL.magenta, fn: () => createLiaison(w.x, w.y) },
+      { label: 'Lien board', icon: 'board', color: COL.cyan, fn: () => openBoardPicker(w.x, w.y) },
       { label: 'Exporter', icon: 'export', color: COL.yellow, fn: () => exportJSON() },
       { label: 'Importer', icon: 'import', color: COL.white, fn: () => importJSON(() => { onChange(); }) },
     ];
@@ -661,8 +674,68 @@ function closeMenusOnce() { closeMenus(); }
 function closeMenus() {
   document.getElementById('radial').classList.add('hidden');
   document.getElementById('palette').classList.add('hidden');
+  document.getElementById('boardpicker').classList.add('hidden');
   document.removeEventListener('mousedown', closeMenusOnce);
   document.removeEventListener('touchstart', closeMenusOnce);
+}
+
+// ---- Sélecteur de board (créer un lien vers un autre board) ----
+function openBoardPicker(wx, wy) {
+  closeMenus();
+  pendingBoardPos = { x: wx, y: wy };
+  const bp = document.getElementById('boardpicker');
+  bp.innerHTML = '';
+  const title = document.createElement('div');
+  title.className = 'bp-title';
+  title.textContent = 'LIEN VERS UN BOARD';
+  bp.appendChild(title);
+
+  // Créer un nouveau board.
+  const newRow = document.createElement('div');
+  newRow.className = 'bp-new';
+  const inp = document.createElement('input');
+  inp.maxLength = 40; inp.placeholder = 'Nouveau board…';
+  const okb = document.createElement('button');
+  okb.textContent = '+';
+  newRow.appendChild(inp); newRow.appendChild(okb);
+  bp.appendChild(newRow);
+  const createNew = () => { const nm = inp.value.trim(); if (nm) createBoardLink(genBoardId(), nm, null); };
+  okb.addEventListener('click', createNew);
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') createNew(); });
+
+  // Boards déjà visités.
+  const cur = getBoardId();
+  const visited = listBoards().filter((b) => b.id !== cur);
+  if (!visited.length) {
+    const empty = document.createElement('div');
+    empty.className = 'bp-empty';
+    empty.textContent = '(aucun autre board visité)';
+    bp.appendChild(empty);
+  }
+  visited.forEach((b) => {
+    const row = document.createElement('div');
+    row.className = 'bp-row';
+    row.textContent = b.name || b.id;
+    row.addEventListener('click', () => createBoardLink(b.id, b.name, b.peer));
+    bp.appendChild(row);
+  });
+
+  bp.classList.remove('hidden');
+  armCloseOnce();
+  setTimeout(() => inp.focus(), 50);
+}
+
+function createBoardLink(targetId, name, peerOverride) {
+  closeMenus();
+  const peer = peerOverride || hostId() || null; // hérite du host courant
+  const url = buildBoardUrl(targetId, peer, name);
+  const pos = pendingBoardPos || screenToWorld(lastMouse.x, lastMouse.y);
+  const n = addRect(pos.x - 80, pos.y - 30, name || targetId);
+  n.w = 160; n.link = url;
+  reset(n);
+  state.selected = n.id;
+  recordBoard(targetId, name, peer);
+  scheduleSave();
 }
 
 // ---- Popup image ----
