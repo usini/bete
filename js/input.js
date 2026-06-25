@@ -8,7 +8,7 @@ import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js';
 import { dragTo, reset } from './physics.js';
 import { exportJSON, importJSON } from './io.js';
 import { pointInHex } from './geom.js';
-import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient } from './sync.js';
+import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl } from './sync.js';
 import { explodeElementCascade } from './fx.js';
 
 let canvas;
@@ -419,14 +419,20 @@ function onKeyDown(e) {
   }
 }
 
-// Crée un bloc Liaison (HOST) et démarre le peer P2P.
+// Crée un bloc Liaison. En autonome : démarre l'hôte P2P. En client : affiche
+// simplement le lien/QR de l'hôte auquel on est connecté (sans devenir hôte).
 function createLiaison(wx, wy) {
-  if (isClient()) return; // un client ne devient pas hôte (évite le split-brain)
   const n = { id: newId(), kind: 'liaison', x: wx - 100, y: wy - 115, w: 200, h: 230, status: 'init' };
   state.nodes.push(n);
   reset(n);
   state.selected = n.id;
-  startHost(n);
+  if (isClient()) {
+    const id = hostId();
+    if (id) { n.peerId = id; n.code = id; n.url = buildUrl(id); n.status = 'online'; }
+    else n.status = 'error';
+  } else {
+    startHost(n);
+  }
 }
 
 // Copie le lien d'un bloc Liaison dans le presse-papier + feedback visuel.
@@ -454,7 +460,10 @@ function openLink(url) {
 // Supprime un élément (explosion + propagation ; coupe le host si Liaison).
 function removeElement(el) {
   if (!el) return;
-  if (el.kind === 'liaison') { stopHost(); removeById(el.id); scheduleSave(); return; }
+  if (el.kind === 'liaison') {
+    if (!isClient()) stopHost(); // en client, le bloc n'héberge rien : ne pas couper la connexion
+    removeById(el.id); scheduleSave(); return;
+  }
   explodeElementCascade(el); // explosion locale
   pushDelete(el.id);         // explosion + suppression chez les pairs
   removeById(el.id);
@@ -506,11 +515,10 @@ function openContextAt(sx, sy) {
 
   let items;
   if (r && r.kind === 'liaison') {
-    items = [
-      { label: 'Copier', fn: () => copyLink(r) },
-      { label: 'Nouveau lien', fn: () => refreshHostId(r) },
-      { label: 'Suppr', fn: () => removeElement(r) },
-    ];
+    items = [{ label: 'Copier', fn: () => copyLink(r) }];
+    // "Nouveau lien" n'a de sens que pour le vrai hôte, pas pour un client.
+    if (!isClient()) items.push({ label: 'Nouveau lien', fn: () => refreshHostId(r) });
+    items.push({ label: 'Suppr', fn: () => removeElement(r) });
   } else if (r) {
     const isLink = !!r.ref;
     items = [{ label: 'Éditer', fn: () => { const t = isLink ? sourceOf(r) : r; if (t) startEdit('rect', t, r); } }];
@@ -536,8 +544,6 @@ function openContextAt(sx, sy) {
       { label: 'Export', fn: () => exportJSON() },
       { label: 'Import', fn: () => importJSON(() => { onChange(); }) },
     ];
-    // Connecté en client : pas de création de bloc Liaison (on a déjà un hôte).
-    if (isClient()) items = items.filter((it) => it.label !== '+ Liaison');
     // Sur mobile : possibilité de reverrouiller l'interaction.
     if (isCoarse) items.push({ label: 'Désactiver', fn: () => { interactionEnabled = false; state.selected = null; updateHint(); } });
   }
