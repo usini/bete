@@ -1,12 +1,12 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId } from './state.js?v=mqtxkppp';
-import { setView } from './camera.js?v=mqtxkppp';
-import { render } from './render.js?v=mqtxkppp';
-import { step, reset } from './physics.js?v=mqtxkppp';
-import * as minimap from './minimap.js?v=mqtxkppp';
-import * as input from './input.js?v=mqtxkppp';
-import * as fx from './fx.js?v=mqtxkppp';
-import { joinHost, getNetMode } from './sync.js?v=mqtxkppp';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId } from './state.js?v=mqtyi8mu';
+import { setView } from './camera.js?v=mqtyi8mu';
+import { render } from './render.js?v=mqtyi8mu';
+import { step, reset } from './physics.js?v=mqtyi8mu';
+import * as minimap from './minimap.js?v=mqtyi8mu';
+import * as input from './input.js?v=mqtyi8mu';
+import * as fx from './fx.js?v=mqtyi8mu';
+import { joinHost, getNetMode } from './sync.js?v=mqtyi8mu';
 
 let toastTimer = null;
 function toast(msg, ms = 2400) {
@@ -34,14 +34,29 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// Source des données : ?peer=<id> (client P2P), ?file=<url>, sinon localStorage.
+// ---- Choix du board (multi pense-bêtes) ----
+// ?id=nom -> board nommé ; sinon ?peer=X -> slot dédié à l'hôte ; sinon 'home'.
+function sanitizeId(s) {
+  return String(s).toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'home';
+}
 const params = new URLSearchParams(location.search);
+const idParam = params.get('id');
 const peerId = params.get('peer');
 const fileUrl = params.get('file');
 
+let boardId, boardLabel;
+if (idParam) { boardId = sanitizeId(idParam); boardLabel = boardId; }
+else if (peerId) { boardId = 'peer-' + sanitizeId(peerId); boardLabel = 'partagé'; }
+else { boardId = 'home'; boardLabel = ''; }
+setBoardId(boardId);
+document.title = 'TODOMAPPA' + (boardLabel ? ' · ' + boardLabel : '');
+
+// Les boards nommés démarrent vides ; seul 'home' a la démo au premier lancement.
+function seedIfHome() { if (boardId === 'home') seedDemo(); }
+
 if (peerId) {
   // Mode CLIENT : affiche le board local puis se synchronise (bidirectionnel).
-  if (!restore()) seedDemo();
+  if (!restore()) seedIfHome();
   state.nodes.forEach(reset);
   toast('CONNEXION AU HOST...');
   joinHost(peerId, (st) => {
@@ -56,8 +71,9 @@ if (peerId) {
   loadFromUrl(fileUrl);
   state.nodes.forEach(reset);
 } else {
-  if (!restore()) seedDemo();
+  if (!restore()) seedIfHome();
   state.nodes.forEach(reset);
+  if (boardLabel) toast('BOARD : ' + boardLabel.toUpperCase());
 }
 
 async function loadFromUrl(url) {
@@ -70,7 +86,7 @@ async function loadFromUrl(url) {
     console.warn('TODOMAPPA: échec du chargement de', url, err);
     // Repli : localStorage ou démo, et on réactive la sauvegarde.
     setSaveSuppressed(false);
-    if (!restore()) seedDemo();
+    if (!restore()) seedIfHome();
     state.nodes.forEach(reset);
   }
 }

@@ -1,5 +1,5 @@
 // Modèle de données partagé + persistance localStorage.
-import { pointInHex } from './geom.js?v=mqtxkppp';
+import { pointInHex } from './geom.js?v=mqtyi8mu';
 
 export const DEFAULT_GREEN = '#39ff14';
 
@@ -15,7 +15,11 @@ export const COLORS = [
   '#f2f2f2', // blanc cassé
 ];
 
-const STORAGE_KEY = 'todomappa';
+// Clé de stockage par board (multi pense-bêtes). 'home' = page perso par défaut.
+let _boardId = 'home';
+let storageKey = 'todomappa:home';
+export function setBoardId(id) { _boardId = id || 'home'; storageKey = 'todomappa:' + _boardId; }
+export function getBoardId() { return _boardId; }
 
 // État vivant de l'app. Les champs préfixés par _ ne sont jamais sérialisés.
 export const state = {
@@ -148,13 +152,15 @@ export function scheduleSave() {
   if (_saveSuppressed || _saveTimer) return;
   _saveTimer = setTimeout(() => {
     _saveTimer = null;
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(serialize())); } catch (e) { /* quota */ }
+    try { localStorage.setItem(storageKey, JSON.stringify(serialize())); } catch (e) { /* quota */ }
   }, 400);
 }
 
 export function restore() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    let raw = localStorage.getItem(storageKey);
+    // Migration : ancien board unique -> slot 'home'.
+    if (!raw && _boardId === 'home') raw = localStorage.getItem('todomappa');
     if (raw) return load(JSON.parse(raw));
   } catch (e) { /* corrompu */ }
   return false;
