@@ -2,9 +2,9 @@
 // On ne synchronise QUE le contenu (texte, image, couleur, description, liens,
 // création/suppression) : ni la caméra, ni les positions/tailles. Chaque écran
 // garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
-import { state, removeById, scheduleSave } from './state.js?v=mqtyi8mu';
-import { reset } from './physics.js?v=mqtyi8mu';
-import { explodeElementCascade } from './fx.js?v=mqtyi8mu';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqtyx9od';
+import { reset } from './physics.js?v=mqtyx9od';
+import { explodeElementCascade } from './fx.js?v=mqtyx9od';
 
 const PEERJS_SRC = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
 const QR_SRC = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
@@ -242,13 +242,19 @@ function handleData(msg, origin) {
   if (msg.type === 'sync') {
     let justFirst = false;
     if (mode === 'client' && clientFirstSync) {
-      // Première synchro côté client : on écrase le board local par celui du host.
       clientFirstSync = false;
       justFirst = true;
-      state.nodes.length = 0;
-      state.circles.length = 0;
-      state.hexagons.length = 0;
-      tombstones = new Set(); mtimes = {}; prevSigs = {}; prevLocalIds = null;
+      // On n'écrase le board local QUE si le board distant a du contenu.
+      // S'il est vide (board serveur neuf), on garde le local : il sèmera le serveur.
+      const remoteEmpty = !(msg.n && Object.keys(msg.n).length)
+        && !(msg.c && Object.keys(msg.c).length)
+        && !(msg.h && Object.keys(msg.h).length);
+      if (!remoteEmpty) {
+        state.nodes.length = 0;
+        state.circles.length = 0;
+        state.hexagons.length = 0;
+        tombstones = new Set(); mtimes = {}; prevSigs = {}; prevLocalIds = null;
+      }
     }
     merge(msg);
     // Le client ne commence à ÉMETTRE qu'après avoir adopté l'état du host
@@ -424,7 +430,7 @@ export async function joinHost(peerId, onStatus) {
 
 function connectToHost() {
   if (!clientPeer || clientPeer.destroyed) return;
-  const conn = clientPeer.connect(clientPeerId, { reliable: true });
+  const conn = clientPeer.connect(clientPeerId, { reliable: true, metadata: { board: getBoardId() } });
   conns = [conn];
   // Le tick (émission) ne démarre qu'après la 1re synchro reçue (cf. handleData).
   conn.on('open', () => { clientStatus && clientStatus('connected'); });

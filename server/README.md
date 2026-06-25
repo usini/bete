@@ -56,16 +56,24 @@ L'id est **stable** : il est mémorisé dans `data/peer-id` et réutilisé à ch
 redémarrage, donc le lien ne change pas. (Tu peux aussi l'imposer avec la variable
 d'environnement `TODOMAPPA_ID`.)
 
+## Multi-board
+
+Un seul serveur héberge **plusieurs pense-bêtes**. Le board ciblé est choisi côté
+client par l'URL : `?peer=<id>&id=<board>` (sans `id`, board par défaut du lien).
+Chaque board est persisté dans `server/data/boards/<board>.json`.
+
+- Se connecter à un board **vide** côté serveur : ton board local le **sème** (au lieu
+  d'être écrasé). Se connecter à un board **déjà rempli** : tu adoptes celui du serveur.
+
 ## Amorcer avec un board existant
 
-Quand un appareil se connecte, **son board local est remplacé** par celui du serveur
-(comportement client normal). Pour partir de ton board actuel plutôt que d'un board vide :
+Pour partir d'un board existant plutôt que vide :
 
-1. Dans l'app, menu radial → **Export** (télécharge un `.json`).
-2. Copie ce fichier vers `server/data/board.json` (crée le dossier `data/` si besoin).
-3. Démarre le serveur : il détecte le format d'export et le charge.
+1. Dans l'app, menu radial → **Exporter** (télécharge un `.json`).
+2. Copie-le vers `server/data/boards/<board>.json` (ex. `home.json`). Crée le dossier si besoin.
+3. Démarre/redémarre le serveur : il détecte le format d'export et le charge.
 
-Ensuite, le serveur sauvegarde dans `data/board.json` (format interne) à chaque modif.
+(L'ancien `data/board.json` mono-board est migré automatiquement vers le board `home`.)
 
 ## Configuration (variables d'environnement)
 

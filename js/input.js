@@ -3,13 +3,13 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink,
-} from './state.js?v=mqtyi8mu';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqtyi8mu';
-import { dragTo, reset } from './physics.js?v=mqtyi8mu';
-import { exportJSON, importJSON } from './io.js?v=mqtyi8mu';
-import { pointInHex } from './geom.js?v=mqtyi8mu';
-import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqtyi8mu';
-import { explodeElementCascade } from './fx.js?v=mqtyi8mu';
+} from './state.js?v=mqtyx9od';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqtyx9od';
+import { dragTo, reset } from './physics.js?v=mqtyx9od';
+import { exportJSON, importJSON } from './io.js?v=mqtyx9od';
+import { pointInHex } from './geom.js?v=mqtyx9od';
+import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqtyx9od';
+import { explodeElementCascade } from './fx.js?v=mqtyx9od';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }

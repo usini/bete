@@ -1,11 +1,10 @@
 // Hôte PeerJS headless pour TODOMAPPA — destiné à tourner en permanence
-// (ex. Raspberry Pi). Il joue exactement le rôle d'un hôte navigateur :
-// même protocole de synchro, donc les clients web se connectent via
-// ?peer=<id> sans aucune modification de l'app.
+// (ex. Raspberry Pi). Même protocole de synchro que l'app, donc les clients web
+// se connectent via ?peer=<id> sans modification de l'app.
 //
-// Il ne fait QUE détenir le contenu (texte, image, couleur, description,
-// liens, positions, créations/suppressions) et le persister sur disque.
-// Aucun rendu, aucune caméra.
+// MULTI-BOARD : un seul peer héberge plusieurs pense-bêtes. Chaque client annonce
+// son board id (métadonnées de connexion). Le serveur garde un board par id,
+// le persiste dans data/boards/<id>.json, et ne relaie qu'entre clients du même board.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -29,11 +28,13 @@ const Peer = (_peerjs.default && _peerjs.default.Peer) || _peerjs.Peer;
 // --- Config ---
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = process.env.TODOMAPPA_DATA || path.join(__dirname, 'data');
-const BOARD_FILE = path.join(DATA_DIR, 'board.json');
+const BOARDS_DIR = path.join(DATA_DIR, 'boards');
+const OLD_BOARD_FILE = path.join(DATA_DIR, 'board.json'); // ancien mono-board
 const ID_FILE = path.join(DATA_DIR, 'peer-id');
 const APP_URL = process.env.TODOMAPPA_APP_URL || 'https://remisarrailh.github.io/pensebete/';
+const MAX_BOARDS = parseInt(process.env.TODOMAPPA_MAX_BOARDS || '300', 10);
 
-fs.mkdirSync(DATA_DIR, { recursive: true });
+fs.mkdirSync(BOARDS_DIR, { recursive: true });
 
 function resolveId() {
   if (process.env.TODOMAPPA_ID) return process.env.TODOMAPPA_ID;
@@ -44,14 +45,16 @@ function resolveId() {
 }
 const PEER_ID = resolveId();
 
-// --- État (mêmes maps que le protocole) ---
-let content = { n: {}, c: {}, h: {} };
-let mt = {};            // id -> horodatage de dernière modif
-let del = new Set();    // tombstones (suppressions)
+const now = () => Date.now();
+function sanitizeBoard(s) {
+  return String(s || '').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'home';
+}
 
-// Conversion depuis un export de l'app (format {nodes:[],circles:[],hexagons:[]}).
+// --- Boards en mémoire : id -> { content, mt, del, conns, lastSig, saveTimer } ---
+const boards = new Map();
+
 function fromExport(obj) {
-  const n = {}, c = {}, h = {}, m = {}; const now = Date.now();
+  const n = {}, c = {}, h = {}, m = {}; const t = now();
   for (const nd of obj.nodes || []) {
     if (nd.kind === 'liaison') continue;
     if (nd.ref !== undefined) n[nd.id] = { ref: nd.ref, x: nd.x, y: nd.y, w: nd.w, h: nd.h };
@@ -61,112 +64,128 @@ function fromExport(obj) {
       if (nd.link) e.lk = nd.link;
       n[nd.id] = e;
     }
-    m[nd.id] = now;
+    m[nd.id] = t;
   }
-  for (const z of obj.circles || []) { c[z.id] = { col: z.color, d: z.description || '', x: z.x, y: z.y, r: z.r }; m[z.id] = now; }
-  for (const z of obj.hexagons || []) { h[z.id] = { col: z.color, d: z.description || '', x: z.x, y: z.y, r: z.r }; m[z.id] = now; }
+  for (const z of obj.circles || []) { c[z.id] = { col: z.color, d: z.description || '', x: z.x, y: z.y, r: z.r }; m[z.id] = t; }
+  for (const z of obj.hexagons || []) { h[z.id] = { col: z.color, d: z.description || '', x: z.x, y: z.y, r: z.r }; m[z.id] = t; }
   return { n, c, h, mt: m, del: [] };
 }
 
-function loadState() {
-  try {
-    const obj = JSON.parse(fs.readFileSync(BOARD_FILE, 'utf8'));
-    const st = Array.isArray(obj.nodes) ? fromExport(obj) : obj; // export ou format natif
-    content = { n: st.n || {}, c: st.c || {}, h: st.h || {} };
-    mt = st.mt || {};
-    del = new Set(st.del || []);
-    console.log(`[todomappa] board chargé : ${Object.keys(content.n).length} blocs, ${Object.keys(content.c).length} cercles, ${Object.keys(content.h).length} hexagones`);
-  } catch (e) {
-    console.log('[todomappa] aucun board existant, démarrage à vide');
-  }
+function boardFromObj(obj) {
+  const st = Array.isArray(obj.nodes) ? fromExport(obj) : obj; // export ou format natif
+  return {
+    content: { n: st.n || {}, c: st.c || {}, h: st.h || {} },
+    mt: st.mt || {},
+    del: new Set(st.del || []),
+    conns: [], lastSig: '', saveTimer: null,
+  };
 }
 
-let saveTimer = null;
-function scheduleSave() {
-  if (saveTimer) return;
-  saveTimer = setTimeout(() => {
-    saveTimer = null;
+function loadBoards() {
+  let files = [];
+  try { files = fs.readdirSync(BOARDS_DIR).filter((f) => f.endsWith('.json')); } catch (e) { /* */ }
+  for (const f of files) {
+    const id = sanitizeBoard(f.replace(/\.json$/, ''));
+    try { boards.set(id, boardFromObj(JSON.parse(fs.readFileSync(path.join(BOARDS_DIR, f), 'utf8')))); } catch (e) { /* */ }
+  }
+  // Migration de l'ancien mono-board -> home.
+  if (!boards.has('home') && fs.existsSync(OLD_BOARD_FILE)) {
+    try { boards.set('home', boardFromObj(JSON.parse(fs.readFileSync(OLD_BOARD_FILE, 'utf8')))); } catch (e) { /* */ }
+  }
+  console.log(`[todomappa] ${boards.size} board(s) chargé(s) : ${[...boards.keys()].join(', ') || '(aucun)'}`);
+}
+
+function getBoard(id) {
+  let b = boards.get(id);
+  if (!b) {
+    if (boards.size >= MAX_BOARDS) { console.warn('[todomappa] limite de boards atteinte, board éphémère :', id); }
+    b = { content: { n: {}, c: {}, h: {} }, mt: {}, del: new Set(), conns: [], lastSig: '', saveTimer: null };
+    boards.set(id, b);
+  }
+  return b;
+}
+
+function scheduleSave(id, b) {
+  if (b.saveTimer || boards.size > MAX_BOARDS) return;
+  b.saveTimer = setTimeout(() => {
+    b.saveTimer = null;
     try {
-      fs.writeFileSync(BOARD_FILE, JSON.stringify({ ...content, mt, del: [...del] }));
-    } catch (e) { console.error('[todomappa] échec sauvegarde', e); }
+      fs.writeFileSync(path.join(BOARDS_DIR, id + '.json'), JSON.stringify({ ...b.content, mt: b.mt, del: [...b.del] }));
+    } catch (e) { console.error('[todomappa] échec sauvegarde', id, e); }
   }, 1000);
 }
 
-// --- Synchro (même logique que l'app : LWW + priorité à l'hôte à égalité) ---
-const conns = [];
-
-function buildPayload() {
-  return { type: 'sync', from: 'host', n: content.n, c: content.c, h: content.h, mt: { ...mt }, del: [...del] };
+// --- Synchro (LWW + priorité hôte à égalité), par board ---
+function buildPayload(b) {
+  return { type: 'sync', from: 'host', n: b.content.n, c: b.content.c, h: b.content.h, mt: { ...b.mt }, del: [...b.del] };
 }
 
-function merge(remote) {
+function merge(b, remote) {
   let changed = false;
   const win = (id) => {
     const rm = (remote.mt && remote.mt[id]) || 0;
-    const lm = mt[id] || 0;
+    const lm = b.mt[id] || 0;
     return rm > lm || (rm === lm && remote.from === 'host');
   };
   for (const id of remote.del || []) {
-    if (!del.has(id)) del.add(id);
-    if (content.n[id] || content.c[id] || content.h[id]) {
-      delete content.n[id]; delete content.c[id]; delete content.h[id]; delete mt[id]; changed = true;
+    if (!b.del.has(id)) b.del.add(id);
+    if (b.content.n[id] || b.content.c[id] || b.content.h[id]) {
+      delete b.content.n[id]; delete b.content.c[id]; delete b.content.h[id]; delete b.mt[id]; changed = true;
     }
   }
   const mergeMap = (map, rem) => {
     for (const id in rem || {}) {
-      if (del.has(id)) continue;
-      if (win(id)) { map[id] = rem[id]; mt[id] = (remote.mt && remote.mt[id]) || Date.now(); changed = true; }
+      if (b.del.has(id)) continue;
+      if (win(id)) { map[id] = rem[id]; b.mt[id] = (remote.mt && remote.mt[id]) || now(); changed = true; }
     }
   };
-  mergeMap(content.n, remote.n);
-  mergeMap(content.c, remote.c);
-  mergeMap(content.h, remote.h);
+  mergeMap(b.content.n, remote.n);
+  mergeMap(b.content.c, remote.c);
+  mergeMap(b.content.h, remote.h);
   return changed;
 }
 
-function applyMove(msg) {
-  const e = content.n[msg.id] || content.c[msg.id] || content.h[msg.id];
+function applyMove(b, msg) {
+  const e = b.content.n[msg.id] || b.content.c[msg.id] || b.content.h[msg.id];
   if (!e) return;
   if (msg.x != null) e.x = msg.x;
   if (msg.y != null) e.y = msg.y;
   if (msg.w != null) e.w = msg.w;
   if (msg.h != null) e.h = msg.h;
   if (msg.r != null) e.r = msg.r;
-  scheduleSave();
 }
 
-function applyDelete(msg) {
-  del.add(msg.id);
-  if (content.n[msg.id] || content.c[msg.id] || content.h[msg.id]) {
-    delete content.n[msg.id]; delete content.c[msg.id]; delete content.h[msg.id]; delete mt[msg.id];
-    scheduleSave();
+function applyDelete(b, msg) {
+  b.del.add(msg.id);
+  if (b.content.n[msg.id] || b.content.c[msg.id] || b.content.h[msg.id]) {
+    delete b.content.n[msg.id]; delete b.content.c[msg.id]; delete b.content.h[msg.id]; delete b.mt[msg.id];
   }
 }
 
-function handleData(msg, origin) {
+function handleData(id, b, msg, origin) {
   if (!msg) return;
-  if (msg.type === 'sync') { if (merge(msg)) scheduleSave(); }
-  else if (msg.type === 'move') applyMove(msg);
-  else if (msg.type === 'delete') applyDelete(msg);
-  // Relais des événements ponctuels aux autres clients.
+  if (msg.type === 'sync') { if (merge(b, msg)) scheduleSave(id, b); }
+  else if (msg.type === 'move') { applyMove(b, msg); scheduleSave(id, b); }
+  else if (msg.type === 'delete') { applyDelete(b, msg); scheduleSave(id, b); }
   if (msg.type === 'move' || msg.type === 'delete') {
-    for (const c of conns) if (c !== origin && c.open) { try { c.send(msg); } catch (e) { /* */ } }
+    for (const c of b.conns) if (c !== origin && c.open) { try { c.send(msg); } catch (e) { /* */ } }
   }
 }
 
-// Diffusion périodique de l'état si le contenu a changé.
-let lastSig = '';
+// Diffusion périodique : pour chaque board, si le contenu a changé.
 function tick() {
-  if (!conns.length) return;
-  const sig = JSON.stringify({ n: content.n, c: content.c, h: content.h, del: [...del] });
-  if (sig === lastSig) return;
-  lastSig = sig;
-  const payload = buildPayload();
-  for (const c of conns) if (c.open) { try { c.send(payload); } catch (e) { /* */ } }
+  for (const [, b] of boards) {
+    if (!b.conns.length) continue;
+    const sig = JSON.stringify({ n: b.content.n, c: b.content.c, h: b.content.h, del: [...b.del] });
+    if (sig === b.lastSig) continue;
+    b.lastSig = sig;
+    const payload = buildPayload(b);
+    for (const c of b.conns) if (c.open) { try { c.send(payload); } catch (e) { /* */ } }
+  }
 }
 
 // --- Peer ---
-loadState();
+loadBoards();
 
 const ICE = [
   { urls: 'stun:stun.l.google.com:19302' },
@@ -187,19 +206,21 @@ function start() {
   });
   peer = p;
 
-  p.on('open', (id) => {
-    if (p !== peer) return;
-    console.log('\n[todomappa] HÔTE EN LIGNE');
-    console.log('  id    : ' + id);
-    console.log('  lien  : ' + APP_URL + '?peer=' + encodeURIComponent(id) + '\n');
+  p.on('open', (rid) => {
+    console.log('\n[todomappa] HÔTE EN LIGNE (multi-board)');
+    console.log('  id    : ' + rid);
+    console.log('  lien  : ' + APP_URL + '?peer=' + encodeURIComponent(rid));
+    console.log('  (ajoute &id=nom pour un board précis)\n');
   });
   p.on('connection', (conn) => {
     if (p !== peer) return;
-    conns.push(conn);
-    console.log('[todomappa] client connecté (' + conns.length + ')');
-    conn.on('open', () => { try { conn.send(buildPayload()); } catch (e) { /* */ } });
-    conn.on('data', (msg) => handleData(msg, conn));
-    const drop = () => { const i = conns.indexOf(conn); if (i >= 0) conns.splice(i, 1); console.log('[todomappa] client déconnecté (' + conns.length + ')'); };
+    const id = sanitizeBoard(conn.metadata && conn.metadata.board);
+    const b = getBoard(id);
+    b.conns.push(conn);
+    console.log(`[todomappa] client connecté sur "${id}" (${b.conns.length})`);
+    conn.on('open', () => { try { conn.send(buildPayload(b)); } catch (e) { /* */ } });
+    conn.on('data', (msg) => handleData(id, b, msg, conn));
+    const drop = () => { const i = b.conns.indexOf(conn); if (i >= 0) b.conns.splice(i, 1); console.log(`[todomappa] client déconnecté de "${id}" (${b.conns.length})`); };
     conn.on('close', drop);
     conn.on('error', drop);
   });
