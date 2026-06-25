@@ -24,8 +24,10 @@ En une commande (clone + dépendances + service systemd) :
 curl -fsSL https://raw.githubusercontent.com/remisarrailh/pensebete/main/server/install-pi.sh | bash
 ```
 
-(Prérequis : `node` et `git` installés ; voir ci-dessous. Id de peer par défaut :
-`tm-ee69hfhp`, modifiable via `TODOMAPPA_ID=… curl … | bash`.)
+Un **id de peer privé** est généré automatiquement au premier lancement et stocké
+dans `server/data/peer-id` (jamais commité). Le script affiche alors ton lien
+`…?peer=<id>` — garde-le pour toi. (Prérequis : `node` et `git` installés ; voir
+ci-dessous. Pour forcer un id : `TODOMAPPA_ID=… curl … | bash`.)
 
 ## Installation manuelle
 
