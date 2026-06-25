@@ -16,7 +16,18 @@ jamais la caméra. En cas de conflit, l'hôte (= ce serveur) l'emporte.
 - **Raspberry Pi OS 64-bit** recommandé (binaires `wrtc` arm64 pré-compilés). En
   32-bit, `npm install` tentera une compilation longue (déconseillé).
 
-## Installation
+## Installation express (Raspberry Pi)
+
+En une commande (clone + dépendances + service systemd) :
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/remisarrailh/pensebete/main/server/install-pi.sh | bash
+```
+
+(Prérequis : `node` et `git` installés ; voir ci-dessous. Id de peer par défaut :
+`tm-ee69hfhp`, modifiable via `TODOMAPPA_ID=… curl … | bash`.)
+
+## Installation manuelle
 
 ```bash
 cd server
