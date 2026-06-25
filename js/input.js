@@ -3,13 +3,13 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink,
-} from './state.js?v=mqtp1fz5';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqtp1fz5';
-import { dragTo, reset } from './physics.js?v=mqtp1fz5';
-import { exportJSON, importJSON } from './io.js?v=mqtp1fz5';
-import { pointInHex } from './geom.js?v=mqtp1fz5';
-import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqtp1fz5';
-import { explodeElementCascade } from './fx.js?v=mqtp1fz5';
+} from './state.js?v=mqtph0eo';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqtph0eo';
+import { dragTo, reset } from './physics.js?v=mqtph0eo';
+import { exportJSON, importJSON } from './io.js?v=mqtph0eo';
+import { pointInHex } from './geom.js?v=mqtph0eo';
+import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqtph0eo';
+import { explodeElementCascade } from './fx.js?v=mqtph0eo';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -554,24 +554,45 @@ function openContextAt(sx, sy) {
 function openRadial(x, y, items) {
   const radial = document.getElementById('radial');
   radial.innerHTML = '';
-  radial.style.left = x + 'px';
-  radial.style.top = y + 'px';
   radial.classList.remove('hidden');
 
   const n = items.length;
-  const radius = 84;
   const start = -Math.PI / 2;
-  items.forEach((it, i) => {
-    const ang = start + (i / Math.max(n, 1)) * Math.PI * 2;
+
+  // 1) Crée les items pour mesurer leur taille réelle.
+  const els = items.map((it) => {
     const el = document.createElement('div');
     el.className = 'item';
     el.textContent = it.label;
-    el.style.left = Math.cos(ang) * radius + 'px';
-    el.style.top = Math.sin(ang) * radius + 'px';
     el.addEventListener('mousedown', (ev) => ev.stopPropagation());
     el.addEventListener('touchstart', (ev) => ev.stopPropagation());
     el.addEventListener('click', (ev) => { ev.stopPropagation(); closeMenus(); it.fn(); });
     radial.appendChild(el);
+    return el;
+  });
+
+  // 2) Rayon dynamique : la corde entre deux items voisins doit dépasser leur
+  //    largeur pour qu'ils ne se chevauchent pas.
+  let maxW = 40, maxH = 24;
+  els.forEach((el) => { maxW = Math.max(maxW, el.offsetWidth); maxH = Math.max(maxH, el.offsetHeight); });
+  const gap = 14;
+  let radius = 0;
+  if (n > 1) radius = (maxW + gap) / (2 * Math.sin(Math.PI / n));
+  radius = Math.max(radius, maxH + gap, 70);
+
+  // 3) Recadre le centre pour que tout le menu reste visible à l'écran.
+  const mx = radius + maxW / 2 + 6;
+  const my = radius + maxH / 2 + 6;
+  const cx = Math.max(mx, Math.min(x, window.innerWidth - mx));
+  const cy = Math.max(my, Math.min(y, window.innerHeight - my));
+  radial.style.left = cx + 'px';
+  radial.style.top = cy + 'px';
+
+  // 4) Place les items sur le cercle.
+  els.forEach((el, i) => {
+    const ang = start + (i / n) * Math.PI * 2;
+    el.style.left = Math.cos(ang) * radius + 'px';
+    el.style.top = Math.sin(ang) * radius + 'px';
     requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('pop')));
   });
   armCloseOnce();
