@@ -51,6 +51,8 @@ Pour recopier ton board d'un appareil à l'autre (ex. desktop → téléphone) :
 
 Connexion **P2P chiffrée** (WebRTC via PeerJS) ; seuls des identifiants transitent par le broker de signalisation, le contenu passe en direct entre les deux navigateurs. Les libs PeerJS / QR sont chargées à la demande (CDN), l'app reste sans dépendance au repos.
 
+**Hôte permanent (optionnel)** : pour garder la synchro disponible même tous navigateurs fermés, on peut faire tourner un petit serveur Node sur un Raspberry Pi qui joue l'hôte en continu — voir [`server/`](server/README.md). L'app n'a pas besoin d'être modifiée : les appareils s'y connectent via `?peer=<id-du-pi>`.
+
 L'id de liaison est **stable** (mémorisé) : rafraîchir la page du host et recréer la liaison redonne **le même lien/QR**. En cas de coupure réseau, le host se reconnecte automatiquement au broker (même id) et les clients retentent la connexion — pas besoin de rescanner. Si le lien fuite, **« Nouveau lien »** (menu du bloc Liaison) régénère un id : l'ancienne URL devient invalide, le board est conservé.
 
 Côté confidentialité : le contenu transite en WebRTC chiffré (DTLS), en direct entre pairs dans le cas normal ; si une connexion directe est impossible, il est relayé (chiffré) par les serveurs TURN de PeerJS. Le broker ne voit que des identifiants de connexion.
