@@ -8,7 +8,7 @@ import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js';
 import { dragTo, reset } from './physics.js';
 import { exportJSON, importJSON } from './io.js';
 import { pointInHex } from './geom.js';
-import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl } from './sync.js';
+import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js';
 import { explodeElementCascade } from './fx.js';
 
 let canvas;
@@ -427,6 +427,7 @@ function createLiaison(wx, wy) {
   reset(n);
   state.selected = n.id;
   if (isClient()) {
+    loadQR(); // en client, startHost n'est pas appelé : on charge la lib QR ici
     const id = hostId();
     if (id) { n.peerId = id; n.code = id; n.url = buildUrl(id); n.status = 'online'; }
     else n.status = 'error';
