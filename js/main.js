@@ -1,12 +1,12 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId } from './state.js?v=mqtyx9od';
-import { setView } from './camera.js?v=mqtyx9od';
-import { render } from './render.js?v=mqtyx9od';
-import { step, reset } from './physics.js?v=mqtyx9od';
-import * as minimap from './minimap.js?v=mqtyx9od';
-import * as input from './input.js?v=mqtyx9od';
-import * as fx from './fx.js?v=mqtyx9od';
-import { joinHost, getNetMode } from './sync.js?v=mqtyx9od';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId } from './state.js?v=mqtz65m8';
+import { setView } from './camera.js?v=mqtz65m8';
+import { render } from './render.js?v=mqtz65m8';
+import { step, reset } from './physics.js?v=mqtz65m8';
+import * as minimap from './minimap.js?v=mqtz65m8';
+import * as input from './input.js?v=mqtz65m8';
+import * as fx from './fx.js?v=mqtz65m8';
+import { joinHost, getNetMode } from './sync.js?v=mqtz65m8';
 
 let toastTimer = null;
 function toast(msg, ms = 2400) {

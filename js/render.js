@@ -1,8 +1,8 @@
 // Rendu du board : grille pixel, cercles, hexagones, rectangles, glow néon, sélection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mqtyx9od';
-import { view, worldToScreen } from './camera.js?v=mqtyx9od';
-import { stretch } from './physics.js?v=mqtyx9od';
-import { hexCorners } from './geom.js?v=mqtyx9od';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mqtz65m8';
+import { view, worldToScreen } from './camera.js?v=mqtz65m8';
+import { stretch } from './physics.js?v=mqtz65m8';
+import { hexCorners } from './geom.js?v=mqtz65m8';
 
 const FONT = "'Press Start 2P', monospace";
 const BG = '#0d0f12';
@@ -95,7 +95,7 @@ function drawPancarte(ctx, n, selected, zoom) {
 
   // Texte gravé (clair avec ombre sombre).
   if (n.text) {
-    const fs = clamp(11 * zoom, 6, 24);
+    const fs = clamp(13 * zoom, 8, 32);
     ctx.fillStyle = '#f3e3c0';
     ctx.shadowColor = '#2a1a0e';
     ctx.shadowOffsetX = 1.5 * zoom;
@@ -182,7 +182,7 @@ function drawLiaison(ctx, n, selected, zoom) {
   else if (n.status === 'error') label = 'ERREUR RESEAU';
   else label = 'CONNEXION...';
 
-  const fs = clamp(7 * zoom, 5, 11);
+  const fs = clamp(8 * zoom, 6, 13);
   ctx.fillStyle = '#39ff14';
   ctx.shadowColor = '#39ff14';
   ctx.shadowBlur = 6;
@@ -212,7 +212,7 @@ function drawHexagon(ctx, hgn, selected) {
   ctx.restore();
 
   if (hgn.description) {
-    const fs = clamp(11 * state.camera.zoom, 7, 22);
+    const fs = clamp(16 * state.camera.zoom, 11, 36);
     ctx.save();
     ctx.font = `${fs}px ${FONT}`;
     ctx.textAlign = 'center';
@@ -259,7 +259,7 @@ function drawCircle(ctx, c, selected) {
 
   // Description en haut du cercle.
   if (c.description) {
-    const fs = clamp(11 * state.camera.zoom, 7, 22);
+    const fs = clamp(16 * state.camera.zoom, 11, 36);
     ctx.save();
     ctx.font = `${fs}px ${FONT}`;
     ctx.textAlign = 'center';
@@ -351,7 +351,7 @@ function drawRect(ctx, n, color, selected, zoom) {
 
   // Texte.
   if (text) {
-    const fs = clamp(11 * zoom, 6, 26);
+    const fs = clamp(13 * zoom, 8, 34);
     ctx.shadowBlur = 6;
     ctx.fillStyle = color;
     ctx.font = `${fs}px ${FONT}`;
