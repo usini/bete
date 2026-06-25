@@ -173,18 +173,28 @@ const ICE = [
   { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' },
 ];
 
+let peer = null;
+let restartTimer = null;
+function scheduleRestart() {
+  if (restartTimer) return;
+  restartTimer = setTimeout(() => { restartTimer = null; start(); }, 5000);
+}
+
 function start() {
-  const peer = new Peer(PEER_ID, {
+  const p = new Peer(PEER_ID, {
     host: '0.peerjs.com', port: 443, path: '/', secure: true, key: 'peerjs',
     config: { iceServers: ICE },
   });
+  peer = p;
 
-  peer.on('open', (id) => {
+  p.on('open', (id) => {
+    if (p !== peer) return;
     console.log('\n[todomappa] HÔTE EN LIGNE');
     console.log('  id    : ' + id);
     console.log('  lien  : ' + APP_URL + '?peer=' + encodeURIComponent(id) + '\n');
   });
-  peer.on('connection', (conn) => {
+  p.on('connection', (conn) => {
+    if (p !== peer) return;
     conns.push(conn);
     console.log('[todomappa] client connecté (' + conns.length + ')');
     conn.on('open', () => { try { conn.send(buildPayload()); } catch (e) { /* */ } });
@@ -193,19 +203,23 @@ function start() {
     conn.on('close', drop);
     conn.on('error', drop);
   });
-  peer.on('disconnected', () => {
+  p.on('disconnected', () => {
+    if (p !== peer) return;
     console.warn('[todomappa] déconnecté du broker, reconnexion…');
-    try { peer.reconnect(); } catch (e) { /* */ }
+    try { p.reconnect(); } catch (e) { /* */ }
   });
-  peer.on('error', (err) => {
-    console.error('[todomappa] erreur peer :', err && err.type ? err.type : err);
-    if (err && err.type === 'unavailable-id') {
-      console.error('  -> id déjà utilisé (un autre hôte tourne ?). Réessai dans 5s.');
-      setTimeout(() => { try { peer.destroy(); } catch (e) {} start(); }, 5000);
+  p.on('error', (err) => {
+    if (p !== peer) return;
+    const t = err && err.type ? err.type : String(err);
+    console.error('[todomappa] erreur peer :', t);
+    if (t === 'unavailable-id') console.error('  -> id occupé (un autre hôte tourne ?). Réessai dans 5s.');
+    if (t === 'unavailable-id' || t === 'network' || t === 'server-error' || t === 'socket-error') {
+      try { p.destroy(); } catch (e) { /* */ }
+      peer = null;
+      scheduleRestart();
     }
   });
-
-  setInterval(tick, 800);
 }
 
+setInterval(tick, 800);
 start();
