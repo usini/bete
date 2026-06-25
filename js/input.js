@@ -3,13 +3,13 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink,
-} from './state.js?v=mqtph0eo';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqtph0eo';
-import { dragTo, reset } from './physics.js?v=mqtph0eo';
-import { exportJSON, importJSON } from './io.js?v=mqtph0eo';
-import { pointInHex } from './geom.js?v=mqtph0eo';
-import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqtph0eo';
-import { explodeElementCascade } from './fx.js?v=mqtph0eo';
+} from './state.js?v=mqtxkppp';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqtxkppp';
+import { dragTo, reset } from './physics.js?v=mqtxkppp';
+import { exportJSON, importJSON } from './io.js?v=mqtxkppp';
+import { pointInHex } from './geom.js?v=mqtxkppp';
+import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqtxkppp';
+import { explodeElementCascade } from './fx.js?v=mqtxkppp';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -37,6 +37,35 @@ function updateHint() {
 }
 
 const RESIZE_TOL = 12;  // tolérance (px écran) pour saisir le bord d'une zone
+
+// ---- Menu radial : couleurs + icônes SVG (viewBox 0 0 24 24) ----
+const COL = {
+  green: '#39ff14', wood: '#b9772e', cyan: '#00b7eb', orange: '#ff8c00',
+  magenta: '#e3008c', purple: '#9b30ff', yellow: '#ffd400', white: '#f2f2f2', red: '#fe4365',
+};
+const ICONS = {
+  rect: '<rect x="3.5" y="6.5" width="17" height="11" rx="1.5"/>',
+  pancarte: '<rect x="4" y="5" width="16" height="10" rx="1.5"/><line x1="12" y1="15" x2="12" y2="21"/>',
+  circle: '<circle cx="12" cy="12" r="8"/>',
+  hexa: '<polygon points="12,3.2 19.5,7.6 19.5,16.4 12,20.8 4.5,16.4 4.5,7.6"/>',
+  share: '<circle cx="6" cy="12" r="2.3"/><circle cx="18" cy="6" r="2.3"/><circle cx="18" cy="18" r="2.3"/><line x1="8" y1="11" x2="16" y2="7"/><line x1="8" y1="13" x2="16" y2="17"/>',
+  export: '<line x1="12" y1="3" x2="12" y2="15"/><polyline points="7,10 12,15 17,10"/><line x1="4" y1="20" x2="20" y2="20"/>',
+  import: '<line x1="12" y1="16" x2="12" y2="4"/><polyline points="7,9 12,4 17,9"/><line x1="4" y1="20" x2="20" y2="20"/>',
+  edit: '<path d="M14.5 5.5l4 4"/><path d="M4 20l1-4L16 5l3 3L8 19z"/>',
+  text: '<line x1="5" y1="5" x2="19" y2="5"/><line x1="12" y1="5" x2="12" y2="20"/>',
+  color: '<path d="M12 3C12 3 5 11 5 15a7 7 0 0 0 14 0c0-4-7-12-7-12z"/>',
+  link: '<path d="M14 4h6v6"/><line x1="20" y1="4" x2="10" y2="14"/><path d="M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"/>',
+  eye: '<path d="M2.5 12C5.5 6.5 18.5 6.5 21.5 12C18.5 17.5 5.5 17.5 2.5 12Z"/><circle cx="12" cy="12" r="3"/>',
+  trash: '<line x1="4" y1="7" x2="20" y2="7"/><path d="M9 7V4.5h6V7"/><path d="M6.5 7l1 12.5h9l1-12.5"/>',
+  copy: '<rect x="8" y="8" width="12" height="12" rx="1.5"/><path d="M4 16V4h12"/>',
+  refresh: '<path d="M4 12a8 8 0 0 1 13.7-5.7M20 4v4h-4"/><path d="M20 12a8 8 0 0 1-13.7 5.7M4 20v-4h4"/>',
+  imgx: '<rect x="3.5" y="5" width="17" height="14" rx="1.5"/><line x1="3" y1="3" x2="21" y2="21"/>',
+  unlock: '<rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/>',
+  lock: '<rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  close: '<line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>',
+  dot: '<circle cx="12" cy="12" r="3"/>',
+};
+function svgEl(key) { return '<svg viewBox="0 0 24 24">' + (ICONS[key] || ICONS.dot) + '</svg>'; }
 
 export function init(boardCanvas, changeCb) {
   canvas = boardCanvas;
@@ -507,7 +536,7 @@ function openContextAt(sx, sy) {
   closeMenus();
   // Verrouillé (mobile) : le menu ne propose que d'activer l'interaction.
   if (!interactionEnabled) {
-    openRadial(sx, sy, [{ label: 'Activer', fn: () => { interactionEnabled = true; updateHint(); } }]);
+    openRadial(sx, sy, [{ label: 'Activer', icon: 'unlock', color: COL.green, fn: () => { interactionEnabled = true; updateHint(); } }]);
     return;
   }
   const w = screenToWorld(sx, sy);
@@ -516,39 +545,50 @@ function openContextAt(sx, sy) {
 
   let items;
   if (r && r.kind === 'liaison') {
-    items = [{ label: 'Copier', fn: () => copyLink(r) }];
-    // "Nouveau lien" n'a de sens que pour le vrai hôte, pas pour un client.
-    if (!isClient()) items.push({ label: 'Nouveau lien', fn: () => refreshHostId(r) });
-    items.push({ label: 'Suppr', fn: () => removeElement(r) });
+    items = [{ label: 'Copier le lien', icon: 'copy', color: COL.green, fn: () => copyLink(r) }];
+    if (!isClient()) items.push({ label: 'Nouveau lien', icon: 'refresh', color: COL.yellow, fn: () => refreshHostId(r) });
+    items.push({ label: 'Supprimer', icon: 'trash', color: COL.red, fn: () => removeElement(r) });
   } else if (r) {
     const isLink = !!r.ref;
-    items = [{ label: 'Éditer', fn: () => { const t = isLink ? sourceOf(r) : r; if (t) startEdit('rect', t, r); } }];
-    items.push({ label: 'Lien', fn: () => { const t = isLink ? sourceOf(r) : r; if (t) startEdit('link', t, r); } });
+    items = [{ label: 'Éditer le texte', icon: 'edit', color: COL.cyan, fn: () => { const t = isLink ? sourceOf(r) : r; if (t) startEdit('rect', t, r); } }];
+    items.push({ label: 'Lien cliquable', icon: 'link', color: COL.purple, fn: () => { const t = isLink ? sourceOf(r) : r; if (t) startEdit('link', t, r); } });
     const img = displayImage(r);
-    if (img) items.push({ label: 'Voir img', fn: () => openImagePopup(img) });
-    if (!isLink && r.image) items.push({ label: 'Img ✕', fn: () => { delete r.image; scheduleSave(); } });
-    items.push({ label: isLink ? 'Délier' : 'Suppr', fn: () => { removeById(r.id); scheduleSave(); } });
+    if (img) items.push({ label: "Voir l'image", icon: 'eye', color: COL.white, fn: () => openImagePopup(img) });
+    if (!isLink && r.image) items.push({ label: "Retirer l'image", icon: 'imgx', color: COL.orange, fn: () => { delete r.image; scheduleSave(); } });
+    items.push({ label: isLink ? 'Délier' : 'Supprimer', icon: 'trash', color: COL.red, fn: () => { removeById(r.id); scheduleSave(); } });
   } else if (hz) {
     const c = hz.c;
     items = [
-      { label: 'Couleur', fn: () => openPalette(sx, sy, c) },
-      { label: 'Texte', fn: () => startEdit('zone', c, c) },
-      { label: 'Suppr', fn: () => { removeById(c.id); scheduleSave(); } },
+      { label: 'Couleur', icon: 'color', color: COL.purple, fn: () => openPalette(sx, sy, c) },
+      { label: 'Texte', icon: 'text', color: COL.cyan, fn: () => startEdit('zone', c, c) },
+      { label: 'Supprimer', icon: 'trash', color: COL.red, fn: () => { removeById(c.id); scheduleSave(); } },
     ];
   } else {
     items = [
-      { label: '+ Rect', fn: () => { const n = addRect(w.x - 75, w.y - 35); reset(n); state.selected = n.id; startEdit('rect', n, n); scheduleSave(); } },
-      { label: '+ Pancarte', fn: () => { const n = { id: newId(), kind: 'pancarte', x: w.x - 120, y: w.y - 65, w: 240, h: 130, text: '' }; state.nodes.push(n); reset(n); state.selected = n.id; startEdit('rect', n, n); scheduleSave(); } },
-      { label: '+ Cercle', fn: () => { const c = addCircle(w.x, w.y); state.selected = c.id; scheduleSave(); } },
-      { label: '+ Hexa', fn: () => { const h = addHexagon(w.x, w.y); state.selected = h.id; scheduleSave(); } },
-      { label: '+ Liaison', fn: () => createLiaison(w.x, w.y) },
-      { label: 'Export', fn: () => exportJSON() },
-      { label: 'Import', fn: () => importJSON(() => { onChange(); }) },
+      { label: 'Rectangle', icon: 'rect', color: COL.green, fn: () => { const n = addRect(w.x - 75, w.y - 35); reset(n); state.selected = n.id; startEdit('rect', n, n); scheduleSave(); } },
+      { label: 'Pancarte', icon: 'pancarte', color: COL.wood, fn: () => { const n = { id: newId(), kind: 'pancarte', x: w.x - 120, y: w.y - 65, w: 240, h: 130, text: '' }; state.nodes.push(n); reset(n); state.selected = n.id; startEdit('rect', n, n); scheduleSave(); } },
+      { label: 'Cercle', icon: 'circle', color: COL.cyan, fn: () => { const c = addCircle(w.x, w.y); state.selected = c.id; scheduleSave(); } },
+      { label: 'Hexagone', icon: 'hexa', color: COL.orange, fn: () => { const h = addHexagon(w.x, w.y); state.selected = h.id; scheduleSave(); } },
+      { label: 'Liaison', icon: 'share', color: COL.magenta, fn: () => createLiaison(w.x, w.y) },
+      { label: 'Exporter', icon: 'export', color: COL.yellow, fn: () => exportJSON() },
+      { label: 'Importer', icon: 'import', color: COL.white, fn: () => importJSON(() => { onChange(); }) },
     ];
     // Sur mobile : possibilité de reverrouiller l'interaction.
-    if (isCoarse) items.push({ label: 'Désactiver', fn: () => { interactionEnabled = false; state.selected = null; updateHint(); } });
+    if (isCoarse) items.push({ label: 'Verrouiller', icon: 'lock', color: COL.orange, fn: () => { interactionEnabled = false; state.selected = null; updateHint(); } });
   }
   openRadial(sx, sy, items);
+}
+
+function mkRitem(it, extraClass) {
+  const el = document.createElement('div');
+  el.className = 'ritem' + (extraClass ? ' ' + extraClass : '');
+  el.title = it.label;
+  el.style.setProperty('--c', it.color || COL.green);
+  el.innerHTML = svgEl(it.icon);
+  el.addEventListener('mousedown', (ev) => ev.stopPropagation());
+  el.addEventListener('touchstart', (ev) => ev.stopPropagation());
+  el.addEventListener('click', (ev) => { ev.stopPropagation(); closeMenus(); it.fn(); });
+  return el;
 }
 
 function openRadial(x, y, items) {
@@ -557,43 +597,37 @@ function openRadial(x, y, items) {
   radial.classList.remove('hidden');
 
   const n = items.length;
+  const D = isCoarse ? 62 : 52;        // diamètre d'un bouton
   const start = -Math.PI / 2;
 
-  // 1) Crée les items pour mesurer leur taille réelle.
-  const els = items.map((it) => {
-    const el = document.createElement('div');
-    el.className = 'item';
-    el.textContent = it.label;
-    el.addEventListener('mousedown', (ev) => ev.stopPropagation());
-    el.addEventListener('touchstart', (ev) => ev.stopPropagation());
-    el.addEventListener('click', (ev) => { ev.stopPropagation(); closeMenus(); it.fn(); });
-    radial.appendChild(el);
-    return el;
-  });
+  // Rayon : la corde entre deux boutons voisins dépasse leur diamètre (pas de chevauchement).
+  let radius = n > 1 ? (D + 14) / (2 * Math.sin(Math.PI / n)) : 0;
+  radius = Math.max(radius, D + 6);
 
-  // 2) Rayon dynamique : la corde entre deux items voisins doit dépasser leur
-  //    largeur pour qu'ils ne se chevauchent pas.
-  let maxW = 40, maxH = 24;
-  els.forEach((el) => { maxW = Math.max(maxW, el.offsetWidth); maxH = Math.max(maxH, el.offsetHeight); });
-  const gap = 14;
-  let radius = 0;
-  if (n > 1) radius = (maxW + gap) / (2 * Math.sin(Math.PI / n));
-  radius = Math.max(radius, maxH + gap, 70);
-
-  // 3) Recadre le centre pour que tout le menu reste visible à l'écran.
-  const mx = radius + maxW / 2 + 6;
-  const my = radius + maxH / 2 + 6;
-  const cx = Math.max(mx, Math.min(x, window.innerWidth - mx));
-  const cy = Math.max(my, Math.min(y, window.innerHeight - my));
+  // Recadre le centre pour que tout le menu reste visible.
+  const m = radius + D / 2 + 6;
+  const cx = Math.max(m, Math.min(x, window.innerWidth - m));
+  const cy = Math.max(m, Math.min(y, window.innerHeight - m));
   radial.style.left = cx + 'px';
   radial.style.top = cy + 'px';
 
-  // 4) Place les items sur le cercle.
-  els.forEach((el, i) => {
+  // Bouton central : ferme le menu (ancre visuelle).
+  const center = mkRitem({ label: 'Fermer', icon: 'close', color: COL.green, fn: () => {} }, 'ritem-center show');
+  center.style.transform = 'translate(-50%, -50%) scale(1)';
+  center.style.opacity = '1';
+  radial.appendChild(center);
+
+  // Items qui se déploient en éventail (animation ressort décalée).
+  items.forEach((it, i) => {
     const ang = start + (i / n) * Math.PI * 2;
-    el.style.left = Math.cos(ang) * radius + 'px';
-    el.style.top = Math.sin(ang) * radius + 'px';
-    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('pop')));
+    const dx = Math.cos(ang) * radius, dy = Math.sin(ang) * radius;
+    const el = mkRitem(it);
+    radial.appendChild(el);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.style.transitionDelay = (i * 32) + 'ms';
+      el.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1)`;
+      el.classList.add('show');
+    }));
   });
   armCloseOnce();
 }

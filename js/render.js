@@ -1,8 +1,8 @@
 // Rendu du board : grille pixel, cercles, hexagones, rectangles, glow néon, sélection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mqtph0eo';
-import { view, worldToScreen } from './camera.js?v=mqtph0eo';
-import { stretch } from './physics.js?v=mqtph0eo';
-import { hexCorners } from './geom.js?v=mqtph0eo';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mqtxkppp';
+import { view, worldToScreen } from './camera.js?v=mqtxkppp';
+import { stretch } from './physics.js?v=mqtxkppp';
+import { hexCorners } from './geom.js?v=mqtxkppp';
 
 const FONT = "'Press Start 2P', monospace";
 const BG = '#0d0f12';
