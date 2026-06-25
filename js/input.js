@@ -8,7 +8,7 @@ import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js';
 import { dragTo, reset } from './physics.js';
 import { exportJSON, importJSON } from './io.js';
 import { pointInHex } from './geom.js';
-import { startHost, stopHost, refreshHostId, pushMove, pushDelete } from './sync.js';
+import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient } from './sync.js';
 import { explodeElementCascade } from './fx.js';
 
 let canvas;
@@ -421,6 +421,7 @@ function onKeyDown(e) {
 
 // Crée un bloc Liaison (HOST) et démarre le peer P2P.
 function createLiaison(wx, wy) {
+  if (isClient()) return; // un client ne devient pas hôte (évite le split-brain)
   const n = { id: newId(), kind: 'liaison', x: wx - 100, y: wy - 115, w: 200, h: 230, status: 'init' };
   state.nodes.push(n);
   reset(n);
@@ -535,6 +536,8 @@ function openContextAt(sx, sy) {
       { label: 'Export', fn: () => exportJSON() },
       { label: 'Import', fn: () => importJSON(() => { onChange(); }) },
     ];
+    // Connecté en client : pas de création de bloc Liaison (on a déjà un hôte).
+    if (isClient()) items = items.filter((it) => it.label !== '+ Liaison');
     // Sur mobile : possibilité de reverrouiller l'interaction.
     if (isCoarse) items.push({ label: 'Désactiver', fn: () => { interactionEnabled = false; state.selected = null; updateHint(); } });
   }

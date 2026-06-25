@@ -39,6 +39,10 @@ let prevLocalIds = null;
 let lastSentGate = '';
 let clientFirstSync = false;
 
+// Vrai si on est connecté en client (ouvert via ?peer=) : un client ne doit pas
+// pouvoir devenir hôte (sinon split-brain avec l'hôte permanent).
+export function isClient() { return mode === 'client'; }
+
 const now = () => Date.now();
 
 function resetSyncState() {
