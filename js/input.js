@@ -3,13 +3,13 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink,
-} from './state.js';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js';
-import { dragTo, reset } from './physics.js';
-import { exportJSON, importJSON } from './io.js';
-import { pointInHex } from './geom.js';
-import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js';
-import { explodeElementCascade } from './fx.js';
+} from './state.js?v=mqtot15q';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqtot15q';
+import { dragTo, reset } from './physics.js?v=mqtot15q';
+import { exportJSON, importJSON } from './io.js?v=mqtot15q';
+import { pointInHex } from './geom.js?v=mqtot15q';
+import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqtot15q';
+import { explodeElementCascade } from './fx.js?v=mqtot15q';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
