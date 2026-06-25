@@ -180,6 +180,23 @@ html, body {
   box-shadow: 0 0 28px rgba(57, 255, 20, 0.4);
 }
 
+/* ---- Indicateur de type de liaison ---- */
+#netmode {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 20;
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--green-dim);
+  pointer-events: none;
+  user-select: none;
+  opacity: 0;
+}
+#netmode.show { opacity: 1; }
+#netmode.p2p { color: var(--green); text-shadow: 0 0 6px rgba(57, 255, 20, 0.5); }
+#netmode.relay { color: #ff8c00; text-shadow: 0 0 6px rgba(255, 140, 0, 0.5); }
+
 /* ---- Toast de statut ---- */
 #toast {
   position: fixed;

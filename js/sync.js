@@ -2,9 +2,9 @@
 // On ne synchronise QUE le contenu (texte, image, couleur, description, liens,
 // création/suppression) : ni la caméra, ni les positions/tailles. Chaque écran
 // garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
-import { state, removeById, scheduleSave } from './state.js?v=mqtot15q';
-import { reset } from './physics.js?v=mqtot15q';
-import { explodeElementCascade } from './fx.js?v=mqtot15q';
+import { state, removeById, scheduleSave } from './state.js?v=mqtp1fz5';
+import { reset } from './physics.js?v=mqtp1fz5';
+import { explodeElementCascade } from './fx.js?v=mqtp1fz5';
 
 const PEERJS_SRC = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
 const QR_SRC = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
@@ -43,6 +43,41 @@ let clientFirstSync = false;
 export function isClient() { return mode === 'client'; }
 // Id de l'hôte (celui auquel on est connecté en client, ou le nôtre si on héberge).
 export function hostId() { return mode === 'client' ? clientPeerId : (hostPeer && hostPeer.id) || null; }
+
+// ---- Détection du type de liaison (P2P direct vs relais TURN) ----
+let netMode = null; // null=non connecté, 'p2p', 'relay', '?'
+export function getNetMode() { return netMode; }
+
+async function modeFromStats(pc) {
+  const stats = await pc.getStats();
+  let pairId = null, pair = null;
+  stats.forEach((r) => { if (r.type === 'transport' && r.selectedCandidatePairId) pairId = r.selectedCandidatePairId; });
+  stats.forEach((r) => {
+    if (r.type !== 'candidate-pair') return;
+    if (pairId ? r.id === pairId : (r.nominated && r.state === 'succeeded')) pair = r;
+  });
+  if (!pair) stats.forEach((r) => { if (r.type === 'candidate-pair' && r.state === 'succeeded') pair = pair || r; });
+  if (!pair) return '?';
+  let lt, rt;
+  stats.forEach((r) => {
+    if (r.id === pair.localCandidateId) lt = r.candidateType;
+    if (r.id === pair.remoteCandidateId) rt = r.candidateType;
+  });
+  if (lt === 'relay' || rt === 'relay') return 'relay';
+  return (lt || rt) ? 'p2p' : '?';
+}
+
+async function refreshNetMode() {
+  if (!conns.length) { netMode = null; return; }
+  let relay = false, p2p = false, any = false;
+  for (const c of conns) {
+    const pc = c && c.peerConnection;
+    if (!pc || !pc.getStats) continue;
+    try { const m = await modeFromStats(pc); any = true; if (m === 'relay') relay = true; else if (m === 'p2p') p2p = true; } catch (e) { /* */ }
+  }
+  netMode = relay ? 'relay' : (p2p ? 'p2p' : (any ? '?' : null));
+}
+setInterval(refreshNetMode, 4000);
 
 const now = () => Date.now();
 

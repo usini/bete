@@ -1,12 +1,12 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId } from './state.js?v=mqtot15q';
-import { setView } from './camera.js?v=mqtot15q';
-import { render } from './render.js?v=mqtot15q';
-import { step, reset } from './physics.js?v=mqtot15q';
-import * as minimap from './minimap.js?v=mqtot15q';
-import * as input from './input.js?v=mqtot15q';
-import * as fx from './fx.js?v=mqtot15q';
-import { joinHost } from './sync.js?v=mqtot15q';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId } from './state.js?v=mqtp1fz5';
+import { setView } from './camera.js?v=mqtp1fz5';
+import { render } from './render.js?v=mqtp1fz5';
+import { step, reset } from './physics.js?v=mqtp1fz5';
+import * as minimap from './minimap.js?v=mqtp1fz5';
+import * as input from './input.js?v=mqtp1fz5';
+import * as fx from './fx.js?v=mqtp1fz5';
+import { joinHost, getNetMode } from './sync.js?v=mqtp1fz5';
 
 let toastTimer = null;
 function toast(msg, ms = 2400) {
@@ -110,9 +110,23 @@ function loop(now) {
   fx.render(ctx);
 
   minimap.render();
+  updateNetMode();
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
+
+// Indicateur P2P direct / relais TURN (mis à jour seulement quand ça change).
+let lastNet;
+function updateNetMode() {
+  const nm = getNetMode();
+  if (nm === lastNet) return;
+  lastNet = nm;
+  const el = document.getElementById('netmode');
+  if (!nm) { el.className = ''; el.textContent = ''; }
+  else if (nm === 'relay') { el.className = 'show relay'; el.textContent = '● RELAIS (TURN)'; }
+  else if (nm === 'p2p') { el.className = 'show p2p'; el.textContent = '● P2P DIRECT'; }
+  else { el.className = 'show'; el.textContent = '● LIAISON…'; }
+}
 
 // Re-render propre une fois la police pixel chargée.
 if (document.fonts && document.fonts.ready) {
