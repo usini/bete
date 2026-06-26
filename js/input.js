@@ -3,14 +3,14 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId,
-} from './state.js?v=mqum8g73';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqum8g73';
-import { dragTo, reset } from './physics.js?v=mqum8g73';
-import { exportJSON, importJSON } from './io.js?v=mqum8g73';
-import { pointInHex } from './geom.js?v=mqum8g73';
-import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqum8g73';
-import { explodeElementCascade } from './fx.js?v=mqum8g73';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqum8g73';
+} from './state.js?v=mqumkiii';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqumkiii';
+import { dragTo, reset } from './physics.js?v=mqumkiii';
+import { exportJSON, importJSON } from './io.js?v=mqumkiii';
+import { pointInHex } from './geom.js?v=mqumkiii';
+import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqumkiii';
+import { explodeElementCascade } from './fx.js?v=mqumkiii';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqumkiii';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -113,6 +113,12 @@ export function init(boardCanvas, changeCb) {
   bp.addEventListener('mousedown', (e) => e.stopPropagation());
   bp.addEventListener('touchstart', (e) => e.stopPropagation());
 
+  // Barre d'URL : cliquer dessus suit le lien focalisé.
+  const lb = document.getElementById('linkbar');
+  const followBar = (e) => { e.stopPropagation(); e.preventDefault(); if (linkFocus) { const u = linkFocus.url; clearLinkFocus(); followLink(u); } };
+  lb.addEventListener('mousedown', followBar);
+  lb.addEventListener('touchstart', followBar);
+
   updateHint();
 }
 
@@ -161,7 +167,8 @@ function hexagonAt(px, py) {
 function pointerDown(sx, sy) {
   closeMenus();
   // Interaction verrouillée (mobile par défaut) : on ne fait que paner.
-  if (!interactionEnabled) { drag = { mode: 'pan', px: sx, py: sy }; state.selected = null; return; }
+  // (mais un tap sur un lien reste géré au pointerUp, cf. finishDrag).
+  if (!interactionEnabled) { drag = { mode: 'pan', px: sx, py: sy, sx0: sx, sy0: sy }; return; }
   const w = screenToWorld(sx, sy);
 
   const r = hitRect(w);
@@ -182,7 +189,7 @@ function pointerDown(sx, sy) {
   }
 
   state.selected = null;
-  drag = { mode: 'pan', px: sx, py: sy };
+  drag = { mode: 'pan', px: sx, py: sy, sx0: sx, sy0: sy };
 }
 
 function pointerMove(sx, sy) {
@@ -230,19 +237,11 @@ function finishDrag() {
       scheduleSave();
       return;
     }
-    // Clic (déplacement négligeable) sur un nœud à lien => ouvre l'onglet.
+    // Tap (déplacement négligeable) sur un nœud à lien => focus puis suivi (2 temps).
     if (n) {
-      const lk = displayLink(n);
-      if (lk && Math.hypot(n.x - drag.startX, n.y - drag.startY) < 3) {
-        const bu = parseBoardUrl(lk);
-        if (bu) {
-          // Lien vers un board : navigue dans le MÊME onglet (l'historique s'enregistre au chargement).
-          recordBoard(bu.id, bu.name || displayText(n), bu.peer);
-          location.href = lk;
-          return;
-        }
-        openLink(lk); scheduleSave(); return; // lien externe : nouvel onglet
-      }
+      const tap = Math.hypot(n.x - drag.startX, n.y - drag.startY) < 3;
+      if (tap && displayLink(n)) { handleLinkTap(n); return; }
+      if (tap) clearLinkFocus();
     }
     if (n && !n.ref) {
       const cx = n.x + n.w / 2, cy = n.y + n.h / 2;
@@ -259,6 +258,15 @@ function finishDrag() {
           state.selected = link.id;
         }
       }
+    }
+  } else if (drag.mode === 'pan') {
+    // Tap sur le fond : en mode verrouillé, un tap sur un lien le focus/suit.
+    const moved = Math.hypot((drag.px - drag.sx0), (drag.py - drag.sy0));
+    if (moved < 6) {
+      const w = screenToWorld(drag.px, drag.py);
+      const r = hitRect(w);
+      if (r && displayLink(r)) { handleLinkTap(r); return; }
+      clearLinkFocus();
     }
   }
 
@@ -437,9 +445,11 @@ function processImage(file, cb) {
 
 // ---- Double-clic / double-tap ----
 function handleDouble(sx, sy) {
-  if (!interactionEnabled) return; // verrouillé : pas d'édition/ouverture
   const w = screenToWorld(sx, sy);
   const r = hitRect(w);
+  // Double-tap/clic sur un lien => on suit directement (autorisé même verrouillé).
+  if (r && displayLink(r)) { clearLinkFocus(); followLink(displayLink(r)); return; }
+  if (!interactionEnabled) return; // verrouillé : pas d'édition/ouverture
   if (r) {
     const img = displayImage(r);
     if (img) { openImagePopup(img); return; }
@@ -492,7 +502,40 @@ function copyLink(n) {
   }
 }
 
-// Ouvre un lien dans un nouvel onglet (préfixe https:// si besoin).
+// ---- Liens en deux temps : 1er tap = focus (affiche l'URL), 2e = on suit ----
+let linkFocus = null; // { id, url }
+
+function handleLinkTap(n) {
+  const lk = displayLink(n);
+  if (!lk) return;
+  if (linkFocus && linkFocus.id === n.id) {
+    const url = lk; clearLinkFocus(); followLink(url);
+  } else {
+    linkFocus = { id: n.id, url: lk };
+    state.selected = n.id;
+    showLinkBar(lk);
+  }
+}
+
+function showLinkBar(url) {
+  const el = document.getElementById('linkbar');
+  el.textContent = '↗ ' + url;
+  el.title = url;
+  el.classList.add('show');
+}
+function clearLinkFocus() {
+  linkFocus = null;
+  document.getElementById('linkbar').classList.remove('show');
+}
+
+// Suit un lien : board => même onglet (+ historique) ; externe => nouvel onglet.
+function followLink(url) {
+  const bu = parseBoardUrl(url);
+  if (bu) { recordBoard(bu.id, bu.name, bu.peer); location.href = url; return; }
+  openLink(url);
+}
+
+// Ouvre un lien externe dans un nouvel onglet (préfixe https:// si besoin).
 let _lastLinkOpen = 0;
 function openLink(url) {
   const t = performance.now();
