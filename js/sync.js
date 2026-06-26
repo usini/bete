@@ -2,9 +2,10 @@
 // On ne synchronise QUE le contenu (texte, image, couleur, description, liens,
 // création/suppression) : ni la caméra, ni les positions/tailles. Chaque écran
 // garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqv1yk93';
-import { reset } from './physics.js?v=mqv1yk93';
-import { explodeElementCascade } from './fx.js?v=mqv1yk93';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqv9hiue';
+import { reset } from './physics.js?v=mqv9hiue';
+import { explodeElementCascade } from './fx.js?v=mqv9hiue';
+import { putAudio, getAudio, delAudio } from './audio.js?v=mqv9hiue';
 
 const PEERJS_SRC = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
 const QR_SRC = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
@@ -96,7 +97,7 @@ function resetSyncState() {
 // ---- Construction du contenu (sans la caméra ; positions = indice de spawn) ----
 function localIds() {
   const ids = new Set();
-  state.nodes.forEach(n => { if (n.kind !== 'liaison' && n.kind !== 'voice') ids.add(n.id); });
+  state.nodes.forEach(n => { if (n.kind !== 'liaison') ids.add(n.id); });
   state.circles.forEach(c => ids.add(c.id));
   state.hexagons.forEach(h => ids.add(h.id));
   return ids;
@@ -108,12 +109,16 @@ function nodeEntry(n) {
   if (n.link) e.lk = n.link;
   return e;
 }
-function sigNode(e) { return e.ref !== undefined ? 'R' + e.ref : 'T' + e.t + '|' + (e.img || '') + '|' + (e.lk || ''); }
+function sigNode(e) { return e.vc ? 'V' + e.dur : (e.ref !== undefined ? 'R' + e.ref : 'T' + e.t + '|' + (e.img || '') + '|' + (e.lk || '')); }
 function sigZone(e) { return 'Z' + e.col + '' + e.d; }
 
 function buildContent() {
   const n = {}, c = {}, h = {};
-  for (const node of state.nodes) { if (node.kind === 'liaison' || node.kind === 'voice') continue; n[node.id] = nodeEntry(node); }
+  for (const node of state.nodes) {
+    if (node.kind === 'liaison') continue;
+    if (node.kind === 'voice') { n[node.id] = { vc: 1, dur: node.dur || 0, x: node.x, y: node.y, w: node.w, h: node.h }; continue; }
+    n[node.id] = nodeEntry(node);
+  }
   for (const z of state.circles) c[z.id] = { col: z.color, d: z.description || '', x: z.x, y: z.y, r: z.r };
   for (const z of state.hexagons) h[z.id] = { col: z.color, d: z.description || '', x: z.x, y: z.y, r: z.r };
   return { n, c, h };
@@ -171,7 +176,7 @@ function merge(remote) {
   for (const id of remote.del || []) {
     tombstones.add(id);
     const el = findLocal(id);
-    if (el) { explodeElementCascade(el); removeById(id); delete mtimes[id]; applied.add(id); changed = true; }
+    if (el) { if (el.kind === 'voice') delAudio(id); explodeElementCascade(el); removeById(id); delete mtimes[id]; applied.add(id); changed = true; }
   }
 
   const win = (id) => {
@@ -185,12 +190,15 @@ function merge(remote) {
     const rd = remote.n[id];
     const ex = state.nodes.find(x => x.id === id);
     if (!ex) {
-      const node = rd.ref !== undefined
+      let node;
+      if (rd.vc) node = { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, kind: 'voice', dur: rd.dur || 0 };
+      else node = rd.ref !== undefined
         ? { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, ref: rd.ref }
         : { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, text: rd.t || '', image: rd.img || undefined };
       if (rd.k) node.kind = rd.k;
       if (rd.lk) node.link = rd.lk;
       state.nodes.push(node); reset(node);
+      if (rd.vc) ensureAudio(node); // récupère l'audio auprès des pairs
       mtimes[id] = (remote.mt && remote.mt[id]) || now();
       applied.add(id); changed = true;
     } else if (win(id)) {
@@ -267,11 +275,52 @@ function handleData(msg, origin) {
     applyMove(msg);
   } else if (msg.type === 'delete') {
     applyDelete(msg);
+  } else if (msg.type === 'audioReq') {
+    // On a l'audio ? on répond. Sinon, le host relaie la demande aux autres.
+    getAudio(msg.id).then((blob) => {
+      if (blob) blob.arrayBuffer().then((buf) => sendTo(origin, { type: 'audioRes', id: msg.id, mime: blob.type, buf }));
+      else if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); });
+    }).catch(() => {});
+    return;
+  } else if (msg.type === 'audioRes') {
+    if (msg.buf) {
+      const blob = new Blob([msg.buf], { type: msg.mime || 'audio/webm' });
+      putAudio(msg.id, blob).then(() => { const el = findLocal(msg.id); if (el) { el._missing = false; el._loading = false; } }).catch(() => {});
+    }
+    if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); }); // relai vers les autres clients
+    return;
   }
   // Le host relaie les événements ponctuels aux autres clients.
   if (mode === 'host' && (msg.type === 'move' || msg.type === 'delete')) {
     conns.forEach((c) => { if (c !== origin) { try { if (c.open) c.send(msg); } catch (e) { /* */ } } });
   }
+}
+
+function sendTo(conn, msg) { try { if (conn && conn.open) conn.send(msg); } catch (e) { /* */ } }
+
+// ---- Partage des mémos vocaux (audio binaire sur la DataChannel) ----
+// Diffuse l'audio fraîchement enregistré à tous les pairs (host -> clients,
+// client -> host qui relaie). Appelé par voice.js après l'enregistrement.
+export function shareAudio(id, blob) {
+  if (!conns.length || !blob) return;
+  blob.arrayBuffer().then((buf) => {
+    conns.forEach((c) => sendTo(c, { type: 'audioRes', id, mime: blob.type, buf }));
+  });
+}
+
+// Demande l'audio d'un mémo aux pairs (si on ne l'a pas localement).
+export function requestAudio(id) {
+  if (!conns.length) return;
+  conns.forEach((c) => sendTo(c, { type: 'audioReq', id }));
+}
+
+// À la réception d'un mémo distant : récupère l'audio si absent localement.
+function ensureAudio(node) {
+  getAudio(node.id).then((blob) => {
+    if (blob) return;
+    node._missing = true;
+    requestAudio(node.id);
+  }).catch(() => {});
 }
 
 // Position déposée : on met à jour la cible (le ressort anime côté node).
@@ -289,7 +338,7 @@ function applyMove(msg) {
 function applyDelete(msg) {
   tombstones.add(msg.id);
   const el = findLocal(msg.id);
-  if (el) { explodeElementCascade(el); removeById(msg.id); delete mtimes[msg.id]; delete prevSigs[msg.id]; scheduleSave(); }
+  if (el) { if (el.kind === 'voice') delAudio(el.id); explodeElementCascade(el); removeById(msg.id); delete mtimes[msg.id]; delete prevSigs[msg.id]; scheduleSave(); }
 }
 
 // Appelé au lâcher d'un objet (drop) : diffuse sa position finale.

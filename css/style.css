@@ -450,9 +450,11 @@ html, body {
 @keyframes recpulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
 .rec-timer { font-family: 'Press Start 2P', monospace; font-size: 20px; color: var(--green); }
 .rec-actions { display: flex; gap: 10px; }
-.rec-actions button { font-family: inherit; font-size: 11px; padding: 12px 16px; cursor: pointer; border: 3px solid; background: var(--node-bg); }
-.rec-stop { color: #04130a; background: #fe4365; border-color: #fe4365; }
-.rec-cancel { color: var(--green-dim); border-color: var(--green-dim); }
+.rec-actions button { font-family: inherit; font-size: 12px; padding: 13px 18px; cursor: pointer; border: 3px solid; }
+.rec-stop { color: #fff; background: #fe4365; border-color: #fff; font-weight: bold; }
+.rec-stop:hover { background: #ff5c79; }
+.rec-cancel { color: #cfd8d3; background: #11151a; border-color: #cfd8d3; }
+.rec-cancel:hover { background: #1a1f26; }
 
 /* ---- Scanlines CRT ---- */
 #crt {

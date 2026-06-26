@@ -1,10 +1,10 @@
 // Rendu du board : grille pixel, cercles, hexagones, rectangles, glow néon, sélection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mqv1yk93';
-import { view, worldToScreen } from './camera.js?v=mqv1yk93';
-import { stretch } from './physics.js?v=mqv1yk93';
-import { hexCorners } from './geom.js?v=mqv1yk93';
-import { theme, getTextScale } from './theme.js?v=mqv1yk93';
-import { fmtDur } from './voice.js?v=mqv1yk93';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mqv9hiue';
+import { view, worldToScreen } from './camera.js?v=mqv9hiue';
+import { stretch } from './physics.js?v=mqv9hiue';
+import { hexCorners } from './geom.js?v=mqv9hiue';
+import { theme, getTextScale } from './theme.js?v=mqv9hiue';
+import { fmtDur } from './voice.js?v=mqv9hiue';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -249,7 +249,7 @@ function drawVoice(ctx, n, selected, zoom) {
   ctx.textBaseline = 'middle';
   ctx.fillStyle = theme().lightBg ? theme().ink : color;
   ctx.shadowColor = color; ctx.shadowBlur = 4 * GLOW();
-  ctx.fillText(n._missing ? 'audio indispo' : ('♪ ' + fmtDur(n.dur || 0)), tx, -h * 0.16);
+  ctx.fillText(n._loading ? 'chargement…' : (n._missing ? 'indispo' : ('♪ ' + fmtDur(n.dur || 0))), tx, -h * 0.16);
   ctx.shadowBlur = 0;
 
   const barX = tx, barW = w / 2 - 10 * zoom - barX, barY = h * 0.18, barH = Math.max(3, 5 * zoom);

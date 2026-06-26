@@ -1,10 +1,12 @@
 // Mémos vocaux : enregistrement (MediaRecorder/Opus), stockage IndexedDB,
-// lecture play/pause. Local à l'appareil (non synchronisé pour l'instant).
-import { state, newId, scheduleSave } from './state.js?v=mqv1yk93';
-import { reset } from './physics.js?v=mqv1yk93';
-import { putAudio, getAudio, delAudio } from './audio.js?v=mqv1yk93';
+// lecture play/pause, partage P2P de l'audio (cf. sync.js shareAudio/requestAudio).
+import { state, newId, scheduleSave } from './state.js?v=mqv9hiue';
+import { reset } from './physics.js?v=mqv9hiue';
+import { putAudio, getAudio, delAudio } from './audio.js?v=mqv9hiue';
+import { shareAudio, requestAudio } from './sync.js?v=mqv9hiue';
 
 const players = {}; // id -> { audio, url }
+const MAX_MS = 60000; // durée max d'un mémo : 1 minute
 
 export function fmtDur(s) {
   s = Math.max(0, Math.round(s));
@@ -56,26 +58,29 @@ export async function recordVoiceMemo(wx, wy) {
   const modal = buildRecModal();
   const t0 = performance.now();
   const timerEl = modal.querySelector('.rec-timer');
-  const tick = setInterval(() => { timerEl.textContent = fmtDur((performance.now() - t0) / 1000); }, 200);
+  const tick = setInterval(() => { timerEl.textContent = fmtDur((performance.now() - t0) / 1000) + ' / 1:00'; }, 200);
+  // Arrêt automatique à 1 minute.
+  const maxTimer = setTimeout(() => { if (rec.state !== 'inactive') rec.stop(); }, MAX_MS);
   let cancelled = false;
 
   rec.onstop = async () => {
-    clearInterval(tick);
+    clearInterval(tick); clearTimeout(maxTimer);
     stream.getTracks().forEach((t) => t.stop());
     modal.remove();
     if (cancelled) return;
     const blob = new Blob(chunks, { type: mime || 'audio/webm' });
     if (!blob.size) return;
-    const dur = (performance.now() - t0) / 1000;
+    const dur = Math.min(60, (performance.now() - t0) / 1000);
     const id = newId();
     try { await putAudio(id, blob); }
     catch (e) { alert('Stockage du mémo impossible.'); return; }
     const n = { id, kind: 'voice', x: wx - 90, y: wy - 40, w: 180, h: 80, dur: Math.round(dur) };
     state.nodes.push(n); reset(n); state.selected = n.id; scheduleSave();
+    shareAudio(id, blob); // diffuse l'audio aux pairs connectés
   };
 
   modal.querySelector('.rec-stop').onclick = () => { if (rec.state !== 'inactive') rec.stop(); };
-  modal.querySelector('.rec-cancel').onclick = () => { cancelled = true; if (rec.state !== 'inactive') rec.stop(); else { clearInterval(tick); stream.getTracks().forEach((t) => t.stop()); modal.remove(); } };
+  modal.querySelector('.rec-cancel').onclick = () => { cancelled = true; clearTimeout(maxTimer); if (rec.state !== 'inactive') rec.stop(); else { clearInterval(tick); stream.getTracks().forEach((t) => t.stop()); modal.remove(); } };
 
   rec.start();
 }
@@ -89,7 +94,7 @@ export async function toggleVoice(n) {
   }
   let blob;
   try { blob = await getAudio(n.id); } catch (e) { blob = null; }
-  if (!blob) { n._missing = true; return; }
+  if (!blob) { n._missing = true; n._loading = true; requestAudio(n.id); return; } // demande l'audio aux pairs
   const url = URL.createObjectURL(blob);
   const audio = new Audio(url);
   players[n.id] = { audio, url };

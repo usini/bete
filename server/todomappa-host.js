@@ -53,6 +53,11 @@ function sanitizeBoard(s) {
 // --- Boards en mémoire : id -> { content, mt, del, conns, lastSig, saveTimer } ---
 const boards = new Map();
 
+// Cache mémoire des mémos vocaux (id -> message audioRes reçu, renvoyé tel quel).
+// Permet le partage entre clients + la récupération par un arrivant tardif tant
+// que le serveur tourne. (Pas de persistance disque : binaire transitoire.)
+const audioMem = new Map();
+
 function fromExport(obj) {
   const n = {}, c = {}, h = {}, m = {}; const t = now();
   for (const nd of obj.nodes || []) {
@@ -157,6 +162,7 @@ function applyMove(b, msg) {
 
 function applyDelete(b, msg) {
   b.del.add(msg.id);
+  audioMem.delete(msg.id); // libère l'audio caché
   if (b.content.n[msg.id] || b.content.c[msg.id] || b.content.h[msg.id]) {
     delete b.content.n[msg.id]; delete b.content.c[msg.id]; delete b.content.h[msg.id]; delete b.mt[msg.id];
   }
@@ -167,6 +173,17 @@ function handleData(id, b, msg, origin) {
   if (msg.type === 'sync') { if (merge(b, msg)) scheduleSave(id, b); }
   else if (msg.type === 'move') { applyMove(b, msg); scheduleSave(id, b); }
   else if (msg.type === 'delete') { applyDelete(b, msg); scheduleSave(id, b); }
+  else if (msg.type === 'audioReq') {
+    // Mémo vocal demandé : on répond depuis le cache, sinon on relaie aux autres.
+    const cached = audioMem.get(msg.id);
+    if (cached) { try { if (origin.open) origin.send(cached); } catch (e) { /* */ } }
+    else for (const c of b.conns) if (c !== origin && c.open) { try { c.send(msg); } catch (e) { /* */ } }
+    return;
+  } else if (msg.type === 'audioRes') {
+    if (msg.buf) audioMem.set(msg.id, msg); // cache + renvoi tel quel
+    for (const c of b.conns) if (c !== origin && c.open) { try { c.send(msg); } catch (e) { /* */ } }
+    return;
+  }
   if (msg.type === 'move' || msg.type === 'delete') {
     for (const c of b.conns) if (c !== origin && c.open) { try { c.send(msg); } catch (e) { /* */ } }
   }
