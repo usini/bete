@@ -3,15 +3,16 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId,
-} from './state.js?v=mqv1iqrs';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqv1iqrs';
-import { dragTo, reset } from './physics.js?v=mqv1iqrs';
-import { exportJSON, importJSON } from './io.js?v=mqv1iqrs';
-import { pointInHex } from './geom.js?v=mqv1iqrs';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqv1iqrs';
-import { explodeElementCascade } from './fx.js?v=mqv1iqrs';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqv1iqrs';
-import { openSettings } from './settings.js?v=mqv1iqrs';
+} from './state.js?v=mqv1yk93';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqv1yk93';
+import { dragTo, reset } from './physics.js?v=mqv1yk93';
+import { exportJSON, importJSON } from './io.js?v=mqv1yk93';
+import { pointInHex } from './geom.js?v=mqv1yk93';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqv1yk93';
+import { explodeElementCascade } from './fx.js?v=mqv1yk93';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqv1yk93';
+import { openSettings } from './settings.js?v=mqv1yk93';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mqv1yk93';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -68,6 +69,7 @@ const ICONS = {
   board: '<path d="M3 7a1 1 0 0 1 1-1h5l2 2h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M14 4h6v6"/><line x1="20" y1="4" x2="13" y2="11"/>',
   select: '<rect x="3.5" y="3.5" width="17" height="17" rx="1" stroke-dasharray="3 3"/>',
   gear: '<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9 19 19M19 5l-2.1 2.1M7.1 16.9 5 19"/>',
+  mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><line x1="12" y1="17.5" x2="12" y2="21"/><line x1="8.5" y1="21" x2="15.5" y2="21"/>',
   dot: '<circle cx="12" cy="12" r="3"/>',
 };
 let pendingBoardPos = null; // position monde où poser le prochain lien-board
@@ -327,6 +329,12 @@ function finishDrag() {
       scheduleSave();
       return;
     }
+    // Bloc Mémo vocal : un clic lance/met en pause la lecture.
+    if (n && n.kind === 'voice') {
+      if (Math.hypot(n.x - drag.startX, n.y - drag.startY) < 3) toggleVoice(n);
+      scheduleSave();
+      return;
+    }
     // Tap (déplacement négligeable) sur un nœud à lien => focus puis suivi (2 temps).
     if (n) {
       const tap = Math.hypot(n.x - drag.startX, n.y - drag.startY) < 3;
@@ -558,6 +566,7 @@ function handleDouble(sx, sy) {
   const r = hitRect(w);
   // Double-tap/clic sur un lien => on suit directement (autorisé même verrouillé).
   if (r && displayLink(r)) { clearLinkFocus(); followLink(displayLink(r)); return; }
+  if (r && r.kind === 'voice') { toggleVoice(r); return; } // double-clic = lecture
   if (!interactionEnabled) return; // verrouillé : pas d'édition/ouverture
   if (r) {
     const img = displayImage(r);
@@ -672,6 +681,11 @@ function removeElement(el) {
     if (!isClient()) detachHost();
     removeById(el.id); scheduleSave(); return;
   }
+  if (el.kind === 'voice') {
+    explodeElementCascade(el);
+    removeVoiceAudio(el.id); // efface l'audio en IndexedDB
+    removeById(el.id); scheduleSave(); return;
+  }
   explodeElementCascade(el); // explosion locale
   pushDelete(el.id);         // explosion + suppression chez les pairs
   removeById(el.id);
@@ -730,6 +744,11 @@ function openContextAt(sx, sy) {
     // Menu d'une sélection multiple.
     const ids = state.selectedIds.slice();
     items = [{ label: 'Supprimer (' + ids.length + ')', icon: 'trash', color: COL.red, fn: () => { ids.forEach((id) => removeElement(findById(id))); state.selectedIds = []; } }];
+  } else if (r && r.kind === 'voice') {
+    items = [
+      { label: 'Lire / Pause', icon: 'mic', color: COL.green, fn: () => toggleVoice(r) },
+      { label: 'Supprimer', icon: 'trash', color: COL.red, fn: () => removeElement(r) },
+    ];
   } else if (r) {
     const isLink = !!r.ref;
     items = [{ label: 'Éditer le texte', icon: 'edit', color: COL.cyan, fn: () => { const t = isLink ? sourceOf(r) : r; if (t) startEdit('rect', t, r); } }];
@@ -752,6 +771,7 @@ function openContextAt(sx, sy) {
       { label: 'Cercle', icon: 'circle', color: COL.cyan, fn: () => { const c = addCircle(w.x, w.y); state.selected = c.id; scheduleSave(); } },
       { label: 'Hexagone', icon: 'hexa', color: COL.orange, fn: () => { const h = addHexagon(w.x, w.y); state.selected = h.id; scheduleSave(); } },
       { label: 'Liaison', icon: 'share', color: COL.magenta, fn: () => createLiaison(w.x, w.y) },
+      { label: 'Mémo vocal', icon: 'mic', color: COL.red, fn: () => recordVoiceMemo(w.x, w.y) },
       { label: 'Lien board', icon: 'board', color: COL.cyan, fn: () => openBoardPicker(w.x, w.y) },
       { label: 'Sélection', icon: 'select', color: COL.yellow, fn: () => { selectArmed = true; } },
       { label: 'Exporter', icon: 'export', color: COL.yellow, fn: () => exportJSON() },

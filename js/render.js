@@ -1,9 +1,10 @@
 // Rendu du board : grille pixel, cercles, hexagones, rectangles, glow néon, sélection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mqv1iqrs';
-import { view, worldToScreen } from './camera.js?v=mqv1iqrs';
-import { stretch } from './physics.js?v=mqv1iqrs';
-import { hexCorners } from './geom.js?v=mqv1iqrs';
-import { theme, getTextScale } from './theme.js?v=mqv1iqrs';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mqv1yk93';
+import { view, worldToScreen } from './camera.js?v=mqv1yk93';
+import { stretch } from './physics.js?v=mqv1yk93';
+import { hexCorners } from './geom.js?v=mqv1yk93';
+import { theme, getTextScale } from './theme.js?v=mqv1yk93';
+import { fmtDur } from './voice.js?v=mqv1yk93';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -31,6 +32,7 @@ export function render(ctx) {
   for (const n of state.nodes) {
     if (n.kind === 'liaison') drawLiaison(ctx, n, isSel(n.id), zoom);
     else if (n.kind === 'pancarte') drawPancarte(ctx, n, isSel(n.id), zoom);
+    else if (n.kind === 'voice') drawVoice(ctx, n, isSel(n.id), zoom);
     else drawRect(ctx, n, effectiveColor(n), isSel(n.id), zoom);
   }
 }
@@ -196,6 +198,67 @@ function drawLiaison(ctx, n, selected, zoom) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(label, 0, (qrY + qrSide + h / 2) / 2);
+  ctx.restore();
+}
+
+// Bloc mémo vocal : bouton play/pause + durée + barre de progression.
+function drawVoice(ctx, n, selected, zoom) {
+  const color = effectiveColor(n);
+  const rx = n._rx !== undefined ? n._rx : n.x;
+  const ry = n._ry !== undefined ? n._ry : n.y;
+  const p = worldToScreen(rx + n.w / 2, ry + n.h / 2);
+  const w = n.w * zoom, h = n.h * zoom;
+  const st = stretch(n);
+
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  if (st.sx !== 1 || st.sy !== 1) { ctx.rotate(st.angle); ctx.scale(st.sx, st.sy); ctx.rotate(-st.angle); }
+
+  ctx.shadowColor = color;
+  ctx.shadowBlur = (selected ? 22 : 10) * GLOW();
+  ctx.fillStyle = theme().nodeBg;
+  ctx.fillRect(-w / 2, -h / 2, w, h);
+  ctx.lineWidth = selected ? 5 : 3;
+  ctx.strokeStyle = color;
+  ctx.strokeRect(-w / 2, -h / 2, w, h);
+  ctx.shadowBlur = 0;
+
+  // Bouton play / pause (cercle à gauche).
+  const r = Math.min(w, h) * 0.28;
+  const bx = -w / 2 + r + 10 * zoom, by = 0;
+  ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI * 2);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.fillStyle = theme().nodeBg;
+  if (n._playing) { // deux barres = pause
+    const bw = r * 0.26, bh = r * 0.9;
+    ctx.fillRect(bx - bw * 1.4, by - bh / 2, bw, bh);
+    ctx.fillRect(bx + bw * 0.4, by - bh / 2, bw, bh);
+  } else { // triangle = play
+    ctx.beginPath();
+    ctx.moveTo(bx - r * 0.35, by - r * 0.5);
+    ctx.lineTo(bx + r * 0.55, by);
+    ctx.lineTo(bx - r * 0.35, by + r * 0.5);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // Texte (durée ou avertissement) + barre de progression.
+  const tx = bx + r + 10 * zoom;
+  const fs = clamp(11 * zoom * getTextScale(), 7, 22);
+  ctx.font = `${fs}px ${FONT()}`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = theme().lightBg ? theme().ink : color;
+  ctx.shadowColor = color; ctx.shadowBlur = 4 * GLOW();
+  ctx.fillText(n._missing ? 'audio indispo' : ('♪ ' + fmtDur(n.dur || 0)), tx, -h * 0.16);
+  ctx.shadowBlur = 0;
+
+  const barX = tx, barW = w / 2 - 10 * zoom - barX, barY = h * 0.18, barH = Math.max(3, 5 * zoom);
+  if (barW > 4) {
+    ctx.fillStyle = hexToRgba(color, 0.25);
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.fillStyle = color;
+    ctx.fillRect(barX, barY, barW * Math.max(0, Math.min(1, n._prog || 0)), barH);
+  }
   ctx.restore();
 }
 

@@ -2,9 +2,9 @@
 // On ne synchronise QUE le contenu (texte, image, couleur, description, liens,
 // création/suppression) : ni la caméra, ni les positions/tailles. Chaque écran
 // garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqv1iqrs';
-import { reset } from './physics.js?v=mqv1iqrs';
-import { explodeElementCascade } from './fx.js?v=mqv1iqrs';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqv1yk93';
+import { reset } from './physics.js?v=mqv1yk93';
+import { explodeElementCascade } from './fx.js?v=mqv1yk93';
 
 const PEERJS_SRC = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
 const QR_SRC = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
@@ -96,7 +96,7 @@ function resetSyncState() {
 // ---- Construction du contenu (sans la caméra ; positions = indice de spawn) ----
 function localIds() {
   const ids = new Set();
-  state.nodes.forEach(n => { if (n.kind !== 'liaison') ids.add(n.id); });
+  state.nodes.forEach(n => { if (n.kind !== 'liaison' && n.kind !== 'voice') ids.add(n.id); });
   state.circles.forEach(c => ids.add(c.id));
   state.hexagons.forEach(h => ids.add(h.id));
   return ids;
@@ -113,7 +113,7 @@ function sigZone(e) { return 'Z' + e.col + '' + e.d; }
 
 function buildContent() {
   const n = {}, c = {}, h = {};
-  for (const node of state.nodes) { if (node.kind === 'liaison') continue; n[node.id] = nodeEntry(node); }
+  for (const node of state.nodes) { if (node.kind === 'liaison' || node.kind === 'voice') continue; n[node.id] = nodeEntry(node); }
   for (const z of state.circles) c[z.id] = { col: z.color, d: z.description || '', x: z.x, y: z.y, r: z.r };
   for (const z of state.hexagons) h[z.id] = { col: z.color, d: z.description || '', x: z.x, y: z.y, r: z.r };
   return { n, c, h };

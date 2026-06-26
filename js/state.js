@@ -1,5 +1,5 @@
 // Modèle de données partagé + persistance localStorage.
-import { pointInHex } from './geom.js?v=mqv1iqrs';
+import { pointInHex } from './geom.js?v=mqv1yk93';
 
 export const DEFAULT_GREEN = '#39ff14';
 
@@ -122,9 +122,11 @@ export function serialize() {
     camera: { ...state.camera },
     nodes: state.nodes
       .filter(n => n.kind !== 'liaison') // blocs de liaison = transitoires
-      .map(n => n.ref
-        ? { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, ref: n.ref }
-        : { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, text: n.text, image: n.image || undefined, link: n.link || undefined, kind: n.kind === 'pancarte' ? 'pancarte' : undefined }),
+      .map(n => {
+        if (n.ref) return { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, ref: n.ref };
+        if (n.kind === 'voice') return { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, kind: 'voice', dur: n.dur || 0 }; // audio en IndexedDB
+        return { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, text: n.text, image: n.image || undefined, link: n.link || undefined, kind: n.kind === 'pancarte' ? 'pancarte' : undefined };
+      }),
     circles: state.circles.map(c => ({
       id: c.id, x: c.x, y: c.y, r: c.r, color: c.color, description: c.description || '',
     })),

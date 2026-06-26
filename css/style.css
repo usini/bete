@@ -434,6 +434,26 @@ html, body {
 .theme-classic #settingsbtn { background: #fff; border-color: #1f9d2f; color: #1f9d2f; box-shadow: 0 0 0 2px rgba(0,0,0,0.08); }
 .theme-classic-dark { background: #15171c; }
 
+/* ---- Fenêtre d'enregistrement de mémo vocal ---- */
+.recmodal {
+  position: fixed; inset: 0; z-index: 49;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(4, 8, 5, 0.85);
+}
+.rec-card {
+  background: var(--node-bg); border: 3px solid #fe4365;
+  box-shadow: 0 0 24px rgba(254, 67, 101, 0.45);
+  padding: 22px 26px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+}
+.rec-dot { width: 22px; height: 22px; border-radius: 50%; background: #fe4365; box-shadow: 0 0 12px #fe4365; animation: recpulse 1s ease-in-out infinite; }
+@keyframes recpulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
+.rec-timer { font-family: 'Press Start 2P', monospace; font-size: 20px; color: var(--green); }
+.rec-actions { display: flex; gap: 10px; }
+.rec-actions button { font-family: inherit; font-size: 11px; padding: 12px 16px; cursor: pointer; border: 3px solid; background: var(--node-bg); }
+.rec-stop { color: #04130a; background: #fe4365; border-color: #fe4365; }
+.rec-cancel { color: var(--green-dim); border-color: var(--green-dim); }
+
 /* ---- Scanlines CRT ---- */
 #crt {
   position: fixed;
