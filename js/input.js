@@ -3,14 +3,14 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId,
-} from './state.js?v=mqumkiii';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqumkiii';
-import { dragTo, reset } from './physics.js?v=mqumkiii';
-import { exportJSON, importJSON } from './io.js?v=mqumkiii';
-import { pointInHex } from './geom.js?v=mqumkiii';
-import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqumkiii';
-import { explodeElementCascade } from './fx.js?v=mqumkiii';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqumkiii';
+} from './state.js?v=mqumv5qv';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqumv5qv';
+import { dragTo, reset } from './physics.js?v=mqumv5qv';
+import { exportJSON, importJSON } from './io.js?v=mqumv5qv';
+import { pointInHex } from './geom.js?v=mqumv5qv';
+import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqumv5qv';
+import { explodeElementCascade } from './fx.js?v=mqumv5qv';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqumv5qv';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -68,6 +68,11 @@ const ICONS = {
   dot: '<circle cx="12" cy="12" r="3"/>',
 };
 let pendingBoardPos = null; // position monde où poser le prochain lien-board
+// Pie-menu tactile (appui long puis glisser pour choisir).
+let radialPressActive = false;
+let radialItems = [];
+let radialHoverIdx = -1;
+let radialCx = 0, radialCy = 0;
 function svgEl(key) { return '<svg viewBox="0 0 24 24">' + (ICONS[key] || ICONS.dot) + '</svg>'; }
 
 export function init(boardCanvas, changeCb) {
@@ -311,11 +316,13 @@ function onTouchStart(e) {
     lastTap = now;
     lastTapPos = { x: t.clientX, y: t.clientY };
     pointerDown(t.clientX, t.clientY);
-    // Appui long => menu radial.
+    // Appui long => menu radial (puis glisser-pour-choisir sans relâcher).
     clearTimeout(longPressTimer);
     longPressTimer = setTimeout(() => {
       drag = null;
       openContextAt(t.clientX, t.clientY);
+      radialPressActive = true;
+      updateRadialHover(t.clientX, t.clientY);
     }, 450);
   } else if (e.touches.length === 2) {
     clearTimeout(longPressTimer);
@@ -341,6 +348,8 @@ function onTouchMove(e) {
     scheduleSave();
   } else if (e.touches.length === 1) {
     const t = e.touches[0];
+    // Pie-menu ouvert et doigt toujours posé : on choisit par glissement.
+    if (radialPressActive) { updateRadialHover(t.clientX, t.clientY); e.preventDefault(); return; }
     if (lastTapPos && Math.hypot(t.clientX - lastTapPos.x, t.clientY - lastTapPos.y) > 10) {
       clearTimeout(longPressTimer);
     }
@@ -351,6 +360,7 @@ function onTouchMove(e) {
 
 function onTouchEnd(e) {
   clearTimeout(longPressTimer);
+  if (radialPressActive) { selectRadialHover(); e.preventDefault(); return; }
   if (e.touches.length < 2) pinch = null;
   if (e.touches.length === 0) pointerUp();
   e.preventDefault();
@@ -679,11 +689,15 @@ function openRadial(x, y, items) {
   radial.appendChild(center);
 
   // Items qui se déploient en éventail (animation ressort décalée).
+  radialItems = [];
+  radialHoverIdx = -1;
+  radialCx = cx; radialCy = cy;
   items.forEach((it, i) => {
     const ang = start + (i / n) * Math.PI * 2;
     const dx = Math.cos(ang) * radius, dy = Math.sin(ang) * radius;
     const el = mkRitem(it);
     radial.appendChild(el);
+    radialItems.push({ el, fn: it.fn, dx, dy, ang });
     requestAnimationFrame(() => requestAnimationFrame(() => {
       el.style.transitionDelay = (i * 32) + 'ms';
       el.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1)`;
@@ -691,6 +705,34 @@ function openRadial(x, y, items) {
     }));
   });
   armCloseOnce();
+}
+
+// Pie-menu tactile : glisser le doigt vers un item le sélectionne (par direction).
+function angDiff(a, b) { let d = a - b; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return Math.abs(d); }
+
+function updateRadialHover(x, y) {
+  const dx = x - radialCx, dy = y - radialCy;
+  const dist = Math.hypot(dx, dy);
+  let idx = -1;
+  if (dist > 30 && radialItems.length) { // hors deadzone centrale
+    const a = Math.atan2(dy, dx);
+    let best = Infinity;
+    radialItems.forEach((it, i) => { const d = angDiff(a, it.ang); if (d < best) { best = d; idx = i; } });
+  }
+  radialHoverIdx = idx;
+  radialItems.forEach((it, i) => {
+    const on = i === idx;
+    it.el.style.transitionDelay = '0ms';
+    it.el.style.transform = `translate(calc(-50% + ${it.dx}px), calc(-50% + ${it.dy}px)) scale(${on ? 1.5 : 1})`;
+    it.el.classList.toggle('hover', on);
+  });
+}
+
+function selectRadialHover() {
+  radialPressActive = false;
+  const idx = radialHoverIdx;
+  if (idx >= 0 && radialItems[idx]) { const fn = radialItems[idx].fn; closeMenus(); fn(); }
+  // sinon (doigt au centre / pas de sélection) : on laisse le menu ouvert pour un tap.
 }
 
 // ---- Palette de couleurs ----
@@ -723,6 +765,7 @@ function closeMenus() {
   document.getElementById('radial').classList.add('hidden');
   document.getElementById('palette').classList.add('hidden');
   document.getElementById('boardpicker').classList.add('hidden');
+  radialPressActive = false; radialItems = []; radialHoverIdx = -1;
   document.removeEventListener('mousedown', closeMenusOnce);
   document.removeEventListener('touchstart', closeMenusOnce);
 }
