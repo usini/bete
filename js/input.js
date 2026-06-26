@@ -3,14 +3,14 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId,
-} from './state.js?v=mqumv5qv';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqumv5qv';
-import { dragTo, reset } from './physics.js?v=mqumv5qv';
-import { exportJSON, importJSON } from './io.js?v=mqumv5qv';
-import { pointInHex } from './geom.js?v=mqumv5qv';
-import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqumv5qv';
-import { explodeElementCascade } from './fx.js?v=mqumv5qv';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqumv5qv';
+} from './state.js?v=mquy5hnq';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mquy5hnq';
+import { dragTo, reset } from './physics.js?v=mquy5hnq';
+import { exportJSON, importJSON } from './io.js?v=mquy5hnq';
+import { pointInHex } from './geom.js?v=mquy5hnq';
+import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mquy5hnq';
+import { explodeElementCascade } from './fx.js?v=mquy5hnq';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mquy5hnq';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }

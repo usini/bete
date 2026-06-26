@@ -1,13 +1,14 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName } from './state.js?v=mqumv5qv';
-import { setView } from './camera.js?v=mqumv5qv';
-import { render } from './render.js?v=mqumv5qv';
-import { step, reset } from './physics.js?v=mqumv5qv';
-import * as minimap from './minimap.js?v=mqumv5qv';
-import * as input from './input.js?v=mqumv5qv';
-import * as fx from './fx.js?v=mqumv5qv';
-import { joinHost, getNetMode } from './sync.js?v=mqumv5qv';
-import { recordBoard, getBoardEntry } from './boards.js?v=mqumv5qv';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName } from './state.js?v=mquy5hnq';
+import { setView } from './camera.js?v=mquy5hnq';
+import { render } from './render.js?v=mquy5hnq';
+import { step, reset } from './physics.js?v=mquy5hnq';
+import * as minimap from './minimap.js?v=mquy5hnq';
+import * as input from './input.js?v=mquy5hnq';
+import * as fx from './fx.js?v=mquy5hnq';
+import { joinHost, getNetMode } from './sync.js?v=mquy5hnq';
+import { recordBoard, getBoardEntry } from './boards.js?v=mquy5hnq';
+import { TUTORIAL } from './tutorial.js?v=mquy5hnq';
 
 let toastTimer = null;
 function toast(msg, ms = 2400) {
@@ -35,21 +36,6 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// Board tutoriel intégré (lecture seule).
-const TUTORIAL = {
-  name: 'Tutoriel',
-  camera: { x: 0, y: 0, zoom: 1 },
-  circles: [{ id: 't-c', x: -110, y: 10, r: 210, color: '#39ff14', description: 'BIENVENUE' }],
-  hexagons: [],
-  nodes: [
-    { id: 't1', x: -260, y: -120, w: 230, h: 60, text: 'Clic droit / appui long\n= menu' },
-    { id: 't2', x: -260, y: -40, w: 230, h: 60, text: 'Glisse les blocs\n(effet elastique)' },
-    { id: 't3', x: -260, y: 40, w: 230, h: 60, text: 'Molette / pince\n= zoom' },
-    { id: 't4', x: -260, y: 120, w: 230, h: 60, text: 'Cercles & hexagones\nregroupent les blocs' },
-    { id: 't5', kind: 'pancarte', x: 110, y: -150, w: 250, h: 110, text: 'TUTORIEL\nlecture seule' },
-    { id: 't6', x: 150, y: 70, w: 190, h: 70, text: 'Aller a HOME', link: location.origin + location.pathname + '?id=home' },
-  ],
-};
 
 // ---- Choix du board (multi pense-bêtes) ----
 function sanitizeId(s) {
