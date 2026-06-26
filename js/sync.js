@@ -2,9 +2,9 @@
 // On ne synchronise QUE le contenu (texte, image, couleur, description, liens,
 // création/suppression) : ni la caméra, ni les positions/tailles. Chaque écran
 // garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqtzsqpv';
-import { reset } from './physics.js?v=mqtzsqpv';
-import { explodeElementCascade } from './fx.js?v=mqtzsqpv';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqum8g73';
+import { reset } from './physics.js?v=mqum8g73';
+import { explodeElementCascade } from './fx.js?v=mqum8g73';
 
 const PEERJS_SRC = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
 const QR_SRC = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
@@ -25,7 +25,10 @@ export const loadQR = () => loadScript(QR_SRC);
 const loadPeer = () => loadScript(PEERJS_SRC);
 
 export function buildUrl(id) {
-  return location.origin + location.pathname + '?peer=' + encodeURIComponent(id);
+  let u = location.origin + location.pathname + '?peer=' + encodeURIComponent(id);
+  const b = getBoardId();
+  if (b) u += '&id=' + encodeURIComponent(b); // le QR ouvre le MÊME board que l'hôte
+  return u;
 }
 
 // ---- État de synchro ----

@@ -3,14 +3,14 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId,
-} from './state.js?v=mqtzsqpv';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqtzsqpv';
-import { dragTo, reset } from './physics.js?v=mqtzsqpv';
-import { exportJSON, importJSON } from './io.js?v=mqtzsqpv';
-import { pointInHex } from './geom.js?v=mqtzsqpv';
-import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqtzsqpv';
-import { explodeElementCascade } from './fx.js?v=mqtzsqpv';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqtzsqpv';
+} from './state.js?v=mqum8g73';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqum8g73';
+import { dragTo, reset } from './physics.js?v=mqum8g73';
+import { exportJSON, importJSON } from './io.js?v=mqum8g73';
+import { pointInHex } from './geom.js?v=mqum8g73';
+import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqum8g73';
+import { explodeElementCascade } from './fx.js?v=mqum8g73';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqum8g73';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -235,8 +235,13 @@ function finishDrag() {
       const lk = displayLink(n);
       if (lk && Math.hypot(n.x - drag.startX, n.y - drag.startY) < 3) {
         const bu = parseBoardUrl(lk);
-        if (bu) recordBoard(bu.id, bu.name || displayText(n), bu.peer); // garde le board dans l'historique
-        openLink(lk); scheduleSave(); return;
+        if (bu) {
+          // Lien vers un board : navigue dans le MÊME onglet (l'historique s'enregistre au chargement).
+          recordBoard(bu.id, bu.name || displayText(n), bu.peer);
+          location.href = lk;
+          return;
+        }
+        openLink(lk); scheduleSave(); return; // lien externe : nouvel onglet
       }
     }
     if (n && !n.ref) {

@@ -1,6 +1,6 @@
 // Effets de particules (explosion à la suppression d'un objet).
-import { worldToScreen } from './camera.js?v=mqtzsqpv';
-import { state, effectiveColor } from './state.js?v=mqtzsqpv';
+import { worldToScreen } from './camera.js?v=mqum8g73';
+import { state, effectiveColor } from './state.js?v=mqum8g73';
 
 let particles = [];
 

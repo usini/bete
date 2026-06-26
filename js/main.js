@@ -1,13 +1,13 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName } from './state.js?v=mqtzsqpv';
-import { setView } from './camera.js?v=mqtzsqpv';
-import { render } from './render.js?v=mqtzsqpv';
-import { step, reset } from './physics.js?v=mqtzsqpv';
-import * as minimap from './minimap.js?v=mqtzsqpv';
-import * as input from './input.js?v=mqtzsqpv';
-import * as fx from './fx.js?v=mqtzsqpv';
-import { joinHost, getNetMode } from './sync.js?v=mqtzsqpv';
-import { recordBoard, getBoardEntry } from './boards.js?v=mqtzsqpv';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName } from './state.js?v=mqum8g73';
+import { setView } from './camera.js?v=mqum8g73';
+import { render } from './render.js?v=mqum8g73';
+import { step, reset } from './physics.js?v=mqum8g73';
+import * as minimap from './minimap.js?v=mqum8g73';
+import * as input from './input.js?v=mqum8g73';
+import * as fx from './fx.js?v=mqum8g73';
+import { joinHost, getNetMode } from './sync.js?v=mqum8g73';
+import { recordBoard, getBoardEntry } from './boards.js?v=mqum8g73';
 
 let toastTimer = null;
 function toast(msg, ms = 2400) {
