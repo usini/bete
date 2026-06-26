@@ -2,9 +2,9 @@
 // On ne synchronise QUE le contenu (texte, image, couleur, description, liens,
 // création/suppression) : ni la caméra, ni les positions/tailles. Chaque écran
 // garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mquy5hnq';
-import { reset } from './physics.js?v=mquy5hnq';
-import { explodeElementCascade } from './fx.js?v=mquy5hnq';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mquyq6pn';
+import { reset } from './physics.js?v=mquyq6pn';
+import { explodeElementCascade } from './fx.js?v=mquyq6pn';
 
 const PEERJS_SRC = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
 const QR_SRC = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
@@ -390,6 +390,25 @@ export function stopHost() {
   idRetries = 0;
   if (hostPeer) { try { hostPeer.destroy(); } catch (e) { /* */ } hostPeer = null; }
 }
+
+// Réutilise le peer hôte déjà ouvert (bloc liaison supprimé puis recréé) plutôt
+// que d'en recréer un : éviter le churn d'id au broker (qui causait un long
+// "reconnexion" + une rotation indésirable de l'id stable). Renvoie false s'il
+// n'y a pas de peer hôte vivant à adopter (→ il faudra startHost).
+export function adoptHost(node) {
+  if (mode !== 'host' || !hostPeer || hostPeer.destroyed) return false;
+  hostNode = node;
+  if (hostPeer.open && hostPeer.id) {
+    node.peerId = hostPeer.id; node.code = hostPeer.id; node.url = buildUrl(hostPeer.id); node.status = 'online';
+  } else {
+    node.status = 'init'; // encore en cours d'ouverture : l'event 'open' remplira le nœud
+  }
+  return true;
+}
+
+// Détache le bloc liaison sans couper l'hébergement (peer + synchro restent
+// vivants pour la session), afin qu'une recréation soit instantanée.
+export function detachHost() { hostNode = null; }
 
 // Régénère un nouvel id (l'ancien lien/QR devient invalide) sans perdre le board.
 // Utile si l'URL a fuité. Les clients déjà connectés sur l'ancien id sont coupés.

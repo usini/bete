@@ -3,14 +3,14 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId,
-} from './state.js?v=mquy5hnq';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mquy5hnq';
-import { dragTo, reset } from './physics.js?v=mquy5hnq';
-import { exportJSON, importJSON } from './io.js?v=mquy5hnq';
-import { pointInHex } from './geom.js?v=mquy5hnq';
-import { startHost, stopHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mquy5hnq';
-import { explodeElementCascade } from './fx.js?v=mquy5hnq';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mquy5hnq';
+} from './state.js?v=mquyq6pn';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mquyq6pn';
+import { dragTo, reset } from './physics.js?v=mquyq6pn';
+import { exportJSON, importJSON } from './io.js?v=mquyq6pn';
+import { pointInHex } from './geom.js?v=mquyq6pn';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mquyq6pn';
+import { explodeElementCascade } from './fx.js?v=mquyq6pn';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mquyq6pn';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -497,8 +497,10 @@ function createLiaison(wx, wy) {
     const id = hostId();
     if (id) { n.peerId = id; n.code = id; n.url = buildUrl(id); n.status = 'online'; }
     else n.status = 'error';
+  } else if (!adoptHost(n)) {
+    startHost(n); // pas de peer hôte vivant : on en démarre un
   } else {
-    startHost(n);
+    loadQR(); // peer réutilisé : s'assurer que la lib QR est chargée
   }
 }
 
@@ -557,11 +559,13 @@ function openLink(url) {
   window.open(u, '_blank', 'noopener,noreferrer');
 }
 
-// Supprime un élément (explosion + propagation ; coupe le host si Liaison).
+// Supprime un élément (explosion + propagation ; détache le host si Liaison).
 function removeElement(el) {
   if (!el) return;
   if (el.kind === 'liaison') {
-    if (!isClient()) stopHost(); // en client, le bloc n'héberge rien : ne pas couper la connexion
+    // On détache sans détruire le peer : la liaison reste vivante pour la session
+    // et une recréation du bloc est instantanée (cf. adoptHost). En client, rien à couper.
+    if (!isClient()) detachHost();
     removeById(el.id); scheduleSave(); return;
   }
   explodeElementCascade(el); // explosion locale
