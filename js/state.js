@@ -1,5 +1,5 @@
 // Modèle de données partagé + persistance localStorage.
-import { pointInHex } from './geom.js?v=mquyq6pn';
+import { pointInHex } from './geom.js?v=mquzce9a';
 
 export const DEFAULT_GREEN = '#39ff14';
 
@@ -33,6 +33,7 @@ export const state = {
   circles: [],  // cercles   : { id, x, y, r, color, description }
   hexagons: [], // hexagones : { id, x, y, r, color, description }
   selected: null, // id sélectionné (rect, cercle ou hexagone)
+  selectedIds: [], // sélection multiple (ids de rectangles) pour déplacer/effacer en groupe
 };
 
 let _id = 1;
@@ -70,6 +71,7 @@ export function removeById(id) {
   state.circles = state.circles.filter(c => c.id !== id);
   state.hexagons = state.hexagons.filter(h => h.id !== id);
   if (state.selected === id) state.selected = null;
+  if (state.selectedIds.length) state.selectedIds = state.selectedIds.filter(x => x !== id);
 }
 
 // ---- Liens (rectangles dans un hexagone) ----
@@ -142,6 +144,7 @@ export function load(obj) {
   // Élague les liens orphelins (source disparue).
   state.nodes = state.nodes.filter(n => !n.ref || state.nodes.some(m => m.id === n.ref && !m.ref));
   state.selected = null;
+  state.selectedIds = [];
   // Évite les collisions d'ID après import.
   _id = Math.max(1, state.nodes.length + state.circles.length + state.hexagons.length) + (Date.now() % 1000);
   return true;

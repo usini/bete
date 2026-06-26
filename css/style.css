@@ -336,6 +336,104 @@ html, body {
   #hint { font-size: 7px; }
 }
 
+/* ---- Bouton Paramètres (engrenage) ---- */
+#settingsbtn {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 23;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: var(--node-bg);
+  border: 3px solid var(--green);
+  color: var(--green);
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.35);
+  cursor: pointer;
+}
+#settingsbtn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#settingsbtn:hover { background: var(--green); color: #04130a; }
+
+/* Décale l'astuce à droite de l'engrenage. */
+#hint { left: 60px; top: 22px; }
+
+/* ---- Rectangle de sélection (marquee) ---- */
+#marquee {
+  position: fixed;
+  z-index: 24;
+  border: 2px dashed var(--green);
+  background: rgba(57, 255, 20, 0.08);
+  pointer-events: none;
+  display: none;
+}
+#marquee.show { display: block; }
+
+/* ---- Pie-menu : trait centre→doigt + halo ---- */
+.radial-ray { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; pointer-events: none; opacity: 0; transition: opacity 0.12s; }
+.radial-ray line { stroke-width: 4; stroke-linecap: round; opacity: 0.85; }
+.radial-halo {
+  position: absolute; left: 0; top: 0; width: 56px; height: 56px;
+  border-radius: 50%; border: 3px solid var(--green);
+  background: rgba(57, 255, 20, 0.12);
+  pointer-events: none; opacity: 0; transition: opacity 0.12s;
+}
+
+/* ---- Panneau Paramètres ---- */
+#settings {
+  position: fixed; top: 0; left: 0; height: 100%;
+  width: min(340px, 86vw); z-index: 46;
+  background: var(--node-bg);
+  border-right: 3px solid var(--green);
+  box-shadow: 0 0 26px rgba(0, 0, 0, 0.6);
+  padding: 14px; overflow-y: auto;
+  font-size: 11px; color: var(--ink);
+}
+#settings.hidden { display: none; }
+.set-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.set-title { color: var(--green); font-size: 12px; letter-spacing: 1px; }
+.set-x { background: none; border: none; color: var(--green); font-size: 16px; cursor: pointer; }
+.set-label { color: var(--green-dim); font-size: 9px; letter-spacing: 1px; margin: 14px 0 6px; text-transform: uppercase; }
+.set-sub { color: var(--green-dim); font-size: 8px; margin: 8px 0 4px; }
+.set-themes { display: flex; flex-direction: column; gap: 6px; }
+.set-theme, .set-wide, .set-danger {
+  font-family: inherit; font-size: 10px; text-align: left; padding: 10px;
+  background: #0d0f12; color: var(--green); border: 2px solid var(--green-dim); cursor: pointer;
+}
+.set-theme.on { background: var(--green); color: #04130a; border-color: var(--green); }
+.set-wide { display: block; width: 100%; margin: 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.set-row { display: flex; align-items: center; gap: 10px; }
+.set-btn { font-family: inherit; font-size: 14px; width: 38px; height: 34px; background: #0d0f12; color: var(--green); border: 2px solid var(--green); cursor: pointer; }
+.set-val { min-width: 54px; text-align: center; color: var(--green); }
+.set-empty { color: var(--green-dim); font-size: 9px; padding: 4px 0; }
+.set-liaison { display: flex; gap: 4px; align-items: stretch; margin: 4px 0; }
+.set-liaison-name {
+  flex: 1; min-width: 0; font-family: inherit; font-size: 10px; text-align: left; padding: 9px;
+  background: #0d0f12; color: var(--green); border: 2px solid var(--green-dim); cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.set-liaison.on .set-liaison-name { border-color: var(--green); }
+.set-mini { font-family: inherit; width: 34px; background: #0d0f12; color: var(--green); border: 2px solid var(--green-dim); cursor: pointer; }
+.set-new { display: flex; gap: 6px; margin: 6px 0; }
+.set-new input { flex: 1; min-width: 0; font-family: inherit; font-size: 10px; padding: 9px; background: #0d0f12; color: var(--green); border: 2px solid var(--green-dim); outline: none; }
+.set-new button { font-family: inherit; font-size: 10px; padding: 9px; background: #0d0f12; color: var(--green); border: 2px solid var(--green); cursor: pointer; }
+.set-danger { display: block; width: 100%; margin-top: 6px; color: #fe4365; border-color: #fe4365; }
+.set-theme:hover, .set-wide:hover, .set-btn:hover, .set-mini:hover, .set-liaison-name:hover, .set-new button:hover { background: var(--green); color: #04130a; }
+.set-danger:hover { background: #fe4365; color: #fff; }
+
+/* ---- Thèmes clairs (police classique, pas de CRT) ---- */
+.theme-classic, .theme-classic-dark { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; -webkit-font-smoothing: auto; }
+.theme-classic #board, .theme-classic-dark #board { image-rendering: auto; }
+.theme-classic #crt, .theme-classic-dark #crt { display: none; }
+.theme-classic { background: #f4f5f0; cursor: default; }
+.theme-classic #hint { color: #3a7d3a; text-shadow: none; }
+.theme-classic #boardname { color: #1f9d2f; text-shadow: none; }
+.theme-classic #netmode { color: #3a7d3a; }
+.theme-classic #settingsbtn { background: #fff; border-color: #1f9d2f; color: #1f9d2f; box-shadow: 0 0 0 2px rgba(0,0,0,0.08); }
+.theme-classic-dark { background: #15171c; }
+
 /* ---- Scanlines CRT ---- */
 #crt {
   position: fixed;

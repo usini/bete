@@ -1,14 +1,19 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName } from './state.js?v=mquyq6pn';
-import { setView } from './camera.js?v=mquyq6pn';
-import { render } from './render.js?v=mquyq6pn';
-import { step, reset } from './physics.js?v=mquyq6pn';
-import * as minimap from './minimap.js?v=mquyq6pn';
-import * as input from './input.js?v=mquyq6pn';
-import * as fx from './fx.js?v=mquyq6pn';
-import { joinHost, getNetMode } from './sync.js?v=mquyq6pn';
-import { recordBoard, getBoardEntry } from './boards.js?v=mquyq6pn';
-import { TUTORIAL } from './tutorial.js?v=mquyq6pn';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName } from './state.js?v=mquzce9a';
+import { setView } from './camera.js?v=mquzce9a';
+import { render } from './render.js?v=mquzce9a';
+import { step, reset } from './physics.js?v=mquzce9a';
+import * as minimap from './minimap.js?v=mquzce9a';
+import * as input from './input.js?v=mquzce9a';
+import * as fx from './fx.js?v=mquzce9a';
+import { joinHost, getNetMode } from './sync.js?v=mquzce9a';
+import { recordBoard, getBoardEntry } from './boards.js?v=mquzce9a';
+import { TUTORIAL } from './tutorial.js?v=mquzce9a';
+import { applyTheme } from './theme.js?v=mquzce9a';
+import { initSettings } from './settings.js?v=mquzce9a';
+import { recordLiaison } from './liaisons.js?v=mquzce9a';
+
+applyTheme(); // applique le thème enregistré dès le démarrage
 
 let toastTimer = null;
 function toast(msg, ms = 2400) {
@@ -72,6 +77,7 @@ if (!REDIRECT) {
   } else if (peerId) {
     if (!restore()) seedIfHome();
     state.nodes.forEach(reset);
+    recordLiaison(peerId); // mémorise la liaison active (renommable dans Paramètres)
     toast('CONNEXION AU HOST...');
     joinHost(peerId, (st) => {
       if (st === 'synced') toast('SYNCHRONISE ✓');
@@ -170,6 +176,7 @@ function seedDemo() {
 if (!REDIRECT) {
   minimap.init();
   input.init(board, () => { state.nodes.forEach(reset); });
+  initSettings();
   // Handle de debug (inspection console : todomappa.state).
   window.todomappa = { state, fx };
   requestAnimationFrame(loop);

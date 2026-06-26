@@ -3,14 +3,15 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId,
-} from './state.js?v=mquyq6pn';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mquyq6pn';
-import { dragTo, reset } from './physics.js?v=mquyq6pn';
-import { exportJSON, importJSON } from './io.js?v=mquyq6pn';
-import { pointInHex } from './geom.js?v=mquyq6pn';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mquyq6pn';
-import { explodeElementCascade } from './fx.js?v=mquyq6pn';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mquyq6pn';
+} from './state.js?v=mquzce9a';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mquzce9a';
+import { dragTo, reset } from './physics.js?v=mquzce9a';
+import { exportJSON, importJSON } from './io.js?v=mquzce9a';
+import { pointInHex } from './geom.js?v=mquzce9a';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mquzce9a';
+import { explodeElementCascade } from './fx.js?v=mquzce9a';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mquzce9a';
+import { openSettings } from './settings.js?v=mquzce9a';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -65,6 +66,8 @@ const ICONS = {
   lock: '<rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
   close: '<line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>',
   board: '<path d="M3 7a1 1 0 0 1 1-1h5l2 2h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M14 4h6v6"/><line x1="20" y1="4" x2="13" y2="11"/>',
+  select: '<rect x="3.5" y="3.5" width="17" height="17" rx="1" stroke-dasharray="3 3"/>',
+  gear: '<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9 19 19M19 5l-2.1 2.1M7.1 16.9 5 19"/>',
   dot: '<circle cx="12" cy="12" r="3"/>',
 };
 let pendingBoardPos = null; // position monde où poser le prochain lien-board
@@ -73,6 +76,8 @@ let radialPressActive = false;
 let radialItems = [];
 let radialHoverIdx = -1;
 let radialCx = 0, radialCy = 0;
+let radialRay = null, radialHalo = null;
+let selectArmed = false; // arme un rectangle de sélection au prochain glisser (menu)
 function svgEl(key) { return '<svg viewBox="0 0 24 24">' + (ICONS[key] || ICONS.dot) + '</svg>'; }
 
 export function init(boardCanvas, changeCb) {
@@ -168,9 +173,20 @@ function hexagonAt(px, py) {
   return null;
 }
 
+// Coin bas-droit d'un rectangle (poignée de resize).
+function nearCorner(w, r) {
+  const tol = 14 / state.camera.zoom;
+  return Math.abs(w.x - (r.x + r.w)) < tol && Math.abs(w.y - (r.y + r.h)) < tol;
+}
+function toggleSelect(id) {
+  const i = state.selectedIds.indexOf(id);
+  if (i === -1) state.selectedIds.push(id); else state.selectedIds.splice(i, 1);
+}
+
 // ---- Pointeur générique (souris + tactile) ----
-function pointerDown(sx, sy) {
+function pointerDown(sx, sy, opts) {
   closeMenus();
+  const shift = !!(opts && opts.shift);
   // Interaction verrouillée (mobile par défaut) : on ne fait que paner.
   // (mais un tap sur un lien reste géré au pointerUp, cf. finishDrag).
   if (!interactionEnabled) { drag = { mode: 'pan', px: sx, py: sy, sx0: sx, sy0: sy }; return; }
@@ -178,6 +194,23 @@ function pointerDown(sx, sy) {
 
   const r = hitRect(w);
   if (r) {
+    // Poignée de resize (coin bas-droit) d'un rectangle non-lien déjà sélectionné seul.
+    if (!r.ref && r.kind !== 'liaison' && state.selected === r.id && state.selectedIds.length === 0 && nearCorner(w, r)) {
+      drag = { mode: 'rectresize', id: r.id, aspect: r.image ? r.w / r.h : 0 };
+      return;
+    }
+    // Shift+clic : ajoute/retire de la sélection multiple.
+    if (shift) { toggleSelect(r.id); state.selected = r.id; drag = null; scheduleSave(); return; }
+    // Clic sur un membre d'une sélection multiple : on déplace tout le groupe.
+    if (state.selectedIds.length > 1 && state.selectedIds.indexOf(r.id) !== -1) {
+      state.selected = r.id;
+      drag = { mode: 'group', ids: state.selectedIds.slice(), lead: r.id, offx: w.x - r.x, offy: w.y - r.y, orig: {} };
+      drag.ids.forEach((id) => { const m = findById(id); if (m) drag.orig[id] = { x: m.x, y: m.y }; });
+      lastPos = { x: w.x, y: w.y, t: performance.now() };
+      return;
+    }
+    // Sélection simple.
+    state.selectedIds = [];
     state.selected = r.id;
     drag = { mode: 'rect', id: r.id, offx: w.x - r.x, offy: w.y - r.y, startX: r.x, startY: r.y };
     lastPos = { x: w.x, y: w.y, t: performance.now() };
@@ -186,6 +219,7 @@ function pointerDown(sx, sy) {
 
   const hz = hitHexagon(w) || hitCircle(w);
   if (hz) {
+    state.selectedIds = [];
     state.selected = hz.c.id;
     drag = hz.edge
       ? { mode: 'resize', id: hz.c.id }
@@ -193,7 +227,15 @@ function pointerDown(sx, sy) {
     return;
   }
 
+  // Fond : rectangle de sélection si Shift (desktop) ou mode armé (menu), sinon pan.
+  if (shift || selectArmed) {
+    selectArmed = false;
+    drag = { mode: 'marquee', x0: sx, y0: sy, x1: sx, y1: sy };
+    showMarquee(sx, sy, sx, sy);
+    return;
+  }
   state.selected = null;
+  state.selectedIds = [];
   drag = { mode: 'pan', px: sx, py: sy, sx0: sx, sy0: sy };
 }
 
@@ -224,8 +266,37 @@ function pointerMove(sx, sy) {
     if (!c) return;
     c.r = Math.max(40, Math.hypot(w.x - c.x, w.y - c.y));
     scheduleSave();
+  } else if (drag.mode === 'rectresize') {
+    const n = findById(drag.id);
+    if (!n) return;
+    let nw = Math.max(40, w.x - n.x);
+    let nh = Math.max(40, w.y - n.y);
+    if (drag.aspect) { if (nw / nh > drag.aspect) nh = nw / drag.aspect; else nw = nh * drag.aspect; } // garde le ratio des images
+    n.w = nw; n.h = nh;
+    scheduleSave();
+  } else if (drag.mode === 'group') {
+    const now = performance.now();
+    const dt = Math.max(0.001, (now - lastPos.t) / 1000);
+    const tx = w.x - drag.offx, ty = w.y - drag.offy;
+    const ddx = tx - drag.orig[drag.lead].x, ddy = ty - drag.orig[drag.lead].y;
+    drag.ids.forEach((id) => { const m = findById(id); if (m && drag.orig[id]) dragTo(m, drag.orig[id].x + ddx, drag.orig[id].y + ddy, dt); });
+    lastPos = { x: w.x, y: w.y, t: now };
+    scheduleSave();
+  } else if (drag.mode === 'marquee') {
+    drag.x1 = sx; drag.y1 = sy;
+    showMarquee(drag.x0, drag.y0, sx, sy);
   }
 }
+
+function showMarquee(x0, y0, x1, y1) {
+  const m = document.getElementById('marquee');
+  m.style.left = Math.min(x0, x1) + 'px';
+  m.style.top = Math.min(y0, y1) + 'px';
+  m.style.width = Math.abs(x1 - x0) + 'px';
+  m.style.height = Math.abs(y1 - y0) + 'px';
+  m.classList.add('show');
+}
+function hideMarquee() { document.getElementById('marquee').classList.remove('show'); }
 
 function pointerUp() {
   if (drag) finishDrag();
@@ -273,6 +344,20 @@ function finishDrag() {
       if (r && displayLink(r)) { handleLinkTap(r); return; }
       clearLinkFocus();
     }
+  } else if (drag.mode === 'marquee') {
+    hideMarquee();
+    const a = screenToWorld(Math.min(drag.x0, drag.x1), Math.min(drag.y0, drag.y1));
+    const b = screenToWorld(Math.max(drag.x0, drag.x1), Math.max(drag.y0, drag.y1));
+    const ids = [];
+    for (const nd of state.nodes) {
+      if (nd.kind === 'liaison') continue;
+      const cx = nd.x + nd.w / 2, cy = nd.y + nd.h / 2;
+      if (cx >= a.x && cx <= b.x && cy >= a.y && cy <= b.y) ids.push(nd.id);
+    }
+    // 0 ou 1 bloc : on retombe en sélection simple (resize/édition possibles).
+    state.selectedIds = ids.length > 1 ? ids : [];
+    state.selected = ids.length === 1 ? ids[0] : null;
+    return;
   }
 
   // Position déposée : on synchronise la position finale (pas pendant le drag).
@@ -284,7 +369,7 @@ function finishDrag() {
 // ---- Souris ----
 function onMouseDown(e) {
   if (e.button === 1 || e.button === 2) return; // milieu/droit gérés ailleurs
-  pointerDown(e.clientX, e.clientY);
+  pointerDown(e.clientX, e.clientY, { shift: e.shiftKey });
 }
 function onMouseMove(e) { pointerMove(e.clientX, e.clientY); }
 function onMouseUp() { pointerUp(); }
@@ -479,9 +564,14 @@ function onKeyDown(e) {
   // Le collage (Ctrl-V) est géré par l'événement 'paste' (cf. onPaste) pour
   // pouvoir lire une image du presse-papier.
 
-  if ((e.key === 'Delete' || e.key === 'Backspace') && state.selected) {
-    removeElement(findById(state.selected));
-    e.preventDefault();
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    if (state.selectedIds.length) {
+      state.selectedIds.slice().forEach((id) => removeElement(findById(id)));
+      state.selectedIds = [];
+      e.preventDefault();
+      return;
+    }
+    if (state.selected) { removeElement(findById(state.selected)); e.preventDefault(); }
   }
 }
 
@@ -622,6 +712,10 @@ function openContextAt(sx, sy) {
     items = [{ label: 'Copier le lien', icon: 'copy', color: COL.green, fn: () => copyLink(r) }];
     if (!isClient()) items.push({ label: 'Nouveau lien', icon: 'refresh', color: COL.yellow, fn: () => refreshHostId(r) });
     items.push({ label: 'Supprimer', icon: 'trash', color: COL.red, fn: () => removeElement(r) });
+  } else if (r && state.selectedIds.length > 1 && state.selectedIds.indexOf(r.id) !== -1) {
+    // Menu d'une sélection multiple.
+    const ids = state.selectedIds.slice();
+    items = [{ label: 'Supprimer (' + ids.length + ')', icon: 'trash', color: COL.red, fn: () => { ids.forEach((id) => removeElement(findById(id))); state.selectedIds = []; } }];
   } else if (r) {
     const isLink = !!r.ref;
     items = [{ label: 'Éditer le texte', icon: 'edit', color: COL.cyan, fn: () => { const t = isLink ? sourceOf(r) : r; if (t) startEdit('rect', t, r); } }];
@@ -645,8 +739,10 @@ function openContextAt(sx, sy) {
       { label: 'Hexagone', icon: 'hexa', color: COL.orange, fn: () => { const h = addHexagon(w.x, w.y); state.selected = h.id; scheduleSave(); } },
       { label: 'Liaison', icon: 'share', color: COL.magenta, fn: () => createLiaison(w.x, w.y) },
       { label: 'Lien board', icon: 'board', color: COL.cyan, fn: () => openBoardPicker(w.x, w.y) },
+      { label: 'Sélection', icon: 'select', color: COL.yellow, fn: () => { selectArmed = true; } },
       { label: 'Exporter', icon: 'export', color: COL.yellow, fn: () => exportJSON() },
       { label: 'Importer', icon: 'import', color: COL.white, fn: () => importJSON(() => { onChange(); }) },
+      { label: 'Paramètres', icon: 'gear', color: COL.white, fn: () => openSettings() },
     ];
     // Sur mobile : possibilité de reverrouiller l'interaction.
     if (isCoarse) items.push({ label: 'Verrouiller', icon: 'lock', color: COL.orange, fn: () => { interactionEnabled = false; state.selected = null; updateHint(); } });
@@ -692,6 +788,17 @@ function openRadial(x, y, items) {
   center.style.opacity = '1';
   radial.appendChild(center);
 
+  // Trait centre→doigt (SVG) + halo sous le doigt : repères du glisser tactile.
+  const ray = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  ray.setAttribute('class', 'radial-ray');
+  ray.innerHTML = '<line x1="0" y1="0" x2="0" y2="0" />';
+  radial.appendChild(ray);
+  radialRay = ray;
+  const halo = document.createElement('div');
+  halo.className = 'radial-halo';
+  radial.appendChild(halo);
+  radialHalo = halo;
+
   // Items qui se déploient en éventail (animation ressort décalée).
   radialItems = [];
   radialHoverIdx = -1;
@@ -701,7 +808,7 @@ function openRadial(x, y, items) {
     const dx = Math.cos(ang) * radius, dy = Math.sin(ang) * radius;
     const el = mkRitem(it);
     radial.appendChild(el);
-    radialItems.push({ el, fn: it.fn, dx, dy, ang });
+    radialItems.push({ el, fn: it.fn, dx, dy, ang, color: it.color || COL.green });
     requestAnimationFrame(() => requestAnimationFrame(() => {
       el.style.transitionDelay = (i * 32) + 'ms';
       el.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1)`;
@@ -710,6 +817,8 @@ function openRadial(x, y, items) {
   });
   armCloseOnce();
 }
+
+function vibrate(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* */ } }
 
 // Pie-menu tactile : glisser le doigt vers un item le sélectionne (par direction).
 function angDiff(a, b) { let d = a - b; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return Math.abs(d); }
@@ -723,6 +832,7 @@ function updateRadialHover(x, y) {
     let best = Infinity;
     radialItems.forEach((it, i) => { const d = angDiff(a, it.ang); if (d < best) { best = d; idx = i; } });
   }
+  if (idx !== radialHoverIdx) vibrate(idx >= 0 ? 10 : 4); // tic haptique au changement d'item
   radialHoverIdx = idx;
   radialItems.forEach((it, i) => {
     const on = i === idx;
@@ -730,12 +840,25 @@ function updateRadialHover(x, y) {
     it.el.style.transform = `translate(calc(-50% + ${it.dx}px), calc(-50% + ${it.dy}px)) scale(${on ? 1.5 : 1})`;
     it.el.classList.toggle('hover', on);
   });
+  // Trait du centre vers le doigt + halo sous le doigt.
+  const active = dist > 30;
+  if (radialRay) {
+    const col = idx >= 0 ? radialItems[idx].color : COL.green;
+    const ln = radialRay.firstChild;
+    if (ln) { ln.setAttribute('x2', dx); ln.setAttribute('y2', dy); ln.setAttribute('stroke', col); }
+    radialRay.style.opacity = active ? '1' : '0';
+  }
+  if (radialHalo) {
+    radialHalo.style.transform = `translate(${dx}px, ${dy}px) translate(-50%, -50%)`;
+    radialHalo.style.borderColor = idx >= 0 ? radialItems[idx].color : COL.green;
+    radialHalo.style.opacity = active ? '1' : '0';
+  }
 }
 
 function selectRadialHover() {
   radialPressActive = false;
   const idx = radialHoverIdx;
-  if (idx >= 0 && radialItems[idx]) { const fn = radialItems[idx].fn; closeMenus(); fn(); }
+  if (idx >= 0 && radialItems[idx]) { vibrate(22); const fn = radialItems[idx].fn; closeMenus(); fn(); }
   // sinon (doigt au centre / pas de sélection) : on laisse le menu ouvert pour un tap.
 }
 

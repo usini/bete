@@ -1,7 +1,7 @@
 // Export / Import JSON.
-import { serialize, load, getBoardId } from './state.js?v=mquyq6pn';
-import { reset } from './physics.js?v=mquyq6pn';
-import { state } from './state.js?v=mquyq6pn';
+import { serialize, load, getBoardId } from './state.js?v=mquzce9a';
+import { reset } from './physics.js?v=mquzce9a';
+import { state } from './state.js?v=mquzce9a';
 
 export function exportJSON() {
   const data = JSON.stringify(serialize(), null, 2);

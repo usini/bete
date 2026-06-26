@@ -1,5 +1,5 @@
 // Transformations monde <-> écran et zoom centré sur le pointeur.
-import { state } from './state.js?v=mquyq6pn';
+import { state } from './state.js?v=mquzce9a';
 
 // Dimensions logiques (CSS px) du viewport, mises à jour par main.js.
 export const view = { w: window.innerWidth, h: window.innerHeight };

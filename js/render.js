@@ -1,11 +1,12 @@
 // Rendu du board : grille pixel, cercles, hexagones, rectangles, glow néon, sélection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mquyq6pn';
-import { view, worldToScreen } from './camera.js?v=mquyq6pn';
-import { stretch } from './physics.js?v=mquyq6pn';
-import { hexCorners } from './geom.js?v=mquyq6pn';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mquzce9a';
+import { view, worldToScreen } from './camera.js?v=mquzce9a';
+import { stretch } from './physics.js?v=mquzce9a';
+import { hexCorners } from './geom.js?v=mquzce9a';
+import { theme, getTextScale } from './theme.js?v=mquzce9a';
 
-const FONT = "'Press Start 2P', monospace";
-const BG = '#0d0f12';
+const FONT = () => theme().font;
+const GLOW = () => theme().glow;
 
 // Cache des images (data URL -> HTMLImageElement) pour ne pas recréer chaque frame.
 const imgCache = new Map();
@@ -17,21 +18,26 @@ function getImg(src) {
 
 export function render(ctx) {
   const { zoom } = state.camera;
-  ctx.fillStyle = BG;
+  ctx.fillStyle = theme().bg;
   ctx.fillRect(0, 0, view.w, view.h);
 
   drawGrid(ctx);
 
   // Zones (sous les rectangles) : cercles puis hexagones.
-  for (const c of state.circles) drawCircle(ctx, c, c.id === state.selected);
-  for (const h of state.hexagons) drawHexagon(ctx, h, h.id === state.selected);
+  for (const c of state.circles) drawCircle(ctx, c, isSel(c.id));
+  for (const h of state.hexagons) drawHexagon(ctx, h, isSel(h.id));
 
   // Rectangles, pancartes & blocs Liaison (au-dessus).
   for (const n of state.nodes) {
-    if (n.kind === 'liaison') drawLiaison(ctx, n, n.id === state.selected, zoom);
-    else if (n.kind === 'pancarte') drawPancarte(ctx, n, n.id === state.selected, zoom);
-    else drawRect(ctx, n, effectiveColor(n), n.id === state.selected, zoom);
+    if (n.kind === 'liaison') drawLiaison(ctx, n, isSel(n.id), zoom);
+    else if (n.kind === 'pancarte') drawPancarte(ctx, n, isSel(n.id), zoom);
+    else drawRect(ctx, n, effectiveColor(n), isSel(n.id), zoom);
   }
+}
+
+// Sélection : id courant OU appartenance à la sélection multiple.
+function isSel(id) {
+  return id === state.selected || (state.selectedIds && state.selectedIds.indexOf(id) !== -1);
 }
 
 // Pancarte : rectangle plus grand avec texture bois et texte gravé.
@@ -84,7 +90,7 @@ function drawPancarte(ctx, n, selected, zoom) {
   ctx.strokeStyle = '#3d2917';
   ctx.strokeRect(-w / 2, -h / 2, w, h);
   if (selected) {
-    ctx.strokeStyle = '#39ff14';
+    ctx.strokeStyle = theme().accent;
     ctx.lineWidth = 2;
     ctx.strokeRect(-w / 2 - 3, -h / 2 - 3, w + 6, h + 6);
   }
@@ -95,15 +101,14 @@ function drawPancarte(ctx, n, selected, zoom) {
 
   // Texte gravé (clair avec ombre sombre).
   if (n.text) {
-    const fs = clamp(13 * zoom, 8, 32);
+    const baseFs = 13 * zoom * getTextScale();
     ctx.fillStyle = '#f3e3c0';
     ctx.shadowColor = '#2a1a0e';
     ctx.shadowOffsetX = 1.5 * zoom;
     ctx.shadowOffsetY = 1.5 * zoom;
-    ctx.font = `${fs}px ${FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    drawWrapped(ctx, n.text, w - 22 * zoom, fs);
+    drawFitted(ctx, n.text, w - 22 * zoom, h - 22 * zoom, baseFs);
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
   }
@@ -130,6 +135,7 @@ function ensureQR(n) {
 }
 
 function drawLiaison(ctx, n, selected, zoom) {
+  const accent = theme().accent;
   const rx = n._rx !== undefined ? n._rx : n.x;
   const ry = n._ry !== undefined ? n._ry : n.y;
   const p = worldToScreen(rx + n.w / 2, ry + n.h / 2);
@@ -137,12 +143,12 @@ function drawLiaison(ctx, n, selected, zoom) {
 
   ctx.save();
   ctx.translate(p.x, p.y);
-  ctx.shadowColor = '#39ff14';
-  ctx.shadowBlur = selected ? 22 : 12;
-  ctx.fillStyle = '#11151a';
+  ctx.shadowColor = accent;
+  ctx.shadowBlur = (selected ? 22 : 12) * GLOW();
+  ctx.fillStyle = theme().nodeBg;
   ctx.fillRect(-w / 2, -h / 2, w, h);
   ctx.lineWidth = selected ? 5 : 3;
-  ctx.strokeStyle = '#39ff14';
+  ctx.strokeStyle = accent;
   ctx.strokeRect(-w / 2, -h / 2, w, h);
   ctx.shadowBlur = 0;
 
@@ -167,8 +173,8 @@ function drawLiaison(ctx, n, selected, zoom) {
   } else {
     ctx.fillStyle = '#1a1f26';
     ctx.fillRect(qrX, qrY, qrSide, qrSide);
-    ctx.fillStyle = '#39ff14';
-    ctx.font = `${clamp(10 * zoom, 7, 16)}px ${FONT}`;
+    ctx.fillStyle = accent;
+    ctx.font = `${clamp(10 * zoom, 7, 16)}px ${FONT()}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('...', 0, qrY + qrSide / 2);
@@ -183,10 +189,10 @@ function drawLiaison(ctx, n, selected, zoom) {
   else label = 'CONNEXION...';
 
   const fs = clamp(8 * zoom, 6, 13);
-  ctx.fillStyle = '#39ff14';
-  ctx.shadowColor = '#39ff14';
-  ctx.shadowBlur = 6;
-  ctx.font = `${fs}px ${FONT}`;
+  ctx.fillStyle = accent;
+  ctx.shadowColor = accent;
+  ctx.shadowBlur = 6 * GLOW();
+  ctx.font = `${fs}px ${FONT()}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(label, 0, (qrY + qrSide + h / 2) / 2);
@@ -205,21 +211,21 @@ function drawHexagon(ctx, hgn, selected) {
   ctx.fillStyle = hexToRgba(hgn.color, 0.08);
   ctx.fill();
   ctx.shadowColor = hgn.color;
-  ctx.shadowBlur = selected ? 24 : 12;
+  ctx.shadowBlur = (selected ? 24 : 12) * GLOW();
   ctx.lineWidth = selected ? 5 : 3;
   ctx.strokeStyle = hgn.color;
   ctx.stroke();
   ctx.restore();
 
   if (hgn.description) {
-    const fs = clamp(16 * state.camera.zoom, 11, 36);
+    const fs = clamp(16 * state.camera.zoom * getTextScale(), 11, 48);
     ctx.save();
-    ctx.font = `${fs}px ${FONT}`;
+    ctx.font = `${fs}px ${FONT()}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     ctx.fillStyle = hgn.color;
     ctx.shadowColor = hgn.color;
-    ctx.shadowBlur = 8;
+    ctx.shadowBlur = 8 * GLOW();
     ctx.fillText(hgn.description, p.x, p.y - R - 4);
     ctx.restore();
   }
@@ -231,7 +237,7 @@ function drawGrid(ctx) {
   if (spacing < 6) return; // trop dézoomé : on masque la grille
   const ox = ((-x * zoom + view.w / 2) % spacing + spacing) % spacing;
   const oy = ((-y * zoom + view.h / 2) % spacing + spacing) % spacing;
-  ctx.fillStyle = '#1a1f26';
+  ctx.fillStyle = theme().grid;
   const s = Math.max(1, Math.round(zoom)); // gros points = pixel
   for (let gx = ox; gx < view.w; gx += spacing) {
     for (let gy = oy; gy < view.h; gy += spacing) {
@@ -251,7 +257,7 @@ function drawCircle(ctx, c, selected) {
   ctx.fill();
 
   ctx.shadowColor = c.color;
-  ctx.shadowBlur = selected ? 24 : 12;
+  ctx.shadowBlur = (selected ? 24 : 12) * GLOW();
   ctx.lineWidth = selected ? 5 : 3;
   ctx.strokeStyle = c.color;
   ctx.stroke();
@@ -259,14 +265,14 @@ function drawCircle(ctx, c, selected) {
 
   // Description en haut du cercle.
   if (c.description) {
-    const fs = clamp(16 * state.camera.zoom, 11, 36);
+    const fs = clamp(16 * state.camera.zoom * getTextScale(), 11, 48);
     ctx.save();
-    ctx.font = `${fs}px ${FONT}`;
+    ctx.font = `${fs}px ${FONT()}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     ctx.fillStyle = c.color;
     ctx.shadowColor = c.color;
-    ctx.shadowBlur = 8;
+    ctx.shadowBlur = 8 * GLOW();
     ctx.fillText(c.description, p.x, p.y - r + fs * 0.2 - 4);
     ctx.restore();
   }
@@ -301,11 +307,11 @@ function drawRect(ctx, n, color, selected, zoom) {
 
   // Corps.
   ctx.shadowColor = color;
-  ctx.shadowBlur = selected ? 22 : 10;
-  ctx.fillStyle = '#11151a';
+  ctx.shadowBlur = (selected ? 22 : 10) * GLOW();
+  ctx.fillStyle = theme().nodeBg;
   ctx.fillRect(-w / 2, -h / 2, w, h);
 
-  // Image éventuelle (cover-fit, clippée au rectangle).
+  // Image éventuelle (contain-fit, clippée au rectangle).
   if (image) {
     const img = getImg(image);
     if (img.complete && img.naturalWidth) {
@@ -329,13 +335,26 @@ function drawRect(ctx, n, color, selected, zoom) {
   ctx.strokeRect(-w / 2, -h / 2, w, h);
   ctx.setLineDash([]);
 
+  // Poignée de redimensionnement (coin bas-droit), seulement si sélectionné seul.
+  if (selected && state.selected === n.id && !isLink) {
+    const hs = Math.max(7, 9 * zoom);
+    ctx.fillStyle = color;
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.moveTo(w / 2, h / 2 - hs);
+    ctx.lineTo(w / 2, h / 2);
+    ctx.lineTo(w / 2 - hs, h / 2);
+    ctx.closePath();
+    ctx.fill();
+  }
+
   // Badge "lien cliquable" (flèche ↗ cyan en haut à droite).
   if (displayLink(n)) {
     const bs = Math.max(9, 12 * zoom);
     const bx = w / 2 - bs - 4 * zoom, by = -h / 2 + 4 * zoom;
     ctx.fillStyle = '#00b7eb';
     ctx.shadowColor = '#00b7eb';
-    ctx.shadowBlur = 6;
+    ctx.shadowBlur = 6 * GLOW();
     ctx.fillRect(bx, by, bs, bs);
     ctx.shadowBlur = 0;
     ctx.strokeStyle = '#04130a';
@@ -349,34 +368,51 @@ function drawRect(ctx, n, color, selected, zoom) {
     ctx.stroke();
   }
 
-  // Texte.
-  if (text) {
-    const fs = clamp(13 * zoom, 8, 34);
-    ctx.shadowBlur = 6;
-    ctx.fillStyle = color;
-    ctx.font = `${fs}px ${FONT}`;
+  // Texte (rétréci pour tenir dans le rectangle, sauf si une image occupe le bloc).
+  if (text && !image) {
+    const baseFs = 13 * zoom * getTextScale();
+    ctx.shadowBlur = 6 * GLOW();
+    ctx.fillStyle = theme().lightBg ? theme().ink : color;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    drawWrapped(ctx, text, w - 16 * zoom, fs);
+    drawFitted(ctx, text, w - 16 * zoom, h - 14 * zoom, baseFs);
   }
   ctx.restore();
 }
 
-function drawWrapped(ctx, text, maxW, fs) {
-  const lineH = fs * 1.5;
-  const words = text.split(/\s+/);
-  const lines = [];
-  let cur = '';
-  for (const word of words) {
-    const test = cur ? cur + ' ' + word : word;
-    if (ctx.measureText(test).width > maxW && cur) {
-      lines.push(cur);
-      cur = word;
-    } else {
-      cur = test;
+// Découpe en lignes en respectant les retours à la ligne explicites + le mot-à-mot.
+function wrapLines(ctx, text, maxW) {
+  const out = [];
+  for (const para of String(text).split('\n')) {
+    const words = para.split(/\s+/).filter(Boolean);
+    if (!words.length) { out.push(''); continue; }
+    let cur = '';
+    for (const word of words) {
+      const test = cur ? cur + ' ' + word : word;
+      if (ctx.measureText(test).width > maxW && cur) { out.push(cur); cur = word; }
+      else cur = test;
     }
+    if (cur) out.push(cur);
   }
-  if (cur) lines.push(cur);
+  return out;
+}
+
+// Texte centré qui réduit sa taille jusqu'à tenir dans (maxW x maxH).
+function drawFitted(ctx, text, maxW, maxH, baseFs) {
+  const fam = FONT();
+  let fs = Math.max(5, baseFs);
+  let lines = [];
+  for (let i = 0; i < 16; i++) {
+    ctx.font = `${fs}px ${fam}`;
+    lines = wrapLines(ctx, text, maxW);
+    const lineH = fs * 1.4;
+    const tall = lines.length * lineH > maxH;
+    const wide = lines.some(l => ctx.measureText(l).width > maxW);
+    if ((!tall && !wide) || fs <= 5) break;
+    fs = Math.max(5, fs * 0.86);
+  }
+  ctx.font = `${fs}px ${fam}`;
+  const lineH = fs * 1.4;
   const startY = -((lines.length - 1) * lineH) / 2;
   lines.forEach((ln, i) => ctx.fillText(ln, 0, startY + i * lineH));
 }
