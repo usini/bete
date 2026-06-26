@@ -3,15 +3,15 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId,
-} from './state.js?v=mquzce9a';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mquzce9a';
-import { dragTo, reset } from './physics.js?v=mquzce9a';
-import { exportJSON, importJSON } from './io.js?v=mquzce9a';
-import { pointInHex } from './geom.js?v=mquzce9a';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mquzce9a';
-import { explodeElementCascade } from './fx.js?v=mquzce9a';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mquzce9a';
-import { openSettings } from './settings.js?v=mquzce9a';
+} from './state.js?v=mqv1iqrs';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqv1iqrs';
+import { dragTo, reset } from './physics.js?v=mqv1iqrs';
+import { exportJSON, importJSON } from './io.js?v=mqv1iqrs';
+import { pointInHex } from './geom.js?v=mqv1iqrs';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqv1iqrs';
+import { explodeElementCascade } from './fx.js?v=mqv1iqrs';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqv1iqrs';
+import { openSettings } from './settings.js?v=mqv1iqrs';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -194,9 +194,11 @@ function pointerDown(sx, sy, opts) {
 
   const r = hitRect(w);
   if (r) {
-    // Poignée de resize (coin bas-droit) d'un rectangle non-lien déjà sélectionné seul.
-    if (!r.ref && r.kind !== 'liaison' && state.selected === r.id && state.selectedIds.length === 0 && nearCorner(w, r)) {
+    // Poignée de resize (coin bas-droit) d'un rectangle non-lien.
+    if (!r.ref && r.kind !== 'liaison' && nearCorner(w, r)) {
+      state.selected = r.id; state.selectedIds = [];
       drag = { mode: 'rectresize', id: r.id, aspect: r.image ? r.w / r.h : 0 };
+      if (canvas) canvas.style.cursor = 'nwse-resize';
       return;
     }
     // Shift+clic : ajoute/retire de la sélection multiple.
@@ -301,6 +303,18 @@ function hideMarquee() { document.getElementById('marquee').classList.remove('sh
 function pointerUp() {
   if (drag) finishDrag();
   drag = null;
+  if (canvas) canvas.style.cursor = ''; // le prochain mousemove recalcule
+}
+
+// Curseur de redimensionnement (PC) au survol d'un bord/coin resizable.
+function updateCursor(sx, sy) {
+  if (!canvas || !interactionEnabled) return;
+  const w = screenToWorld(sx, sy);
+  let resize = false;
+  const r = hitRect(w);
+  if (r && r.kind !== 'liaison' && !r.ref && nearCorner(w, r)) resize = true;
+  else if (!r) { const hz = hitHexagon(w) || hitCircle(w); if (hz && hz.edge) resize = true; }
+  canvas.style.cursor = resize ? 'nwse-resize' : '';
 }
 
 // Lâcher un vrai rectangle dans un hexagone => crée un lien, l'original revient.
@@ -371,7 +385,7 @@ function onMouseDown(e) {
   if (e.button === 1 || e.button === 2) return; // milieu/droit gérés ailleurs
   pointerDown(e.clientX, e.clientY, { shift: e.shiftKey });
 }
-function onMouseMove(e) { pointerMove(e.clientX, e.clientY); }
+function onMouseMove(e) { if (drag) pointerMove(e.clientX, e.clientY); else updateCursor(e.clientX, e.clientY); }
 function onMouseUp() { pointerUp(); }
 
 function onWheel(e) {

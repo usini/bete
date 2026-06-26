@@ -1,9 +1,9 @@
 // Menu Paramètres : thème, taille du texte, liaisons nommées, navigation
 // (tutoriel / boards visités), effacer le board courant.
-import { state, getBoardId, scheduleSave } from './state.js?v=mquzce9a';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mquzce9a';
-import { listBoards, buildBoardUrl } from './boards.js?v=mquzce9a';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mquzce9a';
+import { state, getBoardId, scheduleSave } from './state.js?v=mqv1iqrs';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mqv1iqrs';
+import { listBoards, buildBoardUrl } from './boards.js?v=mqv1iqrs';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mqv1iqrs';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);

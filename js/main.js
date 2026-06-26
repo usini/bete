@@ -1,17 +1,17 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName } from './state.js?v=mquzce9a';
-import { setView } from './camera.js?v=mquzce9a';
-import { render } from './render.js?v=mquzce9a';
-import { step, reset } from './physics.js?v=mquzce9a';
-import * as minimap from './minimap.js?v=mquzce9a';
-import * as input from './input.js?v=mquzce9a';
-import * as fx from './fx.js?v=mquzce9a';
-import { joinHost, getNetMode } from './sync.js?v=mquzce9a';
-import { recordBoard, getBoardEntry } from './boards.js?v=mquzce9a';
-import { TUTORIAL } from './tutorial.js?v=mquzce9a';
-import { applyTheme } from './theme.js?v=mquzce9a';
-import { initSettings } from './settings.js?v=mquzce9a';
-import { recordLiaison } from './liaisons.js?v=mquzce9a';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName } from './state.js?v=mqv1iqrs';
+import { setView } from './camera.js?v=mqv1iqrs';
+import { render } from './render.js?v=mqv1iqrs';
+import { step, reset } from './physics.js?v=mqv1iqrs';
+import * as minimap from './minimap.js?v=mqv1iqrs';
+import * as input from './input.js?v=mqv1iqrs';
+import * as fx from './fx.js?v=mqv1iqrs';
+import { joinHost, getNetMode } from './sync.js?v=mqv1iqrs';
+import { recordBoard, getBoardEntry } from './boards.js?v=mqv1iqrs';
+import { TUTORIAL } from './tutorial.js?v=mqv1iqrs';
+import { applyTheme } from './theme.js?v=mqv1iqrs';
+import { initSettings } from './settings.js?v=mqv1iqrs';
+import { recordLiaison } from './liaisons.js?v=mqv1iqrs';
 
 applyTheme(); // applique le thème enregistré dès le démarrage
 
