@@ -4,10 +4,10 @@
 
 // Paramètres réglables à chaud (menu debug, touche ²). Non persistés.
 export const wobbleCfg = {
-  stiffness: 170,   // raideur du ressort
-  damping: 15,      // amortissement (< critique => rebond élastique)
-  maxStretch: 0.06, // déformation max (légère) — plafond bas pour rester discret
-  stretchK: 0.0010, // sensibilité : sature vite -> wobble quasi constant
+  stiffness: 218,   // raideur du ressort
+  damping: 36,      // amortissement (< critique => rebond élastique)
+  maxStretch: 0.26, // déformation max
+  stretchK: 0.0002, // sensibilité de la déformation à la vitesse
 };
 export const WOBBLE_DEFAULTS = { ...wobbleCfg };
 
