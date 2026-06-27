@@ -1,12 +1,12 @@
 // Menu Paramètres : thème, taille du texte, liaisons nommées, navigation
 // (tutoriel / boards visités), effacer le board courant.
-import { state, getBoardId, scheduleSave } from './state.js?v=mqwu4jjv';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mqwu4jjv';
-import { listBoards, buildBoardUrl } from './boards.js?v=mqwu4jjv';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mqwu4jjv';
-import { liaisonStatus, disconnect, getPresence, announceName } from './sync.js?v=mqwu4jjv';
-import { exportJSON, importJSON } from './io.js?v=mqwu4jjv';
-import { getUserName, setUserName } from './users.js?v=mqwu4jjv';
+import { state, getBoardId, scheduleSave } from './state.js?v=mqwus8x9';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mqwus8x9';
+import { listBoards, buildBoardUrl } from './boards.js?v=mqwus8x9';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mqwus8x9';
+import { liaisonStatus, disconnect, getPresence, announceName } from './sync.js?v=mqwus8x9';
+import { exportJSON, importJSON } from './io.js?v=mqwus8x9';
+import { getUserName, setUserName } from './users.js?v=mqwus8x9';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);

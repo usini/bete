@@ -170,8 +170,8 @@ function applyDelete(b, msg) {
 
 // Présence : le serveur (hôte) + les clients ayant annoncé un nom.
 function broadcastPresence(b) {
-  const users = [{ uid: 'server', name: 'Serveur', host: true }];
-  for (const c of b.conns) if (c._uid) users.push({ uid: c._uid, name: c._name || '', host: false });
+  const users = [{ uid: 'server', name: 'Serveur', host: true, peerId: null, voice: false }];
+  for (const c of b.conns) if (c._uid) users.push({ uid: c._uid, name: c._name || '', host: false, peerId: c._peerId || null, voice: !!c._voice });
   const payload = { type: 'presence', users };
   for (const c of b.conns) if (c.open) { try { c.send(payload); } catch (e) { /* */ } }
 }
@@ -192,7 +192,7 @@ function handleData(id, b, msg, origin) {
     for (const c of b.conns) if (c !== origin && c.open) { try { c.send(msg); } catch (e) { /* */ } }
     return;
   } else if (msg.type === 'hello') {
-    origin._uid = msg.uid; origin._name = msg.name;
+    origin._uid = msg.uid; origin._name = msg.name; origin._peerId = msg.peerId; origin._voice = msg.voice;
     broadcastPresence(b);
     return;
   } else if (msg.type === 'cursor') {

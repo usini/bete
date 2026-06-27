@@ -2,16 +2,25 @@
 // On ne synchronise QUE le contenu (texte, image, couleur, description, liens,
 // création/suppression) : ni la caméra, ni les positions/tailles. Chaque écran
 // garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqwu4jjv';
-import { reset } from './physics.js?v=mqwu4jjv';
-import { explodeElementCascade } from './fx.js?v=mqwu4jjv';
-import { putAudio, getAudio, delAudio } from './audio.js?v=mqwu4jjv';
-import { getUserId, displayName } from './users.js?v=mqwu4jjv';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqwus8x9';
+import { reset } from './physics.js?v=mqwus8x9';
+import { explodeElementCascade } from './fx.js?v=mqwus8x9';
+import { putAudio, getAudio, delAudio } from './audio.js?v=mqwus8x9';
+import { getUserId, displayName } from './users.js?v=mqwus8x9';
 
 let clientRoster = []; // côté client : liste des utilisateurs reçue de l'hôte
 let lastHostMsg = 0;   // côté client : horodatage du dernier message reçu de l'hôte
 let hostHb = null;     // côté hôte : timer de battement (heartbeat)
 let cursors = {};      // uid -> { name, x, y, t } : curseurs des autres utilisateurs
+let localVoice = false; // notre micro est-il actif (chat vocal) ?
+let incomingCb = null;  // callback pour les appels média entrants (voicechat)
+
+// Peer PeerJS local courant (hôte ou client) — utilisé pour les appels audio.
+export function getPeer() { return mode === 'host' ? hostPeer : clientPeer; }
+export function setLocalVoice(v) { localVoice = !!v; announceName(); }
+export function onIncomingCall(cb) { incomingCb = cb; }
+function attachCallHandler(peer) { if (peer) peer.on('call', (c) => { if (incomingCb) incomingCb(c); }); }
+function helloMsg() { return { type: 'hello', uid: getUserId(), name: displayName(), peerId: (clientPeer && clientPeer.id) || null, voice: localVoice }; }
 
 const PEERJS_SRC = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
 const QR_SRC = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
@@ -64,8 +73,8 @@ export function liaisonStatus() {
 // ---- Présence (liste des utilisateurs connectés) ----
 export function getPresence() {
   if (mode === 'host') {
-    const list = [{ uid: getUserId(), name: displayName(), host: true, me: true }];
-    conns.forEach((c) => { if (c._uid) list.push({ uid: c._uid, name: c._name || '', host: false, me: false }); });
+    const list = [{ uid: getUserId(), name: displayName(), host: true, me: true, peerId: (hostPeer && hostPeer.id) || null, voice: localVoice }];
+    conns.forEach((c) => { if (c._uid) list.push({ uid: c._uid, name: c._name || '', host: false, me: false, peerId: c._peerId || null, voice: !!c._voice }); });
     return list;
   }
   if (mode === 'client') return clientRoster.map((u) => ({ ...u, me: u.uid === getUserId() }));
@@ -75,7 +84,7 @@ export function getUserCount() { return getPresence().length; }
 
 function broadcastPresence() {
   if (mode !== 'host') return;
-  const payload = { type: 'presence', users: getPresence().map((u) => ({ uid: u.uid, name: u.name, host: u.host })) };
+  const payload = { type: 'presence', users: getPresence().map((u) => ({ uid: u.uid, name: u.name, host: u.host, peerId: u.peerId, voice: u.voice })) };
   conns.forEach((c) => { try { if (c.open) c.send(payload); } catch (e) { /* */ } });
 }
 
@@ -102,7 +111,7 @@ export function getCursors() {
 
 // Ré-annonce le nom (après changement dans les Paramètres).
 export function announceName() {
-  if (mode === 'client') { try { conns[0] && conns[0].open && conns[0].send({ type: 'hello', uid: getUserId(), name: displayName() }); } catch (e) { /* */ } }
+  if (mode === 'client') { try { conns[0] && conns[0].open && conns[0].send(helloMsg()); } catch (e) { /* */ } }
   else if (mode === 'host') broadcastPresence();
 }
 
@@ -382,7 +391,7 @@ function handleData(msg, origin) {
     if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); }); // relai vers les autres clients
     return;
   } else if (msg.type === 'hello') {
-    if (origin) { origin._uid = msg.uid; origin._name = msg.name; }
+    if (origin) { origin._uid = msg.uid; origin._name = msg.name; origin._peerId = msg.peerId; origin._voice = msg.voice; }
     broadcastPresence(); // hôte : met à jour la liste pour tout le monde
     return;
   } else if (msg.type === 'presence') {
@@ -510,6 +519,7 @@ export async function startHost(node) {
 function openHostPeer(id) {
   const peer = new Peer(id);
   hostPeer = peer;
+  attachCallHandler(peer);
 
   peer.on('open', (realId) => {
     idRetries = 0;
@@ -611,6 +621,7 @@ export async function joinHost(peerId, onStatus) {
   onStatus && onStatus('connecting');
   const peer = new Peer();
   clientPeer = peer;
+  attachCallHandler(peer);
 
   peer.on('open', () => connectToHost());
   peer.on('disconnected', () => { try { if (clientPeer && !clientPeer.destroyed) clientPeer.reconnect(); } catch (e) { /* */ } });
@@ -624,7 +635,7 @@ function connectToHost() {
   clientRoster = [];
   lastHostMsg = now();
   // Le tick (émission) ne démarre qu'après la 1re synchro reçue (cf. handleData).
-  conn.on('open', () => { lastHostMsg = now(); clientStatus && clientStatus('connected'); try { conn.send({ type: 'hello', uid: getUserId(), name: displayName() }); } catch (e) { /* */ } });
+  conn.on('open', () => { lastHostMsg = now(); clientStatus && clientStatus('connected'); try { conn.send(helloMsg()); } catch (e) { /* */ } });
   conn.on('data', (msg) => {
     lastHostMsg = now(); // tout message (dont ping) prouve que l'hôte est vivant
     const wasFirst = clientFirstSync && msg && msg.type === 'sync';
@@ -644,6 +655,7 @@ export async function joinOrHost(peerId, onStatus) {
   try { await loadPeer(); } catch (e) { onStatus && onStatus('error'); return; }
   onStatus && onStatus('connecting');
   const probe = new Peer(peerId);
+  attachCallHandler(probe);
   let settled = false;
   probe.on('open', () => {
     if (settled) return; settled = true;

@@ -1,18 +1,19 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mqwu4jjv';
-import { setView } from './camera.js?v=mqwu4jjv';
-import { render } from './render.js?v=mqwu4jjv';
-import { step, reset } from './physics.js?v=mqwu4jjv';
-import * as minimap from './minimap.js?v=mqwu4jjv';
-import * as input from './input.js?v=mqwu4jjv';
-import * as fx from './fx.js?v=mqwu4jjv';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount } from './sync.js?v=mqwu4jjv';
-import { recordBoard, getBoardEntry } from './boards.js?v=mqwu4jjv';
-import { TUTORIAL } from './tutorial.js?v=mqwu4jjv';
-import { applyTheme } from './theme.js?v=mqwu4jjv';
-import { initSettings, openSettings } from './settings.js?v=mqwu4jjv';
-import { recordLiaison, getLiaison } from './liaisons.js?v=mqwu4jjv';
-import { positionVideoOverlay } from './video.js?v=mqwu4jjv';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mqwus8x9';
+import { setView } from './camera.js?v=mqwus8x9';
+import { render } from './render.js?v=mqwus8x9';
+import { step, reset } from './physics.js?v=mqwus8x9';
+import * as minimap from './minimap.js?v=mqwus8x9';
+import * as input from './input.js?v=mqwus8x9';
+import * as fx from './fx.js?v=mqwus8x9';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount } from './sync.js?v=mqwus8x9';
+import { recordBoard, getBoardEntry } from './boards.js?v=mqwus8x9';
+import { TUTORIAL } from './tutorial.js?v=mqwus8x9';
+import { applyTheme } from './theme.js?v=mqwus8x9';
+import { initSettings, openSettings } from './settings.js?v=mqwus8x9';
+import { recordLiaison, getLiaison } from './liaisons.js?v=mqwus8x9';
+import { positionVideoOverlay } from './video.js?v=mqwus8x9';
+import { toggleVoiceChat, isVoiceOn } from './voicechat.js?v=mqwus8x9';
 
 applyTheme(); // applique le thème enregistré dès le démarrage
 
@@ -182,6 +183,12 @@ if (!REDIRECT) {
   minimap.init();
   input.init(board, () => { state.nodes.forEach(reset); });
   initSettings();
+  const vbtn = document.getElementById('voicebtn');
+  if (vbtn) {
+    const tog = async (e) => { e.preventDefault(); e.stopPropagation(); await toggleVoiceChat(); vbtn.classList.toggle('on', isVoiceOn()); };
+    vbtn.addEventListener('mousedown', tog);
+    vbtn.addEventListener('touchstart', tog);
+  }
   // Handle de debug (inspection console : todomappa.state).
   window.todomappa = { state, fx };
   requestAnimationFrame(loop);
@@ -216,6 +223,8 @@ function updateLiaisonBadge() {
   const name = st.role === 'host' ? 'Hôte' : (st.role === 'client' ? ((getLiaison(st.peer) && getLiaison(st.peer).name) || st.peer) : '');
   const count = st.role ? getUserCount() : 0;
   const sig = (st.role || '') + '|' + name + '|' + count;
+  const vb = document.getElementById('voicebtn');
+  if (vb) { vb.classList.toggle('hidden', !st.role); if (!st.role) vb.classList.remove('on'); }
   if (sig === lastLiaison) return;
   lastLiaison = sig;
   const el = document.getElementById('liaisonbadge');
