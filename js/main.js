@@ -1,17 +1,18 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mqwsywi2';
-import { setView } from './camera.js?v=mqwsywi2';
-import { render } from './render.js?v=mqwsywi2';
-import { step, reset } from './physics.js?v=mqwsywi2';
-import * as minimap from './minimap.js?v=mqwsywi2';
-import * as input from './input.js?v=mqwsywi2';
-import * as fx from './fx.js?v=mqwsywi2';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount } from './sync.js?v=mqwsywi2';
-import { recordBoard, getBoardEntry } from './boards.js?v=mqwsywi2';
-import { TUTORIAL } from './tutorial.js?v=mqwsywi2';
-import { applyTheme } from './theme.js?v=mqwsywi2';
-import { initSettings, openSettings } from './settings.js?v=mqwsywi2';
-import { recordLiaison, getLiaison } from './liaisons.js?v=mqwsywi2';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mqwtueyh';
+import { setView } from './camera.js?v=mqwtueyh';
+import { render } from './render.js?v=mqwtueyh';
+import { step, reset } from './physics.js?v=mqwtueyh';
+import * as minimap from './minimap.js?v=mqwtueyh';
+import * as input from './input.js?v=mqwtueyh';
+import * as fx from './fx.js?v=mqwtueyh';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount } from './sync.js?v=mqwtueyh';
+import { recordBoard, getBoardEntry } from './boards.js?v=mqwtueyh';
+import { TUTORIAL } from './tutorial.js?v=mqwtueyh';
+import { applyTheme } from './theme.js?v=mqwtueyh';
+import { initSettings, openSettings } from './settings.js?v=mqwtueyh';
+import { recordLiaison, getLiaison } from './liaisons.js?v=mqwtueyh';
+import { positionVideoOverlay } from './video.js?v=mqwtueyh';
 
 applyTheme(); // applique le thème enregistré dès le démarrage
 
@@ -204,6 +205,7 @@ function loop(now) {
   minimap.render();
   updateNetMode();
   updateLiaisonBadge();
+  positionVideoOverlay(); // recale le lecteur YouTube inline sur son bloc
   requestAnimationFrame(loop);
 }
 

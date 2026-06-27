@@ -3,16 +3,18 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mqwsywi2';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqwsywi2';
-import { dragTo, reset } from './physics.js?v=mqwsywi2';
-import { pointInHex } from './geom.js?v=mqwsywi2';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR, reportCursor } from './sync.js?v=mqwsywi2';
-import { explodeElementCascade } from './fx.js?v=mqwsywi2';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqwsywi2';
-import { openSettings } from './settings.js?v=mqwsywi2';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mqwsywi2';
-import { toggleDebug } from './debug.js?v=mqwsywi2';
+} from './state.js?v=mqwtueyh';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqwtueyh';
+import { dragTo, reset } from './physics.js?v=mqwtueyh';
+import { pointInHex } from './geom.js?v=mqwtueyh';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR, reportCursor } from './sync.js?v=mqwtueyh';
+import { explodeElementCascade } from './fx.js?v=mqwtueyh';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqwtueyh';
+import { openSettings } from './settings.js?v=mqwtueyh';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mqwtueyh';
+import { toggleDebug } from './debug.js?v=mqwtueyh';
+import { youTubeId } from './yt.js?v=mqwtueyh';
+import { setActiveVideo } from './video.js?v=mqwtueyh';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -341,6 +343,7 @@ function finishDrag() {
     // Tap (déplacement négligeable) sur un nœud à lien => focus puis suivi (2 temps).
     if (n) {
       const tap = Math.hypot(n.x - drag.startX, n.y - drag.startY) < 3;
+      if (tap && !n.ref && youTubeId(n.text)) { setActiveVideo(n); return; } // bloc-vidéo : lecture
       if (tap && displayLink(n)) { handleLinkTap(n); return; }
       if (tap) clearLinkFocus();
     }

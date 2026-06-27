@@ -1,11 +1,12 @@
 // Rendu du board : grille pixel, cercles, hexagones, rectangles, glow néon, sélection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mqwsywi2';
-import { view, worldToScreen } from './camera.js?v=mqwsywi2';
-import { stretch } from './physics.js?v=mqwsywi2';
-import { hexCorners } from './geom.js?v=mqwsywi2';
-import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mqwsywi2';
-import { fmtDur } from './voice.js?v=mqwsywi2';
-import { getCursors } from './sync.js?v=mqwsywi2';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mqwtueyh';
+import { view, worldToScreen } from './camera.js?v=mqwtueyh';
+import { stretch } from './physics.js?v=mqwtueyh';
+import { hexCorners } from './geom.js?v=mqwtueyh';
+import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mqwtueyh';
+import { fmtDur } from './voice.js?v=mqwtueyh';
+import { getCursors } from './sync.js?v=mqwtueyh';
+import { youTubeId, ytThumb } from './yt.js?v=mqwtueyh';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -446,6 +447,7 @@ function drawRect(ctx, n, color, selected, zoom) {
   const src = isLink ? sourceOf(n) : null;
   const text = isLink ? (src ? src.text : '') : n.text;
   const image = isLink ? (src ? src.image : null) : n.image;
+  const ytId = !image ? youTubeId(text) : null; // texte = URL YouTube -> vidéo
 
   // Position rendue (physique) + centre.
   const rx = n._rx !== undefined ? n._rx : n.x;
@@ -476,17 +478,18 @@ function drawRect(ctx, n, color, selected, zoom) {
   ctx.fillStyle = stl.fill;
   ctx.fillRect(-w / 2, -h / 2, w, h);
 
-  // Image éventuelle (contain-fit, clippée au rectangle).
-  if (image) {
-    const img = getImg(image);
+  // Image éventuelle (contain), ou miniature YouTube (cover, remplit le bloc).
+  const imgSrc = image || (ytId ? ytThumb(ytId) : null);
+  if (imgSrc) {
+    const img = getImg(imgSrc);
     if (img.complete && img.naturalWidth) {
       ctx.save();
       ctx.shadowBlur = 0;
       ctx.beginPath();
       ctx.rect(-w / 2, -h / 2, w, h);
       ctx.clip();
-      // contain : image entière, centrée (letterbox si besoin).
-      const sc = Math.min(w / img.naturalWidth, h / img.naturalHeight);
+      const sc = ytId ? Math.max(w / img.naturalWidth, h / img.naturalHeight) // cover (miniature)
+        : Math.min(w / img.naturalWidth, h / img.naturalHeight);             // contain (image)
       const dw = img.naturalWidth * sc, dh = img.naturalHeight * sc;
       ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
       ctx.restore();
@@ -533,8 +536,22 @@ function drawRect(ctx, n, color, selected, zoom) {
     ctx.stroke();
   }
 
-  // Texte (rétréci pour tenir dans le rectangle, sauf si une image occupe le bloc).
-  if (text && !image) {
+  // Bouton lecture ▶ centré pour un bloc-vidéo YouTube.
+  if (ytId) {
+    const r = Math.min(w, h) * 0.22;
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ff2222';
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.82, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.3, -r * 0.42); ctx.lineTo(r * 0.5, 0); ctx.lineTo(-r * 0.3, r * 0.42);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // Texte (rétréci pour tenir dans le rectangle, sauf image/vidéo dans le bloc).
+  if (text && !image && !ytId) {
     const baseFs = 13 * zoom * getTextScale();
     ctx.shadowBlur = 6 * GLOW();
     ctx.fillStyle = stl.text;
