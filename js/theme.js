@@ -1,6 +1,7 @@
 // Thème visuel + taille de texte (préférences locales au navigateur).
-// 'pixel' = le look d'origine ; 'classic' = clair façon appli classique ;
-// 'classic-dark' = clair-de-forme mais sombre.
+// 'pixel' = le look d'origine (fluo + glow) ; 'classic' = clair, couleurs
+// pastel, sans glow ; 'classic-dark' = sombre, pastel, sans glow.
+import { DEFAULT_GREEN } from './state.js?v=mqwg15ur';
 
 const PIXEL_FONT = "'Press Start 2P', monospace";
 const SANS_FONT = "'Segoe UI', system-ui, -apple-system, sans-serif";
@@ -12,13 +13,44 @@ const THEMES = {
   },
   classic: {
     bg: '#f4f5f0', grid: '#d9dcd2', nodeBg: '#ffffff', ink: '#23262b',
-    accent: '#1f9d2f', font: SANS_FONT, pixel: false, lightBg: true, glow: 0.25,
+    accent: '#2f8f3a', font: SANS_FONT, pixel: false, lightBg: true, glow: 0,
   },
   'classic-dark': {
     bg: '#15171c', grid: '#262a31', nodeBg: '#21252c', ink: '#e8e8e8',
-    accent: '#39ff14', font: SANS_FONT, pixel: false, lightBg: false, glow: 0.7,
+    accent: '#7bd88a', font: SANS_FONT, pixel: false, lightBg: false, glow: 0,
   },
 };
+
+// ---- Couleurs dérivées (mélange de teintes) ----
+function hx(h) { h = h.replace('#', ''); if (h.length === 3) h = h.split('').map((c) => c + c).join(''); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; }
+function toHex(r, g, b) { const c = (v) => ('0' + Math.round(Math.max(0, Math.min(255, v))).toString(16)).slice(-2); return '#' + c(r) + c(g) + c(b); }
+function mix(a, b, t) { const A = hx(a), B = hx(b); return toHex(A[0] + (B[0] - A[0]) * t, A[1] + (B[1] - A[1]) * t, A[2] + (B[2] - A[2]) * t); }
+
+export function isDefaultColor(color) { return !color || color.toLowerCase() === DEFAULT_GREEN.toLowerCase(); }
+
+// Couleur des zones (cercles/hexagones) selon le thème : fluo en pixel, pastel sinon.
+export function toneColor(color) {
+  const t = THEMES[themeId];
+  if (t.pixel) return color;
+  return mix(color, '#ffffff', themeId === 'classic' ? 0.32 : 0.22); // adouci (pastel/naturel)
+}
+
+// Style d'un rectangle { fill, border, text } selon le thème.
+// La couleur "par défaut" (sans zone) devient un carré noir/blanc contrasté.
+export function nodeStyle(color) {
+  const t = THEMES[themeId];
+  if (t.pixel) return { fill: t.nodeBg, border: color, text: color };
+  const def = isDefaultColor(color);
+  if (themeId === 'classic') {
+    if (def) return { fill: '#141414', border: '#141414', text: '#ffffff' }; // carré noir, texte blanc
+    const p = mix(color, '#ffffff', 0.3);
+    return { fill: '#ffffff', border: p, text: '#2a2a2a' };
+  }
+  // classic-dark
+  if (def) return { fill: '#fafafa', border: '#fafafa', text: '#141414' };   // carré blanc, texte noir
+  const p = mix(color, '#ffffff', 0.22);
+  return { fill: t.nodeBg, border: p, text: p };
+}
 
 export const THEME_LIST = [
   { id: 'pixel', label: 'Pixel Art' },

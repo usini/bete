@@ -1,10 +1,10 @@
 // Rendu du board : grille pixel, cercles, hexagones, rectangles, glow néon, sélection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mqwfo9zy';
-import { view, worldToScreen } from './camera.js?v=mqwfo9zy';
-import { stretch } from './physics.js?v=mqwfo9zy';
-import { hexCorners } from './geom.js?v=mqwfo9zy';
-import { theme, getTextScale } from './theme.js?v=mqwfo9zy';
-import { fmtDur } from './voice.js?v=mqwfo9zy';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mqwg15ur';
+import { view, worldToScreen } from './camera.js?v=mqwg15ur';
+import { stretch } from './physics.js?v=mqwg15ur';
+import { hexCorners } from './geom.js?v=mqwg15ur';
+import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mqwg15ur';
+import { fmtDur } from './voice.js?v=mqwg15ur';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -56,6 +56,13 @@ function drawPancarte(ctx, n, selected, zoom) {
     ctx.rotate(st.angle);
     ctx.scale(st.sx, st.sy);
     ctx.rotate(-st.angle);
+  }
+
+  // Thèmes classiques : pancarte = post-it jaune (au lieu du bois).
+  if (!theme().pixel) {
+    drawPostit(ctx, n, selected, zoom, w, h);
+    ctx.restore();
+    return;
   }
 
   // Planches de bois (clippées au rectangle).
@@ -115,6 +122,40 @@ function drawPancarte(ctx, n, selected, zoom) {
     ctx.shadowOffsetY = 0;
   }
   ctx.restore();
+}
+
+// Pancarte façon Post-it (thèmes classiques) : fond jaune, coin replié, texte sombre.
+function drawPostit(ctx, n, selected, zoom, w, h) {
+  ctx.shadowColor = 'rgba(0,0,0,0.35)';
+  ctx.shadowBlur = selected ? 16 : 8;
+  ctx.shadowOffsetX = 2 * zoom; ctx.shadowOffsetY = 3 * zoom;
+  ctx.fillStyle = '#ffe066'; // jaune post-it
+  ctx.fillRect(-w / 2, -h / 2, w, h);
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+
+  // Bande supérieure légèrement plus foncée (effet collé).
+  ctx.fillStyle = 'rgba(0,0,0,0.05)';
+  ctx.fillRect(-w / 2, -h / 2, w, Math.max(4, h * 0.16));
+  // Coin replié bas-droit.
+  const fold = Math.min(w, h) * 0.18;
+  ctx.fillStyle = 'rgba(0,0,0,0.12)';
+  ctx.beginPath();
+  ctx.moveTo(w / 2 - fold, h / 2); ctx.lineTo(w / 2, h / 2); ctx.lineTo(w / 2, h / 2 - fold);
+  ctx.closePath(); ctx.fill();
+
+  if (selected) {
+    ctx.strokeStyle = theme().accent;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(-w / 2 - 2, -h / 2 - 2, w + 4, h + 4);
+  }
+
+  if (n.text) {
+    const baseFs = 13 * zoom * getTextScale();
+    ctx.fillStyle = '#3a2f00'; // encre sombre
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    drawFitted(ctx, n.text, w - 22 * zoom, h - 22 * zoom, baseFs);
+  }
 }
 
 // Bloc de liaison P2P : QR code + statut. Clic = copie le lien.
@@ -204,6 +245,7 @@ function drawLiaison(ctx, n, selected, zoom) {
 // Bloc mémo vocal : bouton play/pause + durée + barre de progression.
 function drawVoice(ctx, n, selected, zoom) {
   const color = effectiveColor(n);
+  const stl = nodeStyle(color);
   const rx = n._rx !== undefined ? n._rx : n.x;
   const ry = n._ry !== undefined ? n._ry : n.y;
   const p = worldToScreen(rx + n.w / 2, ry + n.h / 2);
@@ -216,10 +258,10 @@ function drawVoice(ctx, n, selected, zoom) {
 
   ctx.shadowColor = color;
   ctx.shadowBlur = (selected ? 22 : 10) * GLOW();
-  ctx.fillStyle = theme().nodeBg;
+  ctx.fillStyle = stl.fill;
   ctx.fillRect(-w / 2, -h / 2, w, h);
   ctx.lineWidth = selected ? 5 : 3;
-  ctx.strokeStyle = color;
+  ctx.strokeStyle = stl.border;
   ctx.strokeRect(-w / 2, -h / 2, w, h);
   ctx.shadowBlur = 0;
 
@@ -227,8 +269,8 @@ function drawVoice(ctx, n, selected, zoom) {
   const r = Math.min(w, h) * 0.28;
   const bx = -w / 2 + r + 10 * zoom, by = 0;
   ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI * 2);
-  ctx.fillStyle = color; ctx.fill();
-  ctx.fillStyle = theme().nodeBg;
+  ctx.fillStyle = stl.text; ctx.fill();
+  ctx.fillStyle = stl.fill;
   if (n._playing) { // deux barres = pause
     const bw = r * 0.26, bh = r * 0.9;
     ctx.fillRect(bx - bw * 1.4, by - bh / 2, bw, bh);
@@ -247,16 +289,16 @@ function drawVoice(ctx, n, selected, zoom) {
   ctx.font = `${fs}px ${FONT()}`;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = theme().lightBg ? theme().ink : color;
+  ctx.fillStyle = stl.text;
   ctx.shadowColor = color; ctx.shadowBlur = 4 * GLOW();
   ctx.fillText(n._loading ? 'chargement…' : (n._missing ? 'indispo' : ('♪ ' + fmtDur(n.dur || 0))), tx, -h * 0.16);
   ctx.shadowBlur = 0;
 
   const barX = tx, barW = w / 2 - 10 * zoom - barX, barY = h * 0.18, barH = Math.max(3, 5 * zoom);
   if (barW > 4) {
-    ctx.fillStyle = hexToRgba(color, 0.25);
+    ctx.fillStyle = hexToRgba(stl.text, 0.25);
     ctx.fillRect(barX, barY, barW, barH);
-    ctx.fillStyle = color;
+    ctx.fillStyle = stl.text;
     ctx.fillRect(barX, barY, barW * Math.max(0, Math.min(1, n._prog || 0)), barH);
   }
   ctx.restore();
@@ -266,17 +308,18 @@ function drawHexagon(ctx, hgn, selected) {
   const p = worldToScreen(hgn.x, hgn.y);
   const R = hgn.r * state.camera.zoom;
   const pts = hexCorners(p.x, p.y, R);
+  const col = toneColor(hgn.color);
 
   ctx.save();
   ctx.beginPath();
   pts.forEach((pt, i) => (i ? ctx.lineTo(pt.x, pt.y) : ctx.moveTo(pt.x, pt.y)));
   ctx.closePath();
-  ctx.fillStyle = hexToRgba(hgn.color, 0.08);
+  ctx.fillStyle = hexToRgba(col, 0.08);
   ctx.fill();
-  ctx.shadowColor = hgn.color;
+  ctx.shadowColor = col;
   ctx.shadowBlur = (selected ? 24 : 12) * GLOW();
   ctx.lineWidth = selected ? 5 : 3;
-  ctx.strokeStyle = hgn.color;
+  ctx.strokeStyle = col;
   ctx.stroke();
   ctx.restore();
 
@@ -286,8 +329,8 @@ function drawHexagon(ctx, hgn, selected) {
     ctx.font = `${fs}px ${FONT()}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    ctx.fillStyle = hgn.color;
-    ctx.shadowColor = hgn.color;
+    ctx.fillStyle = col;
+    ctx.shadowColor = col;
     ctx.shadowBlur = 8 * GLOW();
     ctx.fillText(hgn.description, p.x, p.y - R - 4);
     ctx.restore();
@@ -312,17 +355,18 @@ function drawGrid(ctx) {
 function drawCircle(ctx, c, selected) {
   const p = worldToScreen(c.x, c.y);
   const r = c.r * state.camera.zoom;
+  const col = toneColor(c.color);
 
   ctx.save();
   ctx.beginPath();
   ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-  ctx.fillStyle = hexToRgba(c.color, 0.08);
+  ctx.fillStyle = hexToRgba(col, 0.08);
   ctx.fill();
 
-  ctx.shadowColor = c.color;
+  ctx.shadowColor = col;
   ctx.shadowBlur = (selected ? 24 : 12) * GLOW();
   ctx.lineWidth = selected ? 5 : 3;
-  ctx.strokeStyle = c.color;
+  ctx.strokeStyle = col;
   ctx.stroke();
   ctx.restore();
 
@@ -333,8 +377,8 @@ function drawCircle(ctx, c, selected) {
     ctx.font = `${fs}px ${FONT()}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    ctx.fillStyle = c.color;
-    ctx.shadowColor = c.color;
+    ctx.fillStyle = col;
+    ctx.shadowColor = col;
     ctx.shadowBlur = 8 * GLOW();
     ctx.fillText(c.description, p.x, p.y - r + fs * 0.2 - 4);
     ctx.restore();
@@ -368,10 +412,13 @@ function drawRect(ctx, n, color, selected, zoom) {
     ctx.rotate(-st.angle);
   }
 
+  // Style selon le thème (pixel = fluo ; classic = pastel + carré noir/blanc par défaut).
+  const stl = nodeStyle(color);
+
   // Corps.
   ctx.shadowColor = color;
   ctx.shadowBlur = (selected ? 22 : 10) * GLOW();
-  ctx.fillStyle = theme().nodeBg;
+  ctx.fillStyle = stl.fill;
   ctx.fillRect(-w / 2, -h / 2, w, h);
 
   // Image éventuelle (contain-fit, clippée au rectangle).
@@ -393,7 +440,7 @@ function drawRect(ctx, n, color, selected, zoom) {
 
   // Bordure (pointillés pour un lien).
   ctx.lineWidth = selected ? 5 : 3;
-  ctx.strokeStyle = color;
+  ctx.strokeStyle = stl.border;
   if (isLink) ctx.setLineDash([6 * zoom, 4 * zoom]);
   ctx.strokeRect(-w / 2, -h / 2, w, h);
   ctx.setLineDash([]);
@@ -401,7 +448,7 @@ function drawRect(ctx, n, color, selected, zoom) {
   // Poignée de redimensionnement (coin bas-droit), seulement si sélectionné seul.
   if (selected && state.selected === n.id && !isLink) {
     const hs = Math.max(7, 9 * zoom);
-    ctx.fillStyle = color;
+    ctx.fillStyle = stl.border;
     ctx.shadowBlur = 0;
     ctx.beginPath();
     ctx.moveTo(w / 2, h / 2 - hs);
@@ -435,7 +482,7 @@ function drawRect(ctx, n, color, selected, zoom) {
   if (text && !image) {
     const baseFs = 13 * zoom * getTextScale();
     ctx.shadowBlur = 6 * GLOW();
-    ctx.fillStyle = theme().lightBg ? theme().ink : color;
+    ctx.fillStyle = stl.text;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     drawFitted(ctx, text, w - 16 * zoom, h - 14 * zoom, baseFs);
