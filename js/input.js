@@ -3,18 +3,18 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mqwtueyh';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqwtueyh';
-import { dragTo, reset } from './physics.js?v=mqwtueyh';
-import { pointInHex } from './geom.js?v=mqwtueyh';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR, reportCursor } from './sync.js?v=mqwtueyh';
-import { explodeElementCascade } from './fx.js?v=mqwtueyh';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqwtueyh';
-import { openSettings } from './settings.js?v=mqwtueyh';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mqwtueyh';
-import { toggleDebug } from './debug.js?v=mqwtueyh';
-import { youTubeId } from './yt.js?v=mqwtueyh';
-import { setActiveVideo } from './video.js?v=mqwtueyh';
+} from './state.js?v=mqwu4jjv';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqwu4jjv';
+import { dragTo, reset } from './physics.js?v=mqwu4jjv';
+import { pointInHex } from './geom.js?v=mqwu4jjv';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR, reportCursor } from './sync.js?v=mqwu4jjv';
+import { explodeElementCascade } from './fx.js?v=mqwu4jjv';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqwu4jjv';
+import { openSettings } from './settings.js?v=mqwu4jjv';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mqwu4jjv';
+import { toggleDebug } from './debug.js?v=mqwu4jjv';
+import { youTubeId } from './yt.js?v=mqwu4jjv';
+import { setActiveVideo } from './video.js?v=mqwu4jjv';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -78,6 +78,7 @@ const ICONS = {
   dot: '<circle cx="12" cy="12" r="3"/>',
 };
 let pendingBoardPos = null; // position monde où poser le prochain lien-board
+let pendingBoardTarget = null; // bloc à transformer en lien (sinon nouveau bloc)
 // Pie-menu tactile (appui long puis glisser pour choisir).
 let radialPressActive = false;
 let radialItems = [];
@@ -784,6 +785,11 @@ function openContextAt(sx, sy) {
     const img = displayImage(r);
     if (img) items.push({ label: "Voir l'image", icon: 'eye', color: COL.white, fn: () => openImagePopup(img) });
     if (!isLink && r.image) items.push({ label: "Retirer l'image", icon: 'imgx', color: COL.orange, fn: () => { delete r.image; scheduleSave(); } });
+    // Transformer ce rectangle (au lieu d'entrées dédiées dans le menu principal).
+    if (!isLink && r.kind !== 'pancarte') {
+      items.push({ label: 'Lien board', icon: 'board', color: COL.cyan, fn: () => openBoardPicker(r.x, r.y, r) });
+      if (!r.image) items.push({ label: 'Mémo vocal', icon: 'mic', color: COL.red, fn: () => recordVoiceMemo(r.x, r.y, r) });
+    }
     items.push({ label: isLink ? 'Délier' : 'Supprimer', icon: 'trash', color: COL.red, fn: () => { removeById(r.id); scheduleSave(); } });
   } else if (hz) {
     const c = hz.c;
@@ -799,8 +805,6 @@ function openContextAt(sx, sy) {
       { label: 'Cercle', icon: 'circle', color: COL.cyan, fn: () => { const c = addCircle(w.x, w.y); state.selected = c.id; scheduleSave(); } },
       { label: 'Hexagone', icon: 'hexa', color: COL.orange, fn: () => { const h = addHexagon(w.x, w.y); state.selected = h.id; scheduleSave(); } },
       { label: 'Liaison', icon: 'share', color: COL.magenta, fn: () => createLiaison(w.x, w.y) },
-      { label: 'Mémo vocal', icon: 'mic', color: COL.red, fn: () => recordVoiceMemo(w.x, w.y) },
-      { label: 'Lien board', icon: 'board', color: COL.cyan, fn: () => openBoardPicker(w.x, w.y) },
       { label: 'Annuler', icon: 'undo', color: COL.yellow, fn: () => doUndo() },
       { label: 'Sélection', icon: 'select', color: COL.yellow, fn: () => { selectArmed = true; } },
       { label: 'Paramètres', icon: 'gear', color: COL.white, fn: () => openSettings() },
@@ -959,9 +963,10 @@ function closeMenus() {
 }
 
 // ---- Sélecteur de board (créer un lien vers un autre board) ----
-function openBoardPicker(wx, wy) {
+function openBoardPicker(wx, wy, target) {
   closeMenus();
   pendingBoardPos = { x: wx, y: wy };
+  pendingBoardTarget = target || null; // si fourni : on transforme ce bloc en lien
   const bp = document.getElementById('boardpicker');
   bp.innerHTML = '';
   const title = document.createElement('div');
@@ -1008,11 +1013,19 @@ function createBoardLink(targetId, name, peerOverride) {
   closeMenus();
   const peer = peerOverride || hostId() || null; // hérite du host courant
   const url = buildBoardUrl(targetId, peer, name);
-  const pos = pendingBoardPos || screenToWorld(lastMouse.x, lastMouse.y);
-  const n = addRect(pos.x - 80, pos.y - 30, name || targetId);
-  n.w = 160; n.link = url;
-  reset(n);
-  state.selected = n.id;
+  if (pendingBoardTarget) {
+    // Transforme le bloc existant en lien vers le board (garde son texte s'il en a).
+    const t = pendingBoardTarget; pendingBoardTarget = null;
+    t.link = url;
+    if (!t.text) t.text = name || targetId;
+    state.selected = t.id;
+  } else {
+    const pos = pendingBoardPos || screenToWorld(lastMouse.x, lastMouse.y);
+    const n = addRect(pos.x - 80, pos.y - 30, name || targetId);
+    n.w = 160; n.link = url;
+    reset(n);
+    state.selected = n.id;
+  }
   recordBoard(targetId, name, peer);
   scheduleSave();
 }

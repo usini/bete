@@ -1,12 +1,12 @@
 // Rendu du board : grille pixel, cercles, hexagones, rectangles, glow néon, sélection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mqwtueyh';
-import { view, worldToScreen } from './camera.js?v=mqwtueyh';
-import { stretch } from './physics.js?v=mqwtueyh';
-import { hexCorners } from './geom.js?v=mqwtueyh';
-import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mqwtueyh';
-import { fmtDur } from './voice.js?v=mqwtueyh';
-import { getCursors } from './sync.js?v=mqwtueyh';
-import { youTubeId, ytThumb } from './yt.js?v=mqwtueyh';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mqwu4jjv';
+import { view, worldToScreen } from './camera.js?v=mqwu4jjv';
+import { stretch } from './physics.js?v=mqwu4jjv';
+import { hexCorners } from './geom.js?v=mqwu4jjv';
+import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mqwu4jjv';
+import { fmtDur } from './voice.js?v=mqwu4jjv';
+import { getCursors } from './sync.js?v=mqwu4jjv';
+import { youTubeId, ytThumb } from './yt.js?v=mqwu4jjv';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;

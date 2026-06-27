@@ -1,9 +1,9 @@
 // Mémos vocaux : enregistrement (MediaRecorder/Opus), stockage IndexedDB,
 // lecture play/pause, partage P2P de l'audio (cf. sync.js shareAudio/requestAudio).
-import { state, newId, scheduleSave } from './state.js?v=mqwtueyh';
-import { reset } from './physics.js?v=mqwtueyh';
-import { putAudio, getAudio, delAudio } from './audio.js?v=mqwtueyh';
-import { shareAudio, requestAudio } from './sync.js?v=mqwtueyh';
+import { state, newId, scheduleSave } from './state.js?v=mqwu4jjv';
+import { reset } from './physics.js?v=mqwu4jjv';
+import { putAudio, getAudio, delAudio } from './audio.js?v=mqwu4jjv';
+import { shareAudio, requestAudio } from './sync.js?v=mqwu4jjv';
 
 const players = {}; // id -> { audio, url }
 const MAX_MS = 60000; // durée max d'un mémo : 1 minute
@@ -38,7 +38,8 @@ function buildRecModal() {
   return m;
 }
 
-export async function recordVoiceMemo(wx, wy) {
+// target (optionnel) : convertit un bloc existant en mémo vocal ; sinon en crée un.
+export async function recordVoiceMemo(wx, wy, target) {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
     alert('Enregistrement audio non supporté par ce navigateur.');
     return;
@@ -71,11 +72,19 @@ export async function recordVoiceMemo(wx, wy) {
     const blob = new Blob(chunks, { type: mime || 'audio/webm' });
     if (!blob.size) return;
     const dur = Math.min(60, (performance.now() - t0) / 1000);
-    const id = newId();
+    const id = target ? target.id : newId();
     try { await putAudio(id, blob); }
     catch (e) { alert('Stockage du mémo impossible.'); return; }
-    const n = { id, kind: 'voice', x: wx - 90, y: wy - 40, w: 180, h: 80, dur: Math.round(dur) };
-    state.nodes.push(n); reset(n); state.selected = n.id; scheduleSave();
+    if (target) {
+      // Conversion d'un bloc existant en mémo vocal (on garde id/position/taille).
+      target.kind = 'voice'; target.dur = Math.round(dur);
+      delete target.text; delete target.image; delete target.link;
+      reset(target); state.selected = target.id;
+    } else {
+      const n = { id, kind: 'voice', x: wx - 90, y: wy - 40, w: 180, h: 80, dur: Math.round(dur) };
+      state.nodes.push(n); reset(n); state.selected = n.id;
+    }
+    scheduleSave();
     shareAudio(id, blob); // diffuse l'audio aux pairs connectés
   };
 

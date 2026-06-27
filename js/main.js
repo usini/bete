@@ -1,18 +1,18 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mqwtueyh';
-import { setView } from './camera.js?v=mqwtueyh';
-import { render } from './render.js?v=mqwtueyh';
-import { step, reset } from './physics.js?v=mqwtueyh';
-import * as minimap from './minimap.js?v=mqwtueyh';
-import * as input from './input.js?v=mqwtueyh';
-import * as fx from './fx.js?v=mqwtueyh';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount } from './sync.js?v=mqwtueyh';
-import { recordBoard, getBoardEntry } from './boards.js?v=mqwtueyh';
-import { TUTORIAL } from './tutorial.js?v=mqwtueyh';
-import { applyTheme } from './theme.js?v=mqwtueyh';
-import { initSettings, openSettings } from './settings.js?v=mqwtueyh';
-import { recordLiaison, getLiaison } from './liaisons.js?v=mqwtueyh';
-import { positionVideoOverlay } from './video.js?v=mqwtueyh';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mqwu4jjv';
+import { setView } from './camera.js?v=mqwu4jjv';
+import { render } from './render.js?v=mqwu4jjv';
+import { step, reset } from './physics.js?v=mqwu4jjv';
+import * as minimap from './minimap.js?v=mqwu4jjv';
+import * as input from './input.js?v=mqwu4jjv';
+import * as fx from './fx.js?v=mqwu4jjv';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount } from './sync.js?v=mqwu4jjv';
+import { recordBoard, getBoardEntry } from './boards.js?v=mqwu4jjv';
+import { TUTORIAL } from './tutorial.js?v=mqwu4jjv';
+import { applyTheme } from './theme.js?v=mqwu4jjv';
+import { initSettings, openSettings } from './settings.js?v=mqwu4jjv';
+import { recordLiaison, getLiaison } from './liaisons.js?v=mqwu4jjv';
+import { positionVideoOverlay } from './video.js?v=mqwu4jjv';
 
 applyTheme(); // applique le thème enregistré dès le démarrage
 
