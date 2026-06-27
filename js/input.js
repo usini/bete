@@ -3,16 +3,15 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mqwdlqk4';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqwdlqk4';
-import { dragTo, reset } from './physics.js?v=mqwdlqk4';
-import { exportJSON, importJSON } from './io.js?v=mqwdlqk4';
-import { pointInHex } from './geom.js?v=mqwdlqk4';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqwdlqk4';
-import { explodeElementCascade } from './fx.js?v=mqwdlqk4';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqwdlqk4';
-import { openSettings } from './settings.js?v=mqwdlqk4';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mqwdlqk4';
+} from './state.js?v=mqwf3orm';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqwf3orm';
+import { dragTo, reset } from './physics.js?v=mqwf3orm';
+import { pointInHex } from './geom.js?v=mqwf3orm';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqwf3orm';
+import { explodeElementCascade } from './fx.js?v=mqwf3orm';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqwf3orm';
+import { openSettings } from './settings.js?v=mqwf3orm';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mqwf3orm';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -796,8 +795,6 @@ function openContextAt(sx, sy) {
       { label: 'Lien board', icon: 'board', color: COL.cyan, fn: () => openBoardPicker(w.x, w.y) },
       { label: 'Annuler', icon: 'undo', color: COL.yellow, fn: () => doUndo() },
       { label: 'Sélection', icon: 'select', color: COL.yellow, fn: () => { selectArmed = true; } },
-      { label: 'Exporter', icon: 'export', color: COL.yellow, fn: () => exportJSON() },
-      { label: 'Importer', icon: 'import', color: COL.white, fn: () => importJSON(() => { onChange(); }) },
       { label: 'Paramètres', icon: 'gear', color: COL.white, fn: () => openSettings() },
     ];
     // Sur mobile : possibilité de reverrouiller l'interaction.

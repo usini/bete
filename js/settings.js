@@ -1,10 +1,11 @@
 // Menu Paramètres : thème, taille du texte, liaisons nommées, navigation
 // (tutoriel / boards visités), effacer le board courant.
-import { state, getBoardId, scheduleSave } from './state.js?v=mqwdlqk4';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mqwdlqk4';
-import { listBoards, buildBoardUrl } from './boards.js?v=mqwdlqk4';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mqwdlqk4';
-import { liaisonStatus, disconnect } from './sync.js?v=mqwdlqk4';
+import { state, getBoardId, scheduleSave } from './state.js?v=mqwf3orm';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mqwf3orm';
+import { listBoards, buildBoardUrl } from './boards.js?v=mqwf3orm';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mqwf3orm';
+import { liaisonStatus, disconnect } from './sync.js?v=mqwf3orm';
+import { exportJSON, importJSON } from './io.js?v=mqwf3orm';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
@@ -142,6 +143,15 @@ function build(panel) {
       panel.appendChild(row);
     });
   }
+
+  // ---- Données : import / export ----
+  panel.appendChild(el('div', 'set-label', 'Données'));
+  const exp = el('button', 'set-wide', '⭳ Exporter (JSON)');
+  exp.addEventListener('click', () => exportJSON());
+  panel.appendChild(exp);
+  const imp = el('button', 'set-wide', '⭱ Importer (JSON)');
+  imp.addEventListener('click', () => importJSON(() => { scheduleSave(); closeSettings(); }));
+  panel.appendChild(imp);
 
   // ---- Danger : effacer le board courant ----
   panel.appendChild(el('div', 'set-label', 'Board courant'));
