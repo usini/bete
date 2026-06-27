@@ -39,7 +39,7 @@ fs.mkdirSync(BOARDS_DIR, { recursive: true });
 function resolveId() {
   if (process.env.TODOMAPPA_ID) return process.env.TODOMAPPA_ID;
   try { const id = fs.readFileSync(ID_FILE, 'utf8').trim(); if (id) return id; } catch (e) { /* */ }
-  const id = 'tm-' + crypto.randomBytes(5).toString('hex');
+  const id = 'tm-' + crypto.randomBytes(16).toString('hex'); // 128 bits : anti-collision/devinabilité
   try { fs.writeFileSync(ID_FILE, id); } catch (e) { /* */ }
   return id;
 }

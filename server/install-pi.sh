@@ -49,7 +49,7 @@ if [ -n "${TODOMAPPA_ID:-}" ]; then
 elif [ -s "$ID_FILE" ]; then
   PEER_ID="$(cat "$ID_FILE")"
 else
-  PEER_ID="$(node -e "console.log('tm-'+require('crypto').randomBytes(6).toString('hex'))")"
+  PEER_ID="$(node -e "console.log('tm-'+require('crypto').randomBytes(16).toString('hex'))")"
   echo "$PEER_ID" > "$ID_FILE"
   say "Nouvel id privé généré (stocké dans $ID_FILE)"
 fi

@@ -2,10 +2,10 @@
 // On ne synchronise QUE le contenu (texte, image, couleur, description, liens,
 // création/suppression) : ni la caméra, ni les positions/tailles. Chaque écran
 // garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqwgdvs6';
-import { reset } from './physics.js?v=mqwgdvs6';
-import { explodeElementCascade } from './fx.js?v=mqwgdvs6';
-import { putAudio, getAudio, delAudio } from './audio.js?v=mqwgdvs6';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqwgly6r';
+import { reset } from './physics.js?v=mqwgly6r';
+import { explodeElementCascade } from './fx.js?v=mqwgly6r';
+import { putAudio, getAudio, delAudio } from './audio.js?v=mqwgly6r';
 
 const PEERJS_SRC = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
 const QR_SRC = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
@@ -371,7 +371,17 @@ export function pushDelete(id) {
 }
 
 // Id de peer stable, persisté : un refresh du host garde le même lien/QR.
-function makeId() { return 'tm-' + Math.random().toString(36).slice(2, 10); }
+// Long & aléatoire (128 bits) : c'est la clé de la room sur le réseau PeerJS
+// partagé, donc on évite collisions et devinabilité.
+function makeId() {
+  try {
+    const a = new Uint8Array(16);
+    crypto.getRandomValues(a);
+    return 'tm-' + Array.from(a, (b) => b.toString(16).padStart(2, '0')).join('');
+  } catch (e) {
+    return 'tm-' + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+  }
+}
 function getStableId() {
   try {
     let id = localStorage.getItem('todomappa-peer');
