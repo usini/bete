@@ -2,11 +2,11 @@
 // On ne synchronise QUE le contenu (texte, image, couleur, description, liens,
 // création/suppression) : ni la caméra, ni les positions/tailles. Chaque écran
 // garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqwr5rg4';
-import { reset } from './physics.js?v=mqwr5rg4';
-import { explodeElementCascade } from './fx.js?v=mqwr5rg4';
-import { putAudio, getAudio, delAudio } from './audio.js?v=mqwr5rg4';
-import { getUserId, displayName } from './users.js?v=mqwr5rg4';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqws6g57';
+import { reset } from './physics.js?v=mqws6g57';
+import { explodeElementCascade } from './fx.js?v=mqws6g57';
+import { putAudio, getAudio, delAudio } from './audio.js?v=mqws6g57';
+import { getUserId, displayName } from './users.js?v=mqws6g57';
 
 let clientRoster = []; // côté client : liste des utilisateurs reçue de l'hôte
 let lastHostMsg = 0;   // côté client : horodatage du dernier message reçu de l'hôte
@@ -136,9 +136,22 @@ function startHostHeartbeat() {
 function stopHostHeartbeat() { if (hostHb) { clearInterval(hostHb); hostHb = null; } }
 
 // Si on est client et qu'on ne reçoit plus rien de l'hôte depuis 8s -> ré-élection.
+// Le client envoie aussi son propre battement pour que l'hôte sache qu'il est vivant.
 setInterval(() => {
-  if (mode === 'client' && conns.length && lastHostMsg && (now() - lastHostMsg > 8000) && !clientRetry) {
-    scheduleClientRetry();
+  if (mode === 'client' && conns[0] && conns[0].open) {
+    try { conns[0].send({ type: 'ping' }); } catch (e) { /* */ }
+    if (lastHostMsg && (now() - lastHostMsg > 8000) && !clientRetry) scheduleClientRetry();
+  }
+  // Hôte : on retire les clients muets depuis > 9s (fermeture d'onglet non signalée).
+  if (mode === 'host' && conns.length) {
+    const cutoff = now() - 9000;
+    const before = conns.length;
+    conns = conns.filter((c) => {
+      const alive = !c._lastSeen || c._lastSeen > cutoff;
+      if (!alive) { try { c.close(); } catch (e) { /* */ } }
+      return alive;
+    });
+    if (conns.length !== before) broadcastPresence();
   }
 }, 2000);
 
@@ -496,13 +509,14 @@ function openHostPeer(id) {
     console.warn('TODOMAPPA: erreur peer (host)', err);
   });
   peer.on('connection', (conn) => {
+    conn._lastSeen = now();
     conns.push(conn);
     if (hostNode) hostNode.status = 'connected';
     conn.on('open', () => {
       const content = buildContent(); // état courant envoyé immédiatement au nouveau venu
       try { conn.send({ type: 'sync', from: 'host', n: content.n, c: content.c, h: content.h, mt: { ...mtimes }, del: [...tombstones] }); } catch (e) { /* */ }
     });
-    conn.on('data', (msg) => handleData(msg, conn));
+    conn.on('data', (msg) => { conn._lastSeen = now(); handleData(msg, conn); });
     conn.on('close', () => { conns = conns.filter(c => c !== conn); broadcastPresence(); });
     conn.on('error', () => { conns = conns.filter(c => c !== conn); broadcastPresence(); });
   });
@@ -632,12 +646,13 @@ export async function joinOrHost(peerId, onStatus) {
 // Branche les connexions entrantes sur un peer hôte (sans rotation d'id).
 function wireHostPeer(peer) {
   peer.on('connection', (conn) => {
+    conn._lastSeen = now();
     conns.push(conn);
     conn.on('open', () => {
       const c = buildContent();
       try { conn.send({ type: 'sync', from: 'host', n: c.n, c: c.c, h: c.h, mt: { ...mtimes }, del: [...tombstones] }); } catch (e) { /* */ }
     });
-    conn.on('data', (msg) => handleData(msg, conn));
+    conn.on('data', (msg) => { conn._lastSeen = now(); handleData(msg, conn); });
     conn.on('close', () => { conns = conns.filter((x) => x !== conn); broadcastPresence(); });
     conn.on('error', () => { conns = conns.filter((x) => x !== conn); broadcastPresence(); });
   });

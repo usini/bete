@@ -245,10 +245,11 @@ function start() {
     if (p !== peer) return;
     const id = sanitizeBoard(conn.metadata && conn.metadata.board);
     const b = getBoard(id);
+    conn._lastSeen = now();
     b.conns.push(conn);
     console.log(`[todomappa] client connecté sur "${id}" (${b.conns.length})`);
     conn.on('open', () => { try { conn.send(buildPayload(b)); } catch (e) { /* */ } });
-    conn.on('data', (msg) => handleData(id, b, msg, conn));
+    conn.on('data', (msg) => { conn._lastSeen = now(); handleData(id, b, msg, conn); });
     const drop = () => { const i = b.conns.indexOf(conn); if (i >= 0) b.conns.splice(i, 1); broadcastPresence(b); console.log(`[todomappa] client déconnecté de "${id}" (${b.conns.length})`); };
     conn.on('close', drop);
     conn.on('error', drop);
@@ -276,5 +277,14 @@ setInterval(tick, 800);
 // déclencheraient une ré-élection pendant les périodes d'inactivité).
 setInterval(() => {
   for (const [, b] of boards) for (const c of b.conns) if (c.open) { try { c.send({ type: 'ping' }); } catch (e) { /* */ } }
+}, 3000);
+// Nettoyage des clients muets (onglet fermé sans signal) : > 9s sans message.
+setInterval(() => {
+  const cutoff = Date.now() - 9000;
+  for (const [, b] of boards) {
+    const before = b.conns.length;
+    b.conns = b.conns.filter((c) => { const alive = !c._lastSeen || c._lastSeen > cutoff; if (!alive) { try { c.close(); } catch (e) { /* */ } } return alive; });
+    if (b.conns.length !== before) broadcastPresence(b);
+  }
 }, 3000);
 start();
