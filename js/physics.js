@@ -4,8 +4,8 @@
 
 const STIFFNESS = 170;   // raideur du ressort
 const DAMPING = 15;      // amortissement (< critique => rebond élastique)
-const MAX_STRETCH = 0.13; // déformation max (réduite : effet plus calme)
-const STRETCH_K = 0.0003; // sensibilité de la déformation à la vitesse
+const MAX_STRETCH = 0.06; // déformation max (légère) — plafond bas pour rester discret
+const STRETCH_K = 0.0010; // sensibilité : sature vite -> wobble quasi constant, pas qui gonfle
 
 function ensure(n) {
   if (n._rx === undefined) {
