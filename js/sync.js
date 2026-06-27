@@ -2,13 +2,15 @@
 // On ne synchronise QUE le contenu (texte, image, couleur, description, liens,
 // création/suppression) : ni la caméra, ni les positions/tailles. Chaque écran
 // garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqwqysmg';
-import { reset } from './physics.js?v=mqwqysmg';
-import { explodeElementCascade } from './fx.js?v=mqwqysmg';
-import { putAudio, getAudio, delAudio } from './audio.js?v=mqwqysmg';
-import { getUserId, displayName } from './users.js?v=mqwqysmg';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqwr5rg4';
+import { reset } from './physics.js?v=mqwr5rg4';
+import { explodeElementCascade } from './fx.js?v=mqwr5rg4';
+import { putAudio, getAudio, delAudio } from './audio.js?v=mqwr5rg4';
+import { getUserId, displayName } from './users.js?v=mqwr5rg4';
 
 let clientRoster = []; // côté client : liste des utilisateurs reçue de l'hôte
+let lastHostMsg = 0;   // côté client : horodatage du dernier message reçu de l'hôte
+let hostHb = null;     // côté hôte : timer de battement (heartbeat)
 
 const PEERJS_SRC = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
 const QR_SRC = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
@@ -125,6 +127,20 @@ async function refreshNetMode() {
 setInterval(refreshNetMode, 4000);
 
 const now = () => Date.now();
+
+// ---- Heartbeat hôte + watchdog client (détection fiable de la chute de l'hôte) ----
+function startHostHeartbeat() {
+  stopHostHeartbeat();
+  hostHb = setInterval(() => { conns.forEach((c) => { try { if (c.open) c.send({ type: 'ping' }); } catch (e) { /* */ } }); }, 3000);
+}
+function stopHostHeartbeat() { if (hostHb) { clearInterval(hostHb); hostHb = null; } }
+
+// Si on est client et qu'on ne reçoit plus rien de l'hôte depuis 8s -> ré-élection.
+setInterval(() => {
+  if (mode === 'client' && conns.length && lastHostMsg && (now() - lastHostMsg > 8000) && !clientRetry) {
+    scheduleClientRetry();
+  }
+}, 2000);
 
 function resetSyncState() {
   conns = [];
@@ -337,6 +353,8 @@ function handleData(msg, origin) {
   } else if (msg.type === 'presence') {
     clientRoster = Array.isArray(msg.users) ? msg.users : [];
     return;
+  } else if (msg.type === 'ping') {
+    return; // battement de l'hôte : sert juste de preuve de vie (cf. lastHostMsg)
   }
   // Le host relaie les événements ponctuels aux autres clients.
   if (mode === 'host' && (msg.type === 'move' || msg.type === 'delete')) {
@@ -458,6 +476,7 @@ function openHostPeer(id) {
     idRetries = 0;
     hostNode.peerId = realId; hostNode.code = realId; hostNode.url = buildUrl(realId); hostNode.status = 'online';
     startTick();
+    startHostHeartbeat();
   });
   peer.on('disconnected', () => {
     // Perte de la liaison au broker : on garde le même id et on retente.
@@ -491,6 +510,7 @@ function openHostPeer(id) {
 
 export function stopHost() {
   stopTick();
+  stopHostHeartbeat();
   resetSyncState();
   mode = null;
   hostNode = null;
@@ -562,9 +582,11 @@ function connectToHost() {
   const conn = clientPeer.connect(clientPeerId, { reliable: true, metadata: { board: getBoardId() } });
   conns = [conn];
   clientRoster = [];
+  lastHostMsg = now();
   // Le tick (émission) ne démarre qu'après la 1re synchro reçue (cf. handleData).
-  conn.on('open', () => { clientStatus && clientStatus('connected'); try { conn.send({ type: 'hello', uid: getUserId(), name: displayName() }); } catch (e) { /* */ } });
+  conn.on('open', () => { lastHostMsg = now(); clientStatus && clientStatus('connected'); try { conn.send({ type: 'hello', uid: getUserId(), name: displayName() }); } catch (e) { /* */ } });
   conn.on('data', (msg) => {
+    lastHostMsg = now(); // tout message (dont ping) prouve que l'hôte est vivant
     const wasFirst = clientFirstSync && msg && msg.type === 'sync';
     handleData(msg);
     if (wasFirst) clientStatus && clientStatus('synced');
@@ -590,6 +612,7 @@ export async function joinOrHost(peerId, onStatus) {
     hostNode = null;
     wireHostPeer(probe);
     startTick(); // on diffuse notre board (devient la référence de la liaison)
+    startHostHeartbeat();
     onStatus && onStatus('host');
   });
   probe.on('error', (err) => {

@@ -272,4 +272,9 @@ function start() {
 }
 
 setInterval(tick, 800);
+// Battement régulier : prouve aux clients que le serveur est vivant (sinon ils
+// déclencheraient une ré-élection pendant les périodes d'inactivité).
+setInterval(() => {
+  for (const [, b] of boards) for (const c of b.conns) if (c.open) { try { c.send({ type: 'ping' }); } catch (e) { /* */ } }
+}, 3000);
 start();

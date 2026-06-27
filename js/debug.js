@@ -1,6 +1,6 @@
 // Panneau debug (touche ²) : réglage à chaud des paramètres de wobble.
 // Non persisté — sert juste à tester des valeurs. Recharger réinitialise.
-import { wobbleCfg, WOBBLE_DEFAULTS } from './physics.js?v=mqwqysmg';
+import { wobbleCfg, WOBBLE_DEFAULTS } from './physics.js?v=mqwr5rg4';
 
 let panel = null;
 
