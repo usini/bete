@@ -3,16 +3,16 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mqwgly6r';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqwgly6r';
-import { dragTo, reset } from './physics.js?v=mqwgly6r';
-import { pointInHex } from './geom.js?v=mqwgly6r';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqwgly6r';
-import { explodeElementCascade } from './fx.js?v=mqwgly6r';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqwgly6r';
-import { openSettings } from './settings.js?v=mqwgly6r';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mqwgly6r';
-import { toggleDebug } from './debug.js?v=mqwgly6r';
+} from './state.js?v=mqwqnx9u';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqwqnx9u';
+import { dragTo, reset } from './physics.js?v=mqwqnx9u';
+import { pointInHex } from './geom.js?v=mqwqnx9u';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqwqnx9u';
+import { explodeElementCascade } from './fx.js?v=mqwqnx9u';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqwqnx9u';
+import { openSettings } from './settings.js?v=mqwqnx9u';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mqwqnx9u';
+import { toggleDebug } from './debug.js?v=mqwqnx9u';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }

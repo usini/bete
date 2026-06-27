@@ -1,10 +1,10 @@
 // Rendu du board : grille pixel, cercles, hexagones, rectangles, glow néon, sélection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mqwgly6r';
-import { view, worldToScreen } from './camera.js?v=mqwgly6r';
-import { stretch } from './physics.js?v=mqwgly6r';
-import { hexCorners } from './geom.js?v=mqwgly6r';
-import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mqwgly6r';
-import { fmtDur } from './voice.js?v=mqwgly6r';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mqwqnx9u';
+import { view, worldToScreen } from './camera.js?v=mqwqnx9u';
+import { stretch } from './physics.js?v=mqwqnx9u';
+import { hexCorners } from './geom.js?v=mqwqnx9u';
+import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mqwqnx9u';
+import { fmtDur } from './voice.js?v=mqwqnx9u';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;

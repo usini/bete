@@ -2,10 +2,10 @@
 // On ne synchronise QUE le contenu (texte, image, couleur, description, liens,
 // création/suppression) : ni la caméra, ni les positions/tailles. Chaque écran
 // garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqwgly6r';
-import { reset } from './physics.js?v=mqwgly6r';
-import { explodeElementCascade } from './fx.js?v=mqwgly6r';
-import { putAudio, getAudio, delAudio } from './audio.js?v=mqwgly6r';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqwqnx9u';
+import { reset } from './physics.js?v=mqwqnx9u';
+import { explodeElementCascade } from './fx.js?v=mqwqnx9u';
+import { putAudio, getAudio, delAudio } from './audio.js?v=mqwqnx9u';
 
 const PEERJS_SRC = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
 const QR_SRC = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
@@ -536,6 +536,53 @@ function connectToHost() {
   });
   conn.on('close', () => { clientStatus && clientStatus('closed'); scheduleClientRetry(); });
   conn.on('error', () => scheduleClientRetry());
+}
+
+// Élection d'hôte : à l'ouverture d'un ?peer=, on tente d'abord de DEVENIR l'hôte
+// en revendiquant cet id. Si l'id est déjà pris (un hôte existe), on bascule client.
+// => le premier arrivé sur une liaison sans hôte prend le rôle.
+export async function joinOrHost(peerId, onStatus) {
+  clientPeerId = peerId;
+  clientStatus = onStatus;
+  try { await loadPeer(); } catch (e) { onStatus && onStatus('error'); return; }
+  onStatus && onStatus('connecting');
+  const probe = new Peer(peerId);
+  let settled = false;
+  probe.on('open', () => {
+    if (settled) return; settled = true;
+    mode = 'host';
+    hostPeer = probe;
+    hostNode = null;
+    wireHostPeer(probe);
+    startTick(); // on diffuse notre board (devient la référence de la liaison)
+    onStatus && onStatus('host');
+  });
+  probe.on('error', (err) => {
+    const t = err && err.type;
+    if (settled) return;
+    if (t === 'unavailable-id') { // un hôte tient déjà l'id -> on rejoint en client
+      settled = true;
+      try { probe.destroy(); } catch (e) { /* */ }
+      joinHost(peerId, onStatus);
+    } else {
+      console.warn('TODOMAPPA: erreur élection hôte', err);
+    }
+  });
+  probe.on('disconnected', () => { try { if (probe === hostPeer && !probe.destroyed) probe.reconnect(); } catch (e) { /* */ } });
+}
+
+// Branche les connexions entrantes sur un peer hôte (sans rotation d'id).
+function wireHostPeer(peer) {
+  peer.on('connection', (conn) => {
+    conns.push(conn);
+    conn.on('open', () => {
+      const c = buildContent();
+      try { conn.send({ type: 'sync', from: 'host', n: c.n, c: c.c, h: c.h, mt: { ...mtimes }, del: [...tombstones] }); } catch (e) { /* */ }
+    });
+    conn.on('data', (msg) => handleData(msg, conn));
+    conn.on('close', () => { conns = conns.filter((x) => x !== conn); });
+    conn.on('error', () => { conns = conns.filter((x) => x !== conn); });
+  });
 }
 
 // Reconnexion automatique du client si le host tombe (erreur réseau / refresh).

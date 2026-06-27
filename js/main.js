@@ -1,17 +1,17 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mqwgly6r';
-import { setView } from './camera.js?v=mqwgly6r';
-import { render } from './render.js?v=mqwgly6r';
-import { step, reset } from './physics.js?v=mqwgly6r';
-import * as minimap from './minimap.js?v=mqwgly6r';
-import * as input from './input.js?v=mqwgly6r';
-import * as fx from './fx.js?v=mqwgly6r';
-import { joinHost, getNetMode, liaisonStatus, disconnect } from './sync.js?v=mqwgly6r';
-import { recordBoard, getBoardEntry } from './boards.js?v=mqwgly6r';
-import { TUTORIAL } from './tutorial.js?v=mqwgly6r';
-import { applyTheme } from './theme.js?v=mqwgly6r';
-import { initSettings, openSettings } from './settings.js?v=mqwgly6r';
-import { recordLiaison, getLiaison } from './liaisons.js?v=mqwgly6r';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mqwqnx9u';
+import { setView } from './camera.js?v=mqwqnx9u';
+import { render } from './render.js?v=mqwqnx9u';
+import { step, reset } from './physics.js?v=mqwqnx9u';
+import * as minimap from './minimap.js?v=mqwqnx9u';
+import * as input from './input.js?v=mqwqnx9u';
+import * as fx from './fx.js?v=mqwqnx9u';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect } from './sync.js?v=mqwqnx9u';
+import { recordBoard, getBoardEntry } from './boards.js?v=mqwqnx9u';
+import { TUTORIAL } from './tutorial.js?v=mqwqnx9u';
+import { applyTheme } from './theme.js?v=mqwqnx9u';
+import { initSettings, openSettings } from './settings.js?v=mqwqnx9u';
+import { recordLiaison, getLiaison } from './liaisons.js?v=mqwqnx9u';
 
 applyTheme(); // applique le thème enregistré dès le démarrage
 
@@ -78,12 +78,13 @@ if (!REDIRECT) {
     if (!restore()) seedIfHome();
     state.nodes.forEach(reset);
     recordLiaison(peerId); // mémorise la liaison active (renommable dans Paramètres)
-    toast('CONNEXION AU HOST...');
-    joinHost(peerId, (st) => {
-      if (st === 'synced') toast('SYNCHRONISE ✓');
+    toast('CONNEXION A LA LIAISON...');
+    joinOrHost(peerId, (st) => {
+      if (st === 'host') toast("AUCUN HOTE : VOUS ETES L'HOTE", 3500);
+      else if (st === 'synced') toast('SYNCHRONISE ✓');
       else if (st === 'connected') toast('CONNECTE - RECEPTION...');
-      else if (st === 'error') toast('HOST INJOIGNABLE', 4000);
-      else if (st === 'closed') toast('HOST DECONNECTE', 4000);
+      else if (st === 'error') toast('LIAISON INJOIGNABLE', 4000);
+      else if (st === 'closed') toast('HOTE DECONNECTE', 4000);
     });
   } else if (fileUrl) {
     setSaveSuppressed(true);
