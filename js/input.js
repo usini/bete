@@ -2,17 +2,17 @@
 // palette, édition texte, popup image.
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
-  findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId,
-} from './state.js?v=mqwd1jts';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqwd1jts';
-import { dragTo, reset } from './physics.js?v=mqwd1jts';
-import { exportJSON, importJSON } from './io.js?v=mqwd1jts';
-import { pointInHex } from './geom.js?v=mqwd1jts';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqwd1jts';
-import { explodeElementCascade } from './fx.js?v=mqwd1jts';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqwd1jts';
-import { openSettings } from './settings.js?v=mqwd1jts';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mqwd1jts';
+  findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
+} from './state.js?v=mqwdczl7';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqwdczl7';
+import { dragTo, reset } from './physics.js?v=mqwdczl7';
+import { exportJSON, importJSON } from './io.js?v=mqwdczl7';
+import { pointInHex } from './geom.js?v=mqwdczl7';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqwdczl7';
+import { explodeElementCascade } from './fx.js?v=mqwdczl7';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqwdczl7';
+import { openSettings } from './settings.js?v=mqwdczl7';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mqwdczl7';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -72,6 +72,7 @@ const ICONS = {
   select: '<rect x="3.5" y="3.5" width="17" height="17" rx="1" stroke-dasharray="3 3"/>',
   gear: '<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9 19 19M19 5l-2.1 2.1M7.1 16.9 5 19"/>',
   mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><line x1="12" y1="17.5" x2="12" y2="21"/><line x1="8.5" y1="21" x2="15.5" y2="21"/>',
+  undo: '<path d="M9 7H16a4 4 0 0 1 0 8h-4"/><polyline points="9,3 5,7 9,11"/>',
   dot: '<circle cx="12" cy="12" r="3"/>',
 };
 let pendingBoardPos = null; // position monde où poser le prochain lien-board
@@ -590,6 +591,7 @@ function onKeyDown(e) {
   if (editing) return;
 
   const mod = e.ctrlKey || e.metaKey;
+  if (mod && (e.key === 'z' || e.key === 'Z')) { doUndo(); e.preventDefault(); return; }
   if (mod && (e.key === 'c' || e.key === 'C')) { copySelection(); e.preventDefault(); return; }
   // Le collage (Ctrl-V) est géré par l'événement 'paste' (cf. onPaste) pour
   // pouvoir lire une image du presse-papier.
@@ -603,6 +605,11 @@ function onKeyDown(e) {
     }
     if (state.selected) { removeElement(findById(state.selected)); e.preventDefault(); }
   }
+}
+
+// Annule la dernière modification + recale la physique/sélection.
+function doUndo() {
+  if (undo()) { state.nodes.forEach(reset); state.selected = null; state.selectedIds = []; }
 }
 
 // Crée un bloc Liaison. En autonome : démarre l'hôte P2P. En client : affiche
@@ -787,6 +794,7 @@ function openContextAt(sx, sy) {
       { label: 'Liaison', icon: 'share', color: COL.magenta, fn: () => createLiaison(w.x, w.y) },
       { label: 'Mémo vocal', icon: 'mic', color: COL.red, fn: () => recordVoiceMemo(w.x, w.y) },
       { label: 'Lien board', icon: 'board', color: COL.cyan, fn: () => openBoardPicker(w.x, w.y) },
+      { label: 'Annuler', icon: 'undo', color: COL.yellow, fn: () => doUndo() },
       { label: 'Sélection', icon: 'select', color: COL.yellow, fn: () => { selectArmed = true; } },
       { label: 'Exporter', icon: 'export', color: COL.yellow, fn: () => exportJSON() },
       { label: 'Importer', icon: 'import', color: COL.white, fn: () => importJSON(() => { onChange(); }) },

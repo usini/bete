@@ -1,5 +1,5 @@
 // Modèle de données partagé + persistance localStorage.
-import { pointInHex } from './geom.js?v=mqwd1jts';
+import { pointInHex } from './geom.js?v=mqwdczl7';
 
 export const DEFAULT_GREEN = '#39ff14';
 
@@ -152,18 +152,53 @@ export function load(obj) {
   return true;
 }
 
-// ---- Persistance localStorage (throttle) ----
+// ---- Persistance localStorage (throttle) + historique d'annulation ----
 let _saveTimer = null;
 let _saveSuppressed = false;
 // Quand on ouvre un fichier via ?file=, on n'écrase pas le localStorage perso.
 export function setSaveSuppressed(v) { _saveSuppressed = v; }
 
+let _undoStack = [];        // états sérialisés précédents (pour annuler)
+let _lastSaved = null;      // dernier état sauvegardé (JSON)
+let _applyingUndo = false;
+const UNDO_MAX = 25;
+
+// Définit l'état de référence (après chargement) : la 1re modif sera annulable.
+export function initUndoBaseline() {
+  _lastSaved = JSON.stringify(serialize());
+  _undoStack = [];
+}
+
+function commitSave() {
+  const cur = JSON.stringify(serialize());
+  if (cur === _lastSaved) return;
+  if (!_applyingUndo && _lastSaved != null) {
+    _undoStack.push(_lastSaved);
+    if (_undoStack.length > UNDO_MAX) _undoStack.shift();
+  }
+  _lastSaved = cur;
+  try { localStorage.setItem(storageKey, cur); } catch (e) { /* quota */ }
+}
+
 export function scheduleSave() {
   if (_saveSuppressed || _saveTimer) return;
-  _saveTimer = setTimeout(() => {
-    _saveTimer = null;
-    try { localStorage.setItem(storageKey, JSON.stringify(serialize())); } catch (e) { /* quota */ }
-  }, 400);
+  _saveTimer = setTimeout(() => { _saveTimer = null; commitSave(); }, 400);
+}
+
+export function canUndo() { return _undoStack.length > 0; }
+
+// Annule la dernière modification (revient à l'état précédent).
+export function undo() {
+  if (!_undoStack.length) return false;
+  const prev = _undoStack.pop();
+  const cam = { ...state.camera }; // l'annulation ne doit pas bouger la vue
+  _applyingUndo = true;
+  load(JSON.parse(prev));
+  state.camera = cam;
+  _applyingUndo = false;
+  _lastSaved = prev;
+  try { localStorage.setItem(storageKey, prev); } catch (e) { /* */ }
+  return true;
 }
 
 export function restore() {

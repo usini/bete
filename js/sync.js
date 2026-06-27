@@ -2,10 +2,10 @@
 // On ne synchronise QUE le contenu (texte, image, couleur, description, liens,
 // création/suppression) : ni la caméra, ni les positions/tailles. Chaque écran
 // garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqwd1jts';
-import { reset } from './physics.js?v=mqwd1jts';
-import { explodeElementCascade } from './fx.js?v=mqwd1jts';
-import { putAudio, getAudio, delAudio } from './audio.js?v=mqwd1jts';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqwdczl7';
+import { reset } from './physics.js?v=mqwdczl7';
+import { explodeElementCascade } from './fx.js?v=mqwdczl7';
+import { putAudio, getAudio, delAudio } from './audio.js?v=mqwdczl7';
 
 const PEERJS_SRC = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
 const QR_SRC = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
@@ -47,6 +47,20 @@ let clientFirstSync = false;
 export function isClient() { return mode === 'client'; }
 // Id de l'hôte (celui auquel on est connecté en client, ou le nôtre si on héberge).
 export function hostId() { return mode === 'client' ? clientPeerId : (hostPeer && hostPeer.id) || null; }
+
+// État de la liaison pour l'indicateur : { role:'client'|'host'|null, peer }.
+export function liaisonStatus() {
+  if (mode === 'client') return { role: 'client', peer: clientPeerId };
+  if (mode === 'host' && hostPeer && hostPeer.id) return { role: 'host', peer: hostPeer.id };
+  return { role: null, peer: null };
+}
+
+// Déconnecte la liaison : en client on recharge le board en local (sans ?peer),
+// en hôte on coupe l'hébergement.
+export function disconnect() {
+  if (mode === 'client') { location.href = location.pathname + '?id=' + encodeURIComponent(getBoardId()); }
+  else if (mode === 'host') { stopHost(); }
+}
 
 // ---- Détection du type de liaison (P2P direct vs relais TURN) ----
 let netMode = null; // null=non connecté, 'p2p', 'relay', '?'

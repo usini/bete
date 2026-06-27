@@ -1,17 +1,17 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName } from './state.js?v=mqwd1jts';
-import { setView } from './camera.js?v=mqwd1jts';
-import { render } from './render.js?v=mqwd1jts';
-import { step, reset } from './physics.js?v=mqwd1jts';
-import * as minimap from './minimap.js?v=mqwd1jts';
-import * as input from './input.js?v=mqwd1jts';
-import * as fx from './fx.js?v=mqwd1jts';
-import { joinHost, getNetMode } from './sync.js?v=mqwd1jts';
-import { recordBoard, getBoardEntry } from './boards.js?v=mqwd1jts';
-import { TUTORIAL } from './tutorial.js?v=mqwd1jts';
-import { applyTheme } from './theme.js?v=mqwd1jts';
-import { initSettings } from './settings.js?v=mqwd1jts';
-import { recordLiaison } from './liaisons.js?v=mqwd1jts';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mqwdczl7';
+import { setView } from './camera.js?v=mqwdczl7';
+import { render } from './render.js?v=mqwdczl7';
+import { step, reset } from './physics.js?v=mqwdczl7';
+import * as minimap from './minimap.js?v=mqwdczl7';
+import * as input from './input.js?v=mqwdczl7';
+import * as fx from './fx.js?v=mqwdczl7';
+import { joinHost, getNetMode, liaisonStatus, disconnect } from './sync.js?v=mqwdczl7';
+import { recordBoard, getBoardEntry } from './boards.js?v=mqwdczl7';
+import { TUTORIAL } from './tutorial.js?v=mqwdczl7';
+import { applyTheme } from './theme.js?v=mqwdczl7';
+import { initSettings, openSettings } from './settings.js?v=mqwdczl7';
+import { recordLiaison, getLiaison } from './liaisons.js?v=mqwdczl7';
 
 applyTheme(); // applique le thème enregistré dès le démarrage
 
@@ -74,7 +74,7 @@ if (!REDIRECT) {
     load(TUTORIAL);                 // board intégré, lecture seule
     setSaveSuppressed(true);
     state.nodes.forEach(reset);
-  } else if (peerId) {
+  } else if (peerId && boardId !== 'home') {
     if (!restore()) seedIfHome();
     state.nodes.forEach(reset);
     recordLiaison(peerId); // mémorise la liaison active (renommable dans Paramètres)
@@ -90,14 +90,17 @@ if (!REDIRECT) {
     loadFromUrl(fileUrl);
     state.nodes.forEach(reset);
   } else {
+    // Home est sanctuarisé : jamais connecté (pour ne pas être écrasé).
+    if (peerId && boardId === 'home') toast('HOME RESTE LOCAL (non connectable)', 3500);
     if (!restore()) seedIfHome();
     state.nodes.forEach(reset);
   }
 
   // Nom du board : sérialisé > ?name= > historique > défaut. Puis affichage + historique.
   resolveBoardName(boardId);
-  recordBoard(boardId, getBoardName(), peerId || null);
+  recordBoard(boardId, getBoardName(), (boardId !== 'home' && peerId) || null);
   applyBoardNameUI();
+  initUndoBaseline(); // état de référence pour l'annulation
 }
 
 // Résout et applique le nom affiché du board.
@@ -199,7 +202,34 @@ function loop(now) {
 
   minimap.render();
   updateNetMode();
+  updateLiaisonBadge();
   requestAnimationFrame(loop);
+}
+
+// Indicateur de la liaison active (haut centre) + bouton déconnecter.
+let lastLiaison = '';
+function updateLiaisonBadge() {
+  const st = liaisonStatus();
+  const name = st.role === 'host' ? 'Hôte' : (st.role === 'client' ? ((getLiaison(st.peer) && getLiaison(st.peer).name) || st.peer) : '');
+  const sig = (st.role || '') + '|' + name;
+  if (sig === lastLiaison) return;
+  lastLiaison = sig;
+  const el = document.getElementById('liaisonbadge');
+  if (!el) return;
+  if (!st.role) { el.classList.remove('show'); el.innerHTML = ''; return; }
+  el.innerHTML = '';
+  const lbl = document.createElement('span');
+  lbl.className = 'lb-name';
+  lbl.textContent = (st.role === 'host' ? '🟢 ' : '🔗 ') + name;
+  lbl.title = 'Gérer les liaisons';
+  lbl.addEventListener('click', () => openSettings());
+  const x = document.createElement('button');
+  x.className = 'lb-x';
+  x.textContent = '✕';
+  x.title = 'Déconnecter la liaison';
+  x.addEventListener('click', (e) => { e.stopPropagation(); disconnect(); });
+  el.appendChild(lbl); el.appendChild(x);
+  el.classList.add('show');
 }
 
 // Indicateur P2P direct / relais TURN (mis à jour seulement quand ça change).

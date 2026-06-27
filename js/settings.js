@@ -1,9 +1,10 @@
 // Menu Paramètres : thème, taille du texte, liaisons nommées, navigation
 // (tutoriel / boards visités), effacer le board courant.
-import { state, getBoardId, scheduleSave } from './state.js?v=mqwd1jts';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mqwd1jts';
-import { listBoards, buildBoardUrl } from './boards.js?v=mqwd1jts';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mqwd1jts';
+import { state, getBoardId, scheduleSave } from './state.js?v=mqwdczl7';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mqwdczl7';
+import { listBoards, buildBoardUrl } from './boards.js?v=mqwdczl7';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mqwdczl7';
+import { liaisonStatus, disconnect } from './sync.js?v=mqwdczl7';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
@@ -75,6 +76,19 @@ function build(panel) {
 
   // ---- Liaisons ----
   panel.appendChild(el('div', 'set-label', 'Liaisons'));
+  // Home est sanctuarisé : on ne s'y connecte jamais (pas d'écrasement).
+  if (getBoardId() === 'home') panel.appendChild(el('div', 'set-empty', '🔒 Home est local : non connectable (protégé contre l\'écrasement).'));
+  // Liaison active + déconnexion.
+  const st = liaisonStatus();
+  if (st.role) {
+    const active = el('div', 'set-liaison on');
+    active.appendChild(el('span', 'set-liaison-name', '● ' + (st.role === 'host' ? 'Hôte' : 'Connecté')));
+    const dc = el('button', 'set-mini', '⏏');
+    dc.title = 'Déconnecter';
+    dc.addEventListener('click', () => { closeSettings(); disconnect(); });
+    active.appendChild(dc);
+    panel.appendChild(active);
+  }
   const activePeer = new URLSearchParams(location.search).get('peer');
   const liaisons = listLiaisons();
   if (!liaisons.length) panel.appendChild(el('div', 'set-empty', '(aucune liaison enregistrée)'));
