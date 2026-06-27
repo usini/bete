@@ -3,16 +3,16 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mqws6g57';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqws6g57';
-import { dragTo, reset } from './physics.js?v=mqws6g57';
-import { pointInHex } from './geom.js?v=mqws6g57';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqws6g57';
-import { explodeElementCascade } from './fx.js?v=mqws6g57';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqws6g57';
-import { openSettings } from './settings.js?v=mqws6g57';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mqws6g57';
-import { toggleDebug } from './debug.js?v=mqws6g57';
+} from './state.js?v=mqwspf0j';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqwspf0j';
+import { dragTo, reset } from './physics.js?v=mqwspf0j';
+import { pointInHex } from './geom.js?v=mqwspf0j';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR, reportCursor } from './sync.js?v=mqwspf0j';
+import { explodeElementCascade } from './fx.js?v=mqwspf0j';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqwspf0j';
+import { openSettings } from './settings.js?v=mqwspf0j';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mqwspf0j';
+import { toggleDebug } from './debug.js?v=mqwspf0j';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -91,7 +91,7 @@ export function init(boardCanvas, changeCb) {
 
   canvas.addEventListener('mousedown', onMouseDown);
   window.addEventListener('mousemove', onMouseMove);
-  window.addEventListener('mousemove', (e) => { lastMouse.x = e.clientX; lastMouse.y = e.clientY; });
+  window.addEventListener('mousemove', (e) => { lastMouse.x = e.clientX; lastMouse.y = e.clientY; const w = screenToWorld(e.clientX, e.clientY); reportCursor(w.x, w.y); });
   window.addEventListener('mouseup', onMouseUp);
   canvas.addEventListener('dblclick', (e) => handleDouble(e.clientX, e.clientY));
   canvas.addEventListener('wheel', onWheel, { passive: false });
@@ -463,6 +463,7 @@ function onTouchMove(e) {
     if (lastTapPos && Math.hypot(t.clientX - lastTapPos.x, t.clientY - lastTapPos.y) > 10) {
       clearTimeout(longPressTimer);
     }
+    const cw = screenToWorld(t.clientX, t.clientY); reportCursor(cw.x, cw.y); // curseur = position du doigt
     pointerMove(t.clientX, t.clientY);
   }
   e.preventDefault();

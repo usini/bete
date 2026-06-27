@@ -2,15 +2,16 @@
 // On ne synchronise QUE le contenu (texte, image, couleur, description, liens,
 // création/suppression) : ni la caméra, ni les positions/tailles. Chaque écran
 // garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqws6g57';
-import { reset } from './physics.js?v=mqws6g57';
-import { explodeElementCascade } from './fx.js?v=mqws6g57';
-import { putAudio, getAudio, delAudio } from './audio.js?v=mqws6g57';
-import { getUserId, displayName } from './users.js?v=mqws6g57';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqwspf0j';
+import { reset } from './physics.js?v=mqwspf0j';
+import { explodeElementCascade } from './fx.js?v=mqwspf0j';
+import { putAudio, getAudio, delAudio } from './audio.js?v=mqwspf0j';
+import { getUserId, displayName } from './users.js?v=mqwspf0j';
 
 let clientRoster = []; // côté client : liste des utilisateurs reçue de l'hôte
 let lastHostMsg = 0;   // côté client : horodatage du dernier message reçu de l'hôte
 let hostHb = null;     // côté hôte : timer de battement (heartbeat)
+let cursors = {};      // uid -> { name, x, y, t } : curseurs des autres utilisateurs
 
 const PEERJS_SRC = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
 const QR_SRC = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
@@ -76,6 +77,27 @@ function broadcastPresence() {
   if (mode !== 'host') return;
   const payload = { type: 'presence', users: getPresence().map((u) => ({ uid: u.uid, name: u.name, host: u.host })) };
   conns.forEach((c) => { try { if (c.open) c.send(payload); } catch (e) { /* */ } });
+}
+
+// ---- Curseurs live (position monde, throttle + envoi à l'arrêt) ----
+let _curT = 0, _curTrail = null;
+function sendCursor(wx, wy) {
+  if (!conns.length) return;
+  const msg = { type: 'cursor', uid: getUserId(), name: displayName(), x: wx, y: wy };
+  if (mode === 'client') sendTo(conns[0], msg);
+  else if (mode === 'host') conns.forEach((c) => sendTo(c, msg));
+}
+export function reportCursor(wx, wy) {
+  if (!conns.length) return;
+  const t = now(), dt = t - _curT;
+  if (dt >= 150) { _curT = t; if (_curTrail) { clearTimeout(_curTrail); _curTrail = null; } sendCursor(wx, wy); }
+  else { if (_curTrail) clearTimeout(_curTrail); _curTrail = setTimeout(() => { _curT = now(); _curTrail = null; sendCursor(wx, wy); }, 150 - dt); } // envoi final à l'arrêt
+}
+// Curseurs actifs des autres (expirés après 6s sans mise à jour).
+export function getCursors() {
+  const out = [], cutoff = now() - 6000, me = getUserId();
+  for (const uid in cursors) { const c = cursors[uid]; if (uid !== me && c.t > cutoff) out.push({ uid, name: c.name, x: c.x, y: c.y }); }
+  return out;
 }
 
 // Ré-annonce le nom (après changement dans les Paramètres).
@@ -368,6 +390,10 @@ function handleData(msg, origin) {
     return;
   } else if (msg.type === 'ping') {
     return; // battement de l'hôte : sert juste de preuve de vie (cf. lastHostMsg)
+  } else if (msg.type === 'cursor') {
+    if (msg.uid !== getUserId()) cursors[msg.uid] = { name: msg.name, x: msg.x, y: msg.y, t: now() };
+    if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); }); // relai aux autres
+    return;
   }
   // Le host relaie les événements ponctuels aux autres clients.
   if (mode === 'host' && (msg.type === 'move' || msg.type === 'delete')) {

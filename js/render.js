@@ -1,10 +1,11 @@
 // Rendu du board : grille pixel, cercles, hexagones, rectangles, glow néon, sélection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mqws6g57';
-import { view, worldToScreen } from './camera.js?v=mqws6g57';
-import { stretch } from './physics.js?v=mqws6g57';
-import { hexCorners } from './geom.js?v=mqws6g57';
-import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mqws6g57';
-import { fmtDur } from './voice.js?v=mqws6g57';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mqwspf0j';
+import { view, worldToScreen } from './camera.js?v=mqwspf0j';
+import { stretch } from './physics.js?v=mqwspf0j';
+import { hexCorners } from './geom.js?v=mqwspf0j';
+import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mqwspf0j';
+import { fmtDur } from './voice.js?v=mqwspf0j';
+import { getCursors } from './sync.js?v=mqwspf0j';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -34,6 +35,48 @@ export function render(ctx) {
     else if (n.kind === 'pancarte') drawPancarte(ctx, n, isSel(n.id), zoom);
     else if (n.kind === 'voice') drawVoice(ctx, n, isSel(n.id), zoom);
     else drawRect(ctx, n, effectiveColor(n), isSel(n.id), zoom);
+  }
+
+  drawCursors(ctx); // curseurs des autres utilisateurs (au-dessus de tout)
+}
+
+// Couleur stable dérivée de l'id utilisateur.
+function uidColor(uid) {
+  let h = 0;
+  for (let i = 0; i < uid.length; i++) h = (h * 31 + uid.charCodeAt(i)) % 360;
+  return `hsl(${h}, 80%, 55%)`;
+}
+
+function drawCursors(ctx) {
+  const list = getCursors();
+  for (const c of list) {
+    const p = worldToScreen(c.x, c.y);
+    if (p.x < -40 || p.y < -40 || p.x > view.w + 40 || p.y > view.h + 40) continue;
+    const col = uidColor(c.uid);
+    // Flèche du curseur.
+    ctx.save();
+    ctx.fillStyle = col;
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(p.x, p.y + 17);
+    ctx.lineTo(p.x + 4.5, p.y + 13);
+    ctx.lineTo(p.x + 11, p.y + 13);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    // Étiquette nom.
+    const name = c.name || 'Invité';
+    ctx.font = '11px ' + (theme().pixel ? "'Press Start 2P', monospace" : "'Segoe UI', sans-serif");
+    ctx.textBaseline = 'top';
+    const tw = ctx.measureText(name).width;
+    const lx = p.x + 12, ly = p.y + 16;
+    ctx.fillStyle = col;
+    ctx.fillRect(lx, ly, tw + 10, 18);
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 2;
+    ctx.fillText(name, lx + 5, ly + 4);
+    ctx.restore();
   }
 }
 

@@ -195,6 +195,9 @@ function handleData(id, b, msg, origin) {
     origin._uid = msg.uid; origin._name = msg.name;
     broadcastPresence(b);
     return;
+  } else if (msg.type === 'cursor') {
+    for (const c of b.conns) if (c !== origin && c.open) { try { c.send(msg); } catch (e) { /* */ } } // relai curseurs
+    return;
   }
   if (msg.type === 'move' || msg.type === 'delete') {
     for (const c of b.conns) if (c !== origin && c.open) { try { c.send(msg); } catch (e) { /* */ } }

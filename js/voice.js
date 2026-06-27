@@ -1,9 +1,9 @@
 // Mémos vocaux : enregistrement (MediaRecorder/Opus), stockage IndexedDB,
 // lecture play/pause, partage P2P de l'audio (cf. sync.js shareAudio/requestAudio).
-import { state, newId, scheduleSave } from './state.js?v=mqws6g57';
-import { reset } from './physics.js?v=mqws6g57';
-import { putAudio, getAudio, delAudio } from './audio.js?v=mqws6g57';
-import { shareAudio, requestAudio } from './sync.js?v=mqws6g57';
+import { state, newId, scheduleSave } from './state.js?v=mqwspf0j';
+import { reset } from './physics.js?v=mqwspf0j';
+import { putAudio, getAudio, delAudio } from './audio.js?v=mqwspf0j';
+import { shareAudio, requestAudio } from './sync.js?v=mqwspf0j';
 
 const players = {}; // id -> { audio, url }
 const MAX_MS = 60000; // durée max d'un mémo : 1 minute
