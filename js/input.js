@@ -3,16 +3,16 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId,
-} from './state.js?v=mqv9hiue';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqv9hiue';
-import { dragTo, reset } from './physics.js?v=mqv9hiue';
-import { exportJSON, importJSON } from './io.js?v=mqv9hiue';
-import { pointInHex } from './geom.js?v=mqv9hiue';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqv9hiue';
-import { explodeElementCascade } from './fx.js?v=mqv9hiue';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqv9hiue';
-import { openSettings } from './settings.js?v=mqv9hiue';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mqv9hiue';
+} from './state.js?v=mqwd1jts';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqwd1jts';
+import { dragTo, reset } from './physics.js?v=mqwd1jts';
+import { exportJSON, importJSON } from './io.js?v=mqwd1jts';
+import { pointInHex } from './geom.js?v=mqwd1jts';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqwd1jts';
+import { explodeElementCascade } from './fx.js?v=mqwd1jts';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqwd1jts';
+import { openSettings } from './settings.js?v=mqwd1jts';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mqwd1jts';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -20,6 +20,8 @@ let lastPos = { x: 0, y: 0, t: 0 };
 let editing = null;     // { type, id }
 let onChange = () => {};
 let clipboard = null;   // { isCircle?, isHex?, isLink?, data }
+let internalSince = false; // a-t-on copié un bloc depuis la dernière image collée ?
+let lastImgSig = '';       // signature (taille:type) de la dernière image système collée
 let lastMouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 
 // Tactile.
@@ -529,7 +531,12 @@ function onPaste(e) {
     if (it.type && it.type.startsWith('image/')) {
       const file = it.getAsFile();
       if (file) {
+        // Garde-fou : si c'est la MÊME image système que la dernière collée et
+        // qu'on a copié un bloc depuis, on colle le bloc interne (pas l'image périmée).
+        const sig = file.size + ':' + file.type;
+        if (clipboard && internalSince && sig === lastImgSig) break;
         e.preventDefault();
+        lastImgSig = sig; internalSince = false;
         const w = screenToWorld(lastMouse.x, lastMouse.y);
         spawnImageRect(file, w.x, w.y);
         return;
@@ -704,6 +711,13 @@ function copySelection() {
     isHex: state.hexagons.includes(el),
     data,
   };
+  internalSince = true; // une copie interne a eu lieu -> prioritaire sur l'image système périmée
+  // Écrase le presse-papier SYSTÈME (texte) : sinon une image copiée avant
+  // resurgit au prochain Ctrl-V (onPaste détecte l'image système en priorité).
+  try {
+    const txt = el.text || el.description || ' ';
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).catch(() => {});
+  } catch (e) { /* */ }
 }
 
 function pasteClipboard() {
