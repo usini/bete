@@ -168,6 +168,14 @@ function applyDelete(b, msg) {
   }
 }
 
+// Présence : le serveur (hôte) + les clients ayant annoncé un nom.
+function broadcastPresence(b) {
+  const users = [{ uid: 'server', name: 'Serveur', host: true }];
+  for (const c of b.conns) if (c._uid) users.push({ uid: c._uid, name: c._name || '', host: false });
+  const payload = { type: 'presence', users };
+  for (const c of b.conns) if (c.open) { try { c.send(payload); } catch (e) { /* */ } }
+}
+
 function handleData(id, b, msg, origin) {
   if (!msg) return;
   if (msg.type === 'sync') { if (merge(b, msg)) scheduleSave(id, b); }
@@ -182,6 +190,10 @@ function handleData(id, b, msg, origin) {
   } else if (msg.type === 'audioRes') {
     if (msg.buf) audioMem.set(msg.id, msg); // cache + renvoi tel quel
     for (const c of b.conns) if (c !== origin && c.open) { try { c.send(msg); } catch (e) { /* */ } }
+    return;
+  } else if (msg.type === 'hello') {
+    origin._uid = msg.uid; origin._name = msg.name;
+    broadcastPresence(b);
     return;
   }
   if (msg.type === 'move' || msg.type === 'delete') {
@@ -237,7 +249,7 @@ function start() {
     console.log(`[todomappa] client connecté sur "${id}" (${b.conns.length})`);
     conn.on('open', () => { try { conn.send(buildPayload(b)); } catch (e) { /* */ } });
     conn.on('data', (msg) => handleData(id, b, msg, conn));
-    const drop = () => { const i = b.conns.indexOf(conn); if (i >= 0) b.conns.splice(i, 1); console.log(`[todomappa] client déconnecté de "${id}" (${b.conns.length})`); };
+    const drop = () => { const i = b.conns.indexOf(conn); if (i >= 0) b.conns.splice(i, 1); broadcastPresence(b); console.log(`[todomappa] client déconnecté de "${id}" (${b.conns.length})`); };
     conn.on('close', drop);
     conn.on('error', drop);
   });

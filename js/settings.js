@@ -1,11 +1,12 @@
 // Menu Paramètres : thème, taille du texte, liaisons nommées, navigation
 // (tutoriel / boards visités), effacer le board courant.
-import { state, getBoardId, scheduleSave } from './state.js?v=mqwqnx9u';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mqwqnx9u';
-import { listBoards, buildBoardUrl } from './boards.js?v=mqwqnx9u';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mqwqnx9u';
-import { liaisonStatus, disconnect } from './sync.js?v=mqwqnx9u';
-import { exportJSON, importJSON } from './io.js?v=mqwqnx9u';
+import { state, getBoardId, scheduleSave } from './state.js?v=mqwqysmg';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mqwqysmg';
+import { listBoards, buildBoardUrl } from './boards.js?v=mqwqysmg';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mqwqysmg';
+import { liaisonStatus, disconnect, getPresence, announceName } from './sync.js?v=mqwqysmg';
+import { exportJSON, importJSON } from './io.js?v=mqwqysmg';
+import { getUserName, setUserName } from './users.js?v=mqwqysmg';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
@@ -126,6 +127,26 @@ function build(panel) {
   jin.addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); });
   joinRow.appendChild(jin); joinRow.appendChild(jb);
   panel.appendChild(joinRow);
+
+  // ---- Utilisateurs ----
+  panel.appendChild(el('div', 'set-label', 'Utilisateur'));
+  const nameRow = el('div', 'set-new');
+  const nin = el('input'); nin.placeholder = 'Ton nom…'; nin.maxLength = 24; nin.value = getUserName();
+  const nb = el('button', null, 'OK');
+  const saveName = () => { setUserName(nin.value.trim()); announceName(); build(panel); };
+  nb.addEventListener('click', saveName);
+  nin.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveName(); });
+  nameRow.appendChild(nin); nameRow.appendChild(nb);
+  panel.appendChild(nameRow);
+
+  const presence = getPresence();
+  if (presence.length) {
+    panel.appendChild(el('div', 'set-sub', 'Connectés (' + presence.length + ')'));
+    presence.forEach((u) => {
+      const label = (u.host ? '🟢 ' : '👤 ') + (u.name || 'Invité') + (u.me ? ' (toi)' : '');
+      panel.appendChild(el('div', 'set-empty', label));
+    });
+  }
 
   // ---- Navigation ----
   panel.appendChild(el('div', 'set-label', 'Navigation'));

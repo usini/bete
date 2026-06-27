@@ -2,10 +2,13 @@
 // On ne synchronise QUE le contenu (texte, image, couleur, description, liens,
 // création/suppression) : ni la caméra, ni les positions/tailles. Chaque écran
 // garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqwqnx9u';
-import { reset } from './physics.js?v=mqwqnx9u';
-import { explodeElementCascade } from './fx.js?v=mqwqnx9u';
-import { putAudio, getAudio, delAudio } from './audio.js?v=mqwqnx9u';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mqwqysmg';
+import { reset } from './physics.js?v=mqwqysmg';
+import { explodeElementCascade } from './fx.js?v=mqwqysmg';
+import { putAudio, getAudio, delAudio } from './audio.js?v=mqwqysmg';
+import { getUserId, displayName } from './users.js?v=mqwqysmg';
+
+let clientRoster = []; // côté client : liste des utilisateurs reçue de l'hôte
 
 const PEERJS_SRC = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
 const QR_SRC = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
@@ -53,6 +56,30 @@ export function liaisonStatus() {
   if (mode === 'client') return { role: 'client', peer: clientPeerId };
   if (mode === 'host' && hostPeer && hostPeer.id) return { role: 'host', peer: hostPeer.id };
   return { role: null, peer: null };
+}
+
+// ---- Présence (liste des utilisateurs connectés) ----
+export function getPresence() {
+  if (mode === 'host') {
+    const list = [{ uid: getUserId(), name: displayName(), host: true, me: true }];
+    conns.forEach((c) => { if (c._uid) list.push({ uid: c._uid, name: c._name || '', host: false, me: false }); });
+    return list;
+  }
+  if (mode === 'client') return clientRoster.map((u) => ({ ...u, me: u.uid === getUserId() }));
+  return [];
+}
+export function getUserCount() { return getPresence().length; }
+
+function broadcastPresence() {
+  if (mode !== 'host') return;
+  const payload = { type: 'presence', users: getPresence().map((u) => ({ uid: u.uid, name: u.name, host: u.host })) };
+  conns.forEach((c) => { try { if (c.open) c.send(payload); } catch (e) { /* */ } });
+}
+
+// Ré-annonce le nom (après changement dans les Paramètres).
+export function announceName() {
+  if (mode === 'client') { try { conns[0] && conns[0].open && conns[0].send({ type: 'hello', uid: getUserId(), name: displayName() }); } catch (e) { /* */ } }
+  else if (mode === 'host') broadcastPresence();
 }
 
 // Déconnecte la liaison : en client on recharge le board en local (sans ?peer),
@@ -303,6 +330,13 @@ function handleData(msg, origin) {
     }
     if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); }); // relai vers les autres clients
     return;
+  } else if (msg.type === 'hello') {
+    if (origin) { origin._uid = msg.uid; origin._name = msg.name; }
+    broadcastPresence(); // hôte : met à jour la liste pour tout le monde
+    return;
+  } else if (msg.type === 'presence') {
+    clientRoster = Array.isArray(msg.users) ? msg.users : [];
+    return;
   }
   // Le host relaie les événements ponctuels aux autres clients.
   if (mode === 'host' && (msg.type === 'move' || msg.type === 'delete')) {
@@ -450,8 +484,8 @@ function openHostPeer(id) {
       try { conn.send({ type: 'sync', from: 'host', n: content.n, c: content.c, h: content.h, mt: { ...mtimes }, del: [...tombstones] }); } catch (e) { /* */ }
     });
     conn.on('data', (msg) => handleData(msg, conn));
-    conn.on('close', () => { conns = conns.filter(c => c !== conn); });
-    conn.on('error', () => { conns = conns.filter(c => c !== conn); });
+    conn.on('close', () => { conns = conns.filter(c => c !== conn); broadcastPresence(); });
+    conn.on('error', () => { conns = conns.filter(c => c !== conn); broadcastPresence(); });
   });
 }
 
@@ -527,8 +561,9 @@ function connectToHost() {
   if (!clientPeer || clientPeer.destroyed) return;
   const conn = clientPeer.connect(clientPeerId, { reliable: true, metadata: { board: getBoardId() } });
   conns = [conn];
+  clientRoster = [];
   // Le tick (émission) ne démarre qu'après la 1re synchro reçue (cf. handleData).
-  conn.on('open', () => { clientStatus && clientStatus('connected'); });
+  conn.on('open', () => { clientStatus && clientStatus('connected'); try { conn.send({ type: 'hello', uid: getUserId(), name: displayName() }); } catch (e) { /* */ } });
   conn.on('data', (msg) => {
     const wasFirst = clientFirstSync && msg && msg.type === 'sync';
     handleData(msg);
@@ -580,8 +615,8 @@ function wireHostPeer(peer) {
       try { conn.send({ type: 'sync', from: 'host', n: c.n, c: c.c, h: c.h, mt: { ...mtimes }, del: [...tombstones] }); } catch (e) { /* */ }
     });
     conn.on('data', (msg) => handleData(msg, conn));
-    conn.on('close', () => { conns = conns.filter((x) => x !== conn); });
-    conn.on('error', () => { conns = conns.filter((x) => x !== conn); });
+    conn.on('close', () => { conns = conns.filter((x) => x !== conn); broadcastPresence(); });
+    conn.on('error', () => { conns = conns.filter((x) => x !== conn); broadcastPresence(); });
   });
 }
 
@@ -591,8 +626,13 @@ function scheduleClientRetry() {
   clientStatus && clientStatus('reconnecting');
   clientRetry = setTimeout(() => {
     clientRetry = null;
-    clientFirstSync = true; // on ré-adoptera l'état du host
+    clientFirstSync = true; // on ré-adoptera l'état du nouvel host
     stopTick();
-    connectToHost();
+    clientRoster = [];
+    // Ré-élection : on retente de DEVENIR l'hôte (id libéré si l'ancien est parti),
+    // sinon on se reconnecte en client au nouvel hôte élu.
+    try { if (clientPeer && !clientPeer.destroyed) clientPeer.destroy(); } catch (e) { /* */ }
+    clientPeer = null;
+    joinOrHost(clientPeerId, clientStatus);
   }, 3000);
 }

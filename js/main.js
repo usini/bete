@@ -1,17 +1,17 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mqwqnx9u';
-import { setView } from './camera.js?v=mqwqnx9u';
-import { render } from './render.js?v=mqwqnx9u';
-import { step, reset } from './physics.js?v=mqwqnx9u';
-import * as minimap from './minimap.js?v=mqwqnx9u';
-import * as input from './input.js?v=mqwqnx9u';
-import * as fx from './fx.js?v=mqwqnx9u';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect } from './sync.js?v=mqwqnx9u';
-import { recordBoard, getBoardEntry } from './boards.js?v=mqwqnx9u';
-import { TUTORIAL } from './tutorial.js?v=mqwqnx9u';
-import { applyTheme } from './theme.js?v=mqwqnx9u';
-import { initSettings, openSettings } from './settings.js?v=mqwqnx9u';
-import { recordLiaison, getLiaison } from './liaisons.js?v=mqwqnx9u';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mqwqysmg';
+import { setView } from './camera.js?v=mqwqysmg';
+import { render } from './render.js?v=mqwqysmg';
+import { step, reset } from './physics.js?v=mqwqysmg';
+import * as minimap from './minimap.js?v=mqwqysmg';
+import * as input from './input.js?v=mqwqysmg';
+import * as fx from './fx.js?v=mqwqysmg';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount } from './sync.js?v=mqwqysmg';
+import { recordBoard, getBoardEntry } from './boards.js?v=mqwqysmg';
+import { TUTORIAL } from './tutorial.js?v=mqwqysmg';
+import { applyTheme } from './theme.js?v=mqwqysmg';
+import { initSettings, openSettings } from './settings.js?v=mqwqysmg';
+import { recordLiaison, getLiaison } from './liaisons.js?v=mqwqysmg';
 
 applyTheme(); // applique le thème enregistré dès le démarrage
 
@@ -212,7 +212,8 @@ let lastLiaison = '';
 function updateLiaisonBadge() {
   const st = liaisonStatus();
   const name = st.role === 'host' ? 'Hôte' : (st.role === 'client' ? ((getLiaison(st.peer) && getLiaison(st.peer).name) || st.peer) : '');
-  const sig = (st.role || '') + '|' + name;
+  const count = st.role ? getUserCount() : 0;
+  const sig = (st.role || '') + '|' + name + '|' + count;
   if (sig === lastLiaison) return;
   lastLiaison = sig;
   const el = document.getElementById('liaisonbadge');
@@ -221,7 +222,7 @@ function updateLiaisonBadge() {
   el.innerHTML = '';
   const lbl = document.createElement('span');
   lbl.className = 'lb-name';
-  lbl.textContent = (st.role === 'host' ? '🟢 ' : '🔗 ') + name;
+  lbl.textContent = (st.role === 'host' ? '🟢 ' : '🔗 ') + name + (count > 1 ? '  👤' + count : '');
   lbl.title = 'Gérer les liaisons';
   lbl.addEventListener('click', () => openSettings());
   const x = document.createElement('button');
