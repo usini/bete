@@ -1,11 +1,11 @@
 // Rendu du board : grille pixel, cercles, hexagones, rectangles, glow néon, sélection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mqwspf0j';
-import { view, worldToScreen } from './camera.js?v=mqwspf0j';
-import { stretch } from './physics.js?v=mqwspf0j';
-import { hexCorners } from './geom.js?v=mqwspf0j';
-import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mqwspf0j';
-import { fmtDur } from './voice.js?v=mqwspf0j';
-import { getCursors } from './sync.js?v=mqwspf0j';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mqwsywi2';
+import { view, worldToScreen } from './camera.js?v=mqwsywi2';
+import { stretch } from './physics.js?v=mqwsywi2';
+import { hexCorners } from './geom.js?v=mqwsywi2';
+import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mqwsywi2';
+import { fmtDur } from './voice.js?v=mqwsywi2';
+import { getCursors } from './sync.js?v=mqwsywi2';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -47,10 +47,21 @@ function uidColor(uid) {
   return `hsl(${h}, 80%, 55%)`;
 }
 
+const cursorRender = {}; // uid -> { rx, ry } position lissée (animation A->B)
+
 function drawCursors(ctx) {
   const list = getCursors();
+  const seen = {};
   for (const c of list) {
-    const p = worldToScreen(c.x, c.y);
+    seen[c.uid] = 1;
+    // Lissage : la position rendue rejoint la dernière position reçue (ease).
+    let cr = cursorRender[c.uid];
+    if (!cr) cr = cursorRender[c.uid] = { rx: c.x, ry: c.y };
+    cr.rx += (c.x - cr.rx) * 0.25;
+    cr.ry += (c.y - cr.ry) * 0.25;
+    if (Math.abs(c.x - cr.rx) < 0.5) cr.rx = c.x;
+    if (Math.abs(c.y - cr.ry) < 0.5) cr.ry = c.y;
+    const p = worldToScreen(cr.rx, cr.ry);
     if (p.x < -40 || p.y < -40 || p.x > view.w + 40 || p.y > view.h + 40) continue;
     const col = uidColor(c.uid);
     // Flèche du curseur.
@@ -78,6 +89,7 @@ function drawCursors(ctx) {
     ctx.fillText(name, lx + 5, ly + 4);
     ctx.restore();
   }
+  for (const uid in cursorRender) if (!seen[uid]) delete cursorRender[uid]; // purge des partis
 }
 
 // Sélection : id courant OU appartenance à la sélection multiple.
