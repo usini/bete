@@ -3,15 +3,16 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mqwf3orm';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqwf3orm';
-import { dragTo, reset } from './physics.js?v=mqwf3orm';
-import { pointInHex } from './geom.js?v=mqwf3orm';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqwf3orm';
-import { explodeElementCascade } from './fx.js?v=mqwf3orm';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqwf3orm';
-import { openSettings } from './settings.js?v=mqwf3orm';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mqwf3orm';
+} from './state.js?v=mqwfhqfh';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mqwfhqfh';
+import { dragTo, reset } from './physics.js?v=mqwfhqfh';
+import { pointInHex } from './geom.js?v=mqwfhqfh';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR } from './sync.js?v=mqwfhqfh';
+import { explodeElementCascade } from './fx.js?v=mqwfhqfh';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mqwfhqfh';
+import { openSettings } from './settings.js?v=mqwfhqfh';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mqwfhqfh';
+import { toggleDebug } from './debug.js?v=mqwfhqfh';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -588,6 +589,9 @@ function handleDouble(sx, sy) {
 
 function onKeyDown(e) {
   if (editing) return;
+
+  // Touche ² (à gauche du 1 sur AZERTY) : panneau debug des wobbles.
+  if (e.key === '²' || e.code === 'Backquote') { toggleDebug(); e.preventDefault(); return; }
 
   const mod = e.ctrlKey || e.metaKey;
   if (mod && (e.key === 'z' || e.key === 'Z')) { doUndo(); e.preventDefault(); return; }

@@ -484,6 +484,34 @@ html, body {
 .rec-cancel { color: #cfd8d3; background: #11151a; border-color: #cfd8d3; }
 .rec-cancel:hover { background: #1a1f26; }
 
+/* ---- Panneau debug (touche ²) ---- */
+#debug {
+  position: fixed;
+  top: 60px;
+  right: 12px;
+  z-index: 48;
+  display: none;
+  width: 260px;
+  padding: 12px;
+  background: rgba(8, 10, 13, 0.96);
+  border: 3px solid var(--green);
+  box-shadow: 0 0 18px rgba(57, 255, 20, 0.35);
+  font-family: 'Press Start 2P', monospace;
+  color: var(--green);
+}
+#debug.show { display: block; }
+#debug .dbg-head { font-size: 9px; letter-spacing: 1px; color: var(--green-dim); margin-bottom: 10px; }
+#debug .dbg-row { margin: 8px 0; }
+#debug .dbg-row label { display: block; font-size: 7px; color: var(--ink); margin-bottom: 3px; }
+#debug .dbg-row input[type=range] { width: 78%; vertical-align: middle; accent-color: var(--green); }
+#debug .dbg-val { font-size: 8px; margin-left: 6px; color: var(--green); }
+#debug .dbg-reset {
+  margin-top: 10px; width: 100%;
+  font-family: inherit; font-size: 8px; padding: 8px;
+  background: #0d0f12; color: var(--green); border: 2px solid var(--green); cursor: pointer;
+}
+#debug .dbg-reset:hover { background: var(--green); color: #04130a; }
+
 /* ---- Scanlines CRT ---- */
 #crt {
   position: fixed;

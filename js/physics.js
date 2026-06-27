@@ -2,10 +2,14 @@
 // Stocke des champs _rx/_ry (position rendue), _vx/_vy (vélocité),
 // _svx/_svy (vélocité lissée, pour une déformation douce sans tremblement).
 
-const STIFFNESS = 170;   // raideur du ressort
-const DAMPING = 15;      // amortissement (< critique => rebond élastique)
-const MAX_STRETCH = 0.06; // déformation max (légère) — plafond bas pour rester discret
-const STRETCH_K = 0.0010; // sensibilité : sature vite -> wobble quasi constant, pas qui gonfle
+// Paramètres réglables à chaud (menu debug, touche ²). Non persistés.
+export const wobbleCfg = {
+  stiffness: 170,   // raideur du ressort
+  damping: 15,      // amortissement (< critique => rebond élastique)
+  maxStretch: 0.06, // déformation max (légère) — plafond bas pour rester discret
+  stretchK: 0.0010, // sensibilité : sature vite -> wobble quasi constant
+};
+export const WOBBLE_DEFAULTS = { ...wobbleCfg };
 
 function ensure(n) {
   if (n._rx === undefined) {
@@ -21,8 +25,8 @@ export function step(n, dt) {
   // Clamp dt pour la stabilité (onglet en arrière-plan, gros lag).
   dt = Math.min(dt, 0.05);
 
-  const ax = STIFFNESS * (n.x - n._rx) - DAMPING * n._vx;
-  const ay = STIFFNESS * (n.y - n._ry) - DAMPING * n._vy;
+  const ax = wobbleCfg.stiffness * (n.x - n._rx) - wobbleCfg.damping * n._vx;
+  const ay = wobbleCfg.stiffness * (n.y - n._ry) - wobbleCfg.damping * n._vy;
   n._vx += ax * dt;
   n._vy += ay * dt;
   n._rx += n._vx * dt;
@@ -51,7 +55,7 @@ export function dragTo(n, x, y, dt) {
 export function stretch(n) {
   const vx = n._svx || 0, vy = n._svy || 0;
   const sp = Math.hypot(vx, vy);
-  const k = Math.min(sp * STRETCH_K, MAX_STRETCH);
+  const k = Math.min(sp * wobbleCfg.stretchK, wobbleCfg.maxStretch);
   return {
     angle: Math.atan2(vy, vx),
     sx: 1 + k,
