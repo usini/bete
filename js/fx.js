@@ -1,10 +1,10 @@
-// Effets de particules (explosion à la suppression d'un objet).
+// Particle effects (explosions, etc.) for visual feedback on the map.
 import { worldToScreen } from './camera.js?v=mqwus8x9';
 import { state, effectiveColor } from './state.js?v=mqwus8x9';
 
 let particles = [];
 
-// Fait exploser une boîte monde en morceaux qui retombent et s'estompent.
+// Make a world box explode into pieces that fall and fade out.
 export function explode(x, y, w, h, color) {
   const cx = x + w / 2, cy = y + h / 2;
   const count = Math.max(14, Math.min(48, Math.round((w * h) / 600)));
@@ -27,6 +27,7 @@ export function explode(x, y, w, h, color) {
   }
 }
 
+// Explode an element (node or sign) into particles.
 export function explodeElement(el) {
   if (!el) return;
   if (el.r !== undefined) {
@@ -37,15 +38,17 @@ export function explodeElement(el) {
   }
 }
 
-// Explose un élément + les liens qui pointent vers lui (supprimés en cascade).
+// Make an element explode along with any links pointing to it (deleted in a cascade).
 export function explodeElementCascade(el) {
   if (!el) return;
   explodeElement(el);
   state.nodes.forEach((n) => { if (n.ref === el.id) explodeElement(n); });
 }
 
+// Return the number of active particles.
 export function count() { return particles.length; }
 
+// Update the state of all particles (position, velocity, life) based on the elapsed time.
 export function update(dt) {
   if (!particles.length) return;
   dt = Math.min(dt, 0.05);
@@ -60,6 +63,7 @@ export function update(dt) {
   particles = particles.filter((p) => p.life > 0);
 }
 
+// Render all particles on the given canvas context.
 export function render(ctx) {
   if (!particles.length) return;
   const z = state.camera.zoom;

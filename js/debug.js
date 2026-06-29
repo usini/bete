@@ -1,9 +1,10 @@
-// Panneau debug (touche ²) : réglage à chaud des paramètres de wobble.
-// Non persisté — sert juste à tester des valeurs. Recharger réinitialise.
+// Debug panel for tweaking wobble physics parameters.
+// Panel is hidden by default and can be toggled with the '²' key.
 import { wobbleCfg, WOBBLE_DEFAULTS } from './physics.js?v=mqwus8x9';
 
 let panel = null;
 
+// Wobble physics parameters that can be adjusted in the debug panel.
 const FIELDS = [
   { key: 'stiffness', label: 'Raideur (ressort)', min: 20, max: 400, step: 1 },
   { key: 'damping', label: 'Amortissement', min: 1, max: 40, step: 0.5 },
@@ -11,6 +12,7 @@ const FIELDS = [
   { key: 'stretchK', label: 'Sensibilité vitesse', min: 0, max: 0.004, step: 0.0001 },
 ];
 
+// Create a row in the debug panel for a given wobble parameter.
 function row(f) {
   const wrap = document.createElement('div');
   wrap.className = 'dbg-row';
@@ -32,6 +34,7 @@ function row(f) {
   return wrap;
 }
 
+// Build the debug panel and append it to the document body.
 function build() {
   panel = document.createElement('div');
   panel.id = 'debug';
@@ -55,6 +58,7 @@ function build() {
   document.body.appendChild(panel);
 }
 
+// Toggle the visibility of the debug panel.
 export function toggleDebug() {
   if (!panel) build();
   panel.classList.toggle('show');

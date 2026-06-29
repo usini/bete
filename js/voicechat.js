@@ -1,62 +1,82 @@
 // Chat vocal live en maillage (mesh) P2P via PeerJS MediaConnection.
-// Chaque participant "voix active" appelle les autres en direct (audio).
+// Écoute par défaut : tant qu'on est en liaison, on répond aux appels (on entend
+// tout le monde). Le bouton micro ne contrôle que NOTRE émission (parler).
 // L'audio ne passe PAS par le Pi : navigateur <-> navigateur (latence faible).
 import { getPeer, getPresence, setLocalVoice, onIncomingCall } from './sync.js?v=mqwus8x9';
 
-let voiceOn = false;
+let micOn = false;
 let micStream = null;
-let timer = null;
+let silentStream = null;
+let _ac = null;
 const calls = {}; // remotePeerId -> { conn, audio }
 
-export function isVoiceOn() { return voiceOn; }
+export function isMicOn() { return micOn; }
 
-export async function toggleVoiceChat() {
-  if (voiceOn) { disable(); return false; }
+// Piste audio silencieuse (pour participer/écouter sans demander le micro).
+function silent() {
+  if (silentStream) return silentStream;
+  try {
+    _ac = new (window.AudioContext || window.webkitAudioContext)();
+    const dst = _ac.createMediaStreamDestination();
+    const g = _ac.createGain(); g.gain.value = 0;
+    const o = _ac.createOscillator(); o.connect(g).connect(dst); o.start();
+    silentStream = dst.stream;
+  } catch (e) { silentStream = new MediaStream(); }
+  return silentStream;
+}
+function outStream() { return (micOn && micStream) ? micStream : silent(); }
+
+// Active / coupe NOTRE micro (émission). L'écoute reste toujours active.
+export async function toggleMic() {
+  if (micOn) {
+    micOn = false; setLocalVoice(false);
+    if (micStream) { micStream.getTracks().forEach((t) => t.stop()); micStream = null; }
+    replaceOutgoing(silent().getAudioTracks()[0]);
+    return false;
+  }
   try { micStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
   catch (e) { alert('Micro indisponible ou refusé.'); return false; }
-  voiceOn = true;
-  setLocalVoice(true);
-  reconcile();
-  timer = setInterval(reconcile, 1500); // (re)connecte selon la présence
+  micOn = true; setLocalVoice(true);
+  replaceOutgoing(micStream.getAudioTracks()[0]);
+  reconcile(); // connecte tout le monde pour qu'ils nous entendent
   return true;
 }
 
-function disable() {
-  voiceOn = false;
-  setLocalVoice(false);
-  if (timer) { clearInterval(timer); timer = null; }
-  Object.keys(calls).forEach(dropCall);
-  if (micStream) { micStream.getTracks().forEach((t) => t.stop()); micStream = null; }
+// Remplace la piste émise sur toutes les connexions actives (sans rouvrir).
+function replaceOutgoing(track) {
+  Object.values(calls).forEach((c) => {
+    try {
+      const pc = c.conn && c.conn.peerConnection;
+      const s = pc && pc.getSenders().find((x) => x.track && x.track.kind === 'audio');
+      if (s && track) s.replaceTrack(track);
+    } catch (e) { /* */ }
+  });
 }
 
-// Connecte/déconnecte selon les participants "voix active".
+// Connecte selon qui parle : on appelle un pair si NOUS parlons ou s'IL parle.
+// (Silence total => aucune connexion. On entend chacun dès qu'il prend la parole.)
 function reconcile() {
-  if (!voiceOn) return;
   const peer = getPeer();
   const myId = peer && peer.id;
-  if (!myId || !micStream) return;
-  const targets = getPresence().filter((u) => !u.me && u.voice && u.peerId);
+  if (!myId) { Object.keys(calls).forEach(dropCall); return; }
   const want = {};
-  targets.forEach((u) => {
+  getPresence().forEach((u) => {
+    if (u.me || !u.peerId) return;
+    if (!micOn && !u.voice) return; // personne ne parle de ce côté -> pas besoin
     want[u.peerId] = 1;
     if (calls[u.peerId]) return;
-    // Pour éviter un double appel, seul l'id le plus petit initie.
-    if (myId < u.peerId) {
-      try {
-        const conn = peer.call(u.peerId, micStream);
-        if (conn) attachCall(u.peerId, conn);
-      } catch (e) { /* */ }
+    if (myId < u.peerId) { // l'id le plus petit initie (anti-doublon)
+      try { const c = peer.call(u.peerId, outStream()); if (c) attachCall(u.peerId, c); } catch (e) { /* */ }
     }
   });
-  // Ferme les appels devenus inutiles (peer parti / micro coupé).
   Object.keys(calls).forEach((id) => { if (!want[id]) dropCall(id); });
 }
+setInterval(reconcile, 1500);
 
-// Appel entrant : on répond avec notre micro et on joue l'audio distant.
+// Appel entrant : on répond TOUJOURS (écoute par défaut), avec notre piste courante.
 onIncomingCall((conn) => {
-  if (!voiceOn || !micStream) { try { conn.close(); } catch (e) { /* */ } return; }
-  if (calls[conn.peer]) { try { conn.close(); } catch (e) { /* */ } return; } // glare : on garde l'existant
-  try { conn.answer(micStream); } catch (e) { /* */ }
+  if (calls[conn.peer]) { try { conn.close(); } catch (e) { /* */ } return; } // glare
+  try { conn.answer(outStream()); } catch (e) { /* */ }
   attachCall(conn.peer, conn);
 });
 
@@ -70,12 +90,7 @@ function attachCall(remoteId, conn) {
 function playRemote(remoteId, stream) {
   const c = calls[remoteId];
   if (!c) return;
-  if (!c.audio) {
-    const a = new Audio();
-    a.autoplay = true;
-    a.playsInline = true;
-    c.audio = a;
-  }
+  if (!c.audio) { const a = new Audio(); a.autoplay = true; a.playsInline = true; c.audio = a; }
   c.audio.srcObject = stream;
   c.audio.play().catch(() => {});
 }
@@ -84,6 +99,6 @@ function dropCall(remoteId) {
   const c = calls[remoteId];
   if (!c) return;
   try { c.conn && c.conn.close(); } catch (e) { /* */ }
-  if (c.audio) { c.audio.srcObject = null; }
+  if (c.audio) c.audio.srcObject = null;
   delete calls[remoteId];
 }

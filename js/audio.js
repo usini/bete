@@ -1,10 +1,10 @@
-// Stockage des blobs audio (mémos vocaux) dans IndexedDB.
-// localStorage ne convient pas (binaire volumineux) : on garde ici le Blob,
-// indexé par l'id du bloc ; l'état/board ne stocke que la référence (id + durée).
+// IndexedDB is used to store audio blobs (voice memos) because localStorage is not suitable for large binary data.
+// The audio blobs are indexed by their block ID, while the state/board only stores a reference (ID + duration).
 const DB_NAME = 'todomappa';
 const STORE = 'audio';
 let _db = null;
 
+// Open the IndexedDB database (or return the existing connection).
 function db() {
   if (_db) return Promise.resolve(_db);
   return new Promise((res, rej) => {
@@ -15,6 +15,7 @@ function db() {
   });
 }
 
+// Store an audio blob in IndexedDB under the given ID.
 export async function putAudio(id, blob) {
   const d = await db();
   return new Promise((res, rej) => {
@@ -25,6 +26,7 @@ export async function putAudio(id, blob) {
   });
 }
 
+// Retrieve an audio blob from IndexedDB by its ID.
 export async function getAudio(id) {
   const d = await db();
   return new Promise((res, rej) => {
@@ -35,6 +37,7 @@ export async function getAudio(id) {
   });
 }
 
+// Delete an audio blob from IndexedDB by its ID.
 export async function delAudio(id) {
   const d = await db();
   return new Promise((res) => {

@@ -13,7 +13,7 @@ import { applyTheme } from './theme.js?v=mqwus8x9';
 import { initSettings, openSettings } from './settings.js?v=mqwus8x9';
 import { recordLiaison, getLiaison } from './liaisons.js?v=mqwus8x9';
 import { positionVideoOverlay } from './video.js?v=mqwus8x9';
-import { toggleVoiceChat, isVoiceOn } from './voicechat.js?v=mqwus8x9';
+import { toggleMic, isMicOn } from './voicechat.js?v=mqwus8x9';
 
 applyTheme(); // applique le thème enregistré dès le démarrage
 

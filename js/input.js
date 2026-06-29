@@ -1,5 +1,5 @@
-// Entrées : souris + tactile, drag élastique, liens hexagone, menu radial,
-// palette, édition texte, popup image.
+// Mouse + touch input, elastic drag, hexagon links, radial menu,
+// palette, text editing, image popup.
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
@@ -22,30 +22,30 @@ let lastPos = { x: 0, y: 0, t: 0 };
 let editing = null;     // { type, id }
 let onChange = () => {};
 let clipboard = null;   // { isCircle?, isHex?, isLink?, data }
-let internalSince = false; // a-t-on copié un bloc depuis la dernière image collée ?
-let lastImgSig = '';       // signature (taille:type) de la dernière image système collée
+let internalSince = false; // have we copied a block since the last pasted image?
+let lastImgSig = '';       // signature of the last system image pasted
 let lastMouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 
-// Tactile.
+// Pointer state (mouse or touch) for drag, pinch, long-press, etc.
 let pinch = null;
 let longPressTimer = null;
 let lastTap = 0;
 let lastTapPos = null;
 
-// Mode tactile : sur mobile, l'interaction est désactivée par défaut (on ne peut
-// que naviguer : pan/zoom) pour éviter de déplacer des blocs par accident.
+// Touch mode: on mobile, interaction is disabled by default (you can only navigate: pan/zoom) to avoid accidentally moving blocks.
 const isCoarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 let interactionEnabled = !isCoarse;
 
+// Update the hint text based on the current interaction mode.
 function updateHint() {
   const h = document.getElementById('hint');
   if (!h || !isCoarse) return;
   h.textContent = interactionEnabled ? 'INTERACTION ON · APPUI LONG = MENU' : 'VUE SEULE · APPUI LONG POUR ACTIVER';
 }
 
-const RESIZE_TOL = 12;  // tolérance (px écran) pour saisir le bord d'une zone
+const RESIZE_TOL = 12;  // tolerance (px screen) for grabbing the edge of a zone
 
-// ---- Menu radial : couleurs + icônes SVG (viewBox 0 0 24 24) ----
+// ---- Radial Menu : colors + SVG icons (viewBox 0 0 24 24) ----
 const COL = {
   green: '#39ff14', wood: '#b9772e', cyan: '#00b7eb', orange: '#ff8c00',
   magenta: '#e3008c', purple: '#9b30ff', yellow: '#ffd400', white: '#f2f2f2', red: '#fe4365',
@@ -77,17 +77,19 @@ const ICONS = {
   undo: '<path d="M9 7H16a4 4 0 0 1 0 8h-4"/><polyline points="9,3 5,7 9,11"/>',
   dot: '<circle cx="12" cy="12" r="3"/>',
 };
-let pendingBoardPos = null; // position monde où poser le prochain lien-board
-let pendingBoardTarget = null; // bloc à transformer en lien (sinon nouveau bloc)
-// Pie-menu tactile (appui long puis glisser pour choisir).
+let pendingBoardPos = null; // position where a new board will be created (if not null, a new board will be created on the next click)
+let pendingBoardTarget = null; // target board to link to when creating a new board (if not null, a new board will be created on the next click and linked to this target)
+// Radial menu (long press then drag to choose).
 let radialPressActive = false;
 let radialItems = [];
 let radialHoverIdx = -1;
 let radialCx = 0, radialCy = 0;
 let radialRay = null, radialHalo = null;
-let selectArmed = false; // arme un rectangle de sélection au prochain glisser (menu)
+let selectArmed = false; // arm a selection rectangle for the next drag (menu)
 function svgEl(key) { return '<svg viewBox="0 0 24 24">' + (ICONS[key] || ICONS.dot) + '</svg>'; }
 
+// ---- Initialization ----
+// Set up event listeners for mouse, touch, keyboard, and drag-and-drop interactions on the canvas and window.
 export function init(boardCanvas, changeCb) {
   canvas = boardCanvas;
   onChange = changeCb || (() => {});
@@ -102,13 +104,13 @@ export function init(boardCanvas, changeCb) {
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('paste', onPaste);
 
-  // Tactile.
+  //  Touch events for mobile devices.
   canvas.addEventListener('touchstart', onTouchStart, { passive: false });
   canvas.addEventListener('touchmove', onTouchMove, { passive: false });
   canvas.addEventListener('touchend', onTouchEnd, { passive: false });
   canvas.addEventListener('touchcancel', onTouchEnd, { passive: false });
 
-  // Drag & drop d'images.
+  // Drag-and-drop events for files (images, etc.) onto the canvas.
   canvas.addEventListener('dragover', (e) => { e.preventDefault(); });
   canvas.addEventListener('drop', onDrop);
   window.addEventListener('dragover', (e) => e.preventDefault());
@@ -116,22 +118,22 @@ export function init(boardCanvas, changeCb) {
 
   document.getElementById('editor').addEventListener('blur', commitEdit);
 
-  // Bouton "OK" pour valider/fermer l'édition (sortie fiable au tactile).
+  // Button "OK" to validate/close the edit (reliable exit on touch).
   const done = document.getElementById('editDone');
   done.addEventListener('mousedown', (e) => { e.preventDefault(); commitEdit(); });
   done.addEventListener('touchstart', (e) => { e.preventDefault(); commitEdit(); });
 
-  // Fermeture de la popup image.
+  // Closing the image popup.
   const pop = document.getElementById('imgpopup');
   pop.addEventListener('mousedown', closeImagePopup);
   pop.addEventListener('touchstart', (e) => { e.preventDefault(); closeImagePopup(); });
 
-  // Le sélecteur de board ne se ferme pas quand on clique dedans.
+  // The board picker doesn't close when clicking inside it.
   const bp = document.getElementById('boardpicker');
   bp.addEventListener('mousedown', (e) => e.stopPropagation());
   bp.addEventListener('touchstart', (e) => e.stopPropagation());
 
-  // Barre d'URL : cliquer dessus suit le lien focalisé.
+  // URL bar : clicking it follows the focused link.
   const lb = document.getElementById('linkbar');
   const followBar = (e) => { e.stopPropagation(); e.preventDefault(); if (linkFocus) { const u = linkFocus.url; clearLinkFocus(); followLink(u); } };
   lb.addEventListener('mousedown', followBar);
@@ -149,6 +151,7 @@ function hitRect(w) {
   return null;
 }
 
+// ---- Hit testing for circles ----
 function hitCircle(w) {
   const tol = RESIZE_TOL / state.camera.zoom;
   for (let i = state.circles.length - 1; i >= 0; i--) {
@@ -160,6 +163,7 @@ function hitCircle(w) {
   return null;
 }
 
+// --- Hit testing for hexagons (pointy-top) ---
 function hitHexagon(w) {
   const tol = RESIZE_TOL / state.camera.zoom;
   for (let i = state.hexagons.length - 1; i >= 0; i--) {
