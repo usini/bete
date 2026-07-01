@@ -58,6 +58,17 @@ const boards = new Map();
 // que le serveur tourne. (Pas de persistance disque : binaire transitoire.)
 const audioMem = new Map();
 
+// Cache mémoire des images (hash -> message imgRes), même principe que l'audio :
+// une image ne transite qu'une fois, puis le serveur la ressert aux arrivants.
+// Bornage : on garde au plus IMG_MAX images (éviction FIFO) pour ne pas gonfler la RAM.
+const imgMem = new Map();
+const IMG_MAX = 400;
+function cacheImg(hash, msg) {
+  if (imgMem.has(hash)) imgMem.delete(hash);
+  imgMem.set(hash, msg);
+  while (imgMem.size > IMG_MAX) imgMem.delete(imgMem.keys().next().value);
+}
+
 function fromExport(obj) {
   const n = {}, c = {}, h = {}, m = {}; const t = now();
   for (const nd of obj.nodes || []) {
@@ -189,6 +200,16 @@ function handleData(id, b, msg, origin) {
     return;
   } else if (msg.type === 'audioRes') {
     if (msg.buf) audioMem.set(msg.id, msg); // cache + renvoi tel quel
+    for (const c of b.conns) if (c !== origin && c.open) { try { c.send(msg); } catch (e) { /* */ } }
+    return;
+  } else if (msg.type === 'imgReq') {
+    // Image demandée par hash : on ressert depuis le cache, sinon on relaie aux autres.
+    const cached = imgMem.get(msg.hash);
+    if (cached) { try { if (origin.open) origin.send(cached); } catch (e) { /* */ } }
+    else for (const c of b.conns) if (c !== origin && c.open) { try { c.send(msg); } catch (e) { /* */ } }
+    return;
+  } else if (msg.type === 'imgRes') {
+    if (msg.buf) cacheImg(msg.hash, msg); // cache borné + renvoi tel quel
     for (const c of b.conns) if (c !== origin && c.open) { try { c.send(msg); } catch (e) { /* */ } }
     return;
   } else if (msg.type === 'hello') {

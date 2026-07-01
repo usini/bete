@@ -3,18 +3,19 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr263t0f';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr263t0f';
-import { dragTo, reset } from './physics.js?v=mr263t0f';
-import { pointInHex } from './geom.js?v=mr263t0f';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR, reportCursor } from './sync.js?v=mr263t0f';
-import { explodeElementCascade } from './fx.js?v=mr263t0f';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr263t0f';
-import { openSettings } from './settings.js?v=mr263t0f';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr263t0f';
-import { toggleDebug } from './debug.js?v=mr263t0f';
-import { youTubeId } from './yt.js?v=mr263t0f';
-import { setActiveVideo } from './video.js?v=mr263t0f';
+} from './state.js?v=mr26jq6l';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr26jq6l';
+import { dragTo, reset } from './physics.js?v=mr26jq6l';
+import { pointInHex } from './geom.js?v=mr26jq6l';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr26jq6l';
+import { storeImage, resolveSrc } from './images.js?v=mr26jq6l';
+import { explodeElementCascade } from './fx.js?v=mr26jq6l';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr26jq6l';
+import { openSettings } from './settings.js?v=mr26jq6l';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr26jq6l';
+import { toggleDebug } from './debug.js?v=mr26jq6l';
+import { youTubeId } from './yt.js?v=mr26jq6l';
+import { setActiveVideo } from './video.js?v=mr26jq6l';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -496,18 +497,24 @@ function onDrop(e) {
   if (target && target.ref) target = sourceOf(target);
 
   processImage(file, (src, ratio) => {
-    if (target) {
-      target.image = src;
-      state.selected = target.id;
-    } else {
+    let node;
+    if (target) { node = target; }
+    else {
       const { w: nw, h: nh } = imageRectSize(ratio);
-      const n = addRect(w.x - nw / 2, w.y - nh / 2, '');
-      n.w = nw; n.h = nh; n.image = src;
-      reset(n);
-      state.selected = n.id;
+      node = addRect(w.x - nw / 2, w.y - nh / 2, '');
+      node.w = nw; node.h = nh; reset(node);
     }
-    scheduleSave();
+    state.selected = node.id;
+    setNodeImage(node, src);
   });
+}
+
+// Range l'image en IndexedDB (réf 'idb:<hash>') puis la partage aux pairs.
+// Repli sur la data URL brute si IndexedDB échoue (rare).
+function setNodeImage(node, dataUrl) {
+  storeImage(dataUrl).then((ref) => {
+    node.image = ref; scheduleSave(); shareImage(ref);
+  }).catch(() => { node.image = dataUrl; scheduleSave(); });
 }
 
 // Dimensions d'un rectangle-image : aire ~ constante, ratio = celui de l'image.
@@ -525,10 +532,9 @@ function spawnImageRect(file, wx, wy) {
   processImage(file, (src, ratio) => {
     const { w: nw, h: nh } = imageRectSize(ratio);
     const n = addRect(wx - nw / 2, wy - nh / 2, '');
-    n.w = nw; n.h = nh; n.image = src;
-    reset(n);
+    n.w = nw; n.h = nh; reset(n);
     state.selected = n.id;
-    scheduleSave();
+    setNodeImage(n, src);
   });
 }
 
@@ -1035,11 +1041,11 @@ function createBoardLink(targetId, name, peerOverride) {
 }
 
 // ---- Popup image ----
-function openImagePopup(src) {
+function openImagePopup(ref) {
   closeMenus();
   const pop = document.getElementById('imgpopup');
-  pop.querySelector('img').src = src;
   pop.classList.add('show');
+  resolveSrc(ref).then((src) => { if (src) pop.querySelector('img').src = src; });
 }
 function closeImagePopup() {
   document.getElementById('imgpopup').classList.remove('show');

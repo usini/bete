@@ -2,11 +2,12 @@
 // On ne synchronise QUE le contenu (texte, image, couleur, description, liens,
 // création/suppression) : ni la caméra, ni les positions/tailles. Chaque écran
 // garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr263t0f';
-import { reset } from './physics.js?v=mr263t0f';
-import { explodeElementCascade } from './fx.js?v=mr263t0f';
-import { putAudio, getAudio, delAudio } from './audio.js?v=mr263t0f';
-import { getUserId, displayName } from './users.js?v=mr263t0f';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr26jq6l';
+import { reset } from './physics.js?v=mr26jq6l';
+import { explodeElementCascade } from './fx.js?v=mr26jq6l';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr26jq6l';
+import { onImageArrived } from './images.js?v=mr26jq6l';
+import { getUserId, displayName } from './users.js?v=mr26jq6l';
 
 let clientRoster = []; // côté client : liste des utilisateurs reçue de l'hôte
 let lastHostMsg = 0;   // côté client : horodatage du dernier message reçu de l'hôte
@@ -213,7 +214,10 @@ function nodeEntry(n) {
   if (n.link) e.lk = n.link;
   return e;
 }
-function sigNode(e) { return e.vc ? 'V' + e.dur : (e.ref !== undefined ? 'R' + e.ref : 'T' + e.t + '|' + (e.img ? e.img.length : 0) + '|' + (e.lk || '')); }
+// Pour l'image : la réf 'idb:<hash>' est courte et change avec le contenu -> on la met
+// telle quelle ; une data URL héritée (longue) est réduite à sa longueur (proxy de taille).
+function imgSig(img) { return img ? (img.length < 128 ? img : img.length) : 0; }
+function sigNode(e) { return e.vc ? 'V' + e.dur : (e.ref !== undefined ? 'R' + e.ref : 'T' + e.t + '|' + imgSig(e.img) + '|' + (e.lk || '')); }
 function sigZone(e) { return 'Z' + e.col + '' + e.d; }
 
 function buildContent() {
@@ -321,6 +325,7 @@ function merge(remote) {
       if (rd.lk) node.link = rd.lk;
       state.nodes.push(node); reset(node);
       if (rd.vc) ensureAudio(node); // récupère l'audio auprès des pairs
+      if (node.image) ensureImage(node.image); // récupère l'image auprès des pairs
       mtimes[id] = (remote.mt && remote.mt[id]) || now();
       applied.add(id); changed = true;
     } else if (win(id)) {
@@ -328,7 +333,7 @@ function merge(remote) {
       else {
         if ((ex.text || '') !== (rd.t || '')) { ex.text = rd.t || ''; changed = true; }
         const img = rd.img || undefined;
-        if ((ex.image || undefined) !== img) { if (img) ex.image = img; else delete ex.image; changed = true; }
+        if ((ex.image || undefined) !== img) { if (img) { ex.image = img; ensureImage(img); } else delete ex.image; changed = true; }
         const lk = rd.lk || undefined;
         if ((ex.link || undefined) !== lk) { if (lk) ex.link = lk; else delete ex.link; changed = true; }
       }
@@ -412,6 +417,20 @@ function handleData(msg, origin) {
     }
     if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); }); // relai vers les autres clients
     return;
+  } else if (msg.type === 'imgReq') {
+    // Image demandée par son hash : on répond si on l'a, sinon le host relaie.
+    getImage(msg.hash).then((blob) => {
+      if (blob) blob.arrayBuffer().then((buf) => sendTo(origin, { type: 'imgRes', hash: msg.hash, mime: blob.type, buf }));
+      else if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); });
+    }).catch(() => {});
+    return;
+  } else if (msg.type === 'imgRes') {
+    if (msg.buf) {
+      const blob = new Blob([msg.buf], { type: msg.mime || 'image/png' });
+      putImage(msg.hash, blob).then(() => onImageArrived(msg.hash, blob)).catch(() => {});
+    }
+    if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); }); // relai vers les autres clients
+    return;
   } else if (msg.type === 'hello') {
     if (origin) { origin._uid = msg.uid; origin._name = msg.name; origin._peerId = msg.peerId; origin._voice = msg.voice; }
     broadcastPresence(); // hôte : met à jour la liste pour tout le monde
@@ -450,6 +469,25 @@ export function requestAudio(id) {
   conns.forEach((c) => sendTo(c, { type: 'audioReq', id }));
 }
 
+// ---- Partage des images (blob binaire sur la DataChannel, comme l'audio) ----
+// Diffuse une image fraîchement ajoutée à tous les pairs (à partir de sa réf 'idb:<hash>').
+export function shareImage(ref) {
+  if (!conns.length || !ref || ref.indexOf('idb:') !== 0) return;
+  const hash = ref.slice(4);
+  getImage(hash).then((blob) => {
+    if (!blob) return;
+    blob.arrayBuffer().then((buf) => {
+      conns.forEach((c) => sendTo(c, { type: 'imgRes', hash, mime: blob.type, buf }));
+    });
+  }).catch(() => {});
+}
+
+// Demande une image aux pairs par son hash (appelé par images.js si absente localement).
+export function requestImage(hash) {
+  if (!conns.length || !hash) return;
+  conns.forEach((c) => sendTo(c, { type: 'imgReq', hash }));
+}
+
 // À la réception d'un mémo distant : récupère l'audio si absent localement.
 function ensureAudio(node) {
   getAudio(node.id).then((blob) => {
@@ -457,6 +495,13 @@ function ensureAudio(node) {
     node._missing = true;
     requestAudio(node.id);
   }).catch(() => {});
+}
+
+// À la réception d'un bloc-image distant : récupère l'image si absente localement.
+function ensureImage(ref) {
+  if (!ref || ref.indexOf('idb:') !== 0) return; // data URL héritée : rien à récupérer
+  const hash = ref.slice(4);
+  getImage(hash).then((blob) => { if (!blob) requestImage(hash); }).catch(() => {});
 }
 
 // Position déposée : on met à jour la cible (le ressort anime côté node).

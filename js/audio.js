@@ -1,15 +1,23 @@
-// IndexedDB is used to store audio blobs (voice memos) because localStorage is not suitable for large binary data.
-// The audio blobs are indexed by their block ID, while the state/board only stores a reference (ID + duration).
+// IndexedDB is used to store binary blobs (voice memos AND images) because localStorage
+// is not suitable for large binary data. Audio is indexed by block ID ; images are indexed
+// by their content hash (so an identical image is stored once and referenced by 'idb:<hash>').
+// The state/board only stores a small reference, never the bytes.
 const DB_NAME = 'todomappa';
 const STORE = 'audio';
+const IMG_STORE = 'images';
 let _db = null;
 
-// Open the IndexedDB database (or return the existing connection).
+// Open the IndexedDB database (or return the existing connection). Version 2 adds the
+// 'images' store (created on upgrade for existing users who were on version 1).
 function db() {
   if (_db) return Promise.resolve(_db);
   return new Promise((res, rej) => {
-    const r = indexedDB.open(DB_NAME, 1);
-    r.onupgradeneeded = () => { const d = r.result; if (!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE); };
+    const r = indexedDB.open(DB_NAME, 2);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      if (!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE);
+      if (!d.objectStoreNames.contains(IMG_STORE)) d.createObjectStore(IMG_STORE);
+    };
     r.onsuccess = () => { _db = r.result; res(_db); };
     r.onerror = () => rej(r.error);
   });
@@ -45,5 +53,26 @@ export async function delAudio(id) {
     tx.objectStore(STORE).delete(id);
     tx.oncomplete = () => res();
     tx.onerror = () => res();
+  });
+}
+
+// ---- Images (indexed by content hash) ----
+export async function putImage(hash, blob) {
+  const d = await db();
+  return new Promise((res, rej) => {
+    const tx = d.transaction(IMG_STORE, 'readwrite');
+    tx.objectStore(IMG_STORE).put(blob, hash);
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  });
+}
+
+export async function getImage(hash) {
+  const d = await db();
+  return new Promise((res, rej) => {
+    const tx = d.transaction(IMG_STORE, 'readonly');
+    const rq = tx.objectStore(IMG_STORE).get(hash);
+    rq.onsuccess = () => res(rq.result || null);
+    rq.onerror = () => rej(rq.error);
   });
 }

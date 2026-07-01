@@ -1,23 +1,20 @@
 // Rendu du board : grille pixel, cercles, hexagones, rectangles, glow néon, sélection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr263t0f';
-import { view, worldToScreen } from './camera.js?v=mr263t0f';
-import { stretch } from './physics.js?v=mr263t0f';
-import { hexCorners } from './geom.js?v=mr263t0f';
-import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr263t0f';
-import { fmtDur } from './voice.js?v=mr263t0f';
-import { getCursors, getPresence } from './sync.js?v=mr263t0f';
-import { youTubeId, ytThumb } from './yt.js?v=mr263t0f';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr26jq6l';
+import { view, worldToScreen } from './camera.js?v=mr26jq6l';
+import { stretch } from './physics.js?v=mr26jq6l';
+import { hexCorners } from './geom.js?v=mr26jq6l';
+import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr26jq6l';
+import { fmtDur } from './voice.js?v=mr26jq6l';
+import { getCursors, getPresence } from './sync.js?v=mr26jq6l';
+import { youTubeId, ytThumb } from './yt.js?v=mr26jq6l';
+import { getImageEl } from './images.js?v=mr26jq6l';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
 
-// Cache des images (data URL -> HTMLImageElement) pour ne pas recréer chaque frame.
-const imgCache = new Map();
-function getImg(src) {
-  let img = imgCache.get(src);
-  if (!img) { img = new Image(); img.src = src; imgCache.set(src, img); }
-  return img;
-}
+// Élément <img> pour une source de rendu. Délègue à images.js qui gère les data URL
+// héritées, les URL http (miniatures YouTube) et les réf 'idb:<hash>' (IndexedDB + pairs).
+function getImg(src) { return getImageEl(src); }
 
 export function render(ctx) {
   const { zoom } = state.camera;

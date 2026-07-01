@@ -1,10 +1,13 @@
 // Export / Import JSON.
-import { serialize, load, getBoardId } from './state.js?v=mr263t0f';
-import { reset } from './physics.js?v=mr263t0f';
-import { state } from './state.js?v=mr263t0f';
+import { serialize, load, getBoardId, scheduleSave } from './state.js?v=mr26jq6l';
+import { reset } from './physics.js?v=mr26jq6l';
+import { state } from './state.js?v=mr26jq6l';
+import { inlineImages, migrateImages } from './images.js?v=mr26jq6l';
 
-export function exportJSON() {
-  const data = JSON.stringify(serialize(), null, 2);
+export async function exportJSON() {
+  const snap = serialize();          // objets neufs (mutation sûre)
+  await inlineImages(snap.nodes);    // ré-inline les images IndexedDB -> fichier auto-contenu
+  const data = JSON.stringify(snap, null, 2);
   const blob = new Blob([data], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -30,6 +33,8 @@ export function importJSON(onDone) {
         if (load(obj)) {
           // Réinitialise la physique pour les éléments importés.
           state.nodes.forEach(reset);
+          // Ré-offload les images inline (data URL) vers IndexedDB (réf 'idb:<hash>').
+          migrateImages(state.nodes, scheduleSave).catch(() => {});
           if (onDone) onDone();
         }
       } catch (e) {

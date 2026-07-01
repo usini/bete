@@ -1,19 +1,20 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr263t0f';
-import { setView } from './camera.js?v=mr263t0f';
-import { render } from './render.js?v=mr263t0f';
-import { step, reset } from './physics.js?v=mr263t0f';
-import * as minimap from './minimap.js?v=mr263t0f';
-import * as input from './input.js?v=mr263t0f';
-import * as fx from './fx.js?v=mr263t0f';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mr263t0f';
-import { recordBoard, getBoardEntry } from './boards.js?v=mr263t0f';
-import { TUTORIAL } from './tutorial.js?v=mr263t0f';
-import { applyTheme } from './theme.js?v=mr263t0f';
-import { initSettings, openSettings } from './settings.js?v=mr263t0f';
-import { recordLiaison, getLiaison } from './liaisons.js?v=mr263t0f';
-import { positionVideoOverlay } from './video.js?v=mr263t0f';
-import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mr263t0f';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr26jq6l';
+import { setView } from './camera.js?v=mr26jq6l';
+import { render } from './render.js?v=mr26jq6l';
+import { step, reset } from './physics.js?v=mr26jq6l';
+import * as minimap from './minimap.js?v=mr26jq6l';
+import * as input from './input.js?v=mr26jq6l';
+import * as fx from './fx.js?v=mr26jq6l';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mr26jq6l';
+import { recordBoard, getBoardEntry } from './boards.js?v=mr26jq6l';
+import { TUTORIAL } from './tutorial.js?v=mr26jq6l';
+import { applyTheme } from './theme.js?v=mr26jq6l';
+import { initSettings, openSettings } from './settings.js?v=mr26jq6l';
+import { recordLiaison, getLiaison } from './liaisons.js?v=mr26jq6l';
+import { positionVideoOverlay } from './video.js?v=mr26jq6l';
+import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mr26jq6l';
+import { migrateImages } from './images.js?v=mr26jq6l';
 
 applyTheme(); // applique le thème enregistré dès le démarrage
 
@@ -104,6 +105,10 @@ if (!REDIRECT) {
   recordBoard(boardId, getBoardName(), (boardId !== 'home' && peerId) || null);
   applyBoardNameUI();
   initUndoBaseline(); // état de référence pour l'annulation
+
+  // Migration douce des images héritées (base64 inline -> réf IndexedDB) : allège le
+  // localStorage ET la synchro. Pas sur le tutoriel (lecture seule). Best-effort en tâche de fond.
+  if (boardId !== 'tutorial') migrateImages(state.nodes, scheduleSave).catch(() => {});
 }
 
 // Résout et applique le nom affiché du board.
