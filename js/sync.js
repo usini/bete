@@ -1,22 +1,22 @@
-// Synchronisation P2P bidirectionnelle via PeerJS (WebRTC).
-// On ne synchronise QUE le contenu (texte, image, couleur, description, liens,
-// création/suppression) : ni la caméra, ni les positions/tailles. Chaque écran
-// garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr2946h3';
-import { reset } from './physics.js?v=mr2946h3';
-import { explodeElementCascade } from './fx.js?v=mr2946h3';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr2946h3';
-import { onImageArrived } from './images.js?v=mr2946h3';
-import { getUserId, displayName } from './users.js?v=mr2946h3';
+// Bidirectional P2P synchronization via PeerJS (WebRTC).
+// We only synchronize the CONTENT (text, image, color, description, links,
+// creation/deletion): neither the camera nor the positions/sizes. Each screen
+// therefore keeps its own view. Merge by id, conflicts resolved with LWW + HOST priority.
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr2lpyvb';
+import { reset } from './physics.js?v=mr2lpyvb';
+import { explodeElementCascade } from './fx.js?v=mr2lpyvb';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr2lpyvb';
+import { onImageArrived } from './images.js?v=mr2lpyvb';
+import { getUserId, displayName } from './users.js?v=mr2lpyvb';
 
-let clientRoster = []; // côté client : liste des utilisateurs reçue de l'hôte
-let lastHostMsg = 0;   // côté client : horodatage du dernier message reçu de l'hôte
-let hostHb = null;     // côté hôte : timer de battement (heartbeat)
-let cursors = {};      // uid -> { name, x, y, t } : curseurs des autres utilisateurs
-let localVoice = false; // notre micro est-il actif (chat vocal) ?
-let incomingCb = null;  // callback pour les appels média entrants (voicechat)
+let clientRoster = []; // client side: list of users received from the host
+let lastHostMsg = 0;   // client side: timestamp of the last message received from the host
+let hostHb = null;     // host side: heartbeat timer
+let cursors = {};      // uid -> { name, x, y, t }: other users' cursors
+let localVoice = false; // is our mic active (voice chat)?
+let incomingCb = null;  // callback for incoming media calls (voicechat)
 
-// Peer PeerJS local courant (hôte ou client) — utilisé pour les appels audio.
+// Current local PeerJS peer (host or client) — used for audio calls.
 export function getPeer() { return mode === 'host' ? hostPeer : clientPeer; }
 export function setLocalVoice(v) { localVoice = !!v; announceName(); }
 export function onIncomingCall(cb) { incomingCb = cb; }
@@ -44,36 +44,36 @@ const loadPeer = () => loadScript(PEERJS_SRC);
 export function buildUrl(id) {
   let u = location.origin + location.pathname + '?peer=' + encodeURIComponent(id);
   const b = getBoardId();
-  if (b) u += '&id=' + encodeURIComponent(b); // le QR ouvre le MÊME board que l'hôte
+  if (b) u += '&id=' + encodeURIComponent(b); // the QR opens the SAME board as the host
   return u;
 }
 
-// ---- État de synchro ----
+// ---- Sync state ----
 let mode = null;          // 'host' | 'client'
-let conns = [];           // connexions data ouvertes
+let conns = [];           // open data connections
 let tickTimer = null;
-let tombstones = new Set(); // ids supprimés (pour propager les suppressions)
-let mtimes = {};            // id -> horodatage de la dernière modif de contenu
-let prevSigs = {};          // id -> signature de contenu au tick précédent
+let tombstones = new Set(); // deleted ids (to propagate deletions)
+let mtimes = {};            // id -> timestamp of the last content change
+let prevSigs = {};          // id -> content signature at the previous tick
 let prevLocalIds = null;
 let clientFirstSync = false;
-let forceFull = false;   // vrai = prochain envoi = board complet (sinon delta)
-let lastDelSig = '';     // signature du nb de tombstones (détecte les suppressions)
-let reelectTries = 0;    // tentatives de reconnexion avant de tenter l'élection d'hôte
+let forceFull = false;   // true = next send is the full board (delta otherwise)
+let lastDelSig = '';     // signature of the tombstone count (detects deletions)
+let reelectTries = 0;    // reconnect attempts before trying a host election
 
-// Vrai si on est connecté en client (ouvert via ?peer=).
+// True if we're connected as a client (opened via ?peer=).
 export function isClient() { return mode === 'client'; }
-// Id de l'hôte (celui auquel on est connecté en client, ou le nôtre si on héberge).
+// Host id (the one we're connected to as a client, or ours if we're hosting).
 export function hostId() { return mode === 'client' ? clientPeerId : (hostPeer && hostPeer.id) || null; }
 
-// État de la liaison pour l'indicateur : { role:'client'|'host'|null, peer }.
+// Liaison state for the indicator: { role:'client'|'host'|null, peer }.
 export function liaisonStatus() {
   if (mode === 'client') return { role: 'client', peer: clientPeerId };
   if (mode === 'host' && hostPeer && hostPeer.id) return { role: 'host', peer: hostPeer.id };
   return { role: null, peer: null };
 }
 
-// ---- Présence (liste des utilisateurs connectés) ----
+// ---- Presence (list of connected users) ----
 export function getPresence() {
   if (mode === 'host') {
     const list = [{ uid: getUserId(), name: displayName(), host: true, me: true, peerId: (hostPeer && hostPeer.id) || null, voice: localVoice }];
@@ -91,7 +91,7 @@ function broadcastPresence() {
   conns.forEach((c) => { try { if (c.open) c.send(payload); } catch (e) { /* */ } });
 }
 
-// ---- Curseurs live (position monde, throttle + envoi à l'arrêt) ----
+// ---- Live cursors (world position, throttled + sent on stop) ----
 let _curT = 0, _curTrail = null;
 function sendCursor(wx, wy) {
   if (!conns.length) return;
@@ -103,30 +103,30 @@ export function reportCursor(wx, wy) {
   if (!conns.length) return;
   const t = now(), dt = t - _curT;
   if (dt >= 150) { _curT = t; if (_curTrail) { clearTimeout(_curTrail); _curTrail = null; } sendCursor(wx, wy); }
-  else { if (_curTrail) clearTimeout(_curTrail); _curTrail = setTimeout(() => { _curT = now(); _curTrail = null; sendCursor(wx, wy); }, 150 - dt); } // envoi final à l'arrêt
+  else { if (_curTrail) clearTimeout(_curTrail); _curTrail = setTimeout(() => { _curT = now(); _curTrail = null; sendCursor(wx, wy); }, 150 - dt); } // final send on stop
 }
-// Curseurs actifs des autres (expirés après 6s sans mise à jour).
+// Other users' active cursors (expire after 6s with no update).
 export function getCursors() {
   const out = [], cutoff = now() - 6000, me = getUserId();
   for (const uid in cursors) { const c = cursors[uid]; if (uid !== me && c.t > cutoff) out.push({ uid, name: c.name, x: c.x, y: c.y }); }
   return out;
 }
 
-// Ré-annonce le nom (après changement dans les Paramètres).
+// Re-announces the name (after a change in Settings).
 export function announceName() {
   if (mode === 'client') { try { conns[0] && conns[0].open && conns[0].send(helloMsg()); } catch (e) { /* */ } }
   else if (mode === 'host') broadcastPresence();
 }
 
-// Déconnecte la liaison : en client on recharge le board en local (sans ?peer),
-// en hôte on coupe l'hébergement.
+// Disconnects the liaison: as a client, reloads the board locally (without ?peer=);
+// as a host, stops hosting.
 export function disconnect() {
   if (mode === 'client') { location.href = location.pathname + '?id=' + encodeURIComponent(getBoardId()); }
   else if (mode === 'host') { stopHost(); }
 }
 
-// ---- Détection du type de liaison (P2P direct vs relais TURN) ----
-let netMode = null; // null=non connecté, 'p2p', 'relay', '?'
+// ---- Liaison type detection (direct P2P vs TURN relay) ----
+let netMode = null; // null=not connected, 'p2p', 'relay', '?'
 export function getNetMode() { return netMode; }
 
 async function modeFromStats(pc) {
@@ -162,21 +162,21 @@ setInterval(refreshNetMode, 4000);
 
 const now = () => Date.now();
 
-// ---- Heartbeat hôte + watchdog client (détection fiable de la chute de l'hôte) ----
+// ---- Host heartbeat + client watchdog (reliable detection of host loss) ----
 function startHostHeartbeat() {
   stopHostHeartbeat();
   hostHb = setInterval(() => { conns.forEach((c) => { try { if (c.open) c.send({ type: 'ping' }); } catch (e) { /* */ } }); }, 3000);
 }
 function stopHostHeartbeat() { if (hostHb) { clearInterval(hostHb); hostHb = null; } }
 
-// Si on est client et qu'on ne reçoit plus rien de l'hôte depuis 8s -> ré-élection.
-// Le client envoie aussi son propre battement pour que l'hôte sache qu'il est vivant.
+// If we're a client and haven't received anything from the host in 8s -> re-election.
+// The client also sends its own heartbeat so the host knows it's alive.
 setInterval(() => {
   if (mode === 'client' && conns[0] && conns[0].open) {
     try { conns[0].send({ type: 'ping' }); } catch (e) { /* */ }
     if (lastHostMsg && (now() - lastHostMsg > 8000) && !clientRetry) scheduleClientRetry();
   }
-  // Hôte : on retire les clients muets depuis > 9s (fermeture d'onglet non signalée).
+  // Host: removes clients silent for > 9s (tab closed without a signal).
   if (mode === 'host' && conns.length) {
     const cutoff = now() - 9000;
     const before = conns.length;
@@ -199,7 +199,7 @@ function resetSyncState() {
   lastDelSig = '';
 }
 
-// ---- Construction du contenu (sans la caméra ; positions = indice de spawn) ----
+// ---- Content construction (no camera; positions = spawn hint) ----
 function localIds() {
   const ids = new Set();
   state.nodes.forEach(n => { if (n.kind !== 'liaison') ids.add(n.id); });
@@ -214,11 +214,11 @@ function nodeEntry(n) {
   if (n.link) e.lk = n.link;
   return e;
 }
-// Pour l'image : la réf 'idb:<hash>' est courte et change avec le contenu -> on la met
-// telle quelle ; une data URL héritée (longue) est réduite à sa longueur (proxy de taille).
+// For the image: the 'idb:<hash>' ref is short and changes with the content -> we
+// use it as-is; a legacy data URL (long) is reduced to its length (size proxy).
 function imgSig(img) { return img ? (img.length < 128 ? img : img.length) : 0; }
 function sigNode(e) { return e.vc ? 'V' + e.dur : (e.ref !== undefined ? 'R' + e.ref : 'T' + e.t + '|' + imgSig(e.img) + '|' + (e.lk || '')); }
-function sigZone(e) { return 'Z' + e.col + '' + e.d; }
+function sigZone(e) { return 'Z' + e.col + '' + e.d; }
 
 function buildContent() {
   const n = {}, c = {}, h = {};
@@ -239,8 +239,8 @@ function sigMap(content) {
   return m;
 }
 
-// ---- Tick : détecte les modifs de contenu et diffuse en DELTA ----
-// seed = true -> le 1er envoi est le board complet (nouvel hôte ou board à semer).
+// ---- Tick: detects content changes and broadcasts in DELTA ----
+// seed = true -> the first send is the full board (new host or board to seed).
 function startTick(seed) {
   stopTick();
   prevLocalIds = localIds();
@@ -253,7 +253,7 @@ function startTick(seed) {
 function stopTick() { if (tickTimer) { clearInterval(tickTimer); tickTimer = null; } }
 
 function tick() {
-  // Détection des suppressions locales (id présent au tick précédent, absent maintenant).
+  // Detects local deletions (id present at the previous tick, absent now).
   const ids = localIds();
   if (prevLocalIds) {
     for (const id of prevLocalIds) {
@@ -270,7 +270,7 @@ function tick() {
 
   const delSig = String(tombstones.size);
   const delChanged = delSig !== lastDelSig;
-  if (!forceFull && !changed.length && !delChanged) return; // rien de neuf (positions ignorées)
+  if (!forceFull && !changed.length && !delChanged) return; // nothing new (positions ignored)
 
   let outN, outC, outH, mtOut;
   if (forceFull) {
@@ -290,7 +290,7 @@ function tick() {
   conns.forEach(c => { try { if (c.open) c.send(payload); } catch (e) { /* */ } });
 }
 
-// ---- Merge d'un payload distant ----
+// ---- Merging a remote payload ----
 function findLocal(id) {
   return state.nodes.find(n => n.id === id) || state.circles.find(c => c.id === id) || state.hexagons.find(h => h.id === id);
 }
@@ -324,8 +324,8 @@ function merge(remote) {
       if (rd.k) node.kind = rd.k;
       if (rd.lk) node.link = rd.lk;
       state.nodes.push(node); reset(node);
-      if (rd.vc) ensureAudio(node); // récupère l'audio auprès des pairs
-      if (node.image) ensureImage(node.image); // récupère l'image auprès des pairs
+      if (rd.vc) ensureAudio(node); // fetches the audio from peers
+      if (node.image) ensureImage(node.image); // fetches the image from peers
       mtimes[id] = (remote.mt && remote.mt[id]) || now();
       applied.add(id); changed = true;
     } else if (win(id)) {
@@ -346,8 +346,8 @@ function merge(remote) {
   changed = mergeZones(state.hexagons, remote.h, remote, win, applied) || changed;
 
   if (changed) {
-    // Met à jour prevSigs UNIQUEMENT pour les ids touchés par le merge,
-    // pour ne pas avaler une éventuelle modif locale non encore envoyée.
+    // Updates prevSigs ONLY for the ids touched by the merge, so we don't
+    // swallow a local change that hasn't been sent yet.
     const sm = sigMap(buildContent());
     applied.forEach(id => { if (sm[id] != null) prevSigs[id] = sm[id]; else delete prevSigs[id]; });
     scheduleSave();
@@ -382,9 +382,9 @@ function handleData(msg, origin) {
     if (mode === 'client' && clientFirstSync) {
       clientFirstSync = false;
       justFirst = true;
-      reelectTries = 0; // sync reçue : la liaison est saine
-      // On n'écrase le board local QUE si le board distant a du contenu.
-      // S'il est vide (board serveur neuf), on garde le local : il sèmera le serveur.
+      reelectTries = 0; // sync received: the liaison is healthy
+      // We only overwrite the local board IF the remote board has content.
+      // If it's empty (fresh server board), we keep the local one: it will seed the server.
       remoteEmpty = !(msg.n && Object.keys(msg.n).length)
         && !(msg.c && Object.keys(msg.c).length)
         && !(msg.h && Object.keys(msg.h).length);
@@ -396,15 +396,15 @@ function handleData(msg, origin) {
       }
     }
     merge(msg);
-    // Le client émet après la 1re synchro. seed = board distant vide -> on envoie
-    // notre board complet pour le semer ; sinon on est déjà à jour -> deltas seuls.
+    // The client emits after the 1st sync. seed = remote board empty -> we send
+    // our full board to seed it; otherwise we're already up to date -> deltas only.
     if (justFirst) startTick(remoteEmpty);
   } else if (msg.type === 'move') {
     applyMove(msg);
   } else if (msg.type === 'delete') {
     applyDelete(msg);
   } else if (msg.type === 'audioReq') {
-    // On a l'audio ? on répond. Sinon, le host relaie la demande aux autres.
+    // Do we have the audio? We answer. Otherwise, the host relays the request to others.
     getAudio(msg.id).then((blob) => {
       if (blob) blob.arrayBuffer().then((buf) => sendTo(origin, { type: 'audioRes', id: msg.id, mime: blob.type, buf }));
       else if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); });
@@ -415,10 +415,10 @@ function handleData(msg, origin) {
       const blob = new Blob([msg.buf], { type: msg.mime || 'audio/webm' });
       putAudio(msg.id, blob).then(() => { const el = findLocal(msg.id); if (el) { el._missing = false; el._loading = false; } }).catch(() => {});
     }
-    if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); }); // relai vers les autres clients
+    if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); }); // relay to other clients
     return;
   } else if (msg.type === 'imgReq') {
-    // Image demandée par son hash : on répond si on l'a, sinon le host relaie.
+    // Image requested by its hash: we answer if we have it, otherwise the host relays it.
     getImage(msg.hash).then((blob) => {
       if (blob) blob.arrayBuffer().then((buf) => sendTo(origin, { type: 'imgRes', hash: msg.hash, mime: blob.type, buf }));
       else if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); });
@@ -429,23 +429,23 @@ function handleData(msg, origin) {
       const blob = new Blob([msg.buf], { type: msg.mime || 'image/png' });
       putImage(msg.hash, blob).then(() => onImageArrived(msg.hash, blob)).catch(() => {});
     }
-    if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); }); // relai vers les autres clients
+    if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); }); // relay to other clients
     return;
   } else if (msg.type === 'hello') {
     if (origin) { origin._uid = msg.uid; origin._name = msg.name; origin._peerId = msg.peerId; origin._voice = msg.voice; }
-    broadcastPresence(); // hôte : met à jour la liste pour tout le monde
+    broadcastPresence(); // host: updates the list for everyone
     return;
   } else if (msg.type === 'presence') {
     clientRoster = Array.isArray(msg.users) ? msg.users : [];
     return;
   } else if (msg.type === 'ping') {
-    return; // battement de l'hôte : sert juste de preuve de vie (cf. lastHostMsg)
+    return; // host heartbeat: just a proof of life (see lastHostMsg)
   } else if (msg.type === 'cursor') {
     if (msg.uid !== getUserId()) cursors[msg.uid] = { name: msg.name, x: msg.x, y: msg.y, t: now() };
-    if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); }); // relai aux autres
+    if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); }); // relay to others
     return;
   }
-  // Le host relaie les événements ponctuels aux autres clients.
+  // The host relays one-off events to the other clients.
   if (mode === 'host' && (msg.type === 'move' || msg.type === 'delete')) {
     conns.forEach((c) => { if (c !== origin) { try { if (c.open) c.send(msg); } catch (e) { /* */ } } });
   }
@@ -453,9 +453,9 @@ function handleData(msg, origin) {
 
 function sendTo(conn, msg) { try { if (conn && conn.open) conn.send(msg); } catch (e) { /* */ } }
 
-// ---- Partage des mémos vocaux (audio binaire sur la DataChannel) ----
-// Diffuse l'audio fraîchement enregistré à tous les pairs (host -> clients,
-// client -> host qui relaie). Appelé par voice.js après l'enregistrement.
+// ---- Voice memo sharing (binary audio over the DataChannel) ----
+// Broadcasts freshly recorded audio to all peers (host -> clients,
+// client -> host which relays). Called by voice.js after recording.
 export function shareAudio(id, blob) {
   if (!conns.length || !blob) return;
   blob.arrayBuffer().then((buf) => {
@@ -463,14 +463,14 @@ export function shareAudio(id, blob) {
   });
 }
 
-// Demande l'audio d'un mémo aux pairs (si on ne l'a pas localement).
+// Requests a memo's audio from peers (if we don't have it locally).
 export function requestAudio(id) {
   if (!conns.length) return;
   conns.forEach((c) => sendTo(c, { type: 'audioReq', id }));
 }
 
-// ---- Partage des images (blob binaire sur la DataChannel, comme l'audio) ----
-// Diffuse une image fraîchement ajoutée à tous les pairs (à partir de sa réf 'idb:<hash>').
+// ---- Image sharing (binary blob over the DataChannel, like audio) ----
+// Broadcasts a freshly added image to all peers (from its 'idb:<hash>' ref).
 export function shareImage(ref) {
   if (!conns.length || !ref || ref.indexOf('idb:') !== 0) return;
   const hash = ref.slice(4);
@@ -482,13 +482,13 @@ export function shareImage(ref) {
   }).catch(() => {});
 }
 
-// Demande une image aux pairs par son hash (appelé par images.js si absente localement).
+// Requests an image from peers by its hash (called by images.js if missing locally).
 export function requestImage(hash) {
   if (!conns.length || !hash) return;
   conns.forEach((c) => sendTo(c, { type: 'imgReq', hash }));
 }
 
-// À la réception d'un mémo distant : récupère l'audio si absent localement.
+// On receiving a remote memo: fetches the audio if missing locally.
 function ensureAudio(node) {
   getAudio(node.id).then((blob) => {
     if (blob) return;
@@ -497,14 +497,14 @@ function ensureAudio(node) {
   }).catch(() => {});
 }
 
-// À la réception d'un bloc-image distant : récupère l'image si absente localement.
+// On receiving a remote image block: fetches the image if missing locally.
 function ensureImage(ref) {
-  if (!ref || ref.indexOf('idb:') !== 0) return; // data URL héritée : rien à récupérer
+  if (!ref || ref.indexOf('idb:') !== 0) return; // legacy data URL: nothing to fetch
   const hash = ref.slice(4);
   getImage(hash).then((blob) => { if (!blob) requestImage(hash); }).catch(() => {});
 }
 
-// Position déposée : on met à jour la cible (le ressort anime côté node).
+// Position dropped: updates the target (the spring animates it on the node side).
 function applyMove(msg) {
   const el = findLocal(msg.id);
   if (!el) return;
@@ -522,7 +522,7 @@ function applyDelete(msg) {
   if (el) { if (el.kind === 'voice') delAudio(el.id); explodeElementCascade(el); removeById(msg.id); delete mtimes[msg.id]; delete prevSigs[msg.id]; scheduleSave(); }
 }
 
-// Appelé au lâcher d'un objet (drop) : diffuse sa position finale.
+// Called on releasing an object (drop): broadcasts its final position.
 export function pushMove(el) {
   if (!conns.length || !el) return;
   const msg = el.r !== undefined
@@ -531,15 +531,15 @@ export function pushMove(el) {
   conns.forEach((c) => { try { if (c.open) c.send(msg); } catch (e) { /* */ } });
 }
 
-// Appelé à la suppression : déclenche l'explosion chez les pairs.
+// Called on deletion: triggers the explosion on peers.
 export function pushDelete(id) {
   if (!conns.length) return;
   conns.forEach((c) => { try { if (c.open) c.send({ type: 'delete', id }); } catch (e) { /* */ } });
 }
 
-// Id de peer stable, persisté : un refresh du host garde le même lien/QR.
-// Long & aléatoire (128 bits) : c'est la clé de la room sur le réseau PeerJS
-// partagé, donc on évite collisions et devinabilité.
+// Stable, persisted peer id: refreshing the host keeps the same link/QR.
+// Long & random (128 bits): it's the room key on the shared PeerJS network,
+// so this avoids collisions and guessability.
 function makeId() {
   try {
     const a = new Uint8Array(16);
@@ -576,7 +576,7 @@ export async function startHost(node) {
     await Promise.all([loadPeer(), loadQR()]);
   } catch (e) {
     node.status = 'error';
-    console.warn('Bete : chargement PeerJS/QR échoué', e);
+    console.warn('Bete: failed to load PeerJS/QR', e);
     return;
   }
   idRetries = 0;
@@ -595,28 +595,28 @@ function openHostPeer(id) {
     startHostHeartbeat();
   });
   peer.on('disconnected', () => {
-    // Perte de la liaison au broker : on garde le même id et on retente.
-    if (hostNode) hostNode.status = 'reconnexion';
+    // Lost the connection to the broker: keep the same id and retry.
+    if (hostNode) hostNode.status = 'reconnecting';
     try { if (hostPeer && !hostPeer.destroyed) hostPeer.reconnect(); } catch (e) { /* */ }
   });
   peer.on('error', (err) => {
     if (err && err.type === 'unavailable-id') {
-      // Id encore occupé (refresh trop rapide / autre onglet) : on retente le
-      // même quelques fois, puis on bascule sur un nouvel id en dernier recours.
+      // Id still taken (refreshed too fast / another tab): retry the same
+      // one a few times, then fall back to a new id as a last resort.
       try { peer.destroy(); } catch (e) { /* */ }
       const next = idRetries < 3 ? (idRetries++, id) : rotateStableId();
       setTimeout(() => { if (mode === 'host') openHostPeer(next); }, idRetries ? 1500 : 300);
       return;
     }
     if (hostNode) hostNode.status = 'error';
-    console.warn('Bete : erreur peer (host)', err);
+    console.warn('Bete: peer error (host)', err);
   });
   peer.on('connection', (conn) => {
     conn._lastSeen = now();
     conns.push(conn);
     if (hostNode) hostNode.status = 'connected';
     conn.on('open', () => {
-      const content = buildContent(); // état courant envoyé immédiatement au nouveau venu
+      const content = buildContent(); // current state sent immediately to the newcomer
       try { conn.send({ type: 'sync', from: 'host', n: content.n, c: content.c, h: content.h, mt: { ...mtimes }, del: [...tombstones] }); } catch (e) { /* */ }
     });
     conn.on('data', (msg) => { conn._lastSeen = now(); handleData(msg, conn); });
@@ -635,27 +635,27 @@ export function stopHost() {
   if (hostPeer) { try { hostPeer.destroy(); } catch (e) { /* */ } hostPeer = null; }
 }
 
-// Réutilise le peer hôte déjà ouvert (bloc liaison supprimé puis recréé) plutôt
-// que d'en recréer un : éviter le churn d'id au broker (qui causait un long
-// "reconnexion" + une rotation indésirable de l'id stable). Renvoie false s'il
-// n'y a pas de peer hôte vivant à adopter (→ il faudra startHost).
+// Reuses the already-open host peer (liaison block deleted then recreated)
+// instead of creating a new one: avoids id churn on the broker (which used
+// to cause a long "reconnecting" state + an unwanted rotation of the stable
+// id). Returns false if there's no live host peer to adopt (-> startHost is needed).
 export function adoptHost(node) {
   if (mode !== 'host' || !hostPeer || hostPeer.destroyed) return false;
   hostNode = node;
   if (hostPeer.open && hostPeer.id) {
     node.peerId = hostPeer.id; node.code = hostPeer.id; node.url = buildUrl(hostPeer.id); node.status = 'online';
   } else {
-    node.status = 'init'; // encore en cours d'ouverture : l'event 'open' remplira le nœud
+    node.status = 'init'; // still opening: the 'open' event will fill in the node
   }
   return true;
 }
 
-// Détache le bloc liaison sans couper l'hébergement (peer + synchro restent
-// vivants pour la session), afin qu'une recréation soit instantanée.
+// Detaches the liaison block without stopping the hosting (peer + sync stay
+// alive for the session), so a recreation is instant.
 export function detachHost() { hostNode = null; }
 
-// Régénère un nouvel id (l'ancien lien/QR devient invalide) sans perdre le board.
-// Utile si l'URL a fuité. Les clients déjà connectés sur l'ancien id sont coupés.
+// Regenerates a new id (the old link/QR becomes invalid) without losing the board.
+// Useful if the URL leaked. Clients already connected on the old id are dropped.
 export function refreshHostId(node) {
   if (mode !== 'host' || !node) return;
   hostNode = node;
@@ -670,7 +670,7 @@ export function refreshHostId(node) {
   openHostPeer(rotateStableId());
 }
 
-// Libère l'id au broker quand on ferme/rafraîchit (pour le récupérer ensuite).
+// Releases the id at the broker when closing/refreshing (to reclaim it afterwards).
 window.addEventListener('beforeunload', () => { if (hostPeer) { try { hostPeer.destroy(); } catch (e) { /* */ } } });
 
 // ---- CLIENT ----
@@ -692,7 +692,7 @@ export async function joinHost(peerId, onStatus) {
 
   peer.on('open', () => connectToHost());
   peer.on('disconnected', () => { try { if (clientPeer && !clientPeer.destroyed) clientPeer.reconnect(); } catch (e) { /* */ } });
-  peer.on('error', (err) => { console.warn('Bete : erreur peer (client)', err); scheduleClientRetry(); });
+  peer.on('error', (err) => { console.warn('Bete: peer error (client)', err); scheduleClientRetry(); });
 }
 
 function connectToHost() {
@@ -701,10 +701,10 @@ function connectToHost() {
   conns = [conn];
   clientRoster = [];
   lastHostMsg = now();
-  // Le tick (émission) ne démarre qu'après la 1re synchro reçue (cf. handleData).
+  // The tick (emission) only starts after the 1st sync is received (see handleData).
   conn.on('open', () => { lastHostMsg = now(); clientStatus && clientStatus('connected'); try { conn.send(helloMsg()); } catch (e) { /* */ } });
   conn.on('data', (msg) => {
-    lastHostMsg = now(); // tout message (dont ping) prouve que l'hôte est vivant
+    lastHostMsg = now(); // any message (including ping) proves the host is alive
     const wasFirst = clientFirstSync && msg && msg.type === 'sync';
     handleData(msg);
     if (wasFirst) clientStatus && clientStatus('synced');
@@ -713,9 +713,9 @@ function connectToHost() {
   conn.on('error', () => scheduleClientRetry());
 }
 
-// Élection d'hôte : à l'ouverture d'un ?peer=, on tente d'abord de DEVENIR l'hôte
-// en revendiquant cet id. Si l'id est déjà pris (un hôte existe), on bascule client.
-// => le premier arrivé sur une liaison sans hôte prend le rôle.
+// Host election: when opening a ?peer=, we first try to BECOME the host by
+// claiming that id. If the id is already taken (a host exists), we switch to client.
+// => the first one to arrive on a hostless liaison takes the role.
 export async function joinOrHost(peerId, onStatus) {
   clientPeerId = peerId;
   clientStatus = onStatus;
@@ -730,7 +730,7 @@ export async function joinOrHost(peerId, onStatus) {
     hostPeer = probe;
     hostNode = null;
     wireHostPeer(probe);
-    startTick(true); // on diffuse notre board complet (devient la référence de la liaison)
+    startTick(true); // broadcasts our full board (becomes the liaison's reference)
     startHostHeartbeat();
     reelectTries = 0;
     onStatus && onStatus('host');
@@ -738,18 +738,18 @@ export async function joinOrHost(peerId, onStatus) {
   probe.on('error', (err) => {
     const t = err && err.type;
     if (settled) return;
-    if (t === 'unavailable-id') { // un hôte tient déjà l'id -> on rejoint en client
+    if (t === 'unavailable-id') { // a host already holds the id -> we join as a client
       settled = true;
       try { probe.destroy(); } catch (e) { /* */ }
       joinHost(peerId, onStatus);
     } else {
-      console.warn('Bete : erreur élection hôte', err);
+      console.warn('Bete: host election error', err);
     }
   });
   probe.on('disconnected', () => { try { if (probe === hostPeer && !probe.destroyed) probe.reconnect(); } catch (e) { /* */ } });
 }
 
-// Branche les connexions entrantes sur un peer hôte (sans rotation d'id).
+// Wires incoming connections onto a host peer (without rotating the id).
 function wireHostPeer(peer) {
   peer.on('connection', (conn) => {
     conn._lastSeen = now();
@@ -764,19 +764,19 @@ function wireHostPeer(peer) {
   });
 }
 
-// Reconnexion automatique du client si le host tombe (erreur réseau / refresh).
+// Automatic client reconnection if the host goes down (network error / refresh).
 function scheduleClientRetry() {
   if (mode !== 'client' || clientRetry) return;
   clientStatus && clientStatus('reconnecting');
   clientRetry = setTimeout(() => {
     clientRetry = null;
-    clientFirstSync = true; // on ré-adoptera l'état du nouvel host
+    clientFirstSync = true; // will re-adopt the new host's state
     stopTick();
     clientRoster = [];
     try { if (clientPeer && !clientPeer.destroyed) clientPeer.destroy(); } catch (e) { /* */ }
     clientPeer = null;
-    // On privilégie une simple RECONNEXION client (l'hôte redémarre peut-être) ;
-    // on ne tente l'ÉLECTION d'hôte qu'après plusieurs échecs (évite de voler l'id du Pi).
+    // We prefer a simple client RECONNECT (the host might just be restarting);
+    // we only attempt a host ELECTION after several failures (avoids stealing the Pi's id).
     reelectTries++;
     if (reelectTries <= 3) joinHost(clientPeerId, clientStatus);
     else joinOrHost(clientPeerId, clientStatus);

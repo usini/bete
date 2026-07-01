@@ -1,21 +1,21 @@
-// Modèle de données partagé + persistance localStorage.
-import { pointInHex } from './geom.js?v=mr2946h3';
+// Shared data model + localStorage persistence.
+import { pointInHex } from './geom.js?v=mr2lpyvb';
 
 export const DEFAULT_GREEN = '#39ff14';
 
-// Presets de couleur (vert fluo + accents type Xbox).
+// Color presets (neon green + Xbox-style accents).
 export const COLORS = [
-  '#39ff14', // vert nucléaire
-  '#107c10', // vert Xbox
+  '#39ff14', // nuclear green
+  '#107c10', // Xbox green
   '#00b7eb', // cyan
   '#e3008c', // magenta
   '#ff8c00', // orange
-  '#9b30ff', // violet
-  '#ffd400', // jaune
-  '#f2f2f2', // blanc cassé
+  '#9b30ff', // purple
+  '#ffd400', // yellow
+  '#f2f2f2', // off-white
 ];
 
-// Clé de stockage par board (multi-boards). 'home' = page perso par défaut.
+// Storage key per board (multi-boards). 'home' = default personal page.
 let _boardId = 'home';
 let _boardName = '';
 let storageKey = 'bete:home';
@@ -24,22 +24,22 @@ export function getBoardId() { return _boardId; }
 export function setBoardName(n) { _boardName = n || ''; }
 export function getBoardName() { return _boardName; }
 
-// État vivant de l'app. Les champs préfixés par _ ne sont jamais sérialisés.
+// Live app state. Fields prefixed with _ are never serialized.
 export const state = {
   version: 1,
   camera: { x: 0, y: 0, zoom: 1 },
-  // rectangles : { id, x, y, w, h, text, image } -- ou lien : { id, x, y, w, h, ref }
+  // rectangles: { id, x, y, w, h, text, image } -- or link: { id, x, y, w, h, ref }
   nodes: [],
-  circles: [],  // cercles   : { id, x, y, r, color, description }
-  hexagons: [], // hexagones : { id, x, y, r, color, description }
-  selected: null, // id sélectionné (rect, cercle ou hexagone)
-  selectedIds: [], // sélection multiple (ids de rectangles) pour déplacer/effacer en groupe
+  circles: [],  // circles  : { id, x, y, r, color, description }
+  hexagons: [], // hexagons : { id, x, y, r, color, description }
+  selected: null, // selected id (rect, circle or hexagon)
+  selectedIds: [], // multi-selection (rectangle ids) to move/delete as a group
 };
 
 let _id = 1;
 export function newId() { return 'n' + (_id++).toString(36) + Date.now().toString(36); }
 
-// ---- Création d'éléments ----
+// ---- Element creation ----
 export function addRect(wx, wy, text = '') {
   const n = { id: newId(), x: wx, y: wy, w: 150, h: 70, text };
   state.nodes.push(n);
@@ -66,7 +66,7 @@ export function findById(id) {
 }
 
 export function removeById(id) {
-  // Supprime l'élément + tout lien qui pointait vers lui (cascade).
+  // Removes the element + any link pointing to it (cascade).
   state.nodes = state.nodes.filter(n => n.id !== id && n.ref !== id);
   state.circles = state.circles.filter(c => c.id !== id);
   state.hexagons = state.hexagons.filter(h => h.id !== id);
@@ -74,8 +74,8 @@ export function removeById(id) {
   if (state.selectedIds.length) state.selectedIds = state.selectedIds.filter(x => x !== id);
 }
 
-// ---- Liens (rectangles dans un hexagone) ----
-// La source d'un lien est toujours un vrai rectangle (jamais un autre lien).
+// ---- Links (rectangles inside a hexagon) ----
+// A link's source is always a real rectangle (never another link).
 export function sourceOf(node) {
   if (!node.ref) return null;
   return state.nodes.find(n => n.id === node.ref && !n.ref) || null;
@@ -93,9 +93,9 @@ export function displayLink(node) {
   return node.link;
 }
 
-// ---- Couleur effective d'un rectangle ----
-// Lien : couleur de sa source (donc du cercle source). Sinon : couleur du dernier
-// cercle/hexagone (z-order) qui contient son centre.
+// ---- Effective color of a rectangle ----
+// Link: color of its source (hence of the source's circle). Otherwise: color of
+// the last circle/hexagon (z-order) containing its center.
 export function effectiveColor(node) {
   if (node.ref) {
     const src = sourceOf(node);
@@ -114,17 +114,17 @@ export function effectiveColor(node) {
   return color;
 }
 
-// ---- Sérialisation ----
+// ---- Serialization ----
 export function serialize() {
   return {
     version: state.version,
     name: _boardName || undefined,
     camera: { ...state.camera },
     nodes: state.nodes
-      .filter(n => n.kind !== 'liaison') // blocs de liaison = transitoires
+      .filter(n => n.kind !== 'liaison') // liaison blocks are transient
       .map(n => {
         if (n.ref) return { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, ref: n.ref };
-        if (n.kind === 'voice') return { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, kind: 'voice', dur: n.dur || 0 }; // audio en IndexedDB
+        if (n.kind === 'voice') return { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, kind: 'voice', dur: n.dur || 0 }; // audio in IndexedDB
         return { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, text: n.text, image: n.image || undefined, link: n.link || undefined, kind: n.kind === 'pancarte' ? 'pancarte' : undefined };
       }),
     circles: state.circles.map(c => ({
@@ -143,27 +143,27 @@ export function load(obj) {
   state.nodes = Array.isArray(obj.nodes) ? obj.nodes.map(n => ({ ...n })) : [];
   state.circles = Array.isArray(obj.circles) ? obj.circles.map(c => ({ ...c })) : [];
   state.hexagons = Array.isArray(obj.hexagons) ? obj.hexagons.map(h => ({ ...h })) : [];
-  // Élague les liens orphelins (source disparue).
+  // Prunes orphan links (source gone).
   state.nodes = state.nodes.filter(n => !n.ref || state.nodes.some(m => m.id === n.ref && !m.ref));
   state.selected = null;
   state.selectedIds = [];
-  // Évite les collisions d'ID après import.
+  // Avoids id collisions after import.
   _id = Math.max(1, state.nodes.length + state.circles.length + state.hexagons.length) + (Date.now() % 1000);
   return true;
 }
 
-// ---- Persistance localStorage (throttle) + historique d'annulation ----
+// ---- localStorage persistence (throttled) + undo history ----
 let _saveTimer = null;
 let _saveSuppressed = false;
-// Quand on ouvre un fichier via ?file=, on n'écrase pas le localStorage perso.
+// When opening a file via ?file=, we don't overwrite the personal localStorage.
 export function setSaveSuppressed(v) { _saveSuppressed = v; }
 
-let _undoStack = [];        // états sérialisés précédents (pour annuler)
-let _lastSaved = null;      // dernier état sauvegardé (JSON)
+let _undoStack = [];        // previous serialized states (for undo)
+let _lastSaved = null;      // last saved state (JSON)
 let _applyingUndo = false;
 const UNDO_MAX = 25;
 
-// Définit l'état de référence (après chargement) : la 1re modif sera annulable.
+// Sets the reference state (after loading): the 1st edit becomes undoable.
 export function initUndoBaseline() {
   _lastSaved = JSON.stringify(serialize());
   _undoStack = [];
@@ -187,11 +187,11 @@ export function scheduleSave() {
 
 export function canUndo() { return _undoStack.length > 0; }
 
-// Annule la dernière modification (revient à l'état précédent).
+// Undoes the last change (reverts to the previous state).
 export function undo() {
   if (!_undoStack.length) return false;
   const prev = _undoStack.pop();
-  const cam = { ...state.camera }; // l'annulation ne doit pas bouger la vue
+  const cam = { ...state.camera }; // undo must not move the view
   _applyingUndo = true;
   load(JSON.parse(prev));
   state.camera = cam;
@@ -205,6 +205,6 @@ export function restore() {
   try {
     const raw = localStorage.getItem(storageKey);
     if (raw) return load(JSON.parse(raw));
-  } catch (e) { /* corrompu */ }
+  } catch (e) { /* corrupted */ }
   return false;
 }

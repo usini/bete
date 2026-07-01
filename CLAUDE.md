@@ -1,91 +1,106 @@
 # CLAUDE.md
 
-Guide pour toute instance de Claude Code travaillant sur ce repo.
+Guide for any Claude Code instance working on this repo.
 
-## Le projet
+## The project
 
-**Bete** : mindmap pixel art, 100 % statique. Vanilla JS (modules ES),
-Canvas 2D, **aucune dépendance npm, aucun build**. Déployé tel quel sur GitHub Pages.
+**Bete**: pixel-art mindmap, 100% static. Vanilla JS (ES modules),
+Canvas 2D, **no npm dependency, no build step**. Deployed as-is on GitHub Pages.
 
-- Repo actif : `github.com/usini/bete`
-- Site : https://bete.usini.eu/ (domaine personnalisé, voir `CNAME` — servi via GitHub Pages)
-- Doc utilisateur (fonctionnalités, contrôles souris/tactile) : [README.md](README.md)
+- Active repo: `github.com/usini/bete`
+- Site: https://bete.usini.eu/ (custom domain, see `CNAME` — served via GitHub Pages)
+- User doc (features, mouse/touch controls): [README.md](README.md)
 
-**⚠️ `github.com/remisarrailh/pensebete` est un dépôt ARCHIVÉ** (ancien nom du projet,
-TODOMAPPA / pense-bête). Ne plus jamais y pousser — `origin` de ce dépôt local pointe
-sur `usini/bete`. Si tu vois cette autre URL quelque part (config, doc externe, mémoire
-d'une session précédente), c'est une trace obsolète à corriger, pas une destination valide.
+**`github.com/remisarrailh/pensebete` no longer exists** (old project name,
+TODOMAPPA / pense-bête). It was archived then deleted by the owner. `origin` of
+this local repo points to `usini/bete`. If you see that other URL anywhere
+(config, external doc, memory from a previous session), it's a stale trace to
+fix, not a valid destination — don't try to push there, it will fail.
 
-## Convention de branding — pas de mention de l'ancien nom
+## Language: code in English, app in French + English
 
-Le projet s'appelle **Bete**, point. Ne (ré)introduis nulle part les anciens noms
-(TODOMAPPA, pense-bête, pensebete) : ni dans le code, ni dans les identifiants
-(clés localStorage, noms de base IndexedDB, variables d'env, noms de service), ni
-dans la doc. Un rename a eu lieu (voir « Historique » plus bas) précisément pour
-éliminer ces mentions — ne pas les faire réapparaître par copier-coller de code ancien.
+- **Code comments, console/log messages, docs (`README.md`, `server/README.md`,
+  `CLAUDE.md`) are in English by default.** A full pass translated the entire
+  codebase to English (July 2026) — keep writing new comments in English,
+  don't reintroduce French ones.
+- **The app's UI is bilingual** (French + English) via a small i18n system —
+  see the dedicated section below. This is the one place where French text is
+  expected and correct (in the `fr` dictionary of `js/i18n.js`, and in
+  `TUTORIAL_FR` in `js/tutorial.js`).
+- `js/tutorial.js` intentionally contains French strings (in `TUTORIAL_FR`) —
+  that's demo board content, not a stray untranslated comment.
 
-## Convention — éviter les liens/URLs en dur
+## Branding convention — no mention of the old name
 
-Le projet doit rester facilement re-déployable ailleurs (autre domaine, autre fork).
-En conséquence :
+The project is called **Bete**, period. Don't (re)introduce the old names
+(TODOMAPPA, pense-bête, pensebete) anywhere: not in code, not in identifiers
+(localStorage keys, IndexedDB database names, env vars, service names), not in
+docs. A rename happened (see "History" below) specifically to eliminate these
+mentions — don't let them reappear by copy-pasting old code.
 
-- **Dans le code client** (`js/*`), ne jamais coder en dur le domaine de prod. Les
-  liens de board/liaison utilisent déjà `location.origin`/`location.pathname`
-  (`boards.js: buildBoardUrl/parseBoardUrl`) — continuer sur ce principe pour toute
-  nouvelle fonctionnalité de lien interne.
-- **Dans `server/bete-host.js`**, `APP_URL` n'a **aucun défaut codé en dur** (vide par
-  défaut) : il se configure via la variable d'env `BETE_APP_URL`. Ne jamais y remettre
-  un domaine par défaut.
-- **Dans `server/install-pi.sh`**, le seul endroit où un domaine/dépôt a un défaut
-  raisonnable est `REPO` (`BETE_REPO`, pointant sur `usini/bete`) — mais reste
-  surchargeable par variable d'env pour quiconque fork le projet.
-- La doc (`README.md`, `server/README.md`) peut mentionner l'URL réelle de prod
-  (`bete.usini.eu`) à titre d'info humaine — ce n'est pas la même chose qu'un lien en
-  dur dans le code exécuté.
+## Convention — avoid hardcoded links/URLs
 
-## Aucune rétrocompatibilité de données (décision explicite)
+The project must stay easy to redeploy elsewhere (different domain, different fork).
+As a result:
 
-Contrairement à d'anciennes migrations qui existaient (ancien board mono-fichier,
-anciennes clés localStorage préfixées `todomappa:`), il a été explicitement décidé de
-**ne pas migrer** les données de l'ancienne branding vers la nouvelle : repart à zéro.
-Ne pas réintroduire de code de migration `todomappa* -> bete*` sans qu'on te le demande
-explicitement — ce choix a été fait en connaissance de cause (perte assumée des boards/
-mémos/images stockés sous l'ancien nommage dans les navigateurs des utilisateurs).
+- **In client code** (`js/*`), never hardcode the production domain. Board/liaison
+  links already use `location.origin`/`location.pathname`
+  (`boards.js: buildBoardUrl/parseBoardUrl`) — keep following that pattern for
+  any new internal link feature.
+- **In `server/bete-host.js`**, `APP_URL` has **no hardcoded default** (empty by
+  default): it's configured via the `BETE_APP_URL` env var. Never put a default
+  domain back in there.
+- **In `server/install-pi.sh`**, the only place where a domain/repo has a
+  reasonable default is `REPO` (`BETE_REPO`, pointing to `usini/bete`) — but it
+  stays overridable via an env var for anyone forking the project.
+- Docs (`README.md`, `server/README.md`) can mention the real production URL
+  (`bete.usini.eu`) as human-facing info — that's not the same thing as a
+  hardcoded link in executed code.
+
+## No data backward-compatibility (explicit decision)
+
+Unlike older migrations that used to exist (legacy single-file board, legacy
+localStorage keys prefixed `todomappa:`), it was explicitly decided **not to
+migrate** data from the old branding to the new one: fresh start. Don't
+reintroduce `todomappa* -> bete*` migration code unless explicitly asked —
+this choice was made knowingly (accepted loss of boards/memos/images stored
+under the old naming in users' browsers).
 
 ## Architecture
 
 ```
-index.html               entrée : canvas + overlays HTML (menus, popups, boutons)
-css/style.css             palette pixel, scanlines CRT, glow néon, thèmes
-js/main.js                bootstrap, boucle RAF, câblage des boutons globaux
-js/state.js               modèle de données, serialize()/load(), autosave localStorage
-js/camera.js              transform monde<->écran, zoom/pan
-js/physics.js             ressort d'inertie + wobble (déformation) par node
-js/render.js              dessin (grille, cercles, hexagones, rectangles, curseurs)
-js/input.js               souris/tactile, drag, menu radial, édition texte, D&D image
-js/minimap.js             minimap + clic pour recentrer
-js/io.js                  export/import JSON
-js/sync.js                synchro P2P (PeerJS/WebRTC) : hôte/client, delta, merge, présence
-js/audio.js               IndexedDB : blobs audio (mémos vocaux) + images
-js/images.js              offload images -> IndexedDB (réf 'idb:<hash>'), migration, export
-js/voice.js               mémos vocaux : enregistrement, lecture, partage P2P
-js/voicechat.js           chat vocal live (mesh WebRTC), Always On, choix micro
-js/settings.js            panneau Paramètres (thème, liaisons, voix, données...)
-js/boards.js, liaisons.js gestion multi-board + liaisons nommées
-js/theme.js               thèmes (pixel/classic/classic-dark), taille de texte
-js/users.js               identité locale (uid, nom affiché)
-js/yt.js, video.js         intégration miniature/lecteur YouTube inline
-js/fx.js                  explosion de particules à la suppression
-js/tutorial.js             board de démo intégré (lecture seule)
-cachebust.mjs             ajoute ?v=<version> aux imports avant chaque déploiement
-CNAME                     domaine personnalisé GitHub Pages (bete.usini.eu)
-server/                   hôte headless Node (Raspberry Pi) — voir server/README.md
+index.html               entry point: canvas + HTML overlays (menus, popups, buttons)
+css/style.css             pixel palette, CRT scanlines, neon glow, themes
+js/main.js                bootstrap, RAF loop, wiring of global buttons
+js/state.js               data model, serialize()/load(), localStorage autosave
+js/camera.js              world<->screen transform, zoom/pan
+js/physics.js             elastic inertia spring + wobble (deformation) per node
+js/render.js              drawing (grid, circles, hexagons, rectangles, cursors)
+js/input.js               mouse/touch, drag, radial menu, text editing, image D&D
+js/minimap.js             minimap + click to recenter
+js/io.js                  JSON export/import
+js/sync.js                P2P sync (PeerJS/WebRTC): host/client, delta, merge, presence
+js/audio.js               IndexedDB: audio blobs (voice memos) + images
+js/images.js              image offload -> IndexedDB (ref 'idb:<hash>'), migration, export
+js/voice.js               voice memos: recording, playback, P2P sharing
+js/voicechat.js           live voice chat (WebRTC mesh), Always On, mic choice
+js/settings.js            Settings panel (theme, language, liaisons, voice, data...)
+js/i18n.js                i18n engine: FR/EN dictionaries, t(), language detection/persistence
+js/boards.js, liaisons.js multi-board management + named liaisons
+js/theme.js               themes (pixel/classic/classic-dark), text size
+js/users.js               local identity (uid, displayed name)
+js/yt.js, video.js         YouTube inline thumbnail/player integration
+js/fx.js                  particle explosion on deletion
+js/tutorial.js             built-in demo board (read-only), FR + EN variants
+cachebust.mjs             adds ?v=<version> to imports before every deploy
+CNAME                     custom GitHub Pages domain (bete.usini.eu)
+server/                   headless Node host (Raspberry Pi) — see server/README.md
 ```
 
-Pas de bundler : les modules s'importent directement (`import ... from './x.js?v=...'`).
-Le `?v=` est un cache-buster, pas une vraie version — voir plus bas.
+No bundler: modules are imported directly (`import ... from './x.js?v=...'`).
+The `?v=` is a cache-buster, not a real version — see below.
 
-## Modèle de données (`state.js`)
+## Data model (`state.js`)
 
 ```js
 {
@@ -96,108 +111,144 @@ Le `?v=` est un cache-buster, pas une vraie version — voir plus bas.
 }
 ```
 
-- `nodes` = rectangles / pancartes / blocs mémo vocal (`kind:'voice'`) / liens (`ref` = id
-  de la source, hérite texte/image/link).
-- Couleur effective d'un rectangle = dernier cercle/hexagone (z-order) contenant son centre,
-  jamais stockée (recalculée au rendu).
-- `image` : soit une data URL héritée, soit `'idb:<hash>'` (référence IndexedDB, voir plus bas).
+- `nodes` = rectangles / signs / voice memo blocks (`kind:'voice'`) / links (`ref` = the
+  source's id, inherits text/image/link).
+- A rectangle's effective color = the last circle/hexagon (z-order) containing its
+  center, never stored (recomputed on render).
+- `image`: either a legacy data URL, or `'idb:<hash>'` (IndexedDB reference, see below).
 
-## Stockage local — préfixes actuels
+## Local storage — current prefixes
 
-Toutes les clés localStorage sont préfixées `bete:` (ex. `bete:boards`, `bete:liaisons`,
-`bete:theme`, `bete:<boardId>`), sauf `bete:peer` (id de peer local) et `bete:uid`/
-`bete:username` (identité). La base IndexedDB s'appelle `bete` (stores `audio` et
-`images`). Le debug console est exposé sur `window.bete`.
+All localStorage keys are prefixed `bete:` (e.g. `bete:boards`, `bete:liaisons`,
+`bete:theme`, `bete:<boardId>`, `bete:lang`), except `bete:peer` (local peer id)
+and `bete:uid`/`bete:username` (identity). The IndexedDB database is called
+`bete` (stores `audio` and `images`). The console debug handle is exposed on
+`window.bete`.
 
-## Synchro P2P (`sync.js`) — points importants
+## i18n system (`js/i18n.js`)
 
-- **Contenu uniquement** synchronisé (texte, image, couleur, description, liens,
-  créations/suppressions, positions **au drop seulement**). La caméra reste locale à
-  chaque écran.
-- Élection hôte/client (`joinOrHost`) : le premier à réclamer l'id de peer devient hôte,
-  les suivants deviennent clients. Heartbeat hôte (3 s) + watchdog client (8 s) pour
-  détecter la perte de connexion. Reconnexion **prudente** : le client retente d'abord
-  en client (3 essais) avant de tenter une élection d'hôte, pour ne pas voler l'id d'un
-  hôte permanent (Pi) en cours de redémarrage.
-- **Synchro en DELTA** : seules les entrées de contenu modifiées + les suppressions sont
-  redistribuées à chaque tick (800 ms), pas tout le board. Le tout premier envoi après
-  connexion reste complet (semence). Ce point a une histoire — voir plus bas.
-- Merge par id, conflit résolu en **LWW + priorité host** (à égalité de timestamp).
-- Audio et images ne transitent JAMAIS en base64 dans le payload de sync : ils sont
-  envoyés en binaire à la demande (protocoles `audioReq`/`audioRes`, `imgReq`/`imgRes`)
-  et mis en cache local (IndexedDB) + côté hôte (mémoire, borné pour les images).
+Deliberately minimal, no build step, no external files — two plain JS
+dictionary objects (`STRINGS.fr`, `STRINGS.en`) plus a lookup function.
 
-## Images : offload IndexedDB (`images.js`, `audio.js`)
+- `t(key, vars?)`: looks up the current language, falls back to English, then
+  to the raw key (never throws, never shows "undefined"). Supports `{name}`
+  placeholder interpolation via `vars`.
+- `getLang()` / `setLang(code)`: current language + explicit switch, persisted
+  to `bete:lang`. Changing language calls `applyStaticI18n()` to refresh static
+  HTML chrome immediately.
+- Language detection: guesses from `navigator.language` on first visit; an
+  explicit choice in Settings → Language is saved and always takes priority
+  afterwards.
+- `LANGS`: the list shown in the Settings language picker.
+- `applyStaticI18n(root?)`: scans `data-i18n` / `data-i18n-html` /
+  `data-i18n-title` / `data-i18n-aria` / `data-i18n-placeholder` attributes in
+  the DOM and fills them in — used for the static chrome in `index.html`.
+  Dynamic UI (settings panel, radial menu, toasts, alerts) calls `t()` directly
+  wherever it builds text, since those are rebuilt on every open/frame anyway.
+- **Adding a language**: add one more dictionary object with the same keys as
+  `en` (missing keys fall back to English automatically) + one entry in
+  `LANGS`. That's the whole cost — no other file needs to change.
+- `js/tutorial.js` exports `TUTORIAL_FR` and `TUTORIAL_EN` (translated via
+  `scripts/translate-tutorial.mjs`, keeping ids/positions/images identical, only
+  translating `text`/`description` fields). `main.js` picks the variant based
+  on the current language at boot.
 
-Les images ne sont **plus** stockées en base64 inline dans `node.image` : elles sont
-rangées dans IndexedDB, indexées par le **hash SHA-256 de leur contenu**, et le nœud ne
-garde qu'une réf `'idb:<hash>'`. Pourquoi : sur une board avec beaucoup d'images, rediffuser
-du base64 à chaque tick de sync saturait la connexion P2P (jusqu'à faire planter l'hôte Pi).
+## P2P sync (`sync.js`) — key points
 
-- `storeImage(dataUrl)` → écrit en IndexedDB, renvoie la réf.
-- `getImageEl(ref)` (render.js l'utilise via `getImg`) → résout la réf en `<img>`,
-  demande l'octet aux pairs si absent localement (`requestImage`/`imgReq`).
-- `migrateImages()` : convertit en tâche de fond les images héritées (data URL) en
-  réfs IndexedDB — appelé au boot (`main.js`) et après un import JSON.
-- `inlineImages()` : ré-inline les réfs en data URL pour un **export JSON auto-contenu**
-  (le fichier doit rester ouvrable sans les pairs / IndexedDB d'origine).
-- Toute nouvelle fonctionnalité qui touche à `node.image` doit passer par ce module,
-  jamais écrire une data URL brute dans `node.image` sans l'offloader.
+- **Content only** is synced (text, image, color, description, links,
+  creations/deletions, positions **on drop only**). The camera stays local to
+  each screen.
+- Host/client election (`joinOrHost`): the first to claim the peer id becomes
+  the host, subsequent ones become clients. Host heartbeat (3s) + client
+  watchdog (8s) to detect connection loss. **Cautious** reconnection: the
+  client first retries as a client (3 attempts) before attempting a host
+  election, to avoid stealing the id from a permanent host (Pi) that's restarting.
+- **DELTA sync**: only the content entries that changed + deletions are
+  rebroadcast on each tick (800ms), not the whole board. The very first send
+  after connecting stays full (seed). This has some history — see below.
+- Merge by id, conflicts resolved with **LWW + host priority** (on tied timestamp).
+- Audio and images NEVER transit as base64 in the sync payload: they're sent
+  as binary on demand (`audioReq`/`audioRes`, `imgReq`/`imgRes` protocols) and
+  cached locally (IndexedDB) + host-side (memory, bounded for images).
 
-## Workflow de déploiement (à chaque changement de JS/HTML)
+## Images: IndexedDB offload (`images.js`, `audio.js`)
+
+Images are **no longer** stored as inline base64 in `node.image`: they're
+stored in IndexedDB, indexed by the **SHA-256 hash of their content**, and the
+node only keeps a `'idb:<hash>'` ref. Why: on a board with lots of images,
+rebroadcasting base64 on every sync tick would saturate the P2P connection
+(to the point of crashing the Pi host).
+
+- `storeImage(dataUrl)` → writes to IndexedDB, returns the ref.
+- `getImageEl(ref)` (used by render.js via `getImg`) → resolves the ref to an
+  `<img>`, requests the bytes from peers if missing locally (`requestImage`/`imgReq`).
+- `migrateImages()`: converts legacy images (data URL) to IndexedDB refs as a
+  background task — called on boot (`main.js`) and after a JSON import.
+- `inlineImages()`: re-inlines refs to data URLs for a **self-contained JSON
+  export** (the file must stay openable without the original peers/IndexedDB).
+- Any new feature touching `node.image` must go through this module, never
+  write a raw data URL to `node.image` without offloading it.
+
+## Deployment workflow (on every JS/HTML change)
 
 ```bash
-node cachebust.mjs          # 1. bump ?v= sur tous les imports + index.html
-git add -A && git commit -m "..."   # 2. commit (message SANS guillemets, cf. conventions)
-git push                    # 3. push -> déclenche le déploiement GitHub Pages
+node cachebust.mjs          # 1. bump ?v= on all imports + index.html
+git add -A && git commit -m "..."   # 2. commit (message WITHOUT quotes, see conventions)
+git push                    # 3. push -> triggers the GitHub Pages deployment
 ```
 
-Puis **attendre le déploiement** (poller `https://bete.usini.eu/index.html` en prod
-jusqu'à voir le nouveau `?v=`) avant de considérer le travail terminé — GitHub Pages
-met de 30 s à quelques minutes à propager.
+Then **wait for the deployment** (poll `https://bete.usini.eu/index.html` in
+prod until you see the new `?v=`) before considering the work done — GitHub
+Pages takes 30s to a few minutes to propagate.
 
-**Si le changement touche `server/bete-host.js`**, il faut aussi mettre à jour l'hôte
-permanent (Raspberry Pi, service systemd `bete`) :
+**If the change touches `server/bete-host.js`**, the permanent host (Raspberry
+Pi, systemd service `bete`) also needs updating:
 
 ```bash
 ssh maison 'cd ~/pensebete && git pull --ff-only && sudo -n systemctl restart bete'
 ```
 
-(SSH passwordless configuré vers l'hôte `maison` ; `sudo -n` fonctionne sans mot de passe
-pour ce service. Le dossier cloné sur le Pi s'appelle encore `~/pensebete` — c'est
-juste un nom de dossier local, sans conséquence ; pas la peine de le renommer sauf si
-demandé.) Vérifier ensuite les logs : `sudo -n journalctl -u bete -n 20`.
+(Passwordless SSH configured to the `maison` host; `sudo -n` works without a
+password for this service. The folder cloned on the Pi is still called
+`~/pensebete` — that's just a local directory name, no consequence; not worth
+renaming unless asked.) Then check the logs: `sudo -n journalctl -u bete -n 20`.
 
-## Conventions de ce repo
+## Conventions for this repo
 
-- **Aucune dépendance de build** : ne pas introduire de bundler, TypeScript, npm côté
-  client. Le `server/` (Node sur le Pi) est le seul endroit avec un `package.json`.
-- **Commits sans guillemets** dans le message (contrainte de l'environnement shell de
-  l'utilisateur) ; terminer par `Co-Authored-By: Claude ... <noreply@anthropic.com>`.
-- Ne jamais committer l'id de peer privé du Pi (`server/data/peer-id`) ni des secrets.
-- Le board `home` est **sanctuarisé** : jamais connecté en P2P (protection contre
-  l'écrasement accidentel).
-- Tester une synchro P2P avec **deux onglets du même navigateur donne de faux négatifs**
-  (même `localStorage` → même uid → collisions de curseur/voix/présence). Préférer deux
-  appareils réels, ou au moins deux navigateurs différents.
-- Commentaires : uniquement quand le POURQUOI n'est pas évident (contrainte cachée,
-  raison d'un contournement) — pas de commentaires qui décrivent juste le code.
-- Voir aussi les deux conventions dédiées plus haut : pas de mention de l'ancien nom,
-  éviter les liens en dur.
+- **No build dependency**: don't introduce a bundler, TypeScript, or npm on
+  the client side. `server/` (Node on the Pi) is the only place with a `package.json`.
+- **No quotes in commit messages** (constraint of the user's shell
+  environment); end with `Co-Authored-By: Claude ... <noreply@anthropic.com>`.
+- Never commit the Pi's private peer id (`server/data/peer-id`) or any secrets.
+- The `home` board is **sanctuarized**: never connected over P2P (protects
+  against accidental overwrite).
+- Testing P2P sync with **two tabs of the same browser gives false negatives**
+  (same `localStorage` → same uid → cursor/voice/presence collisions). Prefer
+  two real devices, or at least two different browsers.
+- Comments: only when the WHY isn't obvious (a hidden constraint, the reason
+  for a workaround) — no comments that just describe what the code does.
+- See also the two dedicated conventions above: no mention of the old name,
+  avoid hardcoded links.
 
-## Historique utile (pourquoi certaines choses sont ainsi)
+## Useful history (why some things are the way they are)
 
-- La synchro **full-board à chaque tick** a été remplacée par du **delta** après un
-  incident : sur une board riche en images, le trafic répété faisait planter le serveur
-  Pi (`WebSocket was closed before the connection was established`, exception non
-  gérée dans peerjs/ws faisant crasher le process Node). Le serveur a aussi gagné des
-  gardes `process.on('uncaughtException'/'unhandledRejection')` et un `disconnected`
-  qui fait `destroy()` + redémarrage planifié plutôt que `peer.reconnect()` (buggy sur
-  la stack wrtc/ws).
-- L'offload images IndexedDB a suivi immédiatement, pour la même raison (le delta seul
-  ne suffisait pas : les grosses images inline restaient énormes dès qu'elles changeaient).
-- **Rebrand (juillet 2026)** : le projet s'appelait TODOMAPPA (dépôt `remisarrailh/pensebete`,
-  GitHub Pages `remisarrailh.github.io/pensebete`). Il a été renommé **Bete**, transféré vers
-  `usini/bete`, et redéployé sous domaine personnalisé `bete.usini.eu`. L'ancien dépôt est
-  archivé (figé, ne plus y toucher). Décision assumée : aucune rétrocompatibilité de données
-  entre les deux noms (voir plus haut).
+- **Full-board sync on every tick** was replaced with **delta** after an
+  incident: on a board rich in images, the repeated traffic was crashing the
+  Pi server (`WebSocket was closed before the connection was established`, an
+  unhandled exception in peerjs/ws crashing the Node process). The server also
+  gained `process.on('uncaughtException'/'unhandledRejection')` guards and a
+  `disconnected` handler that does `destroy()` + a scheduled restart instead
+  of `peer.reconnect()` (buggy on the wrtc/ws stack).
+- The IndexedDB image offload followed immediately, for the same reason (delta
+  alone wasn't enough: large inline images stayed huge whenever they changed).
+- **Rebrand (July 2026)**: the project was called TODOMAPPA (repo
+  `remisarrailh/pensebete`, GitHub Pages `remisarrailh.github.io/pensebete`).
+  It was renamed **Bete**, transferred to `usini/bete`, and redeployed under
+  the custom domain `bete.usini.eu`. The old repo was archived, then deleted
+  by the owner once the new setup was verified working — it no longer exists.
+  Deliberate decision: no data backward-compatibility between the two names
+  (see above).
+- **Full English translation pass (July 2026)**: all code comments,
+  console/log messages, and docs were translated from French to English in
+  one pass, and an i18n system (`js/i18n.js`) was added so the app's UI itself
+  supports French + English with the language auto-detected or chosen in Settings.

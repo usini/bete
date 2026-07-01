@@ -1,13 +1,14 @@
-// Menu Paramètres : thème, taille du texte, liaisons nommées, navigation
-// (tutoriel / boards visités), effacer le board courant.
-import { state, getBoardId, scheduleSave } from './state.js?v=mr2946h3';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr2946h3';
-import { listBoards, buildBoardUrl } from './boards.js?v=mr2946h3';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr2946h3';
-import { liaisonStatus, disconnect, getPresence, announceName } from './sync.js?v=mr2946h3';
-import { exportJSON, importJSON } from './io.js?v=mr2946h3';
-import { getUserName, setUserName } from './users.js?v=mr2946h3';
-import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr2946h3';
+// Settings menu: theme, language, text size, named liaisons, navigation
+// (tutorial / visited boards), clear the current board.
+import { state, getBoardId, scheduleSave } from './state.js?v=mr2lpyvb';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr2lpyvb';
+import { listBoards, buildBoardUrl } from './boards.js?v=mr2lpyvb';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr2lpyvb';
+import { liaisonStatus, disconnect, getPresence, announceName } from './sync.js?v=mr2lpyvb';
+import { exportJSON, importJSON } from './io.js?v=mr2lpyvb';
+import { getUserName, setUserName } from './users.js?v=mr2lpyvb';
+import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr2lpyvb';
+import { t, getLang, setLang, LANGS } from './i18n.js?v=mr2lpyvb';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
@@ -18,7 +19,7 @@ function el(tag, cls, txt) {
 
 export function initSettings() {
   const panel = document.getElementById('settings');
-  // Clic dans le panneau : ne pas fermer.
+  // Click inside the panel: don't close it.
   panel.addEventListener('mousedown', (e) => e.stopPropagation());
   panel.addEventListener('touchstart', (e) => e.stopPropagation());
   const btn = document.getElementById('settingsbtn');
@@ -50,24 +51,34 @@ function build(panel) {
   panel.innerHTML = '';
 
   const head = el('div', 'set-head');
-  head.appendChild(el('div', 'set-title', 'PARAMETRES'));
+  head.appendChild(el('div', 'set-title', t('settings.title')));
   const close = el('button', 'set-x', '✕');
   close.addEventListener('click', closeSettings);
   head.appendChild(close);
   panel.appendChild(head);
 
-  // ---- Thème ----
-  panel.appendChild(el('div', 'set-label', 'Thème'));
+  // ---- Theme ----
+  panel.appendChild(el('div', 'set-label', t('settings.theme')));
   const themes = el('div', 'set-themes');
-  THEME_LIST.forEach((t) => {
-    const b = el('button', 'set-theme' + (themeId_() === t.id ? ' on' : ''), t.label);
-    b.addEventListener('click', () => { setTheme(t.id); build(panel); });
+  THEME_LIST.forEach((th) => {
+    const b = el('button', 'set-theme' + (themeId_() === th.id ? ' on' : ''), th.label);
+    b.addEventListener('click', () => { setTheme(th.id); build(panel); });
     themes.appendChild(b);
   });
   panel.appendChild(themes);
 
-  // ---- Taille du texte ----
-  panel.appendChild(el('div', 'set-label', 'Taille du texte'));
+  // ---- Language ----
+  panel.appendChild(el('div', 'set-label', t('settings.language')));
+  const langs = el('div', 'set-themes');
+  LANGS.forEach((l) => {
+    const b = el('button', 'set-theme' + (getLang() === l.code ? ' on' : ''), l.label);
+    b.addEventListener('click', () => { setLang(l.code); build(panel); });
+    langs.appendChild(b);
+  });
+  panel.appendChild(langs);
+
+  // ---- Text size ----
+  panel.appendChild(el('div', 'set-label', t('settings.textSize')));
   const ts = el('div', 'set-row');
   const minus = el('button', 'set-btn', '−');
   const val = el('span', 'set-val', Math.round(getTextScale() * 100) + '%');
@@ -78,44 +89,44 @@ function build(panel) {
   panel.appendChild(ts);
 
   // ---- Liaisons ----
-  panel.appendChild(el('div', 'set-label', 'Liaisons'));
-  // Home est sanctuarisé : on ne s'y connecte jamais (pas d'écrasement).
-  if (getBoardId() === 'home') panel.appendChild(el('div', 'set-empty', '🔒 Home est local : non connectable (protégé contre l\'écrasement).'));
-  // Liaison active + déconnexion.
+  panel.appendChild(el('div', 'set-label', t('settings.liaisons')));
+  // Home is sanctuarized: never connected (so it can't be overwritten).
+  if (getBoardId() === 'home') panel.appendChild(el('div', 'set-empty', t('settings.homeLocked')));
+  // Active liaison + disconnect.
   const st = liaisonStatus();
   if (st.role) {
     const active = el('div', 'set-liaison on');
-    active.appendChild(el('span', 'set-liaison-name', '● ' + (st.role === 'host' ? 'Hôte' : 'Connecté')));
+    active.appendChild(el('span', 'set-liaison-name', '● ' + (st.role === 'host' ? t('liaison.host') : t('settings.connected'))));
     const dc = el('button', 'set-mini', '⏏');
-    dc.title = 'Déconnecter';
+    dc.title = t('settings.disconnect.title');
     dc.addEventListener('click', () => { closeSettings(); disconnect(); });
     active.appendChild(dc);
     panel.appendChild(active);
   }
   const activePeer = new URLSearchParams(location.search).get('peer');
   const liaisons = listLiaisons();
-  if (!liaisons.length) panel.appendChild(el('div', 'set-empty', '(aucune liaison enregistrée)'));
+  if (!liaisons.length) panel.appendChild(el('div', 'set-empty', t('settings.noLiaisons')));
   liaisons.forEach((l) => {
     const row = el('div', 'set-liaison' + (l.peer === activePeer ? ' on' : ''));
     const name = el('button', 'set-liaison-name', (l.peer === activePeer ? '● ' : '') + (l.name || l.peer));
-    name.title = 'Rejoindre cette liaison';
+    name.title = t('settings.joinThis.title');
     name.addEventListener('click', () => switchLiaison(l.peer));
     const ren = el('button', 'set-mini', '✎');
-    ren.title = 'Renommer';
+    ren.title = t('settings.rename.title');
     ren.addEventListener('click', () => {
-      const nm = prompt('Nom de la liaison :', l.name || l.peer);
+      const nm = prompt(t('settings.rename.prompt'), l.name || l.peer);
       if (nm != null) { renameLiaison(l.peer, nm.trim() || l.peer); build(panel); }
     });
     const del = el('button', 'set-mini', '✕');
-    del.title = 'Retirer';
+    del.title = t('settings.remove.title');
     del.addEventListener('click', () => { removeLiaison(l.peer); build(panel); });
     row.appendChild(name); row.appendChild(ren); row.appendChild(del);
     panel.appendChild(row);
   });
-  // Rejoindre une nouvelle liaison (id de peer ou lien collé).
+  // Join a new liaison (peer id or pasted link).
   const joinRow = el('div', 'set-new');
-  const jin = el('input'); jin.placeholder = 'id de peer ou lien…';
-  const jb = el('button', null, 'Rejoindre');
+  const jin = el('input'); jin.placeholder = t('settings.peerPlaceholder');
+  const jb = el('button', null, t('settings.join'));
   const join = () => {
     let v = jin.value.trim();
     if (!v) return;
@@ -129,11 +140,11 @@ function build(panel) {
   joinRow.appendChild(jin); joinRow.appendChild(jb);
   panel.appendChild(joinRow);
 
-  // ---- Utilisateurs ----
-  panel.appendChild(el('div', 'set-label', 'Utilisateur'));
+  // ---- Users ----
+  panel.appendChild(el('div', 'set-label', t('settings.user')));
   const nameRow = el('div', 'set-new');
-  const nin = el('input'); nin.placeholder = 'Ton nom…'; nin.maxLength = 24; nin.value = getUserName();
-  const nb = el('button', null, 'OK');
+  const nin = el('input'); nin.placeholder = t('settings.namePlaceholder'); nin.maxLength = 24; nin.value = getUserName();
+  const nb = el('button', null, t('settings.ok'));
   const saveName = () => { setUserName(nin.value.trim()); announceName(); build(panel); };
   nb.addEventListener('click', saveName);
   nin.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveName(); });
@@ -142,73 +153,74 @@ function build(panel) {
 
   const presence = getPresence();
   if (presence.length) {
-    panel.appendChild(el('div', 'set-sub', 'Connectés (' + presence.length + ')'));
+    panel.appendChild(el('div', 'set-sub', t('settings.connectedCount', { n: presence.length })));
     presence.forEach((u) => {
-      const label = (u.host ? '🟢 ' : '👤 ') + (u.name || 'Invité') + (u.me ? ' (toi)' : '') + (u.voice ? ' 🎤' : '');
+      const label = (u.host ? '🟢 ' : '👤 ') + (u.name || t('liaison.guest')) + (u.me ? t('settings.you') : '') + (u.voice ? ' 🎤' : '');
       panel.appendChild(el('div', 'set-empty', label));
     });
   }
 
-  // ---- Voix ----
-  panel.appendChild(el('div', 'set-label', 'Voix'));
+  // ---- Voice ----
+  panel.appendChild(el('div', 'set-label', t('settings.voice')));
   const alwaysRow = el('div', 'set-row');
-  const alwaysBtn = el('button', 'set-theme' + (isAlwaysOn() ? ' on' : ''), isAlwaysOn() ? '✓ Toujours actif (mobile)' : 'Toujours actif (mobile)');
-  alwaysBtn.title = "Garde le micro actif en continu sur mobile (écran maintenu allumé, reprise auto si l'OS coupe le micro).";
+  const alwaysBtn = el('button', 'set-theme' + (isAlwaysOn() ? ' on' : ''), (isAlwaysOn() ? '✓ ' : '') + t('settings.micAlwaysOn'));
+  alwaysBtn.title = t('settings.micAlwaysOn.title');
   alwaysBtn.addEventListener('click', () => { setAlwaysOn(!isAlwaysOn()); build(panel); });
   alwaysRow.appendChild(alwaysBtn);
   panel.appendChild(alwaysRow);
-  if (isAlwaysOn() && !isMicOn()) panel.appendChild(el('div', 'set-empty', "S'active dès que tu parles (bouton micro)."));
+  if (isAlwaysOn() && !isMicOn()) panel.appendChild(el('div', 'set-empty', t('settings.micAlwaysOn.hint')));
 
-  panel.appendChild(el('div', 'set-sub', "Micro d'entrée"));
+  panel.appendChild(el('div', 'set-sub', t('settings.micInput')));
   const micList = el('div', 'set-themes');
-  micList.appendChild(el('div', 'set-empty', 'Chargement…'));
+  micList.appendChild(el('div', 'set-empty', t('settings.loading')));
   panel.appendChild(micList);
   listMics().then((mics) => {
     micList.innerHTML = '';
-    if (!mics.length) { micList.appendChild(el('div', 'set-empty', '(aucun micro détecté — autorise le micro puis rouvre ce menu)')); return; }
+    if (!mics.length) { micList.appendChild(el('div', 'set-empty', t('settings.noMic'))); return; }
     const cur = getPreferredMic();
-    const def = el('button', 'set-theme' + (!cur ? ' on' : ''), 'Micro par défaut');
+    const def = el('button', 'set-theme' + (!cur ? ' on' : ''), t('settings.micDefault'));
     def.addEventListener('click', () => { setPreferredMic(''); build(panel); });
     micList.appendChild(def);
     mics.forEach((d, i) => {
-      const b = el('button', 'set-theme' + (cur === d.deviceId ? ' on' : ''), d.label || ('Micro ' + (i + 1)));
+      const b = el('button', 'set-theme' + (cur === d.deviceId ? ' on' : ''), d.label || t('settings.micN', { n: i + 1 }));
       b.addEventListener('click', () => { setPreferredMic(d.deviceId); build(panel); });
       micList.appendChild(b);
     });
   });
 
   // ---- Navigation ----
-  panel.appendChild(el('div', 'set-label', 'Navigation'));
-  const tuto = el('button', 'set-wide', '↻ Revoir le tutoriel');
+  panel.appendChild(el('div', 'set-label', t('settings.navigation')));
+  const tuto = el('button', 'set-wide', t('settings.replayTutorial'));
   tuto.addEventListener('click', () => { location.href = location.pathname + '?id=tutorial'; });
   panel.appendChild(tuto);
 
   const cur = getBoardId();
   const boards = listBoards().filter((b) => b.id !== cur);
   if (boards.length) {
-    panel.appendChild(el('div', 'set-sub', 'Boards visités'));
+    panel.appendChild(el('div', 'set-sub', t('settings.visitedBoards')));
     boards.forEach((b) => {
-      const row = el('button', 'set-wide', b.name || b.id);
+      const label = b.id === 'home' ? t('board.home') : b.id === 'tutorial' ? t('board.tutorial') : (b.name || b.id);
+      const row = el('button', 'set-wide', label);
       row.addEventListener('click', () => { location.href = buildBoardUrl(b.id, b.peer, b.name); });
       panel.appendChild(row);
     });
   }
 
-  // ---- Données : import / export ----
-  panel.appendChild(el('div', 'set-label', 'Données'));
-  const exp = el('button', 'set-wide', '⭳ Exporter (JSON)');
+  // ---- Data: import / export ----
+  panel.appendChild(el('div', 'set-label', t('settings.data')));
+  const exp = el('button', 'set-wide', t('settings.export'));
   exp.addEventListener('click', () => exportJSON());
   panel.appendChild(exp);
-  const imp = el('button', 'set-wide', '⭱ Importer (JSON)');
+  const imp = el('button', 'set-wide', t('settings.import'));
   imp.addEventListener('click', () => importJSON(() => { scheduleSave(); closeSettings(); }));
   panel.appendChild(imp);
 
-  // ---- Danger : effacer le board courant ----
-  panel.appendChild(el('div', 'set-label', 'Board courant'));
-  const clear = el('button', 'set-danger', 'Effacer ce board');
+  // ---- Danger: clear the current board ----
+  panel.appendChild(el('div', 'set-label', t('settings.currentBoard')));
+  const clear = el('button', 'set-danger', t('settings.clearBoard'));
   let armed = false;
   clear.addEventListener('click', () => {
-    if (!armed) { armed = true; clear.textContent = 'Confirmer l\'effacement ?'; setTimeout(() => { armed = false; clear.textContent = 'Effacer ce board'; }, 3000); return; }
+    if (!armed) { armed = true; clear.textContent = t('settings.clearConfirm'); setTimeout(() => { armed = false; clear.textContent = t('settings.clearBoard'); }, 3000); return; }
     state.nodes = []; state.circles = []; state.hexagons = [];
     state.selected = null; state.selectedIds = [];
     scheduleSave();

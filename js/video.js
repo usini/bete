@@ -1,11 +1,12 @@
-// Lecteur YouTube inline : une iframe superposée au bloc, qui suit la caméra.
-// Un seul lecteur actif à la fois (clic sur un bloc-vidéo = lecture).
-import { state } from './state.js?v=mr2946h3';
-import { worldToScreen } from './camera.js?v=mr2946h3';
-import { youTubeId, ytEmbed } from './yt.js?v=mr2946h3';
+// Inline YouTube player: an iframe overlaid on the block, following the camera.
+// Only one player active at a time (clicking a video block = play).
+import { state } from './state.js?v=mr2lpyvb';
+import { worldToScreen } from './camera.js?v=mr2lpyvb';
+import { youTubeId, ytEmbed } from './yt.js?v=mr2lpyvb';
+import { t } from './i18n.js?v=mr2lpyvb';
 
-let activeId = null;   // id du node en lecture
-let wrap = null;       // conteneur DOM (iframe + croix)
+let activeId = null;   // id of the node currently playing
+let wrap = null;       // DOM container (iframe + close button)
 
 export function setActiveVideo(node) {
   const txt = node && (node.ref ? null : node.text);
@@ -16,7 +17,7 @@ export function setActiveVideo(node) {
   wrap = document.createElement('div');
   wrap.id = 'videoplayer';
   wrap.innerHTML = '<iframe allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen frameborder="0"></iframe>'
-    + '<button class="vp-x" title="Fermer">✕</button>';
+    + '<button class="vp-x" title="' + t('video.close') + '">✕</button>';
   wrap.querySelector('iframe').src = ytEmbed(vid);
   wrap.querySelector('.vp-x').addEventListener('click', (e) => { e.stopPropagation(); clearActiveVideo(); });
   wrap.addEventListener('mousedown', (e) => e.stopPropagation());
@@ -32,7 +33,7 @@ export function clearActiveVideo() {
 
 export function isVideoActive(id) { return activeId === id; }
 
-// Appelé à chaque frame : recale l'iframe sur le bloc (ou ferme si plus valide).
+// Called every frame: realigns the iframe on the block (or closes it if no longer valid).
 export function positionVideoOverlay() {
   if (!activeId || !wrap) return;
   const n = state.nodes.find((x) => x.id === activeId);

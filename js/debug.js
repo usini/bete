@@ -1,16 +1,19 @@
 // Debug panel for tweaking wobble physics parameters.
 // Panel is hidden by default and can be toggled with the '²' key.
-import { wobbleCfg, WOBBLE_DEFAULTS } from './physics.js?v=mr2946h3';
+import { wobbleCfg, WOBBLE_DEFAULTS } from './physics.js?v=mr2lpyvb';
+import { t } from './i18n.js?v=mr2lpyvb';
 
 let panel = null;
 
 // Wobble physics parameters that can be adjusted in the debug panel.
-const FIELDS = [
-  { key: 'stiffness', label: 'Raideur (ressort)', min: 20, max: 400, step: 1 },
-  { key: 'damping', label: 'Amortissement', min: 1, max: 40, step: 0.5 },
-  { key: 'maxStretch', label: 'Déformation max', min: 0, max: 0.4, step: 0.01 },
-  { key: 'stretchK', label: 'Sensibilité vitesse', min: 0, max: 0.004, step: 0.0001 },
-];
+function fields() {
+  return [
+    { key: 'stiffness', label: t('debug.stiffness'), min: 20, max: 400, step: 1 },
+    { key: 'damping', label: t('debug.damping'), min: 1, max: 40, step: 0.5 },
+    { key: 'maxStretch', label: t('debug.maxStretch'), min: 0, max: 0.4, step: 0.01 },
+    { key: 'stretchK', label: t('debug.stretchK'), min: 0, max: 0.004, step: 0.0001 },
+  ];
+}
 
 // Create a row in the debug panel for a given wobble parameter.
 function row(f) {
@@ -40,19 +43,19 @@ function build() {
   panel.id = 'debug';
   const head = document.createElement('div');
   head.className = 'dbg-head';
-  head.textContent = 'DEBUG · WOBBLE (²)';
+  head.textContent = t('debug.header');
   panel.appendChild(head);
-  const rows = FIELDS.map(row);
+  const rows = fields().map(row);
   rows.forEach((r) => panel.appendChild(r));
   const reset = document.createElement('button');
   reset.className = 'dbg-reset';
-  reset.textContent = 'Réinitialiser';
+  reset.textContent = t('debug.reset');
   reset.addEventListener('click', () => {
     Object.assign(wobbleCfg, WOBBLE_DEFAULTS);
     rows.forEach((r) => r.querySelector('input')._sync());
   });
   panel.appendChild(reset);
-  // Empêche les clics de tomber sur le canvas.
+  // Prevents clicks from falling through to the canvas.
   panel.addEventListener('mousedown', (e) => e.stopPropagation());
   panel.addEventListener('touchstart', (e) => e.stopPropagation());
   document.body.appendChild(panel);

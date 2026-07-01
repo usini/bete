@@ -1,19 +1,20 @@
-// Rendu du board : grille pixel, cercles, hexagones, rectangles, glow néon, sélection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr2946h3';
-import { view, worldToScreen } from './camera.js?v=mr2946h3';
-import { stretch } from './physics.js?v=mr2946h3';
-import { hexCorners } from './geom.js?v=mr2946h3';
-import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr2946h3';
-import { fmtDur } from './voice.js?v=mr2946h3';
-import { getCursors, getPresence } from './sync.js?v=mr2946h3';
-import { youTubeId, ytThumb } from './yt.js?v=mr2946h3';
-import { getImageEl } from './images.js?v=mr2946h3';
+// Board rendering: pixel grid, circles, hexagons, rectangles, neon glow, selection.
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr2lpyvb';
+import { view, worldToScreen } from './camera.js?v=mr2lpyvb';
+import { stretch } from './physics.js?v=mr2lpyvb';
+import { hexCorners } from './geom.js?v=mr2lpyvb';
+import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr2lpyvb';
+import { fmtDur } from './voice.js?v=mr2lpyvb';
+import { getCursors, getPresence } from './sync.js?v=mr2lpyvb';
+import { youTubeId, ytThumb } from './yt.js?v=mr2lpyvb';
+import { getImageEl } from './images.js?v=mr2lpyvb';
+import { t } from './i18n.js?v=mr2lpyvb';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
 
-// Élément <img> pour une source de rendu. Délègue à images.js qui gère les data URL
-// héritées, les URL http (miniatures YouTube) et les réf 'idb:<hash>' (IndexedDB + pairs).
+// <img> element for a render source. Delegates to images.js which handles
+// legacy data URLs, http URLs (YouTube thumbnails) and 'idb:<hash>' refs (IndexedDB + peers).
 function getImg(src) { return getImageEl(src); }
 
 export function render(ctx) {
@@ -23,11 +24,11 @@ export function render(ctx) {
 
   drawGrid(ctx);
 
-  // Zones (sous les rectangles) : cercles puis hexagones.
+  // Zones (below the rectangles): circles then hexagons.
   for (const c of state.circles) drawCircle(ctx, c, isSel(c.id));
   for (const h of state.hexagons) drawHexagon(ctx, h, isSel(h.id));
 
-  // Rectangles, pancartes & blocs Liaison (au-dessus).
+  // Rectangles, signs & liaison blocks (on top).
   for (const n of state.nodes) {
     if (n.kind === 'liaison') drawLiaison(ctx, n, isSel(n.id), zoom);
     else if (n.kind === 'pancarte') drawPancarte(ctx, n, isSel(n.id), zoom);
@@ -35,17 +36,17 @@ export function render(ctx) {
     else drawRect(ctx, n, effectiveColor(n), isSel(n.id), zoom);
   }
 
-  drawCursors(ctx); // curseurs des autres utilisateurs (au-dessus de tout)
+  drawCursors(ctx); // other users' cursors (above everything)
 }
 
-// Couleur stable dérivée de l'id utilisateur.
+// Stable color derived from the user id.
 function uidColor(uid) {
   let h = 0;
   for (let i = 0; i < uid.length; i++) h = (h * 31 + uid.charCodeAt(i)) % 360;
   return `hsl(${h}, 80%, 55%)`;
 }
 
-const cursorRender = {}; // uid -> { rx, ry } position lissée (animation A->B)
+const cursorRender = {}; // uid -> { rx, ry } smoothed position (A->B animation)
 
 function drawCursors(ctx) {
   const list = getCursors();
@@ -54,7 +55,7 @@ function drawCursors(ctx) {
   const seen = {};
   for (const c of list) {
     seen[c.uid] = 1;
-    // Lissage : la position rendue rejoint la dernière position reçue (ease).
+    // Smoothing: the rendered position eases towards the last received position.
     let cr = cursorRender[c.uid];
     if (!cr) cr = cursorRender[c.uid] = { rx: c.x, ry: c.y };
     cr.rx += (c.x - cr.rx) * 0.25;
@@ -64,7 +65,7 @@ function drawCursors(ctx) {
     const p = worldToScreen(cr.rx, cr.ry);
     if (p.x < -40 || p.y < -40 || p.x > view.w + 40 || p.y > view.h + 40) continue;
     const col = uidColor(c.uid);
-    // Flèche du curseur.
+    // Cursor arrow.
     ctx.save();
     ctx.fillStyle = col;
     ctx.strokeStyle = '#000';
@@ -76,8 +77,8 @@ function drawCursors(ctx) {
     ctx.lineTo(p.x + 11, p.y + 13);
     ctx.closePath();
     ctx.fill(); ctx.stroke();
-    // Étiquette nom (préfixe 🎤 si la personne parle).
-    const name = (speaking[c.uid] ? '🎤 ' : '') + (c.name || 'Invité');
+    // Name label (prefixed with 🎤 if the person is talking).
+    const name = (speaking[c.uid] ? '🎤 ' : '') + (c.name || t('liaison.guest'));
     ctx.font = '11px ' + (theme().pixel ? "'Press Start 2P', monospace" : "'Segoe UI', sans-serif");
     ctx.textBaseline = 'top';
     const tw = ctx.measureText(name).width;
@@ -89,15 +90,15 @@ function drawCursors(ctx) {
     ctx.fillText(name, lx + 5, ly + 4);
     ctx.restore();
   }
-  for (const uid in cursorRender) if (!seen[uid]) delete cursorRender[uid]; // purge des partis
+  for (const uid in cursorRender) if (!seen[uid]) delete cursorRender[uid]; // purge those who left
 }
 
-// Sélection : id courant OU appartenance à la sélection multiple.
+// Selection: current id OR membership in the multi-selection.
 function isSel(id) {
   return id === state.selected || (state.selectedIds && state.selectedIds.indexOf(id) !== -1);
 }
 
-// Pancarte : rectangle plus grand avec texture bois et texte gravé.
+// Sign: a larger rectangle with a wood texture and engraved text.
 function drawPancarte(ctx, n, selected, zoom) {
   const rx = n._rx !== undefined ? n._rx : n.x;
   const ry = n._ry !== undefined ? n._ry : n.y;
@@ -113,14 +114,14 @@ function drawPancarte(ctx, n, selected, zoom) {
     ctx.rotate(-st.angle);
   }
 
-  // Thèmes classiques : pancarte = post-it jaune (au lieu du bois).
+  // Classic themes: sign = yellow post-it (instead of wood).
   if (!theme().pixel) {
     drawPostit(ctx, n, selected, zoom, w, h);
     ctx.restore();
     return;
   }
 
-  // Planches de bois (clippées au rectangle).
+  // Wood planks (clipped to the rectangle).
   ctx.shadowColor = '#000';
   ctx.shadowBlur = selected ? 20 : 8;
   ctx.save();
@@ -134,9 +135,9 @@ function drawPancarte(ctx, n, selected, zoom) {
     const top = -h / 2 + i * ph;
     ctx.fillStyle = shades[i % shades.length];
     ctx.fillRect(-w / 2, top, w, ph);
-    ctx.fillStyle = '#3d2917'; // séparateur de planche
+    ctx.fillStyle = '#3d2917'; // plank seam
     ctx.fillRect(-w / 2, top, w, Math.max(1, 2 * zoom));
-    ctx.strokeStyle = 'rgba(40,25,12,0.4)'; // veines
+    ctx.strokeStyle = 'rgba(40,25,12,0.4)'; // wood grain
     ctx.lineWidth = Math.max(1, zoom);
     for (let g = 0; g < 2; g++) {
       const gy = top + ph * (0.35 + g * 0.35);
@@ -148,7 +149,7 @@ function drawPancarte(ctx, n, selected, zoom) {
   }
   ctx.restore();
 
-  // Cadre + clous + liseré de sélection.
+  // Frame + nails + selection outline.
   ctx.shadowBlur = 0;
   ctx.lineWidth = selected ? 5 : 3;
   ctx.strokeStyle = '#3d2917';
@@ -163,7 +164,7 @@ function drawPancarte(ctx, n, selected, zoom) {
   [[-w / 2 + off, -h / 2 + off], [w / 2 - off, -h / 2 + off], [-w / 2 + off, h / 2 - off], [w / 2 - off, h / 2 - off]]
     .forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x, y, nail, 0, Math.PI * 2); ctx.fill(); });
 
-  // Texte gravé (clair avec ombre sombre).
+  // Engraved text (light with a dark shadow).
   if (n.text) {
     const baseFs = 13 * zoom * getTextScale();
     ctx.fillStyle = '#f3e3c0';
@@ -179,19 +180,19 @@ function drawPancarte(ctx, n, selected, zoom) {
   ctx.restore();
 }
 
-// Pancarte façon Post-it (thèmes classiques) : fond jaune, coin replié, texte sombre.
+// Post-it style sign (classic themes): yellow background, folded corner, dark text.
 function drawPostit(ctx, n, selected, zoom, w, h) {
   ctx.shadowColor = 'rgba(0,0,0,0.35)';
   ctx.shadowBlur = selected ? 16 : 8;
   ctx.shadowOffsetX = 2 * zoom; ctx.shadowOffsetY = 3 * zoom;
-  ctx.fillStyle = '#ffe066'; // jaune post-it
+  ctx.fillStyle = '#ffe066'; // post-it yellow
   ctx.fillRect(-w / 2, -h / 2, w, h);
   ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
 
-  // Bande supérieure légèrement plus foncée (effet collé).
+  // Slightly darker top band (stuck-on effect).
   ctx.fillStyle = 'rgba(0,0,0,0.05)';
   ctx.fillRect(-w / 2, -h / 2, w, Math.max(4, h * 0.16));
-  // Coin replié bas-droit.
+  // Folded bottom-right corner.
   const fold = Math.min(w, h) * 0.18;
   ctx.fillStyle = 'rgba(0,0,0,0.12)';
   ctx.beginPath();
@@ -206,14 +207,14 @@ function drawPostit(ctx, n, selected, zoom, w, h) {
 
   if (n.text) {
     const baseFs = 13 * zoom * getTextScale();
-    ctx.fillStyle = '#3a2f00'; // encre sombre
+    ctx.fillStyle = '#3a2f00'; // dark ink
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     drawFitted(ctx, n.text, w - 22 * zoom, h - 22 * zoom, baseFs);
   }
 }
 
-// Bloc de liaison P2P : QR code + statut. Clic = copie le lien.
+// P2P liaison block: QR code + status. Click = copies the link.
 function ensureQR(n) {
   if (!n.url || !window.qrcode || n._qrUrl === n.url) return;
   try {
@@ -229,7 +230,7 @@ function ensureQR(n) {
     }
     n._qrMods = mods;
     n._qrUrl = n.url;
-  } catch (e) { /* lib pas prête */ }
+  } catch (e) { /* lib not ready yet */ }
 }
 
 function drawLiaison(ctx, n, selected, zoom) {
@@ -280,11 +281,11 @@ function drawLiaison(ctx, n, selected, zoom) {
 
   const now = performance.now();
   let label;
-  if (n._copiedUntil && now < n._copiedUntil) label = 'LIEN COPIE !';
-  else if (n.status === 'connected') label = 'CONNECTE - CLIC=COPIER';
-  else if (n.status === 'online') label = 'CLIC = COPIER LIEN';
-  else if (n.status === 'error') label = 'ERREUR RESEAU';
-  else label = 'CONNEXION...';
+  if (n._copiedUntil && now < n._copiedUntil) label = t('liaisonBlock.copied');
+  else if (n.status === 'connected') label = t('liaisonBlock.connected');
+  else if (n.status === 'online') label = t('liaisonBlock.online');
+  else if (n.status === 'error') label = t('liaisonBlock.error');
+  else label = t('liaisonBlock.connecting');
 
   const fs = clamp(8 * zoom, 6, 13);
   ctx.fillStyle = accent;
@@ -297,7 +298,7 @@ function drawLiaison(ctx, n, selected, zoom) {
   ctx.restore();
 }
 
-// Bloc mémo vocal : bouton play/pause + durée + barre de progression.
+// Voice memo block: play/pause button + duration + progress bar.
 function drawVoice(ctx, n, selected, zoom) {
   const color = effectiveColor(n);
   const stl = nodeStyle(color);
@@ -320,13 +321,13 @@ function drawVoice(ctx, n, selected, zoom) {
   ctx.strokeRect(-w / 2, -h / 2, w, h);
   ctx.shadowBlur = 0;
 
-  // Bouton play / pause (cercle à gauche).
+  // Play / pause button (circle on the left).
   const r = Math.min(w, h) * 0.28;
   const bx = -w / 2 + r + 10 * zoom, by = 0;
   ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI * 2);
   ctx.fillStyle = stl.text; ctx.fill();
   ctx.fillStyle = stl.fill;
-  if (n._playing) { // deux barres = pause
+  if (n._playing) { // two bars = pause
     const bw = r * 0.26, bh = r * 0.9;
     ctx.fillRect(bx - bw * 1.4, by - bh / 2, bw, bh);
     ctx.fillRect(bx + bw * 0.4, by - bh / 2, bw, bh);
@@ -338,7 +339,7 @@ function drawVoice(ctx, n, selected, zoom) {
     ctx.closePath(); ctx.fill();
   }
 
-  // Texte (durée ou avertissement) + barre de progression.
+  // Text (duration or warning) + progress bar.
   const tx = bx + r + 10 * zoom;
   const fs = clamp(11 * zoom * getTextScale(), 7, 22);
   ctx.font = `${fs}px ${FONT()}`;
@@ -346,7 +347,7 @@ function drawVoice(ctx, n, selected, zoom) {
   ctx.textBaseline = 'middle';
   ctx.fillStyle = stl.text;
   ctx.shadowColor = color; ctx.shadowBlur = 4 * GLOW();
-  ctx.fillText(n._loading ? 'chargement…' : (n._missing ? 'indispo' : ('♪ ' + fmtDur(n.dur || 0))), tx, -h * 0.16);
+  ctx.fillText(n._loading ? t('voiceBlock.loading') : (n._missing ? t('voiceBlock.missing') : ('♪ ' + fmtDur(n.dur || 0))), tx, -h * 0.16);
   ctx.shadowBlur = 0;
 
   const barX = tx, barW = w / 2 - 10 * zoom - barX, barY = h * 0.18, barH = Math.max(3, 5 * zoom);
@@ -395,11 +396,11 @@ function drawHexagon(ctx, hgn, selected) {
 function drawGrid(ctx) {
   const { x, y, zoom } = state.camera;
   const spacing = 48 * zoom;
-  if (spacing < 6) return; // trop dézoomé : on masque la grille
+  if (spacing < 6) return; // too zoomed out: hide the grid
   const ox = ((-x * zoom + view.w / 2) % spacing + spacing) % spacing;
   const oy = ((-y * zoom + view.h / 2) % spacing + spacing) % spacing;
   ctx.fillStyle = theme().grid;
-  const s = Math.max(1, Math.round(zoom)); // gros points = pixel
+  const s = Math.max(1, Math.round(zoom)); // big dots = pixelated
   for (let gx = ox; gx < view.w; gx += spacing) {
     for (let gy = oy; gy < view.h; gy += spacing) {
       ctx.fillRect(Math.round(gx), Math.round(gy), s, s);
@@ -425,7 +426,7 @@ function drawCircle(ctx, c, selected) {
   ctx.stroke();
   ctx.restore();
 
-  // Description en haut du cercle.
+  // Description above the circle.
   if (c.description) {
     const fs = clamp(16 * state.camera.zoom * getTextScale(), 11, 48);
     ctx.save();
@@ -441,14 +442,14 @@ function drawCircle(ctx, c, selected) {
 }
 
 function drawRect(ctx, n, color, selected, zoom) {
-  // Liens : contenu dérivé de la source.
+  // Links: content derived from the source.
   const isLink = !!n.ref;
   const src = isLink ? sourceOf(n) : null;
   const text = isLink ? (src ? src.text : '') : n.text;
   const image = isLink ? (src ? src.image : null) : n.image;
-  const ytId = !image ? youTubeId(text) : null; // texte = URL YouTube -> vidéo
+  const ytId = !image ? youTubeId(text) : null; // text = YouTube URL -> video
 
-  // Position rendue (physique) + centre.
+  // Rendered (physics) position + center.
   const rx = n._rx !== undefined ? n._rx : n.x;
   const ry = n._ry !== undefined ? n._ry : n.y;
   const cx = rx + n.w / 2;
@@ -461,39 +462,39 @@ function drawRect(ctx, n, color, selected, zoom) {
 
   ctx.save();
   ctx.translate(p.x, p.y);
-  // Squash/stretch directionnel.
+  // Directional squash/stretch.
   if (st.sx !== 1 || st.sy !== 1) {
     ctx.rotate(st.angle);
     ctx.scale(st.sx, st.sy);
     ctx.rotate(-st.angle);
   }
 
-  // Style selon le thème (pixel = fluo ; classic = pastel + carré noir/blanc par défaut).
+  // Style depending on the theme (pixel = neon; classic = pastel + default black/white square).
   const stl = nodeStyle(color);
 
-  // Image éventuelle (contain), ou miniature YouTube (cover, remplit le bloc).
+  // Optional image (contain), or YouTube thumbnail (cover, fills the block).
   const imgSrc = image || (ytId ? ytThumb(ytId) : null);
   const img = imgSrc ? getImg(imgSrc) : null;
   const hasImage = !!(img && img.complete && img.naturalWidth);
 
   if (hasImage) {
-    // Bloc image : rendu brut, sans glow/fond/bordure colorés.
+    // Image block: raw rendering, no colored glow/fill/border.
     ctx.beginPath();
     ctx.rect(-w / 2, -h / 2, w, h);
     ctx.clip();
-    const sc = ytId ? Math.max(w / img.naturalWidth, h / img.naturalHeight) // cover (miniature)
+    const sc = ytId ? Math.max(w / img.naturalWidth, h / img.naturalHeight) // cover (thumbnail)
       : Math.min(w / img.naturalWidth, h / img.naturalHeight);             // contain (image)
     const dw = img.naturalWidth * sc, dh = img.naturalHeight * sc;
     ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
   } else {
-    // Corps (fallback : pas encore d'image chargée, ou bloc texte).
+    // Body (fallback: no image loaded yet, or text block).
     ctx.shadowColor = color;
     ctx.shadowBlur = (selected ? 22 : 10) * GLOW();
     ctx.fillStyle = stl.fill;
     ctx.fillRect(-w / 2, -h / 2, w, h);
     ctx.shadowBlur = 0;
 
-    // Bordure (pointillés pour un lien).
+    // Border (dashed for a link).
     ctx.lineWidth = selected ? 5 : 3;
     ctx.strokeStyle = stl.border;
     if (isLink) ctx.setLineDash([6 * zoom, 4 * zoom]);
@@ -501,7 +502,7 @@ function drawRect(ctx, n, color, selected, zoom) {
     ctx.setLineDash([]);
   }
 
-  // Poignée de redimensionnement (coin bas-droit), seulement si sélectionné seul.
+  // Resize handle (bottom-right corner), only when selected alone.
   if (selected && state.selected === n.id && !isLink) {
     const hs = Math.max(7, 9 * zoom);
     ctx.fillStyle = stl.border;
@@ -514,7 +515,7 @@ function drawRect(ctx, n, color, selected, zoom) {
     ctx.fill();
   }
 
-  // Badge "lien cliquable" (flèche ↗ cyan en haut à droite).
+  // "Clickable link" badge (cyan ↗ arrow, top-right).
   if (displayLink(n)) {
     const bs = Math.max(9, 12 * zoom);
     const bx = w / 2 - bs - 4 * zoom, by = -h / 2 + 4 * zoom;
@@ -534,7 +535,7 @@ function drawRect(ctx, n, color, selected, zoom) {
     ctx.stroke();
   }
 
-  // Bouton lecture ▶ centré pour un bloc-vidéo YouTube.
+  // Centered ▶ play button for a YouTube video block.
   if (ytId) {
     const r = Math.min(w, h) * 0.22;
     ctx.shadowBlur = 0;
@@ -548,7 +549,7 @@ function drawRect(ctx, n, color, selected, zoom) {
     ctx.closePath(); ctx.fill();
   }
 
-  // Texte (rétréci pour tenir dans le rectangle, sauf image/vidéo dans le bloc).
+  // Text (shrunk to fit the rectangle, except for an image/video block).
   if (text && !image && !ytId) {
     const baseFs = 13 * zoom * getTextScale();
     ctx.shadowBlur = 6 * GLOW();
@@ -560,7 +561,7 @@ function drawRect(ctx, n, color, selected, zoom) {
   ctx.restore();
 }
 
-// Découpe en lignes en respectant les retours à la ligne explicites + le mot-à-mot.
+// Splits into lines, respecting explicit line breaks + word wrapping.
 function wrapLines(ctx, text, maxW) {
   const out = [];
   for (const para of String(text).split('\n')) {
@@ -577,7 +578,7 @@ function wrapLines(ctx, text, maxW) {
   return out;
 }
 
-// Texte centré qui réduit sa taille jusqu'à tenir dans (maxW x maxH).
+// Centered text that shrinks until it fits within (maxW x maxH).
 function drawFitted(ctx, text, maxW, maxH, baseFs) {
   const fam = FONT();
   let fs = Math.max(5, baseFs);

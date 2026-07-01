@@ -1,17 +1,17 @@
-// Hôte PeerJS headless pour Bete — destiné à tourner en permanence
-// (ex. Raspberry Pi). Même protocole de synchro que l'app, donc les clients web
-// se connectent via ?peer=<id> sans modification de l'app.
+// Headless PeerJS host for Bete — meant to run permanently
+// (e.g. Raspberry Pi). Same sync protocol as the app, so web clients
+// connect via ?peer=<id> with no app modification needed.
 //
-// MULTI-BOARD : un seul peer héberge plusieurs boards. Chaque client annonce
-// son board id (métadonnées de connexion). Le serveur garde un board par id,
-// le persiste dans data/boards/<id>.json, et ne relaie qu'entre clients du même board.
+// MULTI-BOARD: a single peer hosts several boards. Each client announces
+// its board id (connection metadata). The server keeps one board per id,
+// persists it to data/boards/<id>.json, and only relays between clients of the same board.
 
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
-// --- Polyfills WebRTC/WebSocket pour faire tourner le client PeerJS sous Node ---
+// --- WebRTC/WebSocket polyfills to run the PeerJS client under Node ---
 import wrtc from '@roamhq/wrtc';
 import WebSocket from 'ws';
 globalThis.RTCPeerConnection = wrtc.RTCPeerConnection;
@@ -29,11 +29,11 @@ const Peer = (_peerjs.default && _peerjs.default.Peer) || _peerjs.Peer;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = process.env.BETE_DATA || path.join(__dirname, 'data');
 const BOARDS_DIR = path.join(DATA_DIR, 'boards');
-const OLD_BOARD_FILE = path.join(DATA_DIR, 'board.json'); // ancien mono-board
+const OLD_BOARD_FILE = path.join(DATA_DIR, 'board.json'); // legacy single-board file
 const ID_FILE = path.join(DATA_DIR, 'peer-id');
-// Base de l'URL de l'app statique, utilisée uniquement pour afficher un lien complet
-// au démarrage (aucune incidence sur le protocole). Vide par défaut pour rester
-// portable d'une instance à l'autre : définis BETE_APP_URL pour l'afficher.
+// Base URL of the static app, used only to display a full link at startup
+// (no effect on the protocol). Empty by default to stay portable across
+// instances: set BETE_APP_URL to display it.
 const APP_URL = process.env.BETE_APP_URL || '';
 const MAX_BOARDS = parseInt(process.env.BETE_MAX_BOARDS || '300', 10);
 
@@ -42,7 +42,7 @@ fs.mkdirSync(BOARDS_DIR, { recursive: true });
 function resolveId() {
   if (process.env.BETE_ID) return process.env.BETE_ID;
   try { const id = fs.readFileSync(ID_FILE, 'utf8').trim(); if (id) return id; } catch (e) { /* */ }
-  const id = 'p-' + crypto.randomBytes(16).toString('hex'); // 128 bits : anti-collision/devinabilité
+  const id = 'p-' + crypto.randomBytes(16).toString('hex'); // 128 bits: anti-collision/guessability
   try { fs.writeFileSync(ID_FILE, id); } catch (e) { /* */ }
   return id;
 }
@@ -53,17 +53,17 @@ function sanitizeBoard(s) {
   return String(s || '').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'home';
 }
 
-// --- Boards en mémoire : id -> { content, mt, del, conns, lastSig, saveTimer } ---
+// --- Boards in memory: id -> { content, mt, del, conns, lastSig, saveTimer } ---
 const boards = new Map();
 
-// Cache mémoire des mémos vocaux (id -> message audioRes reçu, renvoyé tel quel).
-// Permet le partage entre clients + la récupération par un arrivant tardif tant
-// que le serveur tourne. (Pas de persistance disque : binaire transitoire.)
+// In-memory cache of voice memos (id -> received audioRes message, resent as-is).
+// Allows sharing between clients + retrieval by a late arrival while the
+// server is running. (No disk persistence: transient binary data.)
 const audioMem = new Map();
 
-// Cache mémoire des images (hash -> message imgRes), même principe que l'audio :
-// une image ne transite qu'une fois, puis le serveur la ressert aux arrivants.
-// Bornage : on garde au plus IMG_MAX images (éviction FIFO) pour ne pas gonfler la RAM.
+// In-memory cache of images (hash -> imgRes message), same principle as audio:
+// an image only transits once, then the server re-serves it to newcomers.
+// Bounded: keeps at most IMG_MAX images (FIFO eviction) to avoid bloating RAM.
 const imgMem = new Map();
 const IMG_MAX = 400;
 function cacheImg(hash, msg) {
@@ -91,7 +91,7 @@ function fromExport(obj) {
 }
 
 function boardFromObj(obj) {
-  const st = Array.isArray(obj.nodes) ? fromExport(obj) : obj; // export ou format natif
+  const st = Array.isArray(obj.nodes) ? fromExport(obj) : obj; // export or native format
   return {
     content: { n: st.n || {}, c: st.c || {}, h: st.h || {} },
     mt: st.mt || {},
@@ -107,17 +107,17 @@ function loadBoards() {
     const id = sanitizeBoard(f.replace(/\.json$/, ''));
     try { boards.set(id, boardFromObj(JSON.parse(fs.readFileSync(path.join(BOARDS_DIR, f), 'utf8')))); } catch (e) { /* */ }
   }
-  // Migration de l'ancien mono-board -> home.
+  // Migrates the legacy single-board file -> home.
   if (!boards.has('home') && fs.existsSync(OLD_BOARD_FILE)) {
     try { boards.set('home', boardFromObj(JSON.parse(fs.readFileSync(OLD_BOARD_FILE, 'utf8')))); } catch (e) { /* */ }
   }
-  console.log(`[bete] ${boards.size} board(s) chargé(s) : ${[...boards.keys()].join(', ') || '(aucun)'}`);
+  console.log(`[bete] ${boards.size} board(s) loaded: ${[...boards.keys()].join(', ') || '(none)'}`);
 }
 
 function getBoard(id) {
   let b = boards.get(id);
   if (!b) {
-    if (boards.size >= MAX_BOARDS) { console.warn('[bete] limite de boards atteinte, board éphémère :', id); }
+    if (boards.size >= MAX_BOARDS) { console.warn('[bete] board limit reached, ephemeral board:', id); }
     b = { content: { n: {}, c: {}, h: {} }, mt: {}, del: new Set(), conns: [], lastSig: '', saveTimer: null };
     boards.set(id, b);
   }
@@ -130,11 +130,11 @@ function scheduleSave(id, b) {
     b.saveTimer = null;
     try {
       fs.writeFileSync(path.join(BOARDS_DIR, id + '.json'), JSON.stringify({ ...b.content, mt: b.mt, del: [...b.del] }));
-    } catch (e) { console.error('[bete] échec sauvegarde', id, e); }
+    } catch (e) { console.error('[bete] save failed', id, e); }
   }, 1000);
 }
 
-// --- Synchro (LWW + priorité hôte à égalité), par board ---
+// --- Sync (LWW + host priority on tie), per board ---
 function buildPayload(b) {
   return { type: 'sync', from: 'host', n: b.content.n, c: b.content.c, h: b.content.h, mt: { ...b.mt }, del: [...b.del] };
 }
@@ -176,15 +176,15 @@ function applyMove(b, msg) {
 
 function applyDelete(b, msg) {
   b.del.add(msg.id);
-  audioMem.delete(msg.id); // libère l'audio caché
+  audioMem.delete(msg.id); // frees the cached audio
   if (b.content.n[msg.id] || b.content.c[msg.id] || b.content.h[msg.id]) {
     delete b.content.n[msg.id]; delete b.content.c[msg.id]; delete b.content.h[msg.id]; delete b.mt[msg.id];
   }
 }
 
-// Présence : le serveur (hôte) + les clients ayant annoncé un nom.
+// Presence: the server (host) + clients that have announced a name.
 function broadcastPresence(b) {
-  const users = [{ uid: 'server', name: 'Serveur', host: true, peerId: null, voice: false }];
+  const users = [{ uid: 'server', name: 'Server', host: true, peerId: null, voice: false }];
   for (const c of b.conns) if (c._uid) users.push({ uid: c._uid, name: c._name || '', host: false, peerId: c._peerId || null, voice: !!c._voice });
   const payload = { type: 'presence', users };
   for (const c of b.conns) if (c.open) { try { c.send(payload); } catch (e) { /* */ } }
@@ -196,23 +196,23 @@ function handleData(id, b, msg, origin) {
   else if (msg.type === 'move') { applyMove(b, msg); scheduleSave(id, b); }
   else if (msg.type === 'delete') { applyDelete(b, msg); scheduleSave(id, b); }
   else if (msg.type === 'audioReq') {
-    // Mémo vocal demandé : on répond depuis le cache, sinon on relaie aux autres.
+    // Voice memo requested: answers from the cache, otherwise relays to others.
     const cached = audioMem.get(msg.id);
     if (cached) { try { if (origin.open) origin.send(cached); } catch (e) { /* */ } }
     else for (const c of b.conns) if (c !== origin && c.open) { try { c.send(msg); } catch (e) { /* */ } }
     return;
   } else if (msg.type === 'audioRes') {
-    if (msg.buf) audioMem.set(msg.id, msg); // cache + renvoi tel quel
+    if (msg.buf) audioMem.set(msg.id, msg); // cache + resend as-is
     for (const c of b.conns) if (c !== origin && c.open) { try { c.send(msg); } catch (e) { /* */ } }
     return;
   } else if (msg.type === 'imgReq') {
-    // Image demandée par hash : on ressert depuis le cache, sinon on relaie aux autres.
+    // Image requested by hash: re-serves from cache, otherwise relays to others.
     const cached = imgMem.get(msg.hash);
     if (cached) { try { if (origin.open) origin.send(cached); } catch (e) { /* */ } }
     else for (const c of b.conns) if (c !== origin && c.open) { try { c.send(msg); } catch (e) { /* */ } }
     return;
   } else if (msg.type === 'imgRes') {
-    if (msg.buf) cacheImg(msg.hash, msg); // cache borné + renvoi tel quel
+    if (msg.buf) cacheImg(msg.hash, msg); // bounded cache + resend as-is
     for (const c of b.conns) if (c !== origin && c.open) { try { c.send(msg); } catch (e) { /* */ } }
     return;
   } else if (msg.type === 'hello') {
@@ -220,7 +220,7 @@ function handleData(id, b, msg, origin) {
     broadcastPresence(b);
     return;
   } else if (msg.type === 'cursor') {
-    for (const c of b.conns) if (c !== origin && c.open) { try { c.send(msg); } catch (e) { /* */ } } // relai curseurs
+    for (const c of b.conns) if (c !== origin && c.open) { try { c.send(msg); } catch (e) { /* */ } } // relays cursors
     return;
   }
   if (msg.type === 'move' || msg.type === 'delete') {
@@ -228,7 +228,7 @@ function handleData(id, b, msg, origin) {
   }
 }
 
-// Signatures par entrée (n/c/h) pour ne diffuser QUE ce qui change (delta).
+// Per-entry signatures (n/c/h) to only broadcast what changed (delta).
 function entrySigs(b) {
   const m = {};
   for (const id in b.content.n) m['n' + id] = JSON.stringify(b.content.n[id]);
@@ -237,7 +237,7 @@ function entrySigs(b) {
   return m;
 }
 
-// Diffusion périodique EN DELTA : seules les entrées modifiées + les suppressions.
+// Periodic broadcast IN DELTA: only the changed entries + deletions.
 function tick() {
   for (const [, b] of boards) {
     if (!b.conns.length) continue;
@@ -263,13 +263,13 @@ function tick() {
   }
 }
 
-// --- Filet de sécurité : ne jamais crasher sur une erreur non gérée ---
-// (ex. "WebSocket was closed before the connection was established" côté ws/peerjs).
+// --- Safety net: never crash on an unhandled error ---
+// (e.g. "WebSocket was closed before the connection was established" from ws/peerjs).
 process.on('uncaughtException', (e) => {
-  console.error('[bete] uncaughtException ignorée :', (e && e.message) || e);
+  console.error('[bete] uncaughtException ignored:', (e && e.message) || e);
   if (peer) { try { peer.destroy(); } catch (er) { /* */ } peer = null; scheduleRestart(); }
 });
-process.on('unhandledRejection', (e) => { console.error('[bete] unhandledRejection :', (e && e.message) || e); });
+process.on('unhandledRejection', (e) => { console.error('[bete] unhandledRejection:', (e && e.message) || e); });
 
 // --- Peer ---
 loadBoards();
@@ -294,11 +294,11 @@ function start() {
   peer = p;
 
   p.on('open', (rid) => {
-    console.log('\n[bete] HÔTE EN LIGNE (multi-board)');
+    console.log('\n[bete] HOST ONLINE (multi-board)');
     console.log('  id    : ' + rid);
-    if (APP_URL) console.log('  lien  : ' + APP_URL + '?peer=' + encodeURIComponent(rid));
-    else console.log('  lien  : <url-de-ton-instance>/?peer=' + encodeURIComponent(rid) + '  (définis BETE_APP_URL pour l\'afficher en entier)');
-    console.log('  (ajoute &id=nom pour un board précis)\n');
+    if (APP_URL) console.log('  link  : ' + APP_URL + '?peer=' + encodeURIComponent(rid));
+    else console.log('  link  : <your-instance-url>/?peer=' + encodeURIComponent(rid) + '  (set BETE_APP_URL to show it in full)');
+    console.log('  (add &id=name for a specific board)\n');
   });
   p.on('connection', (conn) => {
     if (p !== peer) return;
@@ -306,18 +306,18 @@ function start() {
     const b = getBoard(id);
     conn._lastSeen = now();
     b.conns.push(conn);
-    console.log(`[bete] client connecté sur "${id}" (${b.conns.length})`);
+    console.log(`[bete] client connected on "${id}" (${b.conns.length})`);
     conn.on('open', () => { try { conn.send(buildPayload(b)); } catch (e) { /* */ } });
     conn.on('data', (msg) => { conn._lastSeen = now(); handleData(id, b, msg, conn); });
-    const drop = () => { const i = b.conns.indexOf(conn); if (i >= 0) b.conns.splice(i, 1); broadcastPresence(b); console.log(`[bete] client déconnecté de "${id}" (${b.conns.length})`); };
+    const drop = () => { const i = b.conns.indexOf(conn); if (i >= 0) b.conns.splice(i, 1); broadcastPresence(b); console.log(`[bete] client disconnected from "${id}" (${b.conns.length})`); };
     conn.on('close', drop);
     conn.on('error', drop);
   });
   p.on('disconnected', () => {
     if (p !== peer) return;
-    // NB: p.reconnect() sur ce stack (wrtc/ws) peut émettre une erreur WS non gérée
-    // et faire crasher le process. On préfère détruire + repartir proprement.
-    console.warn('[bete] déconnecté du broker, redémarrage propre…');
+    // NB: p.reconnect() on this stack (wrtc/ws) can emit an unhandled WS error
+    // and crash the process. We prefer to destroy + restart cleanly.
+    console.warn('[bete] disconnected from the broker, restarting cleanly…');
     try { p.destroy(); } catch (e) { /* */ }
     peer = null;
     scheduleRestart();
@@ -325,8 +325,8 @@ function start() {
   p.on('error', (err) => {
     if (p !== peer) return;
     const t = err && err.type ? err.type : String(err);
-    console.error('[bete] erreur peer :', t);
-    if (t === 'unavailable-id') console.error('  -> id occupé (un autre hôte tourne ?). Réessai dans 5s.');
+    console.error('[bete] peer error:', t);
+    if (t === 'unavailable-id') console.error('  -> id taken (another host running?). Retrying in 5s.');
     if (t === 'unavailable-id' || t === 'network' || t === 'server-error' || t === 'socket-error') {
       try { p.destroy(); } catch (e) { /* */ }
       peer = null;
@@ -336,12 +336,12 @@ function start() {
 }
 
 setInterval(tick, 800);
-// Battement régulier : prouve aux clients que le serveur est vivant (sinon ils
-// déclencheraient une ré-élection pendant les périodes d'inactivité).
+// Regular heartbeat: proves to clients that the server is alive (otherwise
+// they would trigger a re-election during periods of inactivity).
 setInterval(() => {
   for (const [, b] of boards) for (const c of b.conns) if (c.open) { try { c.send({ type: 'ping' }); } catch (e) { /* */ } }
 }, 3000);
-// Nettoyage des clients muets (onglet fermé sans signal) : > 9s sans message.
+// Cleans up silent clients (tab closed without a signal): > 9s with no message.
 setInterval(() => {
   const cutoff = Date.now() - 9000;
   for (const [, b] of boards) {

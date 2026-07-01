@@ -1,4 +1,6 @@
-// Identité de l'utilisateur (locale au navigateur) : un id stable + un nom choisi.
+// User identity (local to the browser): a stable id + a chosen name.
+import { t } from './i18n.js?v=mr2lpyvb';
+
 const UID = 'bete:uid';
 const UNAME = 'bete:username';
 
@@ -18,7 +20,7 @@ export function setUserName(n) {
   try { localStorage.setItem(UNAME, (n || '').slice(0, 24)); } catch (e) { /* */ }
 }
 
-// Nom affiché : le nom choisi, sinon « Invité xxxx ».
+// Display name: the chosen name, otherwise "Guest xxxx".
 export function displayName() {
-  return getUserName() || ('Invité ' + getUserId().slice(2, 6));
+  return getUserName() || (t('liaison.guest') + ' ' + getUserId().slice(2, 6));
 }

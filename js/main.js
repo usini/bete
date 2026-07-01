@@ -1,22 +1,24 @@
-// Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr2946h3';
-import { setView } from './camera.js?v=mr2946h3';
-import { render } from './render.js?v=mr2946h3';
-import { step, reset } from './physics.js?v=mr2946h3';
-import * as minimap from './minimap.js?v=mr2946h3';
-import * as input from './input.js?v=mr2946h3';
-import * as fx from './fx.js?v=mr2946h3';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mr2946h3';
-import { recordBoard, getBoardEntry } from './boards.js?v=mr2946h3';
-import { TUTORIAL } from './tutorial.js?v=mr2946h3';
-import { applyTheme } from './theme.js?v=mr2946h3';
-import { initSettings, openSettings } from './settings.js?v=mr2946h3';
-import { recordLiaison, getLiaison } from './liaisons.js?v=mr2946h3';
-import { positionVideoOverlay } from './video.js?v=mr2946h3';
-import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mr2946h3';
-import { migrateImages } from './images.js?v=mr2946h3';
+// Bootstrap + render loop.
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr2lpyvb';
+import { setView } from './camera.js?v=mr2lpyvb';
+import { render } from './render.js?v=mr2lpyvb';
+import { step, reset } from './physics.js?v=mr2lpyvb';
+import * as minimap from './minimap.js?v=mr2lpyvb';
+import * as input from './input.js?v=mr2lpyvb';
+import * as fx from './fx.js?v=mr2lpyvb';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mr2lpyvb';
+import { recordBoard, getBoardEntry } from './boards.js?v=mr2lpyvb';
+import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mr2lpyvb';
+import { applyTheme } from './theme.js?v=mr2lpyvb';
+import { initSettings, openSettings } from './settings.js?v=mr2lpyvb';
+import { recordLiaison, getLiaison } from './liaisons.js?v=mr2lpyvb';
+import { positionVideoOverlay } from './video.js?v=mr2lpyvb';
+import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mr2lpyvb';
+import { migrateImages } from './images.js?v=mr2lpyvb';
+import { t, getLang, applyStaticI18n } from './i18n.js?v=mr2lpyvb';
 
-applyTheme(); // applique le thème enregistré dès le démarrage
+applyTheme(); // apply the saved theme right at startup
+applyStaticI18n(); // translate the static HTML chrome (buttons, hint, etc.)
 
 let toastTimer = null;
 function toast(msg, ms = 2400) {
@@ -45,7 +47,7 @@ window.addEventListener('resize', resize);
 resize();
 
 
-// ---- Choix du board (multi-boards) ----
+// ---- Board selection (multi-boards) ----
 function sanitizeId(s) {
   return String(s).toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'home';
 }
@@ -55,12 +57,12 @@ const peerId = params.get('peer');
 const fileUrl = params.get('file');
 const nameParam = params.get('name');
 
-// Premier lancement : on envoie l'utilisateur vers le tutoriel (puis l'app vit sur home).
+// First launch: send the user to the tutorial (afterwards the app lives on home).
 const REDIRECT = !localStorage.getItem('bete:seen') && !idParam && !peerId && !fileUrl;
 if (REDIRECT) {
   try { localStorage.setItem('bete:seen', '1'); } catch (e) { /* */ }
   recordBoard('home', 'Home', null);
-  recordBoard('tutorial', 'Tutoriel', null);
+  recordBoard('tutorial', 'Tutorial', null);
   location.replace(location.pathname + '?id=tutorial');
 }
 
@@ -74,48 +76,48 @@ if (!REDIRECT) {
   setBoardId(boardId);
 
   if (boardId === 'tutorial') {
-    load(TUTORIAL);                 // board intégré, lecture seule
+    load(getLang() === 'fr' ? TUTORIAL_FR : TUTORIAL_EN); // built-in board, read-only
     setSaveSuppressed(true);
     state.nodes.forEach(reset);
   } else if (peerId && boardId !== 'home') {
     if (!restore()) seedIfHome();
     state.nodes.forEach(reset);
-    recordLiaison(peerId); // mémorise la liaison active (renommable dans Paramètres)
-    toast('CONNEXION A LA LIAISON...');
+    recordLiaison(peerId); // remembers the active liaison (renamable in Settings)
+    toast(t('toast.connecting'));
     joinOrHost(peerId, (st) => {
-      if (st === 'host') toast("AUCUN HOTE : VOUS ETES L'HOTE", 3500);
-      else if (st === 'synced') toast('SYNCHRONISE ✓');
-      else if (st === 'connected') toast('CONNECTE - RECEPTION...');
-      else if (st === 'error') toast('LIAISON INJOIGNABLE', 4000);
-      else if (st === 'closed') toast('HOTE DECONNECTE', 4000);
+      if (st === 'host') toast(t('toast.noHost'), 3500);
+      else if (st === 'synced') toast(t('toast.synced'));
+      else if (st === 'connected') toast(t('toast.connectedReceiving'));
+      else if (st === 'error') toast(t('toast.unreachable'), 4000);
+      else if (st === 'closed') toast(t('toast.hostDisconnected'), 4000);
     });
   } else if (fileUrl) {
     setSaveSuppressed(true);
     loadFromUrl(fileUrl);
     state.nodes.forEach(reset);
   } else {
-    // Home est sanctuarisé : jamais connecté (pour ne pas être écrasé).
-    if (peerId && boardId === 'home') toast('HOME RESTE LOCAL (non connectable)', 3500);
+    // Home is sanctuarized: never connected (so it can't be overwritten).
+    if (peerId && boardId === 'home') toast(t('toast.homeLocal'), 3500);
     if (!restore()) seedIfHome();
     state.nodes.forEach(reset);
   }
 
-  // Nom du board : sérialisé > ?name= > historique > défaut. Puis affichage + historique.
+  // Board name: serialized > ?name= > history > default. Then display + history.
   resolveBoardName(boardId);
   recordBoard(boardId, getBoardName(), (boardId !== 'home' && peerId) || null);
   applyBoardNameUI();
-  initUndoBaseline(); // état de référence pour l'annulation
+  initUndoBaseline(); // reference state for undo
 
-  // Migration douce des images héritées (base64 inline -> réf IndexedDB) : allège le
-  // localStorage ET la synchro. Pas sur le tutoriel (lecture seule). Best-effort en tâche de fond.
+  // Soft migration of legacy images (inline base64 -> IndexedDB ref): lightens
+  // localStorage AND sync. Not on the tutorial (read-only). Best-effort, in the background.
   if (boardId !== 'tutorial') migrateImages(state.nodes, scheduleSave).catch(() => {});
 }
 
-// Résout et applique le nom affiché du board.
+// Resolves and applies the displayed board name.
 function resolveBoardName(id) {
   let name;
-  if (id === 'home') name = 'Home';
-  else if (id === 'tutorial') name = 'Tutoriel';
+  if (id === 'home') name = t('board.home');
+  else if (id === 'tutorial') name = t('board.tutorial');
   else {
     name = getBoardName() || nameParam || (getBoardEntry(id) && getBoardEntry(id).name) || id;
   }
@@ -160,11 +162,11 @@ async function loadFromUrl(url) {
   try {
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    if (!load(await res.json())) throw new Error('JSON invalide');
+    if (!load(await res.json())) throw new Error('Invalid JSON');
     state.nodes.forEach(reset);
   } catch (err) {
-    console.warn('Bete : échec du chargement de', url, err);
-    // Repli : localStorage ou démo, et on réactive la sauvegarde.
+    console.warn('Bete: failed to load', url, err);
+    // Fallback: localStorage or demo, and re-enable saving.
     setSaveSuppressed(false);
     if (!restore()) seedIfHome();
     state.nodes.forEach(reset);
@@ -174,11 +176,11 @@ async function loadFromUrl(url) {
 function seedDemo() {
   const c = addCircle(-140, 0, '#107c10');
   c.description = 'TODO';
-  const a = addRect(-230, -30, 'Tache A');
-  const b = addRect(-180, 50, 'Glisse-moi\ndans l\'hexa');
-  // Hexagone "AUJOURDHUI" avec un lien vers Tache A.
+  const a = addRect(-230, -30, 'Task A');
+  const b = addRect(-180, 50, 'Drag me\ninto the hexa');
+  // Hexagon "TODAY" with a link to Task A.
   const hx = addHexagon(190, 0, '#ff8c00');
-  hx.description = 'AUJOURDHUI';
+  hx.description = 'TODAY';
   const link = { id: newId(), x: 130, y: -30, w: 150, h: 70, ref: a.id };
   state.nodes.push(link);
   reset(a); reset(b); reset(link);
@@ -200,7 +202,7 @@ if (!REDIRECT) {
     spk.addEventListener('mousedown', tog);
     spk.addEventListener('touchstart', tog);
   }
-  // Handle de debug (inspection console : bete.state).
+  // Debug handle (console inspection: bete.state).
   window.bete = { state, fx };
   requestAnimationFrame(loop);
 }
@@ -210,11 +212,11 @@ function loop(now) {
   const dt = (now - last) / 1000;
   last = now;
 
-  // Physique des rectangles + particules.
+  // Rectangle physics + particles.
   for (const n of state.nodes) step(n, dt);
   fx.update(dt);
 
-  // Rendu board (en coordonnées CSS px grâce au scale DPR).
+  // Render the board (in CSS px coordinates thanks to the DPR scale).
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.imageSmoothingEnabled = false;
   render(ctx);
@@ -223,16 +225,16 @@ function loop(now) {
   minimap.render();
   updateNetMode();
   updateLiaisonBadge();
-  positionVideoOverlay(); // recale le lecteur YouTube inline sur son bloc
+  positionVideoOverlay(); // realigns the inline YouTube player on its block
   requestAnimationFrame(loop);
 }
 
-// Bandeau "qui parle" : liste des participants avec le micro actif.
+// "Who's talking" banner: list of participants with the mic active.
 let lastSpeakers = '';
 function updateSpeakers(connected) {
   const el = document.getElementById('speakers');
   if (!el) return;
-  const talkers = connected ? getPresence().filter((u) => u.voice).map((u) => (u.me ? 'Toi' : (u.name || 'Invité'))) : [];
+  const talkers = connected ? getPresence().filter((u) => u.voice).map((u) => (u.me ? t('liaison.you') : (u.name || t('liaison.guest')))) : [];
   const sig = talkers.join(',');
   if (sig === lastSpeakers) return;
   lastSpeakers = sig;
@@ -241,11 +243,11 @@ function updateSpeakers(connected) {
   el.classList.add('show');
 }
 
-// Indicateur de la liaison active (haut centre) + bouton déconnecter.
+// Active liaison indicator (top center) + disconnect button.
 let lastLiaison = '';
 function updateLiaisonBadge() {
   const st = liaisonStatus();
-  const name = st.role === 'host' ? 'Hôte' : (st.role === 'client' ? ((getLiaison(st.peer) && getLiaison(st.peer).name) || st.peer) : '');
+  const name = st.role === 'host' ? t('liaison.host') : (st.role === 'client' ? ((getLiaison(st.peer) && getLiaison(st.peer).name) || st.peer) : '');
   const count = st.role ? getUserCount() : 0;
   const sig = (st.role || '') + '|' + name + '|' + count;
   const vb = document.getElementById('voicebtn');
@@ -262,18 +264,18 @@ function updateLiaisonBadge() {
   const lbl = document.createElement('span');
   lbl.className = 'lb-name';
   lbl.textContent = (st.role === 'host' ? '🟢 ' : '🔗 ') + name + (count > 1 ? '  👤' + count : '');
-  lbl.title = 'Gérer les liaisons';
+  lbl.title = t('liaison.manage');
   lbl.addEventListener('click', () => openSettings());
   const x = document.createElement('button');
   x.className = 'lb-x';
   x.textContent = '✕';
-  x.title = 'Déconnecter la liaison';
+  x.title = t('liaison.disconnect');
   x.addEventListener('click', (e) => { e.stopPropagation(); disconnect(); });
   el.appendChild(lbl); el.appendChild(x);
   el.classList.add('show');
 }
 
-// Indicateur P2P direct / relais TURN (mis à jour seulement quand ça change).
+// Direct P2P / TURN relay indicator (only updated when it changes).
 let lastNet;
 function updateNetMode() {
   const nm = getNetMode();
@@ -281,12 +283,12 @@ function updateNetMode() {
   lastNet = nm;
   const el = document.getElementById('netmode');
   if (!nm) { el.className = ''; el.textContent = ''; }
-  else if (nm === 'relay') { el.className = 'show relay'; el.textContent = '● RELAIS (TURN)'; }
-  else if (nm === 'p2p') { el.className = 'show p2p'; el.textContent = '● P2P DIRECT'; }
-  else { el.className = 'show'; el.textContent = '● LIAISON…'; }
+  else if (nm === 'relay') { el.className = 'show relay'; el.textContent = t('net.relay'); }
+  else if (nm === 'p2p') { el.className = 'show p2p'; el.textContent = t('net.p2p'); }
+  else { el.className = 'show'; el.textContent = t('net.connecting'); }
 }
 
-// Re-render propre une fois la police pixel chargée.
+// Clean re-render once the pixel font has loaded.
 if (document.fonts && document.fonts.ready) {
-  document.fonts.ready.then(() => { /* la boucle RAF reprend le rendu */ });
+  document.fonts.ready.then(() => { /* the RAF loop resumes rendering */ });
 }

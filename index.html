@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
@@ -14,70 +14,70 @@
   <canvas id="board"></canvas>
   <canvas id="minimap"></canvas>
 
-  <!-- Overlay d'édition de texte -->
+  <!-- Text editing overlay -->
   <textarea id="editor" spellcheck="false"></textarea>
   <button id="editDone" type="button">✓ OK</button>
 
-  <!-- Menu radial (clic droit) -->
+  <!-- Radial menu (right click) -->
   <div id="radial" class="radial hidden"></div>
 
-  <!-- Palette de couleurs -->
+  <!-- Color palette -->
   <div id="palette" class="palette hidden"></div>
 
-  <!-- Bouton Paramètres -->
-  <button id="settingsbtn" type="button" title="Paramètres" aria-label="Paramètres">
+  <!-- Settings button -->
+  <button id="settingsbtn" type="button" data-i18n-title="button.settings" data-i18n-aria="button.settings">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9 19 19M19 5l-2.1 2.1M7.1 16.9 5 19"/></svg>
   </button>
 
-  <!-- Bouton micro (chat vocal) : visible seulement en liaison -->
-  <button id="voicebtn" type="button" class="hidden" title="Micro : parler (l'écoute est automatique)" aria-label="Micro parler">
+  <!-- Mic button (voice chat): visible only while in a liaison -->
+  <button id="voicebtn" type="button" class="hidden" data-i18n-title="button.mic.title" data-i18n-aria="button.mic.aria">
     <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><line x1="12" y1="17.5" x2="12" y2="21"/><line x1="8.5" y1="21" x2="15.5" y2="21"/></svg>
   </button>
 
-  <!-- Bouton haut-parleur (couper/activer l'écoute) : visible en liaison -->
-  <button id="speakerbtn" type="button" class="hidden" title="Écoute (haut-parleur)" aria-label="Écoute">
+  <!-- Speaker button (mute/unmute listening): visible while in a liaison -->
+  <button id="speakerbtn" type="button" class="hidden" data-i18n-title="button.listen.title" data-i18n-aria="button.listen.aria">
     <svg viewBox="0 0 24 24"><polygon points="4,9 8,9 13,5 13,19 8,15 4,15"/><path class="spk-on" d="M16.5 8.5a5 5 0 0 1 0 7"/><line class="spk-off" x1="16" y1="9" x2="21" y2="14"/><line class="spk-off" x1="21" y1="9" x2="16" y2="14"/></svg>
   </button>
 
-  <!-- Bandeau "qui parle" (haut centre) -->
+  <!-- "Who's talking" banner (top center) -->
   <div id="speakers"></div>
 
-  <!-- Astuce coin haut-gauche -->
-  <div id="hint">CLIC DROIT&nbsp;/&nbsp;APPUI LONG&nbsp;=&nbsp;MENU</div>
+  <!-- Hint (top-left corner) -->
+  <div id="hint" data-i18n-html="hint.default"></div>
 
-  <!-- Rectangle de sélection (marquee) -->
+  <!-- Selection rectangle (marquee) -->
   <div id="marquee"></div>
 
-  <!-- Panneau Paramètres -->
+  <!-- Settings panel -->
   <div id="settings" class="hidden"></div>
 
-  <!-- Nom du board (haut centre) -->
+  <!-- Board name (top center) -->
   <div id="boardname"></div>
 
-  <!-- Indicateur de liaison active (haut centre, sous le nom) -->
+  <!-- Active liaison indicator (top center, below the name) -->
   <div id="liaisonbadge"></div>
 
-  <!-- Sélecteur de board (lien vers un board) -->
+  <!-- Board picker (link to a board) -->
   <div id="boardpicker" class="hidden"></div>
 
-  <!-- Popup d'image (double-clic / double-tap sur un rectangle-image) -->
+  <!-- Image popup (double-click / double-tap on an image block) -->
   <div id="imgpopup"><img alt="" /></div>
 
-  <!-- Toast de statut (synchro P2P) -->
+  <!-- Status toast (P2P sync) -->
   <div id="toast"></div>
 
-  <!-- Indicateur de type de liaison (P2P direct / relais TURN) -->
+  <!-- Liaison type indicator (direct P2P / TURN relay) -->
   <div id="netmode"></div>
 
-  <!-- Barre d'URL d'un lien focalisé (clic pour ouvrir) -->
+  <!-- URL bar of a focused link (click to open) -->
   <div id="linkbar"></div>
 
-  <!-- Input fichier caché pour l'import -->
+  <!-- Hidden file input for import -->
   <input id="fileInput" type="file" accept="application/json,.json" hidden />
 
-  <!-- Overlay scanlines CRT -->
+  <!-- CRT scanlines overlay -->
   <div id="crt"></div>
 
-  <script type="module" src="js/main.js?v=mr2946h3"></script>
+  <script type="module" src="js/main.js?v=mr2lpyvb"></script>
 </body>
 </html>

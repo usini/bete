@@ -3,19 +3,20 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr2946h3';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr2946h3';
-import { dragTo, reset } from './physics.js?v=mr2946h3';
-import { pointInHex } from './geom.js?v=mr2946h3';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr2946h3';
-import { storeImage, resolveSrc } from './images.js?v=mr2946h3';
-import { explodeElementCascade } from './fx.js?v=mr2946h3';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr2946h3';
-import { openSettings } from './settings.js?v=mr2946h3';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr2946h3';
-import { toggleDebug } from './debug.js?v=mr2946h3';
-import { youTubeId } from './yt.js?v=mr2946h3';
-import { setActiveVideo } from './video.js?v=mr2946h3';
+} from './state.js?v=mr2lpyvb';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr2lpyvb';
+import { dragTo, reset } from './physics.js?v=mr2lpyvb';
+import { pointInHex } from './geom.js?v=mr2lpyvb';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr2lpyvb';
+import { storeImage, resolveSrc } from './images.js?v=mr2lpyvb';
+import { explodeElementCascade } from './fx.js?v=mr2lpyvb';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr2lpyvb';
+import { openSettings } from './settings.js?v=mr2lpyvb';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr2lpyvb';
+import { toggleDebug } from './debug.js?v=mr2lpyvb';
+import { youTubeId } from './yt.js?v=mr2lpyvb';
+import { setActiveVideo } from './video.js?v=mr2lpyvb';
+import { t } from './i18n.js?v=mr2lpyvb';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -41,12 +42,12 @@ let interactionEnabled = !isCoarse;
 function updateHint() {
   const h = document.getElementById('hint');
   if (!h || !isCoarse) return;
-  h.textContent = interactionEnabled ? 'INTERACTION ON · APPUI LONG = MENU' : 'VUE SEULE · APPUI LONG POUR ACTIVER';
+  h.textContent = interactionEnabled ? t('hint.active') : t('hint.locked');
 }
 
 const RESIZE_TOL = 12;  // tolerance (px screen) for grabbing the edge of a zone
 
-// ---- Radial Menu : colors + SVG icons (viewBox 0 0 24 24) ----
+// ---- Radial Menu: colors + SVG icons (viewBox 0 0 24 24) ----
 const COL = {
   green: '#39ff14', wood: '#b9772e', cyan: '#00b7eb', orange: '#ff8c00',
   magenta: '#e3008c', purple: '#9b30ff', yellow: '#ffd400', white: '#f2f2f2', red: '#fe4365',
@@ -134,7 +135,7 @@ export function init(boardCanvas, changeCb) {
   bp.addEventListener('mousedown', (e) => e.stopPropagation());
   bp.addEventListener('touchstart', (e) => e.stopPropagation());
 
-  // URL bar : clicking it follows the focused link.
+  // URL bar: clicking it follows the focused link.
   const lb = document.getElementById('linkbar');
   const followBar = (e) => { e.stopPropagation(); e.preventDefault(); if (linkFocus) { const u = linkFocus.url; clearLinkFocus(); followLink(u); } };
   lb.addEventListener('mousedown', followBar);
@@ -143,7 +144,7 @@ export function init(boardCanvas, changeCb) {
   updateHint();
 }
 
-// ---- Hit testing (du plus haut au plus bas) ----
+// ---- Hit testing (top to bottom) ----
 function hitRect(w) {
   for (let i = state.nodes.length - 1; i >= 0; i--) {
     const n = state.nodes[i];
@@ -177,7 +178,7 @@ function hitHexagon(w) {
   return null;
 }
 
-// Hexagone (corps) contenant un point, le plus haut d'abord.
+// Hexagon (body) containing a point, topmost first.
 function hexagonAt(px, py) {
   for (let i = state.hexagons.length - 1; i >= 0; i--) {
     const h = state.hexagons[i];
@@ -186,7 +187,7 @@ function hexagonAt(px, py) {
   return null;
 }
 
-// Coin bas-droit d'un rectangle (poignée de resize).
+// Bottom-right corner of a rectangle (resize handle).
 function nearCorner(w, r) {
   const tol = 14 / state.camera.zoom;
   return Math.abs(w.x - (r.x + r.w)) < tol && Math.abs(w.y - (r.y + r.h)) < tol;
@@ -196,27 +197,27 @@ function toggleSelect(id) {
   if (i === -1) state.selectedIds.push(id); else state.selectedIds.splice(i, 1);
 }
 
-// ---- Pointeur générique (souris + tactile) ----
+// ---- Generic pointer (mouse + touch) ----
 function pointerDown(sx, sy, opts) {
   closeMenus();
   const shift = !!(opts && opts.shift);
-  // Interaction verrouillée (mobile par défaut) : on ne fait que paner.
-  // (mais un tap sur un lien reste géré au pointerUp, cf. finishDrag).
+  // Locked interaction (mobile default): only pans.
+  // (but a tap on a link is still handled at pointerUp, see finishDrag).
   if (!interactionEnabled) { drag = { mode: 'pan', px: sx, py: sy, sx0: sx, sy0: sy }; return; }
   const w = screenToWorld(sx, sy);
 
   const r = hitRect(w);
   if (r) {
-    // Poignée de resize (coin bas-droit) d'un rectangle non-lien.
+    // Resize handle (bottom-right corner) of a non-link rectangle.
     if (!r.ref && r.kind !== 'liaison' && nearCorner(w, r)) {
       state.selected = r.id; state.selectedIds = [];
       drag = { mode: 'rectresize', id: r.id, aspect: r.image ? r.w / r.h : 0 };
       if (canvas) canvas.style.cursor = 'nwse-resize';
       return;
     }
-    // Shift+clic : ajoute/retire de la sélection multiple.
+    // Shift+click: adds/removes from the multi-selection.
     if (shift) { toggleSelect(r.id); state.selected = r.id; drag = null; scheduleSave(); return; }
-    // Clic sur un membre d'une sélection multiple : on déplace tout le groupe.
+    // Click on a member of a multi-selection: moves the whole group.
     if (state.selectedIds.length > 1 && state.selectedIds.indexOf(r.id) !== -1) {
       state.selected = r.id;
       drag = { mode: 'group', ids: state.selectedIds.slice(), lead: r.id, offx: w.x - r.x, offy: w.y - r.y, orig: {} };
@@ -224,7 +225,7 @@ function pointerDown(sx, sy, opts) {
       lastPos = { x: w.x, y: w.y, t: performance.now() };
       return;
     }
-    // Sélection simple.
+    // Simple selection.
     state.selectedIds = [];
     state.selected = r.id;
     drag = { mode: 'rect', id: r.id, offx: w.x - r.x, offy: w.y - r.y, startX: r.x, startY: r.y };
@@ -242,7 +243,7 @@ function pointerDown(sx, sy, opts) {
     return;
   }
 
-  // Fond : rectangle de sélection si Shift (desktop) ou mode armé (menu), sinon pan.
+  // Background: selection rectangle if Shift (desktop) or armed mode (menu), otherwise pan.
   if (shift || selectArmed) {
     selectArmed = false;
     drag = { mode: 'marquee', x0: sx, y0: sy, x1: sx, y1: sy };
@@ -286,7 +287,7 @@ function pointerMove(sx, sy) {
     if (!n) return;
     let nw = Math.max(40, w.x - n.x);
     let nh = Math.max(40, w.y - n.y);
-    if (drag.aspect) { if (nw / nh > drag.aspect) nh = nw / drag.aspect; else nw = nh * drag.aspect; } // garde le ratio des images
+    if (drag.aspect) { if (nw / nh > drag.aspect) nh = nw / drag.aspect; else nw = nh * drag.aspect; } // keeps the image ratio
     n.w = nw; n.h = nh;
     scheduleSave();
   } else if (drag.mode === 'group') {
@@ -316,10 +317,10 @@ function hideMarquee() { document.getElementById('marquee').classList.remove('sh
 function pointerUp() {
   if (drag) finishDrag();
   drag = null;
-  if (canvas) canvas.style.cursor = ''; // le prochain mousemove recalcule
+  if (canvas) canvas.style.cursor = ''; // the next mousemove recomputes it
 }
 
-// Curseur de redimensionnement (PC) au survol d'un bord/coin resizable.
+// Resize cursor (PC) when hovering a resizable edge/corner.
 function updateCursor(sx, sy) {
   if (!canvas || !interactionEnabled) return;
   const w = screenToWorld(sx, sy);
@@ -330,26 +331,26 @@ function updateCursor(sx, sy) {
   canvas.style.cursor = resize ? 'nwse-resize' : '';
 }
 
-// Lâcher un vrai rectangle dans un hexagone => crée un lien, l'original revient.
+// Dropping a real rectangle into a hexagon => creates a link, the original goes back.
 function finishDrag() {
   if (drag.mode === 'rect') {
     const n = findById(drag.id);
-    // Bloc Liaison : un clic (déplacement négligeable) copie le lien.
+    // Liaison block: a click (negligible movement) copies the link.
     if (n && n.kind === 'liaison') {
       if (Math.hypot(n.x - drag.startX, n.y - drag.startY) < 3 && n.url) copyLink(n);
       scheduleSave();
       return;
     }
-    // Bloc Mémo vocal : un clic lance/met en pause la lecture.
+    // Voice memo block: a click plays/pauses playback.
     if (n && n.kind === 'voice') {
       if (Math.hypot(n.x - drag.startX, n.y - drag.startY) < 3) toggleVoice(n);
       scheduleSave();
       return;
     }
-    // Tap (déplacement négligeable) sur un nœud à lien => focus puis suivi (2 temps).
+    // Tap (negligible movement) on a linked node => focus then follow (2-step).
     if (n) {
       const tap = Math.hypot(n.x - drag.startX, n.y - drag.startY) < 3;
-      if (tap && !n.ref && youTubeId(n.text)) { setActiveVideo(n); return; } // bloc-vidéo : lecture
+      if (tap && !n.ref && youTubeId(n.text)) { setActiveVideo(n); return; } // video block: play
       if (tap && displayLink(n)) { handleLinkTap(n); return; }
       if (tap) clearLinkFocus();
     }
@@ -370,7 +371,7 @@ function finishDrag() {
       }
     }
   } else if (drag.mode === 'pan') {
-    // Tap sur le fond : en mode verrouillé, un tap sur un lien le focus/suit.
+    // Tap on the background: in locked mode, a tap on a link focuses/follows it.
     const moved = Math.hypot((drag.px - drag.sx0), (drag.py - drag.sy0));
     if (moved < 6) {
       const w = screenToWorld(drag.px, drag.py);
@@ -388,21 +389,21 @@ function finishDrag() {
       const cx = nd.x + nd.w / 2, cy = nd.y + nd.h / 2;
       if (cx >= a.x && cx <= b.x && cy >= a.y && cy <= b.y) ids.push(nd.id);
     }
-    // 0 ou 1 bloc : on retombe en sélection simple (resize/édition possibles).
+    // 0 or 1 block: falls back to simple selection (resize/edit possible).
     state.selectedIds = ids.length > 1 ? ids : [];
     state.selected = ids.length === 1 ? ids[0] : null;
     return;
   }
 
-  // Position déposée : on synchronise la position finale (pas pendant le drag).
+  // Dropped position: syncs the final position (not during the drag itself).
   const el = findById(drag.id);
   if (el && el.kind !== 'liaison') pushMove(el);
   scheduleSave();
 }
 
-// ---- Souris ----
+// ---- Mouse ----
 function onMouseDown(e) {
-  if (e.button === 1 || e.button === 2) return; // milieu/droit gérés ailleurs
+  if (e.button === 1 || e.button === 2) return; // middle/right handled elsewhere
   pointerDown(e.clientX, e.clientY, { shift: e.shiftKey });
 }
 function onMouseMove(e) { if (drag) pointerMove(e.clientX, e.clientY); else updateCursor(e.clientX, e.clientY); }
@@ -415,10 +416,10 @@ function onWheel(e) {
   scheduleSave();
 }
 
-// ---- Tactile ----
+// ---- Touch ----
 function onTouchStart(e) {
-  // En édition : un tap hors du textarea valide et ferme (sinon preventDefault
-  // empêcherait le blur, et on resterait coincé dans l'édition sur mobile).
+  // While editing: a tap outside the textarea validates and closes it (otherwise
+  // preventDefault would block the blur, and we'd stay stuck in edit mode on mobile).
   if (editing) { document.getElementById('editor').blur(); e.preventDefault(); return; }
 
   if (e.touches.length === 1) {
@@ -435,7 +436,7 @@ function onTouchStart(e) {
     lastTap = now;
     lastTapPos = { x: t.clientX, y: t.clientY };
     pointerDown(t.clientX, t.clientY);
-    // Appui long => menu radial (puis glisser-pour-choisir sans relâcher).
+    // Long press => radial menu (then drag-to-choose without releasing).
     clearTimeout(longPressTimer);
     longPressTimer = setTimeout(() => {
       drag = null;
@@ -467,12 +468,12 @@ function onTouchMove(e) {
     scheduleSave();
   } else if (e.touches.length === 1) {
     const t = e.touches[0];
-    // Pie-menu ouvert et doigt toujours posé : on choisit par glissement.
+    // Pie-menu open and finger still down: choose by dragging.
     if (radialPressActive) { updateRadialHover(t.clientX, t.clientY); e.preventDefault(); return; }
     if (lastTapPos && Math.hypot(t.clientX - lastTapPos.x, t.clientY - lastTapPos.y) > 10) {
       clearTimeout(longPressTimer);
     }
-    const cw = screenToWorld(t.clientX, t.clientY); reportCursor(cw.x, cw.y); // curseur = position du doigt
+    const cw = screenToWorld(t.clientX, t.clientY); reportCursor(cw.x, cw.y); // cursor = finger position
     pointerMove(t.clientX, t.clientY);
   }
   e.preventDefault();
@@ -486,14 +487,14 @@ function onTouchEnd(e) {
   e.preventDefault();
 }
 
-// ---- Drop d'image ----
+// ---- Image drop ----
 function onDrop(e) {
   e.preventDefault();
   const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
   if (!file || !file.type.startsWith('image/')) return;
   const w = screenToWorld(e.clientX, e.clientY);
   let target = hitRect(w);
-  // Sur un lien : on remplit la source.
+  // On a link: fills in the source.
   if (target && target.ref) target = sourceOf(target);
 
   processImage(file, (src, ratio) => {
@@ -509,15 +510,15 @@ function onDrop(e) {
   });
 }
 
-// Range l'image en IndexedDB (réf 'idb:<hash>') puis la partage aux pairs.
-// Repli sur la data URL brute si IndexedDB échoue (rare).
+// Stores the image in IndexedDB (ref 'idb:<hash>') then shares it with peers.
+// Falls back to the raw data URL if IndexedDB fails (rare).
 function setNodeImage(node, dataUrl) {
   storeImage(dataUrl).then((ref) => {
     node.image = ref; scheduleSave(); shareImage(ref);
   }).catch(() => { node.image = dataUrl; scheduleSave(); });
 }
 
-// Dimensions d'un rectangle-image : aire ~ constante, ratio = celui de l'image.
+// Dimensions of an image rectangle: ~constant area, ratio = the image's.
 function imageRectSize(ratio) {
   const TARGET = 185;
   let w = TARGET * Math.sqrt(ratio);
@@ -527,7 +528,7 @@ function imageRectSize(ratio) {
   return { w, h };
 }
 
-// Crée un rectangle-image (centré sur wx,wy) à partir d'un fichier.
+// Creates an image rectangle (centered on wx,wy) from a file.
 function spawnImageRect(file, wx, wy) {
   processImage(file, (src, ratio) => {
     const { w: nw, h: nh } = imageRectSize(ratio);
@@ -538,17 +539,17 @@ function spawnImageRect(file, wx, wy) {
   });
 }
 
-// Coller (Ctrl-V) : une image du presse-papier crée un rectangle-image ;
-// sinon on colle l'élément interne copié.
+// Paste (Ctrl-V): an image from the clipboard creates an image rectangle;
+// otherwise pastes the copied internal element.
 function onPaste(e) {
-  if (editing) return; // pendant l'édition, le textarea colle normalement
+  if (editing) return; // while editing, the textarea pastes normally
   const items = (e.clipboardData && e.clipboardData.items) || [];
   for (const it of items) {
     if (it.type && it.type.startsWith('image/')) {
       const file = it.getAsFile();
       if (file) {
-        // Garde-fou : si c'est la MÊME image système que la dernière collée et
-        // qu'on a copié un bloc depuis, on colle le bloc interne (pas l'image périmée).
+        // Guard: if this is the SAME system image as the last one pasted and
+        // we've copied a block since then, paste the internal block (not the stale image).
         const sig = file.size + ':' + file.type;
         if (clipboard && internalSince && sig === lastImgSig) break;
         e.preventDefault();
@@ -562,7 +563,7 @@ function onPaste(e) {
   if (clipboard) { e.preventDefault(); pasteClipboard(); }
 }
 
-// Redimensionne (max 800px) et ré-encode pour ménager le localStorage.
+// Resizes (max 800px) and re-encodes to save on localStorage.
 function processImage(file, cb) {
   const reader = new FileReader();
   reader.onload = () => {
@@ -583,18 +584,18 @@ function processImage(file, cb) {
   reader.readAsDataURL(file);
 }
 
-// ---- Double-clic / double-tap ----
+// ---- Double-click / double-tap ----
 function handleDouble(sx, sy) {
   const w = screenToWorld(sx, sy);
   const r = hitRect(w);
-  // Double-tap/clic sur un lien => on suit directement (autorisé même verrouillé).
+  // Double-tap/click on a link => follows it directly (allowed even when locked).
   if (r && displayLink(r)) { clearLinkFocus(); followLink(displayLink(r)); return; }
-  if (r && r.kind === 'voice') { toggleVoice(r); return; } // double-clic = lecture
-  if (!interactionEnabled) return; // verrouillé : pas d'édition/ouverture
+  if (r && r.kind === 'voice') { toggleVoice(r); return; } // double-click = playback
+  if (!interactionEnabled) return; // locked: no editing/opening
   if (r) {
     const img = displayImage(r);
     if (img) { openImagePopup(img); return; }
-    const editTarget = r.ref ? sourceOf(r) : r; // éditer un lien = éditer sa source
+    const editTarget = r.ref ? sourceOf(r) : r; // editing a link = editing its source
     if (editTarget) startEdit('rect', editTarget, r);
     return;
   }
@@ -605,14 +606,14 @@ function handleDouble(sx, sy) {
 function onKeyDown(e) {
   if (editing) return;
 
-  // Touche ² (à gauche du 1 sur AZERTY) : panneau debug des wobbles.
+  // '²' key (left of 1 on AZERTY): wobble debug panel.
   if (e.key === '²' || e.code === 'Backquote') { toggleDebug(); e.preventDefault(); return; }
 
   const mod = e.ctrlKey || e.metaKey;
   if (mod && (e.key === 'z' || e.key === 'Z')) { doUndo(); e.preventDefault(); return; }
   if (mod && (e.key === 'c' || e.key === 'C')) { copySelection(); e.preventDefault(); return; }
-  // Le collage (Ctrl-V) est géré par l'événement 'paste' (cf. onPaste) pour
-  // pouvoir lire une image du presse-papier.
+  // Pasting (Ctrl-V) is handled by the 'paste' event (see onPaste) so we can
+  // read an image from the clipboard.
 
   if (e.key === 'Delete' || e.key === 'Backspace') {
     if (state.selectedIds.length) {
@@ -625,31 +626,31 @@ function onKeyDown(e) {
   }
 }
 
-// Annule la dernière modification + recale la physique/sélection.
+// Undoes the last change + recalibrates physics/selection.
 function doUndo() {
   if (undo()) { state.nodes.forEach(reset); state.selected = null; state.selectedIds = []; }
 }
 
-// Crée un bloc Liaison. En autonome : démarre l'hôte P2P. En client : affiche
-// simplement le lien/QR de l'hôte auquel on est connecté (sans devenir hôte).
+// Creates a Liaison block. Standalone: starts the P2P host. As a client: just
+// shows the link/QR of the host we're connected to (without becoming a host).
 function createLiaison(wx, wy) {
   const n = { id: newId(), kind: 'liaison', x: wx - 100, y: wy - 115, w: 200, h: 230, status: 'init' };
   state.nodes.push(n);
   reset(n);
   state.selected = n.id;
   if (isClient()) {
-    loadQR(); // en client, startHost n'est pas appelé : on charge la lib QR ici
+    loadQR(); // as a client, startHost isn't called: we load the QR lib here
     const id = hostId();
     if (id) { n.peerId = id; n.code = id; n.url = buildUrl(id); n.status = 'online'; }
     else n.status = 'error';
   } else if (!adoptHost(n)) {
-    startHost(n); // pas de peer hôte vivant : on en démarre un
+    startHost(n); // no live host peer: starts one
   } else {
-    loadQR(); // peer réutilisé : s'assurer que la lib QR est chargée
+    loadQR(); // reused peer: make sure the QR lib is loaded
   }
 }
 
-// Copie le lien d'un bloc Liaison dans le presse-papier + feedback visuel.
+// Copies a Liaison block's link to the clipboard + visual feedback.
 function copyLink(n) {
   const done = () => { n._copiedUntil = performance.now() + 1400; };
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -659,7 +660,7 @@ function copyLink(n) {
   }
 }
 
-// ---- Liens en deux temps : 1er tap = focus (affiche l'URL), 2e = on suit ----
+// ---- Two-step links: 1st tap = focus (shows the URL), 2nd = follows it ----
 let linkFocus = null; // { id, url }
 
 function handleLinkTap(n) {
@@ -676,7 +677,7 @@ function handleLinkTap(n) {
 
 function showLinkBar(url) {
   const el = document.getElementById('linkbar');
-  el.textContent = '↗ ' + url;
+  el.textContent = t('linkbar.prefix') + url;
   el.title = url;
   el.classList.add('show');
 }
@@ -685,18 +686,18 @@ function clearLinkFocus() {
   document.getElementById('linkbar').classList.remove('show');
 }
 
-// Suit un lien : board => même onglet (+ historique) ; externe => nouvel onglet.
+// Follows a link: board => same tab (+ history); external => new tab.
 function followLink(url) {
   const bu = parseBoardUrl(url);
   if (bu) { recordBoard(bu.id, bu.name, bu.peer); location.href = url; return; }
   openLink(url);
 }
 
-// Ouvre un lien externe dans un nouvel onglet (préfixe https:// si besoin).
+// Opens an external link in a new tab (prefixes https:// if needed).
 let _lastLinkOpen = 0;
 function openLink(url) {
   const t = performance.now();
-  if (t - _lastLinkOpen < 600) return; // évite le double-ouverture (double-clic)
+  if (t - _lastLinkOpen < 600) return; // avoids double-opening (double-click)
   _lastLinkOpen = t;
   let u = String(url).trim();
   if (!u) return;
@@ -704,30 +705,30 @@ function openLink(url) {
   window.open(u, '_blank', 'noopener,noreferrer');
 }
 
-// Supprime un élément (explosion + propagation ; détache le host si Liaison).
+// Removes an element (explosion + propagation; detaches the host if it's a Liaison).
 function removeElement(el) {
   if (!el) return;
   if (el.kind === 'liaison') {
-    // On détache sans détruire le peer : la liaison reste vivante pour la session
-    // et une recréation du bloc est instantanée (cf. adoptHost). En client, rien à couper.
+    // Detaches without destroying the peer: the liaison stays alive for the
+    // session and recreating the block is instant (see adoptHost). As a client, nothing to cut.
     if (!isClient()) detachHost();
     removeById(el.id); scheduleSave(); return;
   }
   if (el.kind === 'voice') {
     explodeElementCascade(el);
-    removeVoiceAudio(el.id); // efface l'audio en IndexedDB
+    removeVoiceAudio(el.id); // erases the audio in IndexedDB
     removeById(el.id); scheduleSave(); return;
   }
-  explodeElementCascade(el); // explosion locale
-  pushDelete(el.id);         // explosion + suppression chez les pairs
+  explodeElementCascade(el); // local explosion
+  pushDelete(el.id);         // explosion + deletion for peers
   removeById(el.id);
   scheduleSave();
 }
 
-// ---- Copier / coller ----
+// ---- Copy / paste ----
 function copySelection() {
   const el = state.selected && findById(state.selected);
-  if (!el || el.kind === 'liaison') return; // un lien P2P ne se copie pas
+  if (!el || el.kind === 'liaison') return; // a P2P link can't be copied
 
   const data = {};
   for (const k in el) if (k[0] !== '_' && k !== 'id') data[k] = el[k];
@@ -736,9 +737,9 @@ function copySelection() {
     isHex: state.hexagons.includes(el),
     data,
   };
-  internalSince = true; // une copie interne a eu lieu -> prioritaire sur l'image système périmée
-  // Écrase le presse-papier SYSTÈME (texte) : sinon une image copiée avant
-  // resurgit au prochain Ctrl-V (onPaste détecte l'image système en priorité).
+  internalSince = true; // an internal copy happened -> takes priority over the stale system image
+  // Overwrites the SYSTEM clipboard (text): otherwise a previously copied image
+  // resurfaces on the next Ctrl-V (onPaste detects the system image first).
   try {
     const txt = el.text || el.description || ' ';
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).catch(() => {});
@@ -762,12 +763,12 @@ function pasteClipboard() {
   scheduleSave();
 }
 
-// ---- Menu radial ----
+// ---- Radial menu ----
 function openContextAt(sx, sy) {
   closeMenus();
-  // Verrouillé (mobile) : le menu ne propose que d'activer l'interaction.
+  // Locked (mobile): the menu only offers to enable interaction.
   if (!interactionEnabled) {
-    openRadial(sx, sy, [{ label: 'Activer', icon: 'unlock', color: COL.green, fn: () => { interactionEnabled = true; updateHint(); } }]);
+    openRadial(sx, sy, [{ label: t('radial.enable'), icon: 'unlock', color: COL.green, fn: () => { interactionEnabled = true; updateHint(); } }]);
     return;
   }
   const w = screenToWorld(sx, sy);
@@ -776,51 +777,51 @@ function openContextAt(sx, sy) {
 
   let items;
   if (r && r.kind === 'liaison') {
-    items = [{ label: 'Copier le lien', icon: 'copy', color: COL.green, fn: () => copyLink(r) }];
-    if (!isClient()) items.push({ label: 'Nouveau lien', icon: 'refresh', color: COL.yellow, fn: () => refreshHostId(r) });
-    items.push({ label: 'Supprimer', icon: 'trash', color: COL.red, fn: () => removeElement(r) });
+    items = [{ label: t('radial.copyLink'), icon: 'copy', color: COL.green, fn: () => copyLink(r) }];
+    if (!isClient()) items.push({ label: t('radial.newLink'), icon: 'refresh', color: COL.yellow, fn: () => refreshHostId(r) });
+    items.push({ label: t('radial.delete'), icon: 'trash', color: COL.red, fn: () => removeElement(r) });
   } else if (r && state.selectedIds.length > 1 && state.selectedIds.indexOf(r.id) !== -1) {
-    // Menu d'une sélection multiple.
+    // Multi-selection menu.
     const ids = state.selectedIds.slice();
-    items = [{ label: 'Supprimer (' + ids.length + ')', icon: 'trash', color: COL.red, fn: () => { ids.forEach((id) => removeElement(findById(id))); state.selectedIds = []; } }];
+    items = [{ label: t('radial.deleteN', { n: ids.length }), icon: 'trash', color: COL.red, fn: () => { ids.forEach((id) => removeElement(findById(id))); state.selectedIds = []; } }];
   } else if (r && r.kind === 'voice') {
     items = [
-      { label: 'Lire / Pause', icon: 'mic', color: COL.green, fn: () => toggleVoice(r) },
-      { label: 'Supprimer', icon: 'trash', color: COL.red, fn: () => removeElement(r) },
+      { label: t('radial.playPause'), icon: 'mic', color: COL.green, fn: () => toggleVoice(r) },
+      { label: t('radial.delete'), icon: 'trash', color: COL.red, fn: () => removeElement(r) },
     ];
   } else if (r) {
     const isLink = !!r.ref;
-    items = [{ label: 'Éditer le texte', icon: 'edit', color: COL.cyan, fn: () => { const t = isLink ? sourceOf(r) : r; if (t) startEdit('rect', t, r); } }];
-    items.push({ label: 'Lien cliquable', icon: 'link', color: COL.purple, fn: () => { const t = isLink ? sourceOf(r) : r; if (t) startEdit('link', t, r); } });
+    items = [{ label: t('radial.editText'), icon: 'edit', color: COL.cyan, fn: () => { const t = isLink ? sourceOf(r) : r; if (t) startEdit('rect', t, r); } }];
+    items.push({ label: t('radial.clickableLink'), icon: 'link', color: COL.purple, fn: () => { const t = isLink ? sourceOf(r) : r; if (t) startEdit('link', t, r); } });
     const img = displayImage(r);
-    if (img) items.push({ label: "Voir l'image", icon: 'eye', color: COL.white, fn: () => openImagePopup(img) });
-    if (!isLink && r.image) items.push({ label: "Retirer l'image", icon: 'imgx', color: COL.orange, fn: () => { delete r.image; scheduleSave(); } });
-    // Transformer ce rectangle (au lieu d'entrées dédiées dans le menu principal).
+    if (img) items.push({ label: t('radial.viewImage'), icon: 'eye', color: COL.white, fn: () => openImagePopup(img) });
+    if (!isLink && r.image) items.push({ label: t('radial.removeImage'), icon: 'imgx', color: COL.orange, fn: () => { delete r.image; scheduleSave(); } });
+    // Transforming this rectangle (instead of dedicated entries in the main menu).
     if (!isLink && r.kind !== 'pancarte') {
-      items.push({ label: 'Lien board', icon: 'board', color: COL.cyan, fn: () => openBoardPicker(r.x, r.y, r) });
-      if (!r.image) items.push({ label: 'Mémo vocal', icon: 'mic', color: COL.red, fn: () => recordVoiceMemo(r.x, r.y, r) });
+      items.push({ label: t('radial.boardLink'), icon: 'board', color: COL.cyan, fn: () => openBoardPicker(r.x, r.y, r) });
+      if (!r.image) items.push({ label: t('radial.voiceMemo'), icon: 'mic', color: COL.red, fn: () => recordVoiceMemo(r.x, r.y, r) });
     }
-    items.push({ label: isLink ? 'Délier' : 'Supprimer', icon: 'trash', color: COL.red, fn: () => { removeById(r.id); scheduleSave(); } });
+    items.push({ label: isLink ? t('radial.unlink') : t('radial.delete'), icon: 'trash', color: COL.red, fn: () => { removeById(r.id); scheduleSave(); } });
   } else if (hz) {
     const c = hz.c;
     items = [
-      { label: 'Couleur', icon: 'color', color: COL.purple, fn: () => openPalette(sx, sy, c) },
-      { label: 'Texte', icon: 'text', color: COL.cyan, fn: () => startEdit('zone', c, c) },
-      { label: 'Supprimer', icon: 'trash', color: COL.red, fn: () => { removeById(c.id); scheduleSave(); } },
+      { label: t('radial.color'), icon: 'color', color: COL.purple, fn: () => openPalette(sx, sy, c) },
+      { label: t('radial.text'), icon: 'text', color: COL.cyan, fn: () => startEdit('zone', c, c) },
+      { label: t('radial.delete'), icon: 'trash', color: COL.red, fn: () => { removeById(c.id); scheduleSave(); } },
     ];
   } else {
     items = [
-      { label: 'Rectangle', icon: 'rect', color: COL.green, fn: () => { const n = addRect(w.x - 75, w.y - 35); reset(n); state.selected = n.id; startEdit('rect', n, n); scheduleSave(); } },
-      { label: 'Pancarte', icon: 'pancarte', color: COL.wood, fn: () => { const n = { id: newId(), kind: 'pancarte', x: w.x - 120, y: w.y - 65, w: 240, h: 130, text: '' }; state.nodes.push(n); reset(n); state.selected = n.id; startEdit('rect', n, n); scheduleSave(); } },
-      { label: 'Cercle', icon: 'circle', color: COL.cyan, fn: () => { const c = addCircle(w.x, w.y); state.selected = c.id; scheduleSave(); } },
-      { label: 'Hexagone', icon: 'hexa', color: COL.orange, fn: () => { const h = addHexagon(w.x, w.y); state.selected = h.id; scheduleSave(); } },
-      { label: 'Liaison', icon: 'share', color: COL.magenta, fn: () => createLiaison(w.x, w.y) },
-      { label: 'Annuler', icon: 'undo', color: COL.yellow, fn: () => doUndo() },
-      { label: 'Sélection', icon: 'select', color: COL.yellow, fn: () => { selectArmed = true; } },
-      { label: 'Paramètres', icon: 'gear', color: COL.white, fn: () => openSettings() },
+      { label: t('radial.rectangle'), icon: 'rect', color: COL.green, fn: () => { const n = addRect(w.x - 75, w.y - 35); reset(n); state.selected = n.id; startEdit('rect', n, n); scheduleSave(); } },
+      { label: t('radial.sign'), icon: 'pancarte', color: COL.wood, fn: () => { const n = { id: newId(), kind: 'pancarte', x: w.x - 120, y: w.y - 65, w: 240, h: 130, text: '' }; state.nodes.push(n); reset(n); state.selected = n.id; startEdit('rect', n, n); scheduleSave(); } },
+      { label: t('radial.circle'), icon: 'circle', color: COL.cyan, fn: () => { const c = addCircle(w.x, w.y); state.selected = c.id; scheduleSave(); } },
+      { label: t('radial.hexagon'), icon: 'hexa', color: COL.orange, fn: () => { const h = addHexagon(w.x, w.y); state.selected = h.id; scheduleSave(); } },
+      { label: t('radial.liaison'), icon: 'share', color: COL.magenta, fn: () => createLiaison(w.x, w.y) },
+      { label: t('radial.undo'), icon: 'undo', color: COL.yellow, fn: () => doUndo() },
+      { label: t('radial.selection'), icon: 'select', color: COL.yellow, fn: () => { selectArmed = true; } },
+      { label: t('radial.settings'), icon: 'gear', color: COL.white, fn: () => openSettings() },
     ];
-    // Sur mobile : possibilité de reverrouiller l'interaction.
-    if (isCoarse) items.push({ label: 'Verrouiller', icon: 'lock', color: COL.orange, fn: () => { interactionEnabled = false; state.selected = null; updateHint(); } });
+    // On mobile: option to re-lock interaction.
+    if (isCoarse) items.push({ label: t('radial.lock'), icon: 'lock', color: COL.orange, fn: () => { interactionEnabled = false; state.selected = null; updateHint(); } });
   }
   openRadial(sx, sy, items);
 }
@@ -843,27 +844,27 @@ function openRadial(x, y, items) {
   radial.classList.remove('hidden');
 
   const n = items.length;
-  const D = isCoarse ? 62 : 52;        // diamètre d'un bouton
+  const D = isCoarse ? 62 : 52;        // button diameter
   const start = -Math.PI / 2;
 
-  // Rayon : la corde entre deux boutons voisins dépasse leur diamètre (pas de chevauchement).
+  // Radius: the chord between two neighboring buttons exceeds their diameter (no overlap).
   let radius = n > 1 ? (D + 14) / (2 * Math.sin(Math.PI / n)) : 0;
   radius = Math.max(radius, D + 6);
 
-  // Recadre le centre pour que tout le menu reste visible.
+  // Recenters so the whole menu stays visible.
   const m = radius + D / 2 + 6;
   const cx = Math.max(m, Math.min(x, window.innerWidth - m));
   const cy = Math.max(m, Math.min(y, window.innerHeight - m));
   radial.style.left = cx + 'px';
   radial.style.top = cy + 'px';
 
-  // Bouton central : ferme le menu (ancre visuelle).
-  const center = mkRitem({ label: 'Fermer', icon: 'close', color: COL.green, fn: () => {} }, 'ritem-center show');
+  // Center button: closes the menu (visual anchor).
+  const center = mkRitem({ label: t('radial.close'), icon: 'close', color: COL.green, fn: () => {} }, 'ritem-center show');
   center.style.transform = 'translate(-50%, -50%) scale(1)';
   center.style.opacity = '1';
   radial.appendChild(center);
 
-  // Trait centre→doigt (SVG) + halo sous le doigt : repères du glisser tactile.
+  // Center->finger line (SVG) + halo under the finger: touch-drag guides.
   const ray = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   ray.setAttribute('class', 'radial-ray');
   ray.innerHTML = '<line x1="0" y1="0" x2="0" y2="0" />';
@@ -874,7 +875,7 @@ function openRadial(x, y, items) {
   radial.appendChild(halo);
   radialHalo = halo;
 
-  // Items qui se déploient en éventail (animation ressort décalée).
+  // Items fanning out (staggered spring animation).
   radialItems = [];
   radialHoverIdx = -1;
   radialCx = cx; radialCy = cy;
@@ -895,19 +896,19 @@ function openRadial(x, y, items) {
 
 function vibrate(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* */ } }
 
-// Pie-menu tactile : glisser le doigt vers un item le sélectionne (par direction).
+// Touch pie-menu: dragging the finger towards an item selects it (by direction).
 function angDiff(a, b) { let d = a - b; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return Math.abs(d); }
 
 function updateRadialHover(x, y) {
   const dx = x - radialCx, dy = y - radialCy;
   const dist = Math.hypot(dx, dy);
   let idx = -1;
-  if (dist > 30 && radialItems.length) { // hors deadzone centrale
+  if (dist > 30 && radialItems.length) { // outside the central deadzone
     const a = Math.atan2(dy, dx);
     let best = Infinity;
     radialItems.forEach((it, i) => { const d = angDiff(a, it.ang); if (d < best) { best = d; idx = i; } });
   }
-  if (idx !== radialHoverIdx) vibrate(idx >= 0 ? 10 : 4); // tic haptique au changement d'item
+  if (idx !== radialHoverIdx) vibrate(idx >= 0 ? 10 : 4); // haptic tick on item change
   radialHoverIdx = idx;
   radialItems.forEach((it, i) => {
     const on = i === idx;
@@ -915,7 +916,7 @@ function updateRadialHover(x, y) {
     it.el.style.transform = `translate(calc(-50% + ${it.dx}px), calc(-50% + ${it.dy}px)) scale(${on ? 1.5 : 1})`;
     it.el.classList.toggle('hover', on);
   });
-  // Trait du centre vers le doigt + halo sous le doigt.
+  // Line from the center to the finger + halo under the finger.
   const active = dist > 30;
   if (radialRay) {
     const col = idx >= 0 ? radialItems[idx].color : COL.green;
@@ -934,10 +935,10 @@ function selectRadialHover() {
   radialPressActive = false;
   const idx = radialHoverIdx;
   if (idx >= 0 && radialItems[idx]) { vibrate(22); const fn = radialItems[idx].fn; closeMenus(); fn(); }
-  // sinon (doigt au centre / pas de sélection) : on laisse le menu ouvert pour un tap.
+  // otherwise (finger at the center / no selection): leave the menu open for a tap.
 }
 
-// ---- Palette de couleurs ----
+// ---- Color palette ----
 function openPalette(x, y, zone) {
   const pal = document.getElementById('palette');
   pal.innerHTML = '';
@@ -972,23 +973,23 @@ function closeMenus() {
   document.removeEventListener('touchstart', closeMenusOnce);
 }
 
-// ---- Sélecteur de board (créer un lien vers un autre board) ----
+// ---- Board picker (create a link to another board) ----
 function openBoardPicker(wx, wy, target) {
   closeMenus();
   pendingBoardPos = { x: wx, y: wy };
-  pendingBoardTarget = target || null; // si fourni : on transforme ce bloc en lien
+  pendingBoardTarget = target || null; // if provided: transforms this block into a link
   const bp = document.getElementById('boardpicker');
   bp.innerHTML = '';
   const title = document.createElement('div');
   title.className = 'bp-title';
-  title.textContent = 'LIEN VERS UN BOARD';
+  title.textContent = t('boardPicker.title');
   bp.appendChild(title);
 
-  // Créer un nouveau board.
+  // Create a new board.
   const newRow = document.createElement('div');
   newRow.className = 'bp-new';
   const inp = document.createElement('input');
-  inp.maxLength = 40; inp.placeholder = 'Nouveau board…';
+  inp.maxLength = 40; inp.placeholder = t('boardPicker.newPlaceholder');
   const okb = document.createElement('button');
   okb.textContent = '+';
   newRow.appendChild(inp); newRow.appendChild(okb);
@@ -997,19 +998,19 @@ function openBoardPicker(wx, wy, target) {
   okb.addEventListener('click', createNew);
   inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') createNew(); });
 
-  // Boards déjà visités.
+  // Already-visited boards.
   const cur = getBoardId();
   const visited = listBoards().filter((b) => b.id !== cur);
   if (!visited.length) {
     const empty = document.createElement('div');
     empty.className = 'bp-empty';
-    empty.textContent = '(aucun autre board visité)';
+    empty.textContent = t('boardPicker.empty');
     bp.appendChild(empty);
   }
   visited.forEach((b) => {
     const row = document.createElement('div');
     row.className = 'bp-row';
-    row.textContent = b.name || b.id;
+    row.textContent = b.id === 'home' ? t('board.home') : b.id === 'tutorial' ? t('board.tutorial') : (b.name || b.id);
     row.addEventListener('click', () => createBoardLink(b.id, b.name, b.peer));
     bp.appendChild(row);
   });
@@ -1021,10 +1022,10 @@ function openBoardPicker(wx, wy, target) {
 
 function createBoardLink(targetId, name, peerOverride) {
   closeMenus();
-  const peer = peerOverride || hostId() || null; // hérite du host courant
+  const peer = peerOverride || hostId() || null; // inherits the current host
   const url = buildBoardUrl(targetId, peer, name);
   if (pendingBoardTarget) {
-    // Transforme le bloc existant en lien vers le board (garde son texte s'il en a).
+    // Transforms the existing block into a link to the board (keeps its text if any).
     const t = pendingBoardTarget; pendingBoardTarget = null;
     t.link = url;
     if (!t.text) t.text = name || targetId;
@@ -1040,7 +1041,7 @@ function createBoardLink(targetId, name, peerOverride) {
   scheduleSave();
 }
 
-// ---- Popup image ----
+// ---- Image popup ----
 function openImagePopup(ref) {
   closeMenus();
   const pop = document.getElementById('imgpopup');
@@ -1051,8 +1052,8 @@ function closeImagePopup() {
   document.getElementById('imgpopup').classList.remove('show');
 }
 
-// ---- Édition de texte ----
-// target = élément édité (pour un lien : sa source) ; posNode = élément à survoler.
+// ---- Text editing ----
+// target = element being edited (for a link: its source); posNode = element to hover over.
 function startEdit(type, target, posNode) {
   posNode = posNode || target;
   closeMenus();
@@ -1098,7 +1099,7 @@ function commitEdit() {
   document.getElementById('editDone').classList.remove('show');
 }
 
-// Échap : ferme l'éditeur ou la popup image.
+// Escape: closes the editor or the image popup.
 window.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   if (editing) { e.preventDefault(); document.getElementById('editor').blur(); }

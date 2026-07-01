@@ -1,7 +1,7 @@
 :root {
   --bg: #0d0f12;
   --bg-grid: #1a1f26;
-  --green: #39ff14;        /* vert fluo nucléaire */
+  --green: #39ff14;        /* neon nuclear green */
   --green-dim: #1f7a10;
   --node-bg: #11151a;
   --xbox: #107c10;
@@ -85,7 +85,7 @@ html, body {
 }
 #editor.show { display: block; }
 
-/* Bouton de validation d'édition (surtout utile au tactile) */
+/* Edit-confirm button (mostly useful on touch) */
 #editDone {
   position: fixed;
   top: 12px;
@@ -103,7 +103,7 @@ html, body {
 }
 #editDone.show { display: block; }
 
-/* ---- Menu radial (boutons ronds à icônes, déploiement en éventail) ---- */
+/* ---- Radial menu (round icon buttons, fan-out deploy) ---- */
 .radial {
   position: fixed;
   z-index: 40;
@@ -249,7 +249,7 @@ html, body {
 }
 #liaisonbadge .lb-x:hover { background: #ff5c79; }
 
-/* ---- Sélecteur de board ---- */
+/* ---- Board picker ---- */
 #boardpicker {
   position: fixed;
   top: 50%;
@@ -307,7 +307,7 @@ html, body {
 #netmode.p2p { color: var(--green); text-shadow: 0 0 6px rgba(57, 255, 20, 0.5); }
 #netmode.relay { color: #ff8c00; text-shadow: 0 0 6px rgba(255, 140, 0, 0.5); }
 
-/* ---- Barre d'URL d'un lien focalisé ---- */
+/* ---- URL bar of a focused link ---- */
 #linkbar {
   position: fixed;
   left: 50%;
@@ -364,7 +364,7 @@ html, body {
   #hint { font-size: 7px; }
 }
 
-/* ---- Bouton Paramètres (engrenage) ---- */
+/* ---- Settings button (gear) ---- */
 #settingsbtn {
   position: fixed;
   top: 10px;
@@ -385,7 +385,7 @@ html, body {
 #settingsbtn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 #settingsbtn:hover { background: var(--green); color: #04130a; }
 
-/* Bouton micro (chat vocal), à droite de l'engrenage. */
+/* Mic button (voice chat), to the right of the gear. */
 #voicebtn {
   position: fixed; top: 10px; left: 58px; z-index: 23;
   width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; padding: 0;
@@ -397,7 +397,7 @@ html, body {
 #voicebtn.on { background: #fe4365; border-color: #fff; color: #fff; animation: micpulse 1.2s ease-in-out infinite; }
 @keyframes micpulse { 0%, 100% { box-shadow: 0 0 8px rgba(254,67,101,0.5); } 50% { box-shadow: 0 0 18px rgba(254,67,101,0.9); } }
 
-/* Bouton haut-parleur (écoute on/off), à droite du micro. */
+/* Speaker button (listening on/off), to the right of the mic. */
 #speakerbtn {
   position: fixed; top: 10px; left: 106px; z-index: 23;
   width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; padding: 0;
@@ -422,10 +422,10 @@ html, body {
 }
 #speakers.show { display: block; }
 
-/* Décale l'astuce à droite des boutons. */
+/* Shifts the hint to the right of the buttons. */
 #hint { left: 154px; top: 22px; }
 
-/* ---- Rectangle de sélection (marquee) ---- */
+/* ---- Selection rectangle (marquee) ---- */
 #marquee {
   position: fixed;
   z-index: 24;
@@ -446,7 +446,7 @@ html, body {
   pointer-events: none; opacity: 0; transition: opacity 0.12s;
 }
 
-/* ---- Panneau Paramètres ---- */
+/* ---- Settings panel ---- */
 #settings {
   position: fixed; top: 0; left: 0; height: 100%;
   width: min(340px, 86vw); z-index: 46;
@@ -488,7 +488,7 @@ html, body {
 .set-theme:hover, .set-wide:hover, .set-btn:hover, .set-mini:hover, .set-liaison-name:hover, .set-new button:hover { background: var(--green); color: #04130a; }
 .set-danger:hover { background: #fe4365; color: #fff; }
 
-/* ---- Thèmes clairs (police classique, pas de CRT) ---- */
+/* ---- Light themes (classic font, no CRT) ---- */
 .theme-classic, .theme-classic-dark { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; -webkit-font-smoothing: auto; }
 .theme-classic #board, .theme-classic-dark #board { image-rendering: auto; }
 .theme-classic #crt, .theme-classic-dark #crt { display: none; }
@@ -499,7 +499,7 @@ html, body {
 .theme-classic #settingsbtn { background: #fff; border-color: #1f9d2f; color: #1f9d2f; box-shadow: 0 0 0 2px rgba(0,0,0,0.08); }
 .theme-classic-dark { background: #15171c; }
 
-/* ---- Fenêtre d'enregistrement de mémo vocal ---- */
+/* ---- Voice memo recording window ---- */
 .recmodal {
   position: fixed; inset: 0; z-index: 49;
   display: flex; align-items: center; justify-content: center;
@@ -549,7 +549,7 @@ html, body {
 }
 #debug .dbg-reset:hover { background: var(--green); color: #04130a; }
 
-/* ---- Lecteur YouTube inline (superposé au bloc) ---- */
+/* ---- Inline YouTube player (overlaid on the block) ---- */
 #videoplayer {
   position: fixed;
   z-index: 47;

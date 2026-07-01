@@ -1,81 +1,90 @@
 # Bete
 
-Mindmap pixel art. Site 100 % statique, zéro dépendance, zéro build.
+Pixel-art mindmap. 100% static site, zero dependencies, zero build step.
 
-## Lancer en local
+## Run locally
 
-Les modules ES ne marchent pas en `file://`, il faut un petit serveur :
+ES modules don't work over `file://`, so you need a small server:
 
 ```bash
 python -m http.server 8000
-# puis ouvrir http://localhost:8000
+# then open http://localhost:8000
 ```
 
-## Déployer sur GitHub Pages
+## Deploy to GitHub Pages
 
-1. Pousser le repo sur GitHub.
+1. Push the repo to GitHub.
 2. `Settings → Pages → Build and deployment → Source: Deploy from a branch`.
-3. Branche `main`, dossier `/ (root)`. Le site est servi tel quel.
+3. Branch `main`, folder `/ (root)`. The site is served as-is.
 
-Pour un domaine personnalisé : `Settings → Pages → Custom domain`, et un fichier
-`CNAME` (contenant ton domaine) apparaît à la racine du repo — remplace-le ou
-supprime-le si tu forkes le projet pour l'héberger sous un autre domaine.
+For a custom domain: `Settings → Pages → Custom domain`, and a `CNAME` file
+(containing your domain) appears at the repo root — replace it or delete it
+if you fork the project to host it under a different domain.
 
-## Utilisation
+## Language
 
-- **Clic droit** : menu radial (créer rectangle/pancarte/cercle/hexagone/liaison, couleur, texte, suppr, export/import).
-- **Pancarte** : un rectangle plus grand à texture bois, pour les titres/panneaux.
-- **Supprimer** un objet le fait **exploser en morceaux** (animation, synchronisée avec les clients).
-- **Molette** : zoom · **glisser le fond** : déplacer la vue.
-- **Glisser un rectangle** : déplacement élastique.
-- **Glisser le bord d'un cercle/hexagone** : redimensionner · **glisser son intérieur** : déplacer.
-- **Double-clic** : éditer le texte (Échap pour valider). Sur un **rectangle-image** : ouvre l'image en grand.
-- **Glisser-déposer une image** (ou **Ctrl-V** une image du presse-papier) : sur un rectangle pour la mettre dedans, sur le vide pour créer un rectangle-image (« Img ✕ » pour la retirer). L'image est toujours affichée **en entier** ; le rectangle garde une taille à peu près constante.
-- **Lien** (menu radial sur un rectangle) : associe une URL ; un badge ↗ apparaît et un **clic** ouvre le lien dans un nouvel onglet.
-- **Suppr** : effacer l'élément sélectionné.
-- **Ctrl-C / Ctrl-V** : copier-coller l'élément sélectionné (collé à la position de la souris).
-- Un rectangle dont le centre est dans un cercle/hexagone prend sa couleur.
+The app is available in French and English. It guesses the language from
+the browser on first visit; your choice in Settings → Language is then
+remembered and always takes priority. Adding a new language is a small,
+self-contained change in `js/i18n.js` (one dictionary object + one list
+entry) — see the comments there.
 
-### Hexagones & liens
+## Usage
 
-Un **hexagone** (ex. « Aujourd'hui ») agrège des **liens** vers des rectangles rangés ailleurs.
-Glisse un rectangle (d'un cercle) dans un hexagone : un **lien** (bordure pointillée) est créé,
-l'original revient à sa place. Le lien garde la **couleur du cercle source** et reflète son texte/image ;
-renommer ou supprimer la source met à jour (ou retire) le lien. Les liens se placent librement dans l'hexagone.
+- **Right-click**: radial menu (create rectangle/sign/circle/hexagon/liaison, color, text, delete, export/import).
+- **Sign**: a larger rectangle with a wood texture, for titles/panels.
+- **Deleting** an object makes it **explode into pieces** (animation, synced with clients).
+- **Wheel**: zoom · **drag the background**: pan the view.
+- **Drag a rectangle**: elastic movement.
+- **Drag a circle/hexagon's edge**: resize · **drag its inside**: move it.
+- **Double-click**: edit the text (Escape to confirm). On an **image rectangle**: opens the image full-size.
+- **Drag-and-drop an image** (or **Ctrl-V** an image from the clipboard): onto a rectangle to put it inside, onto empty space to create an image rectangle ("Remove image" to take it out). The image is always shown **in full**; the rectangle keeps a roughly constant size.
+- **Link** (radial menu on a rectangle): attaches a URL; an ↗ badge appears and a **click** opens the link in a new tab.
+- **Delete**: erases the selected element.
+- **Ctrl-C / Ctrl-V**: copy-paste the selected element (pasted at the mouse position).
+- A rectangle whose center is inside a circle/hexagon takes its color.
 
-### Synchro entre appareils (P2P)
+### Hexagons & links
 
-Pour recopier ton board d'un appareil à l'autre (ex. desktop → téléphone) :
+A **hexagon** (e.g. "Today") aggregates **links** to rectangles stored elsewhere.
+Drag a rectangle (from a circle) into a hexagon: a **link** (dashed border) is
+created, the original goes back to its place. The link keeps the **source
+circle's color** and mirrors its text/image; renaming or deleting the source
+updates (or removes) the link. Links can be freely placed inside the hexagon.
 
-1. Sur l'appareil **source** (HOST) : menu radial → **« + Liaison »**. Un bloc QR code apparaît.
-2. Sur l'autre appareil (CLIENT) : **scanne le QR** (ou ouvre le lien — clic sur le bloc le copie).
-3. À la connexion, le board du client est remplacé par celui du host, puis les deux restent **synchronisés en direct, dans les deux sens**, tant que la fenêtre du host reste ouverte.
+### Sync across devices (P2P)
 
-**Synchronisé** : le contenu (texte, image, couleur, description, liens, créations/suppressions) et la **position des objets** — mais celle-ci seulement **au lâcher** (pas pendant le glissement), et l'autre écran l'**anime**. **La caméra reste indépendante** : chaque écran garde son zoom/cadrage (ex. un écran en vue large, un autre zoomé sur un cercle). En cas de modification simultanée du même élément, **l'hôte l'emporte**.
+To copy your board from one device to another (e.g. desktop → phone):
 
-Connexion **P2P chiffrée** (WebRTC via PeerJS) ; seuls des identifiants transitent par le broker de signalisation, le contenu passe en direct entre les deux navigateurs. Les libs PeerJS / QR sont chargées à la demande (CDN), l'app reste sans dépendance au repos. Les images et mémos vocaux sont stockés en local (IndexedDB) et ne transitent qu'une fois par pair, jamais via le broker.
+1. On the **source** device (HOST): radial menu → **"+ Liaison"**. A QR code block appears.
+2. On the other device (CLIENT): **scan the QR** (or open the link — clicking the block copies it).
+3. Once connected, the client's board is replaced by the host's, then both stay **synced live, in both directions**, as long as the host's window stays open.
 
-**Hôte permanent (optionnel)** : pour garder la synchro disponible même tous navigateurs fermés, on peut faire tourner un petit serveur Node sur un Raspberry Pi qui joue l'hôte en continu — voir [`server/`](server/README.md). L'app n'a pas besoin d'être modifiée : les appareils s'y connectent via `?peer=<id-du-pi>`.
+**Synced**: the content (text, image, color, description, links, creations/deletions) and the **objects' positions** — but the latter only **on drop** (not during the drag), and the other screen **animates** it. **The camera stays independent**: each screen keeps its own zoom/framing (e.g. one screen zoomed out, another zoomed into a circle). If the same element is edited simultaneously, **the host wins**.
 
-L'id de liaison est **stable** (mémorisé) : rafraîchir la page du host et recréer la liaison redonne **le même lien/QR**. En cas de coupure réseau, le host se reconnecte automatiquement au broker (même id) et les clients retentent la connexion — pas besoin de rescanner. Si le lien fuite, **« Nouveau lien »** (menu du bloc Liaison) régénère un id : l'ancienne URL devient invalide, le board est conservé.
+**Encrypted P2P connection** (WebRTC via PeerJS); only connection identifiers go through the signaling broker, the content travels directly between the two browsers. The PeerJS / QR libs are loaded on demand (CDN), the app stays dependency-free at rest. Images and voice memos are stored locally (IndexedDB) and only transit once per peer, never through the broker.
 
-Côté confidentialité : le contenu transite en WebRTC chiffré (DTLS), en direct entre pairs dans le cas normal ; si une connexion directe est impossible, il est relayé (chiffré) par les serveurs TURN de PeerJS. Le broker ne voit que des identifiants de connexion.
+**Permanent host (optional)**: to keep sync available even with all browsers closed, you can run a small Node server on a Raspberry Pi that acts as a permanent host — see [`server/`](server/README.md). The app doesn't need any modification: devices connect to it via `?peer=<pi-id>`.
 
-### Mobile / tactile
+The liaison id is **stable** (remembered): refreshing the host's page and recreating the liaison gives back **the same link/QR**. On a network drop, the host automatically reconnects to the broker (same id) and clients retry the connection — no need to rescan. If the link leaks, **"New link"** (liaison block menu) regenerates an id: the old URL becomes invalid, the board is preserved.
 
-- **Interaction verrouillée par défaut** (pour ne pas déplacer un bloc par accident) : seuls le pan (1 doigt) et le zoom (pince) marchent. L'**appui long** propose alors uniquement **« Activer »**. Une fois activé, le menu radial standard revient (avec **« Désactiver »** pour reverrouiller).
-- **1 doigt** : glisser le fond (pan) ou, une fois activé, déplacer un élément.
-- **2 doigts** : pincer pour zoomer.
-- **Appui long** : menu radial · **double-tap** : éditer / voir l'image (interaction activée).
+Privacy-wise: content travels over encrypted WebRTC (DTLS), directly between peers in the normal case; if a direct connection isn't possible, it's relayed (encrypted) by PeerJS's TURN servers. The broker only ever sees connection identifiers.
 
-Sauvegarde automatique dans le navigateur (localStorage). Export/Import JSON via le menu radial.
+### Mobile / touch
 
-## Ouvrir un board depuis une URL
+- **Interaction locked by default** (so a block isn't accidentally moved): only panning (1 finger) and zooming (pinch) work. **Long-press** then only offers **"Enable"**. Once enabled, the standard radial menu comes back (with **"Lock"** to re-lock it).
+- **1 finger**: drags the background (pan) or, once enabled, moves an element.
+- **2 fingers**: pinch to zoom.
+- **Long-press**: radial menu · **double-tap**: edit / view the image (interaction enabled).
 
-Ajouter `?file=<url>` à l'adresse charge ce JSON au lieu du localStorage, sans écraser ton board perso :
+Automatic save in the browser (localStorage). JSON export/import via the radial menu.
+
+## Open a board from a URL
+
+Adding `?file=<url>` to the address loads that JSON instead of localStorage, without overwriting your personal board:
 
 ```
-https://ton-instance.example/?file=https://exemple.com/board.json
+https://your-instance.example/?file=https://example.com/board.json
 ```
 
-Le fichier doit être accessible en CORS (même origine, raw.githubusercontent.com, gist…). Un chemin relatif fonctionne aussi : `?file=boards/demo.json`.
+The file must be accessible over CORS (same origin, raw.githubusercontent.com, gist…). A relative path also works: `?file=boards/demo.json`.

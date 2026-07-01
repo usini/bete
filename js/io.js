@@ -1,12 +1,13 @@
-// Export / Import JSON.
-import { serialize, load, getBoardId, scheduleSave } from './state.js?v=mr2946h3';
-import { reset } from './physics.js?v=mr2946h3';
-import { state } from './state.js?v=mr2946h3';
-import { inlineImages, migrateImages } from './images.js?v=mr2946h3';
+// JSON export / import.
+import { serialize, load, getBoardId, scheduleSave } from './state.js?v=mr2lpyvb';
+import { reset } from './physics.js?v=mr2lpyvb';
+import { state } from './state.js?v=mr2lpyvb';
+import { inlineImages, migrateImages } from './images.js?v=mr2lpyvb';
+import { t } from './i18n.js?v=mr2lpyvb';
 
 export async function exportJSON() {
-  const snap = serialize();          // objets neufs (mutation sûre)
-  await inlineImages(snap.nodes);    // ré-inline les images IndexedDB -> fichier auto-contenu
+  const snap = serialize();          // fresh objects (safe to mutate)
+  await inlineImages(snap.nodes);    // re-inline IndexedDB images -> self-contained file
   const data = JSON.stringify(snap, null, 2);
   const blob = new Blob([data], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -31,14 +32,14 @@ export function importJSON(onDone) {
       try {
         const obj = JSON.parse(reader.result);
         if (load(obj)) {
-          // Réinitialise la physique pour les éléments importés.
+          // Resets physics for the imported elements.
           state.nodes.forEach(reset);
-          // Ré-offload les images inline (data URL) vers IndexedDB (réf 'idb:<hash>').
+          // Re-offloads inline images (data URL) to IndexedDB (ref 'idb:<hash>').
           migrateImages(state.nodes, scheduleSave).catch(() => {});
           if (onDone) onDone();
         }
       } catch (e) {
-        alert('JSON invalide');
+        alert(t('alert.jsonInvalid'));
       }
     };
     reader.readAsText(file);

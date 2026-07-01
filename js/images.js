@@ -1,15 +1,16 @@
-// Offload des images en IndexedDB (comme les mémos vocaux) : au lieu de stocker
-// une image en base64 dans le contenu synchronisé (énorme, rediffusé à chaque pair),
-// on la range dans IndexedDB indexée par le HASH de son contenu, et le bloc ne garde
-// qu'une référence courte 'idb:<hash>'. Les octets ne transitent qu'UNE fois par pair
-// (via sync.js : imgReq/imgRes), et un pair qui a déjà l'image ne la re-télécharge pas.
-import { putImage, getImage } from './audio.js?v=mr2946h3';
-import { requestImage } from './sync.js?v=mr2946h3';
+// Offloads images to IndexedDB (like voice memos): instead of storing an image
+// as base64 in the synced content (huge, rebroadcast to every peer), it is
+// stored in IndexedDB indexed by the HASH of its content, and the block only
+// keeps a short reference 'idb:<hash>'. The bytes only transit ONCE per peer
+// (via sync.js: imgReq/imgRes), and a peer that already has the image never
+// re-downloads it.
+import { putImage, getImage } from './audio.js?v=mr2lpyvb';
+import { requestImage } from './sync.js?v=mr2lpyvb';
 
-const els = new Map();   // ref -> HTMLImageElement (cache de rendu, 1 par ref)
-const urls = new Map();  // hash -> objectURL (blob décodé, réutilisé)
-const reqAt = new Map(); // hash -> dernière demande aux pairs (throttle)
-const RE_REQ = 4000;     // ne re-demande pas la même image avant 4 s
+const els = new Map();   // ref -> HTMLImageElement (render cache, 1 per ref)
+const urls = new Map();  // hash -> objectURL (decoded blob, reused)
+const reqAt = new Map(); // hash -> last request to peers (throttle)
+const RE_REQ = 4000;     // don't re-request the same image before 4s
 
 function hashOf(ref) { return (ref && ref.indexOf('idb:') === 0) ? ref.slice(4) : null; }
 
@@ -18,7 +19,7 @@ async function sha256Hex(buf) {
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-// data URL -> Blob (sans fetch, pour marcher hors ligne / file://).
+// data URL -> Blob (no fetch, so it works offline / on file://).
 function dataUrlToBlob(dataUrl) {
   const c = dataUrl.indexOf(',');
   const meta = dataUrl.slice(0, c), b64 = dataUrl.slice(c + 1);
@@ -35,7 +36,7 @@ function cacheUrl(hash, blob) {
   return u;
 }
 
-// Range une image (data URL) en IndexedDB, renvoie sa référence 'idb:<hash>'.
+// Stores an image (data URL) in IndexedDB, returns its reference 'idb:<hash>'.
 export async function storeImage(dataUrl) {
   const blob = dataUrlToBlob(dataUrl);
   const buf = await blob.arrayBuffer();
@@ -57,12 +58,12 @@ async function loadFromDb(ref, hash, img) {
     const blob = await getImage(hash);
     if (blob) { img.src = cacheUrl(hash, blob); return; }
   } catch (e) { /* */ }
-  requestOnce(hash); // pas en local -> demande aux pairs (sync relaiera)
+  requestOnce(hash); // not local -> ask peers (sync will relay it)
 }
 
-// Élément <img> à dessiner pour une référence de bloc (rendu). Gère :
-//  - data URL héritée / URL http (miniature YouTube) : src direct ;
-//  - 'idb:<hash>' : charge le blob depuis IndexedDB (ou le demande aux pairs).
+// <img> element to draw for a block reference (rendering). Handles:
+//  - legacy data URL / http URL (YouTube thumbnail): direct src;
+//  - 'idb:<hash>': loads the blob from IndexedDB (or requests it from peers).
 export function getImageEl(ref) {
   let img = els.get(ref);
   if (img) {
@@ -76,13 +77,13 @@ export function getImageEl(ref) {
   img = new Image();
   els.set(ref, img);
   const hash = hashOf(ref);
-  if (!hash) { img.src = ref; return img; } // data URL héritée ou URL http
+  if (!hash) { img.src = ref; return img; } // legacy data URL or http URL
   const u = urls.get(hash);
   if (u) img.src = u; else loadFromDb(ref, hash, img);
   return img;
 }
 
-// Résout une référence en une src affichable (pour la popup "Voir l'image").
+// Resolves a reference into a displayable src (for the "View image" popup).
 export async function resolveSrc(ref) {
   if (!ref) return '';
   const hash = hashOf(ref);
@@ -93,16 +94,16 @@ export async function resolveSrc(ref) {
   return '';
 }
 
-// Migration douce : convertit les images héritées (data URL base64 inline dans le
-// contenu) en réf 'idb:<hash>'. Enorme gain sur les vieilles boards pleines d'images
-// (le contenu synchronisé passe de plusieurs Mo à quelques octets par bloc).
-// Best-effort et idempotent : un bloc déjà en 'idb:' est ignoré.
+// Soft migration: converts legacy images (inline base64 data URL in the
+// content) to a 'idb:<hash>' ref. Huge gain on old boards full of images
+// (the synced content goes from several MB to a few bytes per block).
+// Best-effort and idempotent: a block already in 'idb:' is skipped.
 export async function migrateImages(nodes, onChange) {
   let n = 0;
   for (const node of nodes) {
     const img = node.image;
-    if (!img || img.indexOf('data:') !== 0) continue; // déjà migré / pas d'image
-    try { node.image = await storeImage(img); n++; } catch (e) { /* garde la data URL */ }
+    if (!img || img.indexOf('data:') !== 0) continue; // already migrated / no image
+    try { node.image = await storeImage(img); n++; } catch (e) { /* keeps the data URL */ }
   }
   if (n && onChange) onChange();
   return n;
@@ -117,9 +118,9 @@ function blobToDataUrl(blob) {
   });
 }
 
-// Ré-inline les images ('idb:<hash>' -> data URL) pour un export JSON auto-contenu
-// (le fichier reste ouvrable sur un autre navigateur sans les pairs). Mute les nœuds
-// fournis (utiliser une copie jetable, p.ex. le résultat de serialize()).
+// Re-inlines images ('idb:<hash>' -> data URL) for a self-contained JSON
+// export (the file stays openable on another browser without peers). Mutates
+// the given nodes (use a disposable copy, e.g. the result of serialize()).
 export async function inlineImages(nodes) {
   for (const node of nodes || []) {
     const img = node.image;
@@ -128,7 +129,7 @@ export async function inlineImages(nodes) {
   }
 }
 
-// Appelé par sync.js quand une image arrive d'un pair : met à jour les <img> en attente.
+// Called by sync.js when an image arrives from a peer: updates any waiting <img>.
 export function onImageArrived(hash, blob) {
   const u = cacheUrl(hash, blob);
   els.forEach((img, ref) => { if (hashOf(ref) === hash) img.src = u; });

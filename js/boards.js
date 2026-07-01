@@ -1,4 +1,3 @@
-// Translate comments to English
 // History of visited boards + utilities (unique IDs, URLs).
 const KEY = 'bete:boards';
 
@@ -13,8 +12,10 @@ export function listBoards() {
 // Memorize a board (the most recent at the head).
 export function recordBoard(id, name, peer) {
   if (!id) return;
-  if (id === 'home') name = 'Home';        // Reserved board IDs (for display in the list).
-  else if (id === 'tutorial') name = 'Tutoriel';
+  // Reserved board IDs: stored name is just a fallback, actual display is
+  // translated at render time (settings.js special-cases 'home'/'tutorial').
+  if (id === 'home') name = 'Home';
+  else if (id === 'tutorial') name = 'Tutorial';
   const list = listBoards().filter((b) => b.id !== id);
   list.unshift({ id, name: name || id, peer: peer || null, ts: Date.now() });
   try { localStorage.setItem(KEY, JSON.stringify(list.slice(0, 100))); } catch (e) { /* */ }

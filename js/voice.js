@@ -1,12 +1,13 @@
-// Mémos vocaux : enregistrement (MediaRecorder/Opus), stockage IndexedDB,
-// lecture play/pause, partage P2P de l'audio (cf. sync.js shareAudio/requestAudio).
-import { state, newId, scheduleSave } from './state.js?v=mr2946h3';
-import { reset } from './physics.js?v=mr2946h3';
-import { putAudio, getAudio, delAudio } from './audio.js?v=mr2946h3';
-import { shareAudio, requestAudio } from './sync.js?v=mr2946h3';
+// Voice memos: recording (MediaRecorder/Opus), IndexedDB storage,
+// play/pause, P2P sharing of the audio (see sync.js shareAudio/requestAudio).
+import { state, newId, scheduleSave } from './state.js?v=mr2lpyvb';
+import { reset } from './physics.js?v=mr2lpyvb';
+import { putAudio, getAudio, delAudio } from './audio.js?v=mr2lpyvb';
+import { shareAudio, requestAudio } from './sync.js?v=mr2lpyvb';
+import { t } from './i18n.js?v=mr2lpyvb';
 
 const players = {}; // id -> { audio, url }
-const MAX_MS = 60000; // durée max d'un mémo : 1 minute
+const MAX_MS = 60000; // max memo duration: 1 minute
 
 export function fmtDur(s) {
   s = Math.max(0, Math.round(s));
@@ -20,7 +21,7 @@ function pickMime() {
   return '';
 }
 
-// Petite fenêtre d'enregistrement (chrono + Stop / Annuler).
+// Small recording window (timer + Stop / Cancel).
 function buildRecModal() {
   const m = document.createElement('div');
   m.className = 'recmodal';
@@ -28,30 +29,30 @@ function buildRecModal() {
     + '<div class="rec-dot"></div>'
     + '<div class="rec-timer">0:00</div>'
     + '<div class="rec-actions">'
-    + '<button class="rec-stop">■ STOP</button>'
-    + '<button class="rec-cancel">ANNULER</button>'
+    + '<button class="rec-stop">' + t('record.stop') + '</button>'
+    + '<button class="rec-cancel">' + t('record.cancel') + '</button>'
     + '</div></div>';
-  // Empêche le clic de tomber sur le canvas.
+  // Prevents the click from falling through to the canvas.
   m.addEventListener('mousedown', (e) => e.stopPropagation());
   m.addEventListener('touchstart', (e) => e.stopPropagation());
   document.body.appendChild(m);
   return m;
 }
 
-// target (optionnel) : convertit un bloc existant en mémo vocal ; sinon en crée un.
+// target (optional): converts an existing block into a voice memo; otherwise creates one.
 export async function recordVoiceMemo(wx, wy, target) {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
-    alert('Enregistrement audio non supporté par ce navigateur.');
+    alert(t('alert.recordingUnsupported'));
     return;
   }
   let stream;
   try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
-  catch (e) { alert('Micro indisponible ou refusé.'); return; }
+  catch (e) { alert(t('alert.micUnavailable')); return; }
 
   const mime = pickMime();
   let rec;
   try { rec = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 24000 } : undefined); }
-  catch (e) { stream.getTracks().forEach((t) => t.stop()); alert('Enregistrement impossible.'); return; }
+  catch (e) { stream.getTracks().forEach((t) => t.stop()); alert(t('alert.recordingFailed')); return; }
 
   const chunks = [];
   rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
@@ -60,7 +61,7 @@ export async function recordVoiceMemo(wx, wy, target) {
   const t0 = performance.now();
   const timerEl = modal.querySelector('.rec-timer');
   const tick = setInterval(() => { timerEl.textContent = fmtDur((performance.now() - t0) / 1000) + ' / 1:00'; }, 200);
-  // Arrêt automatique à 1 minute.
+  // Auto-stop at 1 minute.
   const maxTimer = setTimeout(() => { if (rec.state !== 'inactive') rec.stop(); }, MAX_MS);
   let cancelled = false;
 
@@ -74,9 +75,9 @@ export async function recordVoiceMemo(wx, wy, target) {
     const dur = Math.min(60, (performance.now() - t0) / 1000);
     const id = target ? target.id : newId();
     try { await putAudio(id, blob); }
-    catch (e) { alert('Stockage du mémo impossible.'); return; }
+    catch (e) { alert(t('alert.memoStorageFailed')); return; }
     if (target) {
-      // Conversion d'un bloc existant en mémo vocal (on garde id/position/taille).
+      // Converts an existing block into a voice memo (keeps id/position/size).
       target.kind = 'voice'; target.dur = Math.round(dur);
       delete target.text; delete target.image; delete target.link;
       reset(target); state.selected = target.id;
@@ -85,7 +86,7 @@ export async function recordVoiceMemo(wx, wy, target) {
       state.nodes.push(n); reset(n); state.selected = n.id;
     }
     scheduleSave();
-    shareAudio(id, blob); // diffuse l'audio aux pairs connectés
+    shareAudio(id, blob); // broadcasts the audio to connected peers
   };
 
   modal.querySelector('.rec-stop').onclick = () => { if (rec.state !== 'inactive') rec.stop(); };
@@ -94,7 +95,7 @@ export async function recordVoiceMemo(wx, wy, target) {
   rec.start();
 }
 
-// Lecture / pause d'un mémo. Met à jour n._playing / n._prog pour le rendu.
+// Play / pause a memo. Updates n._playing / n._prog for rendering.
 export async function toggleVoice(n) {
   const p = players[n.id];
   if (p) {
@@ -103,7 +104,7 @@ export async function toggleVoice(n) {
   }
   let blob;
   try { blob = await getAudio(n.id); } catch (e) { blob = null; }
-  if (!blob) { n._missing = true; n._loading = true; requestAudio(n.id); return; } // demande l'audio aux pairs
+  if (!blob) { n._missing = true; n._loading = true; requestAudio(n.id); return; } // asks peers for the audio
   const url = URL.createObjectURL(blob);
   const audio = new Audio(url);
   players[n.id] = { audio, url };
@@ -114,7 +115,7 @@ export async function toggleVoice(n) {
   audio.play();
 }
 
-// Supprime l'audio (IndexedDB + lecteur en cours) lors de la suppression du bloc.
+// Deletes the audio (IndexedDB + current player) when the block is deleted.
 export function removeVoiceAudio(id) {
   const p = players[id];
   if (p) { try { p.audio.pause(); } catch (e) { /* */ } URL.revokeObjectURL(p.url); delete players[id]; }

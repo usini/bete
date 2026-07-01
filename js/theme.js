@@ -1,7 +1,7 @@
-// Thème visuel + taille de texte (préférences locales au navigateur).
-// 'pixel' = le look d'origine (fluo + glow) ; 'classic' = clair, couleurs
-// pastel, sans glow ; 'classic-dark' = sombre, pastel, sans glow.
-import { DEFAULT_GREEN } from './state.js?v=mr2946h3';
+// Visual theme + text size (preferences local to the browser).
+// 'pixel' = the original look (neon + glow) ; 'classic' = light, pastel
+// colors, no glow ; 'classic-dark' = dark, pastel, no glow.
+import { DEFAULT_GREEN } from './state.js?v=mr2lpyvb';
 
 const PIXEL_FONT = "'Press Start 2P', monospace";
 const SANS_FONT = "'Segoe UI', system-ui, -apple-system, sans-serif";
@@ -21,7 +21,7 @@ const THEMES = {
   },
 };
 
-// ---- Couleurs dérivées (mélange de teintes) ----
+// ---- Derived colors (tint mixing) ----
 function hx(h) { h = h.replace('#', ''); if (h.length === 3) h = h.split('').map((c) => c + c).join(''); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; }
 function toHex(r, g, b) { const c = (v) => ('0' + Math.round(Math.max(0, Math.min(255, v))).toString(16)).slice(-2); return '#' + c(r) + c(g) + c(b); }
 function mix(a, b, t) { const A = hx(a), B = hx(b); return toHex(A[0] + (B[0] - A[0]) * t, A[1] + (B[1] - A[1]) * t, A[2] + (B[2] - A[2]) * t); }
@@ -29,33 +29,33 @@ function lum(hex) { const c = hx(hex); return (0.299 * c[0] + 0.587 * c[1] + 0.1
 
 export function isDefaultColor(color) { return !color || color.toLowerCase() === DEFAULT_GREEN.toLowerCase(); }
 
-// Couleur des zones (cercles/hexagones) selon le thème : fluo en pixel, pastel sinon,
-// avec un garde-fou de contraste (une couleur trop claire devient sombre sur fond clair,
-// et inversement) pour rester visible.
+// Zone (circle/hexagon) color depending on the theme: neon in pixel, pastel
+// otherwise, with a contrast guard (a too-light color becomes dark on a light
+// background, and vice versa) to stay visible.
 export function toneColor(color) {
   const t = THEMES[themeId];
   if (t.pixel) return color;
   if (themeId === 'classic') {
-    if (lum(color) > 0.72) return mix(color, '#1a1a1a', 0.8); // trop clair sur blanc -> foncer
+    if (lum(color) > 0.72) return mix(color, '#1a1a1a', 0.8); // too light on white -> darken
     return mix(color, '#ffffff', 0.32); // pastel
   }
   // classic-dark
-  if (lum(color) < 0.22) return mix(color, '#e8e8e8', 0.75); // trop sombre sur fond noir -> éclaircir
+  if (lum(color) < 0.22) return mix(color, '#e8e8e8', 0.75); // too dark on black -> lighten
   return mix(color, '#ffffff', 0.22);
 }
 
-// Style d'un rectangle { fill, border, text } selon le thème.
-// La couleur "par défaut" (sans zone) devient un carré noir/blanc contrasté.
+// A rectangle's style { fill, border, text } depending on the theme.
+// The "default" color (no zone) becomes a contrasted black/white square.
 export function nodeStyle(color) {
   const t = THEMES[themeId];
   if (t.pixel) return { fill: t.nodeBg, border: color, text: color };
   const def = isDefaultColor(color);
   if (themeId === 'classic') {
-    if (def) return { fill: '#141414', border: '#141414', text: '#ffffff' }; // carré noir, texte blanc
+    if (def) return { fill: '#141414', border: '#141414', text: '#ffffff' }; // black square, white text
     return { fill: '#ffffff', border: toneColor(color), text: '#2a2a2a' };
   }
   // classic-dark
-  if (def) return { fill: '#fafafa', border: '#fafafa', text: '#141414' };   // carré blanc, texte noir
+  if (def) return { fill: '#fafafa', border: '#fafafa', text: '#141414' };   // white square, black text
   const p = toneColor(color);
   return { fill: t.nodeBg, border: p, text: p };
 }
@@ -87,7 +87,7 @@ export function setTheme(id) {
   applyTheme();
 }
 
-// Applique la classe de thème au <body> (le CSS s'occupe des éléments DOM).
+// Applies the theme class to <body> (CSS handles the DOM elements).
 export function applyTheme() {
   const b = document.body;
   b.classList.remove('theme-pixel', 'theme-classic', 'theme-classic-dark');

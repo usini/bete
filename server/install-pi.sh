@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# Installe (ou met à jour) l'hôte Bete en service systemd sur un Raspberry Pi.
+# Installs (or updates) the Bete host as a systemd service on a Raspberry Pi.
 #
-# Usage rapide (sur le Pi) :
+# Quick usage (on the Pi):
 #   curl -fsSL https://raw.githubusercontent.com/usini/bete/main/server/install-pi.sh | bash
 #
-# Un id de peer PRIVÉ est généré automatiquement au premier lancement et stocké
-# dans server/data/peer-id (jamais commité). Il est réutilisé ensuite.
+# A PRIVATE peer id is generated automatically on first launch and stored
+# in server/data/peer-id (never committed). It's reused afterwards.
 #
-# Variables d'environnement optionnelles :
-#   BETE_ID       force un id précis (sinon généré aléatoirement)
-#   BETE_DIR      dossier de clonage (def: $HOME/bete)
-#   BETE_REPO     dépôt à cloner, si tu as forké le projet (def: ce dépôt)
-#   BETE_APP_URL  URL de l'app statique, pour afficher un lien complet en fin
-#                 d'installation (def: aucun — affiche un lien relatif générique)
+# Optional environment variables:
+#   BETE_ID       forces a specific id (otherwise generated randomly)
+#   BETE_DIR      clone directory (default: $HOME/bete)
+#   BETE_REPO     repo to clone, if you forked the project (default: this repo)
+#   BETE_APP_URL  URL of the static app, to display a full link at the end
+#                 of the install (default: none — shows a generic relative link)
 set -euo pipefail
 
 REPO="${BETE_REPO:-https://github.com/usini/bete.git}"
@@ -23,27 +23,27 @@ APP_URL="${BETE_APP_URL:-}"
 say() { printf '\n\033[32m[install]\033[0m %s\n' "$*"; }
 die() { printf '\n\033[31m[install] %s\033[0m\n' "$*" >&2; exit 1; }
 
-# --- 1. Prérequis ---
-command -v node >/dev/null 2>&1 || die "Node.js manquant. Installe Node 20 LTS puis relance :
+# --- 1. Prerequisites ---
+command -v node >/dev/null 2>&1 || die "Node.js missing. Install Node 20 LTS then rerun:
   curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
   sudo apt-get install -y nodejs git"
-command -v git >/dev/null 2>&1 || die "git manquant : sudo apt-get install -y git"
+command -v git >/dev/null 2>&1 || die "git missing: sudo apt-get install -y git"
 say "Node $(node --version) · $(uname -m)"
 case "$(uname -m)" in
   aarch64|arm64|x86_64) : ;;
-  *) say "ATTENTION: archi $(uname -m) — les binaires wrtc pré-compilés peuvent manquer (compilation longue)." ;;
+  *) say "WARNING: arch $(uname -m) — pre-built wrtc binaries may be missing (long compile)." ;;
 esac
 
-# --- 2. Clone ou mise à jour ---
+# --- 2. Clone or update ---
 if [ -d "$DEST/.git" ]; then
-  say "Mise à jour du dépôt dans $DEST"
+  say "Updating the repo in $DEST"
   git -C "$DEST" pull --ff-only
 else
-  say "Clonage dans $DEST"
+  say "Cloning into $DEST"
   git clone --depth 1 "$REPO" "$DEST"
 fi
 
-# --- 3. Id de peer privé (généré une fois, jamais commité) ---
+# --- 3. Private peer id (generated once, never committed) ---
 DATA="$DEST/server/data"
 mkdir -p "$DATA"
 ID_FILE="$DATA/peer-id"
@@ -54,18 +54,18 @@ elif [ -s "$ID_FILE" ]; then
 else
   PEER_ID="$(node -e "console.log('p-'+require('crypto').randomBytes(16).toString('hex'))")"
   echo "$PEER_ID" > "$ID_FILE"
-  say "Nouvel id privé généré (stocké dans $ID_FILE)"
+  say "New private id generated (stored in $ID_FILE)"
 fi
 chmod 600 "$ID_FILE" 2>/dev/null || true
 
-# --- 4. Dépendances ---
-say "Installation des dépendances (peut prendre 1-2 min)…"
+# --- 4. Dependencies ---
+say "Installing dependencies (can take 1-2 min)…"
 cd "$DEST/server"
 npm install --omit=dev --no-audit --no-fund
 
-# --- 5. Service systemd (l'id n'est PAS dans le service : lu depuis data/peer-id) ---
+# --- 5. systemd service (the id is NOT in the service: read from data/peer-id) ---
 SVC_PATH="/etc/systemd/system/$SERVICE.service"
-say "Écriture du service $SVC_PATH"
+say "Writing the service $SVC_PATH"
 sudo tee "$SVC_PATH" >/dev/null <<EOF
 [Unit]
 Description=Bete host (PeerJS headless)
@@ -89,14 +89,14 @@ sudo systemctl enable "$SERVICE" >/dev/null 2>&1 || true
 sudo systemctl restart "$SERVICE"
 
 sleep 2
-say "Statut :"
+say "Status:"
 sudo systemctl --no-pager --lines=6 status "$SERVICE" || true
-say "Terminé ✅"
-say "Ton lien PRIVÉ (ne le partage qu'avec tes appareils) :"
+say "Done ✅"
+say "Your PRIVATE link (only share it with your own devices):"
 if [ -n "$APP_URL" ]; then
   say "  ${APP_URL}?peer=${PEER_ID}"
 else
-  say "  <url-de-ton-instance>/?peer=${PEER_ID}"
-  say "  (relance avec BETE_APP_URL=https://... pour afficher le lien complet la prochaine fois)"
+  say "  <your-instance-url>/?peer=${PEER_ID}"
+  say "  (rerun with BETE_APP_URL=https://... to show the full link next time)"
 fi
-say "Logs en direct : journalctl -u $SERVICE -f"
+say "Live logs: journalctl -u $SERVICE -f"

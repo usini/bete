@@ -1,21 +1,22 @@
-// Chat vocal live en maillage (mesh) P2P via PeerJS MediaConnection.
-// Écoute par défaut : tant qu'on est en liaison, on répond aux appels (on entend
-// tout le monde). Le bouton micro ne contrôle que NOTRE émission (parler).
-// L'audio ne passe PAS par le Pi : navigateur <-> navigateur (latence faible).
-import { getPeer, getPresence, setLocalVoice, onIncomingCall } from './sync.js?v=mr2946h3';
+// Live voice chat in a P2P mesh via PeerJS MediaConnection.
+// Listening by default: as long as we're in a liaison, we answer calls (we hear
+// everyone). The mic button only controls OUR emission (talking).
+// Audio does NOT go through the Pi: browser <-> browser (low latency).
+import { getPeer, getPresence, setLocalVoice, onIncomingCall } from './sync.js?v=mr2lpyvb';
+import { t } from './i18n.js?v=mr2lpyvb';
 
 let micOn = false;
-let listenOn = true; // écoute activée par défaut
+let listenOn = true; // listening enabled by default
 let micStream = null;
 let silentStream = null;
 let _ac = null;
 let wakeLock = null;
 const calls = {}; // remotePeerId -> { conn, audio }
 
-// "Always On" (mobile) : sur téléphone, l'écran qui se verrouille suspend souvent
-// le micro/la connexion. Ce mode demande un Wake Lock (écran maintenu allumé tant
-// que le micro parle) et réacquiert automatiquement le flux s'il est coupé par l'OS
-// (appel entrant, perte de focus, etc.), pour garder le micro actif en continu.
+// "Always On" (mobile): on phones, the screen locking often suspends the
+// mic/connection. This mode requests a Wake Lock (screen kept on while the
+// mic is talking) and automatically reacquires the stream if the OS cuts it
+// (incoming call, focus loss, etc.), to keep the mic active continuously.
 let alwaysOn = false;
 try { alwaysOn = localStorage.getItem('bete:micalwayson') === '1'; } catch (e) { /* */ }
 export function isAlwaysOn() { return alwaysOn; }
@@ -25,16 +26,16 @@ export function setAlwaysOn(v) {
   if (alwaysOn && micOn) acquireWakeLock(); else releaseWakeLock();
 }
 
-// Micro d'entrée préféré (deviceId), si le téléphone/PC en a plusieurs.
+// Preferred input microphone (deviceId), if the phone/PC has several.
 let preferredMicId = '';
 try { preferredMicId = localStorage.getItem('bete:micdevice') || ''; } catch (e) { /* */ }
 export function getPreferredMic() { return preferredMicId; }
 export function setPreferredMic(id) {
   preferredMicId = id || '';
   try { localStorage.setItem('bete:micdevice', preferredMicId); } catch (e) { /* */ }
-  if (micOn) restartMic(); // applique tout de suite si on parle déjà
+  if (micOn) restartMic(); // applies right away if already talking
 }
-// Liste des micros disponibles (nécessite un accès micro déjà accordé pour avoir les labels).
+// List of available mics (needs a mic permission already granted to have labels).
 export async function listMics() {
   try {
     const devs = await navigator.mediaDevices.enumerateDevices();
@@ -51,17 +52,17 @@ async function acquireWakeLock() {
   try {
     wakeLock = await navigator.wakeLock.request('screen');
     wakeLock.addEventListener('release', () => { wakeLock = null; });
-  } catch (e) { wakeLock = null; } // refusé (onglet caché, etc.) : pas bloquant
+  } catch (e) { wakeLock = null; } // refused (hidden tab, etc.): not blocking
 }
 function releaseWakeLock() { if (wakeLock) { try { wakeLock.release(); } catch (e) { /* */ } wakeLock = null; } }
-// Le Wake Lock est libéré par le navigateur quand l'onglet passe en arrière-plan :
-// on le redemande au retour au premier plan si le micro est toujours actif.
+// The Wake Lock is released by the browser when the tab goes to the background:
+// we request it again when coming back to the foreground if the mic is still active.
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && micOn) acquireWakeLock(); });
 
 export function isMicOn() { return micOn; }
 export function isListenOn() { return listenOn; }
 
-// Coupe / réactive l'écoute (audio entrant). Par défaut activée.
+// Mute / unmute listening (incoming audio). Enabled by default.
 export function toggleListen() {
   listenOn = !listenOn;
   Object.values(calls).forEach((c) => { if (c.audio) c.audio.muted = !listenOn; });
@@ -69,7 +70,7 @@ export function toggleListen() {
   return listenOn;
 }
 
-// Piste audio silencieuse (pour participer/écouter sans demander le micro).
+// Silent audio track (to join/listen without requesting the mic).
 function silent() {
   if (silentStream) return silentStream;
   try {
@@ -83,7 +84,7 @@ function silent() {
 }
 function outStream() { return (micOn && micStream) ? micStream : silent(); }
 
-// Active / coupe NOTRE micro (émission). L'écoute reste toujours active.
+// Enable / mute OUR mic (emission). Listening always stays active.
 export async function toggleMic() {
   if (micOn) {
     micOn = false; setLocalVoice(false);
@@ -93,12 +94,12 @@ export async function toggleMic() {
     return false;
   }
   try { micStream = await navigator.mediaDevices.getUserMedia(micConstraints()); }
-  catch (e) { alert('Micro indisponible ou refusé.'); return false; }
+  catch (e) { alert(t('alert.micUnavailable')); return false; }
   attachEndedWatch(micStream);
   micOn = true; setLocalVoice(true);
   acquireWakeLock();
   replaceOutgoing(micStream.getAudioTracks()[0]);
-  reconcile(); // connecte tout le monde pour qu'ils nous entendent
+  reconcile(); // connects to everyone so they can hear us
   return true;
 }
 
@@ -106,27 +107,27 @@ function stopMicStream() {
   if (micStream) { micStream.getTracks().forEach((t) => t.stop()); micStream = null; }
 }
 
-// Surveille la coupure de la piste par l'OS (appel entrant, appareil débranché...).
-// En mode Always On, on retente aussitôt pour garder le micro actif en continu.
+// Watches for the track being cut by the OS (incoming call, device unplugged...).
+// In Always On mode, retries right away to keep the mic active continuously.
 function attachEndedWatch(stream) {
   const track = stream.getAudioTracks()[0];
   if (!track) return;
   track.onended = () => { if (micOn && stream === micStream) { if (alwaysOn) restartMic(); else { micOn = false; setLocalVoice(false); replaceOutgoing(silent().getAudioTracks()[0]); } } };
 }
 
-// Redémarre le flux micro sans le couper côté UI (utilisé par Always On + changement d'appareil).
+// Restarts the mic stream without cutting it in the UI (used by Always On + device change).
 async function restartMic() {
   stopMicStream();
   try { micStream = await navigator.mediaDevices.getUserMedia(micConstraints()); }
-  catch (e) { micStream = null; return; } // réessaiera au prochain déclencheur (visibilitychange, etc.)
+  catch (e) { micStream = null; return; } // will retry on the next trigger (visibilitychange, etc.)
   attachEndedWatch(micStream);
   replaceOutgoing(micStream.getAudioTracks()[0]);
 }
-// Nouvelle tentative si la reprise a échoué au moment du 'ended' (ex : micro momentanément
-// indisponible pendant un appel téléphonique) et qu'on revient au premier plan.
+// Retries if the resume failed at the moment of 'ended' (e.g. mic momentarily
+// unavailable during a phone call) and we come back to the foreground.
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && micOn && alwaysOn && !micStream) restartMic(); });
 
-// Remplace la piste émise sur toutes les connexions actives (sans rouvrir).
+// Replaces the outgoing track on all active connections (without reopening).
 function replaceOutgoing(track) {
   Object.values(calls).forEach((c) => {
     try {
@@ -137,8 +138,8 @@ function replaceOutgoing(track) {
   });
 }
 
-// Connecte selon qui parle : on appelle un pair si NOUS parlons ou s'IL parle.
-// (Silence total => aucune connexion. On entend chacun dès qu'il prend la parole.)
+// Connects based on who's talking: calls a peer if WE are talking or if THEY are.
+// (Total silence => no connection. We hear everyone as soon as they start talking.)
 function reconcile() {
   const peer = getPeer();
   const myId = peer && peer.id;
@@ -146,11 +147,11 @@ function reconcile() {
   const want = {};
   getPresence().forEach((u) => {
     if (u.me || !u.peerId) return;
-    // On se connecte si NOUS parlons (pour être entendu), ou si on écoute quelqu'un qui parle.
+    // We connect if WE are talking (to be heard), or if we're listening to someone talking.
     if (!micOn && !(listenOn && u.voice)) return;
     want[u.peerId] = 1;
     if (calls[u.peerId]) return;
-    if (myId < u.peerId) { // l'id le plus petit initie (anti-doublon)
+    if (myId < u.peerId) { // the smallest id initiates (anti-duplicate)
       try { const c = peer.call(u.peerId, outStream()); if (c) attachCall(u.peerId, c); } catch (e) { /* */ }
     }
   });
@@ -158,10 +159,10 @@ function reconcile() {
 }
 setInterval(reconcile, 1500);
 
-// Appel entrant : on répond TOUJOURS (écoute par défaut), avec notre piste courante.
+// Incoming call: we ALWAYS answer (listening by default), with our current track.
 onIncomingCall((conn) => {
   if (calls[conn.peer]) { try { conn.close(); } catch (e) { /* */ } return; } // glare
-  if (!micOn && !listenOn) { try { conn.close(); } catch (e) { /* */ } return; } // ni parler ni écouter
+  if (!micOn && !listenOn) { try { conn.close(); } catch (e) { /* */ } return; } // neither talking nor listening
   try { conn.answer(outStream()); } catch (e) { /* */ }
   attachCall(conn.peer, conn);
 });

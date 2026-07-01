@@ -1,6 +1,6 @@
 // Particle effects (explosions, etc.) for visual feedback on the map.
-import { worldToScreen } from './camera.js?v=mr2946h3';
-import { state, effectiveColor } from './state.js?v=mr2946h3';
+import { worldToScreen } from './camera.js?v=mr2lpyvb';
+import { state, effectiveColor } from './state.js?v=mr2lpyvb';
 
 let particles = [];
 
@@ -54,7 +54,7 @@ export function update(dt) {
   dt = Math.min(dt, 0.05);
   for (const p of particles) {
     p.life -= dt / p.max;
-    p.vy += 900 * dt; // gravité
+    p.vy += 900 * dt; // gravity
     p.x += p.vx * dt;
     p.y += p.vy * dt;
     p.vx *= 0.99;

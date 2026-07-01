@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Hote PeerJS headless pour Bete (Raspberry Pi)",
+  "description": "Headless PeerJS host for Bete (Raspberry Pi)",
   "main": "bete-host.js",
   "scripts": {
     "start": "node bete-host.js"

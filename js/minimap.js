@@ -1,7 +1,7 @@
 // Minimap : vue d'ensemble + viewport courant, clic pour recentrer.
-import { state, effectiveColor } from './state.js?v=mr2946h3';
-import { view, centerOn } from './camera.js?v=mr2946h3';
-import { hexCorners } from './geom.js?v=mr2946h3';
+import { state, effectiveColor } from './state.js?v=mr2lpyvb';
+import { view, centerOn } from './camera.js?v=mr2lpyvb';
+import { hexCorners } from './geom.js?v=mr2lpyvb';
 
 let canvas, ctx, W, H;
 
@@ -39,7 +39,7 @@ function bounds() {
   for (const n of state.nodes) { push(n.x, n.y); push(n.x + n.w, n.y + n.h); }
   for (const c of state.circles) { push(c.x - c.r, c.y - c.r); push(c.x + c.r, c.y + c.r); }
   for (const h of state.hexagons) { push(h.x - h.r, h.y - h.r); push(h.x + h.r, h.y + h.r); }
-  // Inclut la caméra pour rester repérable même sans contenu.
+  // Includes the camera so it stays locatable even with no content.
   push(state.camera.x, state.camera.y);
   if (!isFinite(minx)) { minx = -200; miny = -200; maxx = 200; maxy = 200; }
   const pad = Math.max((maxx - minx), (maxy - miny)) * 0.15 + 60;

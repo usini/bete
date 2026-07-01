@@ -1,97 +1,98 @@
-# Bete — hôte headless (Raspberry Pi)
+# Bete — headless host (Raspberry Pi)
 
-Petit serveur Node qui joue le rôle d'**hôte permanent** pour Bete, sans aucune
-modification de l'app web. Tes appareils s'y connectent comme à n'importe quel hôte,
-via `?peer=<id>`. Il détient le board de référence et le sauvegarde sur disque, donc
-la synchro reste disponible même quand tous tes navigateurs sont fermés.
+Small Node server that acts as a **permanent host** for Bete, with no
+modification to the web app. Your devices connect to it like any other host,
+via `?peer=<id>`. It holds the reference board and saves it to disk, so sync
+stays available even when all your browsers are closed.
 
-Le protocole est identique à celui de l'app : seul le **contenu** est synchronisé
-(texte, image, couleur, description, liens, positions au drop, créations/suppressions),
-jamais la caméra. En cas de conflit, l'hôte (= ce serveur) l'emporte.
+The protocol is identical to the app's: only the **content** is synced
+(text, image, color, description, links, positions on drop, creations/deletions),
+never the camera. On conflict, the host (= this server) wins.
 
-## Prérequis
+## Prerequisites
 
-- **Node.js 18, 20 ou 22 LTS** (évite la toute dernière non-LTS : les binaires
-  pré-compilés de `@roamhq/wrtc` peuvent manquer).
-- **Raspberry Pi OS 64-bit** recommandé (binaires `wrtc` arm64 pré-compilés). En
-  32-bit, `npm install` tentera une compilation longue (déconseillé).
+- **Node.js 18, 20 or 22 LTS** (avoid the very latest non-LTS release: pre-built
+  binaries for `@roamhq/wrtc` may be missing).
+- **Raspberry Pi OS 64-bit** recommended (pre-built arm64 `wrtc` binaries). On
+  32-bit, `npm install` will attempt a long compile (not recommended).
 
-## Installation express (Raspberry Pi)
+## Express install (Raspberry Pi)
 
-En une commande (clone + dépendances + service systemd) :
+In one command (clone + dependencies + systemd service):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/usini/bete/main/server/install-pi.sh | bash
 ```
 
-Un **id de peer privé** est généré automatiquement au premier lancement et stocké
-dans `server/data/peer-id` (jamais commité). Le script affiche alors ton lien
-`…?peer=<id>` — garde-le pour toi. (Prérequis : `node` et `git` installés ; voir
-ci-dessous. Pour forcer un id : `BETE_ID=… curl … | bash`.)
+A **private peer id** is generated automatically on first launch and stored
+in `server/data/peer-id` (never committed). The script then shows your link
+`…?peer=<id>` — keep it to yourself. (Prerequisites: `node` and `git`
+installed; see below. To force an id: `BETE_ID=… curl … | bash`.)
 
-Si tu as forké le projet pour l'héberger ailleurs, passe aussi `BETE_REPO=<ton-fork>`
-et `BETE_APP_URL=<ton-domaine>` — voir [Configuration](#configuration-variables-denvironnement).
+If you forked the project to host it elsewhere, also pass `BETE_REPO=<your-fork>`
+and `BETE_APP_URL=<your-domain>` — see [Configuration](#configuration-environment-variables).
 
-## Installation manuelle
+## Manual install
 
 ```bash
 cd server
 npm install
 ```
 
-## Lancement
+## Launch
 
 ```bash
 npm start
 ```
 
-Au démarrage, il affiche l'id et le lien à partager, par exemple :
+On startup, it prints the id and the link to share, for example:
 
 ```
-[bete] HÔTE EN LIGNE
+[bete] HOST ONLINE
   id    : p-ab12cd34ef
-  lien  : <url-de-ton-instance>/?peer=p-ab12cd34ef
+  link  : <your-instance-url>/?peer=p-ab12cd34ef
 ```
 
-(Le lien complet ne s'affiche que si `BETE_APP_URL` est défini — voir plus bas.)
+(The full link is only shown if `BETE_APP_URL` is set — see below.)
 
-Ouvre ce lien (ou son QR) sur tes appareils : ils se synchronisent avec le Pi.
+Open this link (or its QR) on your devices: they sync with the Pi.
 
-L'id est **stable** : il est mémorisé dans `data/peer-id` et réutilisé à chaque
-redémarrage, donc le lien ne change pas. (Tu peux aussi l'imposer avec la variable
-d'environnement `BETE_ID`.)
+The id is **stable**: it's remembered in `data/peer-id` and reused on every
+restart, so the link never changes. (You can also force it with the
+`BETE_ID` environment variable.)
 
 ## Multi-board
 
-Un seul serveur héberge **plusieurs boards**. Le board ciblé est choisi côté
-client par l'URL : `?peer=<id>&id=<board>` (sans `id`, board par défaut du lien).
-Chaque board est persisté dans `server/data/boards/<board>.json`.
+A single server hosts **several boards**. The target board is chosen
+client-side via the URL: `?peer=<id>&id=<board>` (without `id`, the link's
+default board). Each board is persisted in `server/data/boards/<board>.json`.
 
-- Se connecter à un board **vide** côté serveur : ton board local le **sème** (au lieu
-  d'être écrasé). Se connecter à un board **déjà rempli** : tu adoptes celui du serveur.
+- Connecting to an **empty** board server-side: your local board **seeds** it
+  (instead of being overwritten). Connecting to an **already-filled** board:
+  you adopt the server's.
 
-## Amorcer avec un board existant
+## Bootstrapping with an existing board
 
-Pour partir d'un board existant plutôt que vide :
+To start from an existing board instead of an empty one:
 
-1. Dans l'app, menu radial → **Exporter** (télécharge un `.json`).
-2. Copie-le vers `server/data/boards/<board>.json` (ex. `home.json`). Crée le dossier si besoin.
-3. Démarre/redémarre le serveur : il détecte le format d'export et le charge.
+1. In the app, radial menu → **Export** (downloads a `.json`).
+2. Copy it to `server/data/boards/<board>.json` (e.g. `home.json`). Create the folder if needed.
+3. Start/restart the server: it detects the export format and loads it.
 
-(L'ancien `data/board.json` mono-board est migré automatiquement vers le board `home`.)
+(The legacy single-board `data/board.json` is automatically migrated to the `home` board.)
 
-## Configuration (variables d'environnement)
+## Configuration (environment variables)
 
-| Variable          | Rôle                                | Défaut                     |
-|-------------------|--------------------------------------|-----------------------------|
-| `BETE_ID`         | Force l'id du peer                  | mémorisé dans `data/peer-id`|
-| `BETE_DATA`       | Dossier de données                  | `./data`                    |
-| `BETE_APP_URL`    | Base de l'URL affichée (facultatif) | (aucun — lien relatif générique) |
-| `BETE_MAX_BOARDS` | Limite de boards en mémoire         | `300`                       |
+| Variable          | Role                                 | Default                     |
+|-------------------|---------------------------------------|-----------------------------|
+| `BETE_ID`         | Forces the peer id                    | remembered in `data/peer-id`|
+| `BETE_DATA`       | Data folder                           | `./data`                    |
+| `BETE_APP_URL`    | Base of the displayed URL (optional)  | (none — generic relative link) |
+| `BETE_MAX_BOARDS` | Limit of boards kept in memory        | `300`                       |
 
-## Lancer en service (systemd)
+## Running as a service (systemd)
 
-`/etc/systemd/system/bete.service` :
+`/etc/systemd/system/bete.service`:
 
 ```ini
 [Unit]
@@ -101,7 +102,7 @@ Wants=network-online.target
 
 [Service]
 WorkingDirectory=/home/pi/bete/server
-Environment=BETE_APP_URL=https://ton-domaine.example/
+Environment=BETE_APP_URL=https://your-domain.example/
 ExecStart=/usr/bin/node bete-host.js
 Restart=always
 RestartSec=5
@@ -114,15 +115,15 @@ WantedBy=multi-user.target
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable --now bete
-journalctl -u bete -f   # voir les logs / l'id
+journalctl -u bete -f   # view logs / the id
 ```
 
 ## Notes
 
-- Connexion **P2P chiffrée** (WebRTC) via le broker public PeerJS pour la mise en
-  relation ; relais TURN PeerJS si la connexion directe échoue. Aucune donnée de board
-  ne passe par le broker.
-- Un seul hôte par id à la fois. Si l'id est déjà pris (autre instance, ou broker pas
-  encore libéré), le serveur réessaie automatiquement.
-- Sauvegarde simple dans un fichier JSON ; pour une sauvegarde versionnée, ajoute le
-  dossier `data/` à une sauvegarde régulière (cron, git, rsync…).
+- **Encrypted P2P connection** (WebRTC) via the public PeerJS broker for
+  connection setup; PeerJS TURN relay if a direct connection fails. No board
+  data ever passes through the broker.
+- Only one host per id at a time. If the id is already taken (another
+  instance, or the broker hasn't released it yet), the server retries automatically.
+- Simple JSON file storage; for versioned backups, add the `data/` folder to
+  a regular backup routine (cron, git, rsync…).

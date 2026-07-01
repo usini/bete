@@ -1,13 +1,13 @@
-// Ressort d'inertie élastique + squash/stretch (wobble) par rectangle.
-// Stocke des champs _rx/_ry (position rendue), _vx/_vy (vélocité),
-// _svx/_svy (vélocité lissée, pour une déformation douce sans tremblement).
+// Elastic inertia spring + squash/stretch (wobble) per rectangle.
+// Stores fields _rx/_ry (rendered position), _vx/_vy (velocity),
+// _svx/_svy (smoothed velocity, for a soft deformation without jitter).
 
-// Paramètres réglables à chaud (menu debug, touche ²). Non persistés.
+// Hot-reloadable parameters (debug menu, '²' key). Not persisted.
 export const wobbleCfg = {
-  stiffness: 218,   // raideur du ressort
-  damping: 36,      // amortissement (< critique => rebond élastique)
-  maxStretch: 0.26, // déformation max
-  stretchK: 0.0002, // sensibilité de la déformation à la vitesse
+  stiffness: 218,   // spring stiffness
+  damping: 36,      // damping (< critical => elastic bounce)
+  maxStretch: 0.26, // max deformation
+  stretchK: 0.0002, // sensitivity of deformation to speed
 };
 export const WOBBLE_DEFAULTS = { ...wobbleCfg };
 
@@ -19,10 +19,10 @@ function ensure(n) {
   }
 }
 
-// Avance la simulation d'un node vers sa cible logique (n.x, n.y).
+// Advances a node's simulation towards its logical target (n.x, n.y).
 export function step(n, dt) {
   ensure(n);
-  // Clamp dt pour la stabilité (onglet en arrière-plan, gros lag).
+  // Clamp dt for stability (backgrounded tab, big lag spike).
   dt = Math.min(dt, 0.05);
 
   const ax = wobbleCfg.stiffness * (n.x - n._rx) - wobbleCfg.damping * n._vx;
@@ -32,14 +32,14 @@ export function step(n, dt) {
   n._rx += n._vx * dt;
   n._ry += n._vy * dt;
 
-  // Vélocité lissée (passe-bas) -> la déformation ne suit plus la gigue image/image.
+  // Smoothed velocity (low-pass) -> deformation no longer follows frame-to-frame jitter.
   const f = Math.min(1, dt * 10);
   n._svx += (n._vx - n._svx) * f;
   n._svy += (n._vy - n._svy) * f;
 }
 
-// Pendant un drag : on colle la position rendue à la cible et on capture la
-// vélocité réelle de la souris (pour l'inertie au lâcher).
+// While dragging: snaps the rendered position to the target and captures the
+// real mouse velocity (for inertia on release).
 export function dragTo(n, x, y, dt) {
   ensure(n);
   if (dt > 0) {
@@ -50,8 +50,8 @@ export function dragTo(n, x, y, dt) {
   n._rx = x; n._ry = y;
 }
 
-// Facteur de squash/stretch directionnel basé sur la vélocité LISSÉE.
-// Retourne { angle, sx, sy } à appliquer autour du centre du node.
+// Directional squash/stretch factor based on the SMOOTHED velocity.
+// Returns { angle, sx, sy } to apply around the node's center.
 export function stretch(n) {
   const vx = n._svx || 0, vy = n._svy || 0;
   const sp = Math.hypot(vx, vy);

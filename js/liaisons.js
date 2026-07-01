@@ -1,5 +1,5 @@
-// Liaisons nommées (locales au navigateur) : Serveur 1, Famille, Temporaire…
-// Une liaison = un id de peer (hôte) auquel se connecter, + un nom choisi.
+// Named liaisons (local to the browser): Server 1, Family, Temporary…
+// A liaison = a peer (host) id to connect to, + a chosen name.
 const KEY = 'bete:liaisons';
 
 export function listLiaisons() {
@@ -10,7 +10,7 @@ function save(list) {
   try { localStorage.setItem(KEY, JSON.stringify(list.slice(0, 50))); } catch (e) { /* */ }
 }
 
-// Ajoute (ou remonte) une liaison. name optionnel (par défaut l'id).
+// Adds (or bumps) a liaison. name is optional (defaults to the id).
 export function recordLiaison(peer, name) {
   if (!peer) return;
   const list = listLiaisons();
