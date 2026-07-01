@@ -1,13 +1,13 @@
 // Rendu du board : grille pixel, cercles, hexagones, rectangles, glow néon, sélection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr26jq6l';
-import { view, worldToScreen } from './camera.js?v=mr26jq6l';
-import { stretch } from './physics.js?v=mr26jq6l';
-import { hexCorners } from './geom.js?v=mr26jq6l';
-import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr26jq6l';
-import { fmtDur } from './voice.js?v=mr26jq6l';
-import { getCursors, getPresence } from './sync.js?v=mr26jq6l';
-import { youTubeId, ytThumb } from './yt.js?v=mr26jq6l';
-import { getImageEl } from './images.js?v=mr26jq6l';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr27bxz8';
+import { view, worldToScreen } from './camera.js?v=mr27bxz8';
+import { stretch } from './physics.js?v=mr27bxz8';
+import { hexCorners } from './geom.js?v=mr27bxz8';
+import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr27bxz8';
+import { fmtDur } from './voice.js?v=mr27bxz8';
+import { getCursors, getPresence } from './sync.js?v=mr27bxz8';
+import { youTubeId, ytThumb } from './yt.js?v=mr27bxz8';
+import { getImageEl } from './images.js?v=mr27bxz8';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -471,36 +471,35 @@ function drawRect(ctx, n, color, selected, zoom) {
   // Style selon le thème (pixel = fluo ; classic = pastel + carré noir/blanc par défaut).
   const stl = nodeStyle(color);
 
-  // Corps.
-  ctx.shadowColor = color;
-  ctx.shadowBlur = (selected ? 22 : 10) * GLOW();
-  ctx.fillStyle = stl.fill;
-  ctx.fillRect(-w / 2, -h / 2, w, h);
-
   // Image éventuelle (contain), ou miniature YouTube (cover, remplit le bloc).
   const imgSrc = image || (ytId ? ytThumb(ytId) : null);
-  if (imgSrc) {
-    const img = getImg(imgSrc);
-    if (img.complete && img.naturalWidth) {
-      ctx.save();
-      ctx.shadowBlur = 0;
-      ctx.beginPath();
-      ctx.rect(-w / 2, -h / 2, w, h);
-      ctx.clip();
-      const sc = ytId ? Math.max(w / img.naturalWidth, h / img.naturalHeight) // cover (miniature)
-        : Math.min(w / img.naturalWidth, h / img.naturalHeight);             // contain (image)
-      const dw = img.naturalWidth * sc, dh = img.naturalHeight * sc;
-      ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
-      ctx.restore();
-    }
-  }
+  const img = imgSrc ? getImg(imgSrc) : null;
+  const hasImage = !!(img && img.complete && img.naturalWidth);
 
-  // Bordure (pointillés pour un lien).
-  ctx.lineWidth = selected ? 5 : 3;
-  ctx.strokeStyle = stl.border;
-  if (isLink) ctx.setLineDash([6 * zoom, 4 * zoom]);
-  ctx.strokeRect(-w / 2, -h / 2, w, h);
-  ctx.setLineDash([]);
+  if (hasImage) {
+    // Bloc image : rendu brut, sans glow/fond/bordure colorés.
+    ctx.beginPath();
+    ctx.rect(-w / 2, -h / 2, w, h);
+    ctx.clip();
+    const sc = ytId ? Math.max(w / img.naturalWidth, h / img.naturalHeight) // cover (miniature)
+      : Math.min(w / img.naturalWidth, h / img.naturalHeight);             // contain (image)
+    const dw = img.naturalWidth * sc, dh = img.naturalHeight * sc;
+    ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
+  } else {
+    // Corps (fallback : pas encore d'image chargée, ou bloc texte).
+    ctx.shadowColor = color;
+    ctx.shadowBlur = (selected ? 22 : 10) * GLOW();
+    ctx.fillStyle = stl.fill;
+    ctx.fillRect(-w / 2, -h / 2, w, h);
+    ctx.shadowBlur = 0;
+
+    // Bordure (pointillés pour un lien).
+    ctx.lineWidth = selected ? 5 : 3;
+    ctx.strokeStyle = stl.border;
+    if (isLink) ctx.setLineDash([6 * zoom, 4 * zoom]);
+    ctx.strokeRect(-w / 2, -h / 2, w, h);
+    ctx.setLineDash([]);
+  }
 
   // Poignée de redimensionnement (coin bas-droit), seulement si sélectionné seul.
   if (selected && state.selected === n.id && !isLink) {

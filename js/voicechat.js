@@ -2,14 +2,61 @@
 // Écoute par défaut : tant qu'on est en liaison, on répond aux appels (on entend
 // tout le monde). Le bouton micro ne contrôle que NOTRE émission (parler).
 // L'audio ne passe PAS par le Pi : navigateur <-> navigateur (latence faible).
-import { getPeer, getPresence, setLocalVoice, onIncomingCall } from './sync.js?v=mr26jq6l';
+import { getPeer, getPresence, setLocalVoice, onIncomingCall } from './sync.js?v=mr27bxz8';
 
 let micOn = false;
 let listenOn = true; // écoute activée par défaut
 let micStream = null;
 let silentStream = null;
 let _ac = null;
+let wakeLock = null;
 const calls = {}; // remotePeerId -> { conn, audio }
+
+// "Always On" (mobile) : sur téléphone, l'écran qui se verrouille suspend souvent
+// le micro/la connexion. Ce mode demande un Wake Lock (écran maintenu allumé tant
+// que le micro parle) et réacquiert automatiquement le flux s'il est coupé par l'OS
+// (appel entrant, perte de focus, etc.), pour garder le micro actif en continu.
+let alwaysOn = false;
+try { alwaysOn = localStorage.getItem('todomappa:micalwayson') === '1'; } catch (e) { /* */ }
+export function isAlwaysOn() { return alwaysOn; }
+export function setAlwaysOn(v) {
+  alwaysOn = !!v;
+  try { localStorage.setItem('todomappa:micalwayson', alwaysOn ? '1' : '0'); } catch (e) { /* */ }
+  if (alwaysOn && micOn) acquireWakeLock(); else releaseWakeLock();
+}
+
+// Micro d'entrée préféré (deviceId), si le téléphone/PC en a plusieurs.
+let preferredMicId = '';
+try { preferredMicId = localStorage.getItem('todomappa:micdevice') || ''; } catch (e) { /* */ }
+export function getPreferredMic() { return preferredMicId; }
+export function setPreferredMic(id) {
+  preferredMicId = id || '';
+  try { localStorage.setItem('todomappa:micdevice', preferredMicId); } catch (e) { /* */ }
+  if (micOn) restartMic(); // applique tout de suite si on parle déjà
+}
+// Liste des micros disponibles (nécessite un accès micro déjà accordé pour avoir les labels).
+export async function listMics() {
+  try {
+    const devs = await navigator.mediaDevices.enumerateDevices();
+    return devs.filter((d) => d.kind === 'audioinput');
+  } catch (e) { return []; }
+}
+
+function micConstraints() {
+  return { audio: preferredMicId ? { deviceId: { exact: preferredMicId } } : true };
+}
+
+async function acquireWakeLock() {
+  if (!alwaysOn || !navigator.wakeLock || wakeLock) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  } catch (e) { wakeLock = null; } // refusé (onglet caché, etc.) : pas bloquant
+}
+function releaseWakeLock() { if (wakeLock) { try { wakeLock.release(); } catch (e) { /* */ } wakeLock = null; } }
+// Le Wake Lock est libéré par le navigateur quand l'onglet passe en arrière-plan :
+// on le redemande au retour au premier plan si le micro est toujours actif.
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && micOn) acquireWakeLock(); });
 
 export function isMicOn() { return micOn; }
 export function isListenOn() { return listenOn; }
@@ -40,17 +87,44 @@ function outStream() { return (micOn && micStream) ? micStream : silent(); }
 export async function toggleMic() {
   if (micOn) {
     micOn = false; setLocalVoice(false);
-    if (micStream) { micStream.getTracks().forEach((t) => t.stop()); micStream = null; }
+    releaseWakeLock();
+    stopMicStream();
     replaceOutgoing(silent().getAudioTracks()[0]);
     return false;
   }
-  try { micStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  try { micStream = await navigator.mediaDevices.getUserMedia(micConstraints()); }
   catch (e) { alert('Micro indisponible ou refusé.'); return false; }
+  attachEndedWatch(micStream);
   micOn = true; setLocalVoice(true);
+  acquireWakeLock();
   replaceOutgoing(micStream.getAudioTracks()[0]);
   reconcile(); // connecte tout le monde pour qu'ils nous entendent
   return true;
 }
+
+function stopMicStream() {
+  if (micStream) { micStream.getTracks().forEach((t) => t.stop()); micStream = null; }
+}
+
+// Surveille la coupure de la piste par l'OS (appel entrant, appareil débranché...).
+// En mode Always On, on retente aussitôt pour garder le micro actif en continu.
+function attachEndedWatch(stream) {
+  const track = stream.getAudioTracks()[0];
+  if (!track) return;
+  track.onended = () => { if (micOn && stream === micStream) { if (alwaysOn) restartMic(); else { micOn = false; setLocalVoice(false); replaceOutgoing(silent().getAudioTracks()[0]); } } };
+}
+
+// Redémarre le flux micro sans le couper côté UI (utilisé par Always On + changement d'appareil).
+async function restartMic() {
+  stopMicStream();
+  try { micStream = await navigator.mediaDevices.getUserMedia(micConstraints()); }
+  catch (e) { micStream = null; return; } // réessaiera au prochain déclencheur (visibilitychange, etc.)
+  attachEndedWatch(micStream);
+  replaceOutgoing(micStream.getAudioTracks()[0]);
+}
+// Nouvelle tentative si la reprise a échoué au moment du 'ended' (ex : micro momentanément
+// indisponible pendant un appel téléphonique) et qu'on revient au premier plan.
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && micOn && alwaysOn && !micStream) restartMic(); });
 
 // Remplace la piste émise sur toutes les connexions actives (sans rouvrir).
 function replaceOutgoing(track) {

@@ -1,20 +1,20 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr26jq6l';
-import { setView } from './camera.js?v=mr26jq6l';
-import { render } from './render.js?v=mr26jq6l';
-import { step, reset } from './physics.js?v=mr26jq6l';
-import * as minimap from './minimap.js?v=mr26jq6l';
-import * as input from './input.js?v=mr26jq6l';
-import * as fx from './fx.js?v=mr26jq6l';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mr26jq6l';
-import { recordBoard, getBoardEntry } from './boards.js?v=mr26jq6l';
-import { TUTORIAL } from './tutorial.js?v=mr26jq6l';
-import { applyTheme } from './theme.js?v=mr26jq6l';
-import { initSettings, openSettings } from './settings.js?v=mr26jq6l';
-import { recordLiaison, getLiaison } from './liaisons.js?v=mr26jq6l';
-import { positionVideoOverlay } from './video.js?v=mr26jq6l';
-import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mr26jq6l';
-import { migrateImages } from './images.js?v=mr26jq6l';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr27bxz8';
+import { setView } from './camera.js?v=mr27bxz8';
+import { render } from './render.js?v=mr27bxz8';
+import { step, reset } from './physics.js?v=mr27bxz8';
+import * as minimap from './minimap.js?v=mr27bxz8';
+import * as input from './input.js?v=mr27bxz8';
+import * as fx from './fx.js?v=mr27bxz8';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mr27bxz8';
+import { recordBoard, getBoardEntry } from './boards.js?v=mr27bxz8';
+import { TUTORIAL } from './tutorial.js?v=mr27bxz8';
+import { applyTheme } from './theme.js?v=mr27bxz8';
+import { initSettings, openSettings } from './settings.js?v=mr27bxz8';
+import { recordLiaison, getLiaison } from './liaisons.js?v=mr27bxz8';
+import { positionVideoOverlay } from './video.js?v=mr27bxz8';
+import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mr27bxz8';
+import { migrateImages } from './images.js?v=mr27bxz8';
 
 applyTheme(); // applique le thème enregistré dès le démarrage
 

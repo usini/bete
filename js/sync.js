@@ -2,12 +2,12 @@
 // On ne synchronise QUE le contenu (texte, image, couleur, description, liens,
 // création/suppression) : ni la caméra, ni les positions/tailles. Chaque écran
 // garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr26jq6l';
-import { reset } from './physics.js?v=mr26jq6l';
-import { explodeElementCascade } from './fx.js?v=mr26jq6l';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr26jq6l';
-import { onImageArrived } from './images.js?v=mr26jq6l';
-import { getUserId, displayName } from './users.js?v=mr26jq6l';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr27bxz8';
+import { reset } from './physics.js?v=mr27bxz8';
+import { explodeElementCascade } from './fx.js?v=mr27bxz8';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr27bxz8';
+import { onImageArrived } from './images.js?v=mr27bxz8';
+import { getUserId, displayName } from './users.js?v=mr27bxz8';
 
 let clientRoster = []; // côté client : liste des utilisateurs reçue de l'hôte
 let lastHostMsg = 0;   // côté client : horodatage du dernier message reçu de l'hôte

@@ -3,8 +3,8 @@
 // on la range dans IndexedDB indexée par le HASH de son contenu, et le bloc ne garde
 // qu'une référence courte 'idb:<hash>'. Les octets ne transitent qu'UNE fois par pair
 // (via sync.js : imgReq/imgRes), et un pair qui a déjà l'image ne la re-télécharge pas.
-import { putImage, getImage } from './audio.js?v=mr26jq6l';
-import { requestImage } from './sync.js?v=mr26jq6l';
+import { putImage, getImage } from './audio.js?v=mr27bxz8';
+import { requestImage } from './sync.js?v=mr27bxz8';
 
 const els = new Map();   // ref -> HTMLImageElement (cache de rendu, 1 par ref)
 const urls = new Map();  // hash -> objectURL (blob décodé, réutilisé)

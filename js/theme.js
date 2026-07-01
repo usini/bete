@@ -1,7 +1,7 @@
 // Thème visuel + taille de texte (préférences locales au navigateur).
 // 'pixel' = le look d'origine (fluo + glow) ; 'classic' = clair, couleurs
 // pastel, sans glow ; 'classic-dark' = sombre, pastel, sans glow.
-import { DEFAULT_GREEN } from './state.js?v=mr26jq6l';
+import { DEFAULT_GREEN } from './state.js?v=mr27bxz8';
 
 const PIXEL_FONT = "'Press Start 2P', monospace";
 const SANS_FONT = "'Segoe UI', system-ui, -apple-system, sans-serif";
@@ -67,7 +67,7 @@ export const THEME_LIST = [
 ];
 
 let themeId = 'pixel';
-let textScale = 1;
+let textScale = 2.5;
 try { const t = localStorage.getItem('todomappa:theme'); if (t && THEMES[t]) themeId = t; } catch (e) { /* */ }
 try { const s = parseFloat(localStorage.getItem('todomappa:textscale')); if (s > 0) textScale = Math.max(0.5, Math.min(2.5, s)); } catch (e) { /* */ }
 

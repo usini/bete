@@ -1,12 +1,13 @@
 // Menu Paramètres : thème, taille du texte, liaisons nommées, navigation
 // (tutoriel / boards visités), effacer le board courant.
-import { state, getBoardId, scheduleSave } from './state.js?v=mr26jq6l';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr26jq6l';
-import { listBoards, buildBoardUrl } from './boards.js?v=mr26jq6l';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr26jq6l';
-import { liaisonStatus, disconnect, getPresence, announceName } from './sync.js?v=mr26jq6l';
-import { exportJSON, importJSON } from './io.js?v=mr26jq6l';
-import { getUserName, setUserName } from './users.js?v=mr26jq6l';
+import { state, getBoardId, scheduleSave } from './state.js?v=mr27bxz8';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr27bxz8';
+import { listBoards, buildBoardUrl } from './boards.js?v=mr27bxz8';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr27bxz8';
+import { liaisonStatus, disconnect, getPresence, announceName } from './sync.js?v=mr27bxz8';
+import { exportJSON, importJSON } from './io.js?v=mr27bxz8';
+import { getUserName, setUserName } from './users.js?v=mr27bxz8';
+import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr27bxz8';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
@@ -147,6 +148,34 @@ function build(panel) {
       panel.appendChild(el('div', 'set-empty', label));
     });
   }
+
+  // ---- Voix ----
+  panel.appendChild(el('div', 'set-label', 'Voix'));
+  const alwaysRow = el('div', 'set-row');
+  const alwaysBtn = el('button', 'set-theme' + (isAlwaysOn() ? ' on' : ''), isAlwaysOn() ? '✓ Toujours actif (mobile)' : 'Toujours actif (mobile)');
+  alwaysBtn.title = "Garde le micro actif en continu sur mobile (écran maintenu allumé, reprise auto si l'OS coupe le micro).";
+  alwaysBtn.addEventListener('click', () => { setAlwaysOn(!isAlwaysOn()); build(panel); });
+  alwaysRow.appendChild(alwaysBtn);
+  panel.appendChild(alwaysRow);
+  if (isAlwaysOn() && !isMicOn()) panel.appendChild(el('div', 'set-empty', "S'active dès que tu parles (bouton micro)."));
+
+  panel.appendChild(el('div', 'set-sub', "Micro d'entrée"));
+  const micList = el('div', 'set-themes');
+  micList.appendChild(el('div', 'set-empty', 'Chargement…'));
+  panel.appendChild(micList);
+  listMics().then((mics) => {
+    micList.innerHTML = '';
+    if (!mics.length) { micList.appendChild(el('div', 'set-empty', '(aucun micro détecté — autorise le micro puis rouvre ce menu)')); return; }
+    const cur = getPreferredMic();
+    const def = el('button', 'set-theme' + (!cur ? ' on' : ''), 'Micro par défaut');
+    def.addEventListener('click', () => { setPreferredMic(''); build(panel); });
+    micList.appendChild(def);
+    mics.forEach((d, i) => {
+      const b = el('button', 'set-theme' + (cur === d.deviceId ? ' on' : ''), d.label || ('Micro ' + (i + 1)));
+      b.addEventListener('click', () => { setPreferredMic(d.deviceId); build(panel); });
+      micList.appendChild(b);
+    });
+  });
 
   // ---- Navigation ----
   panel.appendChild(el('div', 'set-label', 'Navigation'));
