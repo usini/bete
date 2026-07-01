@@ -1,19 +1,19 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr1urypt';
-import { setView } from './camera.js?v=mr1urypt';
-import { render } from './render.js?v=mr1urypt';
-import { step, reset } from './physics.js?v=mr1urypt';
-import * as minimap from './minimap.js?v=mr1urypt';
-import * as input from './input.js?v=mr1urypt';
-import * as fx from './fx.js?v=mr1urypt';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mr1urypt';
-import { recordBoard, getBoardEntry } from './boards.js?v=mr1urypt';
-import { TUTORIAL } from './tutorial.js?v=mr1urypt';
-import { applyTheme } from './theme.js?v=mr1urypt';
-import { initSettings, openSettings } from './settings.js?v=mr1urypt';
-import { recordLiaison, getLiaison } from './liaisons.js?v=mr1urypt';
-import { positionVideoOverlay } from './video.js?v=mr1urypt';
-import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mr1urypt';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr263t0f';
+import { setView } from './camera.js?v=mr263t0f';
+import { render } from './render.js?v=mr263t0f';
+import { step, reset } from './physics.js?v=mr263t0f';
+import * as minimap from './minimap.js?v=mr263t0f';
+import * as input from './input.js?v=mr263t0f';
+import * as fx from './fx.js?v=mr263t0f';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mr263t0f';
+import { recordBoard, getBoardEntry } from './boards.js?v=mr263t0f';
+import { TUTORIAL } from './tutorial.js?v=mr263t0f';
+import { applyTheme } from './theme.js?v=mr263t0f';
+import { initSettings, openSettings } from './settings.js?v=mr263t0f';
+import { recordLiaison, getLiaison } from './liaisons.js?v=mr263t0f';
+import { positionVideoOverlay } from './video.js?v=mr263t0f';
+import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mr263t0f';
 
 applyTheme(); // applique le thème enregistré dès le démarrage
 

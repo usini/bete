@@ -204,17 +204,48 @@ function handleData(id, b, msg, origin) {
   }
 }
 
-// Diffusion périodique : pour chaque board, si le contenu a changé.
+// Signatures par entrée (n/c/h) pour ne diffuser QUE ce qui change (delta).
+function entrySigs(b) {
+  const m = {};
+  for (const id in b.content.n) m['n' + id] = JSON.stringify(b.content.n[id]);
+  for (const id in b.content.c) m['c' + id] = JSON.stringify(b.content.c[id]);
+  for (const id in b.content.h) m['h' + id] = JSON.stringify(b.content.h[id]);
+  return m;
+}
+
+// Diffusion périodique EN DELTA : seules les entrées modifiées + les suppressions.
 function tick() {
   for (const [, b] of boards) {
     if (!b.conns.length) continue;
-    const sig = JSON.stringify({ n: b.content.n, c: b.content.c, h: b.content.h, del: [...b.del] });
-    if (sig === b.lastSig) continue;
-    b.lastSig = sig;
-    const payload = buildPayload(b);
+    const sigs = entrySigs(b);
+    const prev = b.prevSigs || {};
+    const nn = {}, cc = {}, hh = {}, mt = {};
+    let changed = false;
+    for (const k in sigs) {
+      if (prev[k] === sigs[k]) continue;
+      changed = true;
+      const t = k[0], rid = k.slice(1);
+      if (t === 'n') nn[rid] = b.content.n[rid];
+      else if (t === 'c') cc[rid] = b.content.c[rid];
+      else hh[rid] = b.content.h[rid];
+      mt[rid] = b.mt[rid] || now();
+    }
+    const delSig = b.del.size;
+    const delChanged = b._lastDelSig !== delSig;
+    if (!changed && !delChanged) { b.prevSigs = sigs; continue; }
+    b.prevSigs = sigs; b._lastDelSig = delSig;
+    const payload = { type: 'sync', from: 'host', n: nn, c: cc, h: hh, mt, del: [...b.del] };
     for (const c of b.conns) if (c.open) { try { c.send(payload); } catch (e) { /* */ } }
   }
 }
+
+// --- Filet de sécurité : ne jamais crasher sur une erreur non gérée ---
+// (ex. "WebSocket was closed before the connection was established" côté ws/peerjs).
+process.on('uncaughtException', (e) => {
+  console.error('[todomappa] uncaughtException ignorée :', (e && e.message) || e);
+  if (peer) { try { peer.destroy(); } catch (er) { /* */ } peer = null; scheduleRestart(); }
+});
+process.on('unhandledRejection', (e) => { console.error('[todomappa] unhandledRejection :', (e && e.message) || e); });
 
 // --- Peer ---
 loadBoards();
@@ -259,8 +290,12 @@ function start() {
   });
   p.on('disconnected', () => {
     if (p !== peer) return;
-    console.warn('[todomappa] déconnecté du broker, reconnexion…');
-    try { p.reconnect(); } catch (e) { /* */ }
+    // NB: p.reconnect() sur ce stack (wrtc/ws) peut émettre une erreur WS non gérée
+    // et faire crasher le process. On préfère détruire + repartir proprement.
+    console.warn('[todomappa] déconnecté du broker, redémarrage propre…');
+    try { p.destroy(); } catch (e) { /* */ }
+    peer = null;
+    scheduleRestart();
   });
   p.on('error', (err) => {
     if (p !== peer) return;

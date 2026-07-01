@@ -2,11 +2,11 @@
 // On ne synchronise QUE le contenu (texte, image, couleur, description, liens,
 // création/suppression) : ni la caméra, ni les positions/tailles. Chaque écran
 // garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr1urypt';
-import { reset } from './physics.js?v=mr1urypt';
-import { explodeElementCascade } from './fx.js?v=mr1urypt';
-import { putAudio, getAudio, delAudio } from './audio.js?v=mr1urypt';
-import { getUserId, displayName } from './users.js?v=mr1urypt';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr263t0f';
+import { reset } from './physics.js?v=mr263t0f';
+import { explodeElementCascade } from './fx.js?v=mr263t0f';
+import { putAudio, getAudio, delAudio } from './audio.js?v=mr263t0f';
+import { getUserId, displayName } from './users.js?v=mr263t0f';
 
 let clientRoster = []; // côté client : liste des utilisateurs reçue de l'hôte
 let lastHostMsg = 0;   // côté client : horodatage du dernier message reçu de l'hôte
@@ -55,8 +55,10 @@ let tombstones = new Set(); // ids supprimés (pour propager les suppressions)
 let mtimes = {};            // id -> horodatage de la dernière modif de contenu
 let prevSigs = {};          // id -> signature de contenu au tick précédent
 let prevLocalIds = null;
-let lastSentGate = '';
 let clientFirstSync = false;
+let forceFull = false;   // vrai = prochain envoi = board complet (sinon delta)
+let lastDelSig = '';     // signature du nb de tombstones (détecte les suppressions)
+let reelectTries = 0;    // tentatives de reconnexion avant de tenter l'élection d'hôte
 
 // Vrai si on est connecté en client (ouvert via ?peer=).
 export function isClient() { return mode === 'client'; }
@@ -192,7 +194,8 @@ function resetSyncState() {
   mtimes = {};
   prevSigs = {};
   prevLocalIds = null;
-  lastSentGate = '';
+  forceFull = false;
+  lastDelSig = '';
 }
 
 // ---- Construction du contenu (sans la caméra ; positions = indice de spawn) ----
@@ -210,7 +213,7 @@ function nodeEntry(n) {
   if (n.link) e.lk = n.link;
   return e;
 }
-function sigNode(e) { return e.vc ? 'V' + e.dur : (e.ref !== undefined ? 'R' + e.ref : 'T' + e.t + '|' + (e.img || '') + '|' + (e.lk || '')); }
+function sigNode(e) { return e.vc ? 'V' + e.dur : (e.ref !== undefined ? 'R' + e.ref : 'T' + e.t + '|' + (e.img ? e.img.length : 0) + '|' + (e.lk || '')); }
 function sigZone(e) { return 'Z' + e.col + '' + e.d; }
 
 function buildContent() {
@@ -232,12 +235,15 @@ function sigMap(content) {
   return m;
 }
 
-// ---- Tick : détecte les modifs de contenu et diffuse si besoin ----
-function startTick() {
+// ---- Tick : détecte les modifs de contenu et diffuse en DELTA ----
+// seed = true -> le 1er envoi est le board complet (nouvel hôte ou board à semer).
+function startTick(seed) {
   stopTick();
   prevLocalIds = localIds();
   prevSigs = sigMap(buildContent());
   for (const id in prevSigs) if (!mtimes[id]) mtimes[id] = now();
+  forceFull = !!seed;
+  lastDelSig = '';
   tickTimer = setInterval(tick, 800);
 }
 function stopTick() { if (tickTimer) { clearInterval(tickTimer); tickTimer = null; } }
@@ -254,14 +260,29 @@ function tick() {
 
   const content = buildContent();
   const sigs = sigMap(content);
-  for (const id in sigs) { if (prevSigs[id] !== sigs[id]) mtimes[id] = now(); } // contenu modifié -> horodate
+  const changed = [];
+  for (const id in sigs) { if (prevSigs[id] !== sigs[id]) { mtimes[id] = now(); changed.push(id); } }
   prevSigs = sigs;
 
-  // La gate ignore les positions : un simple déplacement ne déclenche aucun envoi.
-  const gate = JSON.stringify({ s: sigs, m: mtimes, d: [...tombstones] });
-  if (gate === lastSentGate) return;
-  lastSentGate = gate;
-  const payload = { type: 'sync', from: mode, n: content.n, c: content.c, h: content.h, mt: { ...mtimes }, del: [...tombstones] };
+  const delSig = String(tombstones.size);
+  const delChanged = delSig !== lastDelSig;
+  if (!forceFull && !changed.length && !delChanged) return; // rien de neuf (positions ignorées)
+
+  let outN, outC, outH, mtOut;
+  if (forceFull) {
+    outN = content.n; outC = content.c; outH = content.h; mtOut = { ...mtimes };
+    forceFull = false;
+  } else {
+    outN = {}; outC = {}; outH = {}; mtOut = {};
+    for (const id of changed) {
+      if (content.n[id]) outN[id] = content.n[id];
+      else if (content.c[id]) outC[id] = content.c[id];
+      else if (content.h[id]) outH[id] = content.h[id];
+      mtOut[id] = mtimes[id];
+    }
+  }
+  lastDelSig = delSig;
+  const payload = { type: 'sync', from: mode, n: outN, c: outC, h: outH, mt: mtOut, del: [...tombstones] };
   conns.forEach(c => { try { if (c.open) c.send(payload); } catch (e) { /* */ } });
 }
 
@@ -352,13 +373,14 @@ function mergeZones(arr, rem, remote, win, applied) {
 function handleData(msg, origin) {
   if (!msg) return;
   if (msg.type === 'sync') {
-    let justFirst = false;
+    let justFirst = false, remoteEmpty = false;
     if (mode === 'client' && clientFirstSync) {
       clientFirstSync = false;
       justFirst = true;
+      reelectTries = 0; // sync reçue : la liaison est saine
       // On n'écrase le board local QUE si le board distant a du contenu.
       // S'il est vide (board serveur neuf), on garde le local : il sèmera le serveur.
-      const remoteEmpty = !(msg.n && Object.keys(msg.n).length)
+      remoteEmpty = !(msg.n && Object.keys(msg.n).length)
         && !(msg.c && Object.keys(msg.c).length)
         && !(msg.h && Object.keys(msg.h).length);
       if (!remoteEmpty) {
@@ -369,9 +391,9 @@ function handleData(msg, origin) {
       }
     }
     merge(msg);
-    // Le client ne commence à ÉMETTRE qu'après avoir adopté l'état du host
-    // (sinon il pousserait ses anciens blocs au host avant d'être réinitialisé).
-    if (justFirst) startTick();
+    // Le client émet après la 1re synchro. seed = board distant vide -> on envoie
+    // notre board complet pour le semer ; sinon on est déjà à jour -> deltas seuls.
+    if (justFirst) startTick(remoteEmpty);
   } else if (msg.type === 'move') {
     applyMove(msg);
   } else if (msg.type === 'delete') {
@@ -524,7 +546,7 @@ function openHostPeer(id) {
   peer.on('open', (realId) => {
     idRetries = 0;
     hostNode.peerId = realId; hostNode.code = realId; hostNode.url = buildUrl(realId); hostNode.status = 'online';
-    startTick();
+    startTick(true);
     startHostHeartbeat();
   });
   peer.on('disconnected', () => {
@@ -663,8 +685,9 @@ export async function joinOrHost(peerId, onStatus) {
     hostPeer = probe;
     hostNode = null;
     wireHostPeer(probe);
-    startTick(); // on diffuse notre board (devient la référence de la liaison)
+    startTick(true); // on diffuse notre board complet (devient la référence de la liaison)
     startHostHeartbeat();
+    reelectTries = 0;
     onStatus && onStatus('host');
   });
   probe.on('error', (err) => {
@@ -705,10 +728,12 @@ function scheduleClientRetry() {
     clientFirstSync = true; // on ré-adoptera l'état du nouvel host
     stopTick();
     clientRoster = [];
-    // Ré-élection : on retente de DEVENIR l'hôte (id libéré si l'ancien est parti),
-    // sinon on se reconnecte en client au nouvel hôte élu.
     try { if (clientPeer && !clientPeer.destroyed) clientPeer.destroy(); } catch (e) { /* */ }
     clientPeer = null;
-    joinOrHost(clientPeerId, clientStatus);
+    // On privilégie une simple RECONNEXION client (l'hôte redémarre peut-être) ;
+    // on ne tente l'ÉLECTION d'hôte qu'après plusieurs échecs (évite de voler l'id du Pi).
+    reelectTries++;
+    if (reelectTries <= 3) joinHost(clientPeerId, clientStatus);
+    else joinOrHost(clientPeerId, clientStatus);
   }, 3000);
 }
