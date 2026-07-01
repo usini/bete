@@ -1,8 +1,8 @@
-// Hôte PeerJS headless pour TODOMAPPA — destiné à tourner en permanence
+// Hôte PeerJS headless pour Bete — destiné à tourner en permanence
 // (ex. Raspberry Pi). Même protocole de synchro que l'app, donc les clients web
 // se connectent via ?peer=<id> sans modification de l'app.
 //
-// MULTI-BOARD : un seul peer héberge plusieurs pense-bêtes. Chaque client annonce
+// MULTI-BOARD : un seul peer héberge plusieurs boards. Chaque client annonce
 // son board id (métadonnées de connexion). Le serveur garde un board par id,
 // le persiste dans data/boards/<id>.json, et ne relaie qu'entre clients du même board.
 
@@ -27,19 +27,22 @@ const Peer = (_peerjs.default && _peerjs.default.Peer) || _peerjs.Peer;
 
 // --- Config ---
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = process.env.TODOMAPPA_DATA || path.join(__dirname, 'data');
+const DATA_DIR = process.env.BETE_DATA || path.join(__dirname, 'data');
 const BOARDS_DIR = path.join(DATA_DIR, 'boards');
 const OLD_BOARD_FILE = path.join(DATA_DIR, 'board.json'); // ancien mono-board
 const ID_FILE = path.join(DATA_DIR, 'peer-id');
-const APP_URL = process.env.TODOMAPPA_APP_URL || 'https://remisarrailh.github.io/pensebete/';
-const MAX_BOARDS = parseInt(process.env.TODOMAPPA_MAX_BOARDS || '300', 10);
+// Base de l'URL de l'app statique, utilisée uniquement pour afficher un lien complet
+// au démarrage (aucune incidence sur le protocole). Vide par défaut pour rester
+// portable d'une instance à l'autre : définis BETE_APP_URL pour l'afficher.
+const APP_URL = process.env.BETE_APP_URL || '';
+const MAX_BOARDS = parseInt(process.env.BETE_MAX_BOARDS || '300', 10);
 
 fs.mkdirSync(BOARDS_DIR, { recursive: true });
 
 function resolveId() {
-  if (process.env.TODOMAPPA_ID) return process.env.TODOMAPPA_ID;
+  if (process.env.BETE_ID) return process.env.BETE_ID;
   try { const id = fs.readFileSync(ID_FILE, 'utf8').trim(); if (id) return id; } catch (e) { /* */ }
-  const id = 'tm-' + crypto.randomBytes(16).toString('hex'); // 128 bits : anti-collision/devinabilité
+  const id = 'p-' + crypto.randomBytes(16).toString('hex'); // 128 bits : anti-collision/devinabilité
   try { fs.writeFileSync(ID_FILE, id); } catch (e) { /* */ }
   return id;
 }
@@ -108,13 +111,13 @@ function loadBoards() {
   if (!boards.has('home') && fs.existsSync(OLD_BOARD_FILE)) {
     try { boards.set('home', boardFromObj(JSON.parse(fs.readFileSync(OLD_BOARD_FILE, 'utf8')))); } catch (e) { /* */ }
   }
-  console.log(`[todomappa] ${boards.size} board(s) chargé(s) : ${[...boards.keys()].join(', ') || '(aucun)'}`);
+  console.log(`[bete] ${boards.size} board(s) chargé(s) : ${[...boards.keys()].join(', ') || '(aucun)'}`);
 }
 
 function getBoard(id) {
   let b = boards.get(id);
   if (!b) {
-    if (boards.size >= MAX_BOARDS) { console.warn('[todomappa] limite de boards atteinte, board éphémère :', id); }
+    if (boards.size >= MAX_BOARDS) { console.warn('[bete] limite de boards atteinte, board éphémère :', id); }
     b = { content: { n: {}, c: {}, h: {} }, mt: {}, del: new Set(), conns: [], lastSig: '', saveTimer: null };
     boards.set(id, b);
   }
@@ -127,7 +130,7 @@ function scheduleSave(id, b) {
     b.saveTimer = null;
     try {
       fs.writeFileSync(path.join(BOARDS_DIR, id + '.json'), JSON.stringify({ ...b.content, mt: b.mt, del: [...b.del] }));
-    } catch (e) { console.error('[todomappa] échec sauvegarde', id, e); }
+    } catch (e) { console.error('[bete] échec sauvegarde', id, e); }
   }, 1000);
 }
 
@@ -263,10 +266,10 @@ function tick() {
 // --- Filet de sécurité : ne jamais crasher sur une erreur non gérée ---
 // (ex. "WebSocket was closed before the connection was established" côté ws/peerjs).
 process.on('uncaughtException', (e) => {
-  console.error('[todomappa] uncaughtException ignorée :', (e && e.message) || e);
+  console.error('[bete] uncaughtException ignorée :', (e && e.message) || e);
   if (peer) { try { peer.destroy(); } catch (er) { /* */ } peer = null; scheduleRestart(); }
 });
-process.on('unhandledRejection', (e) => { console.error('[todomappa] unhandledRejection :', (e && e.message) || e); });
+process.on('unhandledRejection', (e) => { console.error('[bete] unhandledRejection :', (e && e.message) || e); });
 
 // --- Peer ---
 loadBoards();
@@ -291,9 +294,10 @@ function start() {
   peer = p;
 
   p.on('open', (rid) => {
-    console.log('\n[todomappa] HÔTE EN LIGNE (multi-board)');
+    console.log('\n[bete] HÔTE EN LIGNE (multi-board)');
     console.log('  id    : ' + rid);
-    console.log('  lien  : ' + APP_URL + '?peer=' + encodeURIComponent(rid));
+    if (APP_URL) console.log('  lien  : ' + APP_URL + '?peer=' + encodeURIComponent(rid));
+    else console.log('  lien  : <url-de-ton-instance>/?peer=' + encodeURIComponent(rid) + '  (définis BETE_APP_URL pour l\'afficher en entier)');
     console.log('  (ajoute &id=nom pour un board précis)\n');
   });
   p.on('connection', (conn) => {
@@ -302,10 +306,10 @@ function start() {
     const b = getBoard(id);
     conn._lastSeen = now();
     b.conns.push(conn);
-    console.log(`[todomappa] client connecté sur "${id}" (${b.conns.length})`);
+    console.log(`[bete] client connecté sur "${id}" (${b.conns.length})`);
     conn.on('open', () => { try { conn.send(buildPayload(b)); } catch (e) { /* */ } });
     conn.on('data', (msg) => { conn._lastSeen = now(); handleData(id, b, msg, conn); });
-    const drop = () => { const i = b.conns.indexOf(conn); if (i >= 0) b.conns.splice(i, 1); broadcastPresence(b); console.log(`[todomappa] client déconnecté de "${id}" (${b.conns.length})`); };
+    const drop = () => { const i = b.conns.indexOf(conn); if (i >= 0) b.conns.splice(i, 1); broadcastPresence(b); console.log(`[bete] client déconnecté de "${id}" (${b.conns.length})`); };
     conn.on('close', drop);
     conn.on('error', drop);
   });
@@ -313,7 +317,7 @@ function start() {
     if (p !== peer) return;
     // NB: p.reconnect() sur ce stack (wrtc/ws) peut émettre une erreur WS non gérée
     // et faire crasher le process. On préfère détruire + repartir proprement.
-    console.warn('[todomappa] déconnecté du broker, redémarrage propre…');
+    console.warn('[bete] déconnecté du broker, redémarrage propre…');
     try { p.destroy(); } catch (e) { /* */ }
     peer = null;
     scheduleRestart();
@@ -321,7 +325,7 @@ function start() {
   p.on('error', (err) => {
     if (p !== peer) return;
     const t = err && err.type ? err.type : String(err);
-    console.error('[todomappa] erreur peer :', t);
+    console.error('[bete] erreur peer :', t);
     if (t === 'unavailable-id') console.error('  -> id occupé (un autre hôte tourne ?). Réessai dans 5s.');
     if (t === 'unavailable-id' || t === 'network' || t === 'server-error' || t === 'socket-error') {
       try { p.destroy(); } catch (e) { /* */ }

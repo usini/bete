@@ -1,5 +1,5 @@
 // Modèle de données partagé + persistance localStorage.
-import { pointInHex } from './geom.js?v=mr27bxz8';
+import { pointInHex } from './geom.js?v=mr2946h3';
 
 export const DEFAULT_GREEN = '#39ff14';
 
@@ -15,11 +15,11 @@ export const COLORS = [
   '#f2f2f2', // blanc cassé
 ];
 
-// Clé de stockage par board (multi pense-bêtes). 'home' = page perso par défaut.
+// Clé de stockage par board (multi-boards). 'home' = page perso par défaut.
 let _boardId = 'home';
 let _boardName = '';
-let storageKey = 'todomappa:home';
-export function setBoardId(id) { _boardId = id || 'home'; storageKey = 'todomappa:' + _boardId; }
+let storageKey = 'bete:home';
+export function setBoardId(id) { _boardId = id || 'home'; storageKey = 'bete:' + _boardId; }
 export function getBoardId() { return _boardId; }
 export function setBoardName(n) { _boardName = n || ''; }
 export function getBoardName() { return _boardName; }
@@ -203,9 +203,7 @@ export function undo() {
 
 export function restore() {
   try {
-    let raw = localStorage.getItem(storageKey);
-    // Migration : ancien board unique -> slot 'home'.
-    if (!raw && _boardId === 'home') raw = localStorage.getItem('todomappa');
+    const raw = localStorage.getItem(storageKey);
     if (raw) return load(JSON.parse(raw));
   } catch (e) { /* corrompu */ }
   return false;

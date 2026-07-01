@@ -2,12 +2,12 @@
 // On ne synchronise QUE le contenu (texte, image, couleur, description, liens,
 // création/suppression) : ni la caméra, ni les positions/tailles. Chaque écran
 // garde donc sa propre vue. Merge par id, conflit résolu en LWW + priorité HOST.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr27bxz8';
-import { reset } from './physics.js?v=mr27bxz8';
-import { explodeElementCascade } from './fx.js?v=mr27bxz8';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr27bxz8';
-import { onImageArrived } from './images.js?v=mr27bxz8';
-import { getUserId, displayName } from './users.js?v=mr27bxz8';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr2946h3';
+import { reset } from './physics.js?v=mr2946h3';
+import { explodeElementCascade } from './fx.js?v=mr2946h3';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr2946h3';
+import { onImageArrived } from './images.js?v=mr2946h3';
+import { getUserId, displayName } from './users.js?v=mr2946h3';
 
 let clientRoster = []; // côté client : liste des utilisateurs reçue de l'hôte
 let lastHostMsg = 0;   // côté client : horodatage du dernier message reçu de l'hôte
@@ -551,14 +551,14 @@ function makeId() {
 }
 function getStableId() {
   try {
-    let id = localStorage.getItem('todomappa-peer');
-    if (!id) { id = makeId(); localStorage.setItem('todomappa-peer', id); }
+    let id = localStorage.getItem('bete:peer');
+    if (!id) { id = makeId(); localStorage.setItem('bete:peer', id); }
     return id;
   } catch (e) { return makeId(); }
 }
 function rotateStableId() {
   const id = makeId();
-  try { localStorage.setItem('todomappa-peer', id); } catch (e) { /* */ }
+  try { localStorage.setItem('bete:peer', id); } catch (e) { /* */ }
   return id;
 }
 
@@ -576,7 +576,7 @@ export async function startHost(node) {
     await Promise.all([loadPeer(), loadQR()]);
   } catch (e) {
     node.status = 'error';
-    console.warn('TODOMAPPA: chargement PeerJS/QR échoué', e);
+    console.warn('Bete : chargement PeerJS/QR échoué', e);
     return;
   }
   idRetries = 0;
@@ -609,7 +609,7 @@ function openHostPeer(id) {
       return;
     }
     if (hostNode) hostNode.status = 'error';
-    console.warn('TODOMAPPA: erreur peer (host)', err);
+    console.warn('Bete : erreur peer (host)', err);
   });
   peer.on('connection', (conn) => {
     conn._lastSeen = now();
@@ -692,7 +692,7 @@ export async function joinHost(peerId, onStatus) {
 
   peer.on('open', () => connectToHost());
   peer.on('disconnected', () => { try { if (clientPeer && !clientPeer.destroyed) clientPeer.reconnect(); } catch (e) { /* */ } });
-  peer.on('error', (err) => { console.warn('TODOMAPPA: erreur peer (client)', err); scheduleClientRetry(); });
+  peer.on('error', (err) => { console.warn('Bete : erreur peer (client)', err); scheduleClientRetry(); });
 }
 
 function connectToHost() {
@@ -743,7 +743,7 @@ export async function joinOrHost(peerId, onStatus) {
       try { probe.destroy(); } catch (e) { /* */ }
       joinHost(peerId, onStatus);
     } else {
-      console.warn('TODOMAPPA: erreur élection hôte', err);
+      console.warn('Bete : erreur élection hôte', err);
     }
   });
   probe.on('disconnected', () => { try { if (probe === hostPeer && !probe.destroyed) probe.reconnect(); } catch (e) { /* */ } });

@@ -1,12 +1,12 @@
 {
-  "name": "todomappa-host",
+  "name": "bete-host",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Hote PeerJS headless pour TODOMAPPA (Raspberry Pi)",
-  "main": "todomappa-host.js",
+  "description": "Hote PeerJS headless pour Bete (Raspberry Pi)",
+  "main": "bete-host.js",
   "scripts": {
-    "start": "node todomappa-host.js"
+    "start": "node bete-host.js"
   },
   "dependencies": {
     "@roamhq/wrtc": "^0.8.0",

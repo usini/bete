@@ -1,6 +1,6 @@
 // Translate comments to English
 // History of visited boards + utilities (unique IDs, URLs).
-const KEY = 'todomappa:boards';
+const KEY = 'bete:boards';
 
 // Unique board ID (anti-collision, especially on a shared server).
 export function genBoardId() {

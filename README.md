@@ -1,6 +1,6 @@
-# TODOMAPPA
+# Bete
 
-Mindmap pense-bête pixel art. Site 100 % statique, zéro dépendance, zéro build.
+Mindmap pixel art. Site 100 % statique, zéro dépendance, zéro build.
 
 ## Lancer en local
 
@@ -16,6 +16,10 @@ python -m http.server 8000
 1. Pousser le repo sur GitHub.
 2. `Settings → Pages → Build and deployment → Source: Deploy from a branch`.
 3. Branche `main`, dossier `/ (root)`. Le site est servi tel quel.
+
+Pour un domaine personnalisé : `Settings → Pages → Custom domain`, et un fichier
+`CNAME` (contenant ton domaine) apparaît à la racine du repo — remplace-le ou
+supprime-le si tu forkes le projet pour l'héberger sous un autre domaine.
 
 ## Utilisation
 
@@ -49,7 +53,7 @@ Pour recopier ton board d'un appareil à l'autre (ex. desktop → téléphone) :
 
 **Synchronisé** : le contenu (texte, image, couleur, description, liens, créations/suppressions) et la **position des objets** — mais celle-ci seulement **au lâcher** (pas pendant le glissement), et l'autre écran l'**anime**. **La caméra reste indépendante** : chaque écran garde son zoom/cadrage (ex. un écran en vue large, un autre zoomé sur un cercle). En cas de modification simultanée du même élément, **l'hôte l'emporte**.
 
-Connexion **P2P chiffrée** (WebRTC via PeerJS) ; seuls des identifiants transitent par le broker de signalisation, le contenu passe en direct entre les deux navigateurs. Les libs PeerJS / QR sont chargées à la demande (CDN), l'app reste sans dépendance au repos.
+Connexion **P2P chiffrée** (WebRTC via PeerJS) ; seuls des identifiants transitent par le broker de signalisation, le contenu passe en direct entre les deux navigateurs. Les libs PeerJS / QR sont chargées à la demande (CDN), l'app reste sans dépendance au repos. Les images et mémos vocaux sont stockés en local (IndexedDB) et ne transitent qu'une fois par pair, jamais via le broker.
 
 **Hôte permanent (optionnel)** : pour garder la synchro disponible même tous navigateurs fermés, on peut faire tourner un petit serveur Node sur un Raspberry Pi qui joue l'hôte en continu — voir [`server/`](server/README.md). L'app n'a pas besoin d'être modifiée : les appareils s'y connectent via `?peer=<id-du-pi>`.
 
@@ -71,7 +75,7 @@ Sauvegarde automatique dans le navigateur (localStorage). Export/Import JSON via
 Ajouter `?file=<url>` à l'adresse charge ce JSON au lieu du localStorage, sans écraser ton board perso :
 
 ```
-https://remisarrailh.github.io/pensebete/?file=https://exemple.com/board.json
+https://ton-instance.example/?file=https://exemple.com/board.json
 ```
 
 Le fichier doit être accessible en CORS (même origine, raw.githubusercontent.com, gist…). Un chemin relatif fonctionne aussi : `?file=boards/demo.json`.

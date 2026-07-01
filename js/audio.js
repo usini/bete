@@ -2,7 +2,7 @@
 // is not suitable for large binary data. Audio is indexed by block ID ; images are indexed
 // by their content hash (so an identical image is stored once and referenced by 'idb:<hash>').
 // The state/board only stores a small reference, never the bytes.
-const DB_NAME = 'todomappa';
+const DB_NAME = 'bete';
 const STORE = 'audio';
 const IMG_STORE = 'images';
 let _db = null;

@@ -1,6 +1,6 @@
-# TODOMAPPA — hôte headless (Raspberry Pi)
+# Bete — hôte headless (Raspberry Pi)
 
-Petit serveur Node qui joue le rôle d'**hôte permanent** pour TODOMAPPA, sans aucune
+Petit serveur Node qui joue le rôle d'**hôte permanent** pour Bete, sans aucune
 modification de l'app web. Tes appareils s'y connectent comme à n'importe quel hôte,
 via `?peer=<id>`. Il détient le board de référence et le sauvegarde sur disque, donc
 la synchro reste disponible même quand tous tes navigateurs sont fermés.
@@ -21,13 +21,16 @@ jamais la caméra. En cas de conflit, l'hôte (= ce serveur) l'emporte.
 En une commande (clone + dépendances + service systemd) :
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/remisarrailh/pensebete/main/server/install-pi.sh | bash
+curl -fsSL https://raw.githubusercontent.com/usini/bete/main/server/install-pi.sh | bash
 ```
 
 Un **id de peer privé** est généré automatiquement au premier lancement et stocké
 dans `server/data/peer-id` (jamais commité). Le script affiche alors ton lien
 `…?peer=<id>` — garde-le pour toi. (Prérequis : `node` et `git` installés ; voir
-ci-dessous. Pour forcer un id : `TODOMAPPA_ID=… curl … | bash`.)
+ci-dessous. Pour forcer un id : `BETE_ID=… curl … | bash`.)
+
+Si tu as forké le projet pour l'héberger ailleurs, passe aussi `BETE_REPO=<ton-fork>`
+et `BETE_APP_URL=<ton-domaine>` — voir [Configuration](#configuration-variables-denvironnement).
 
 ## Installation manuelle
 
@@ -45,20 +48,22 @@ npm start
 Au démarrage, il affiche l'id et le lien à partager, par exemple :
 
 ```
-[todomappa] HÔTE EN LIGNE
-  id    : tm-ab12cd34ef
-  lien  : https://remisarrailh.github.io/pensebete/?peer=tm-ab12cd34ef
+[bete] HÔTE EN LIGNE
+  id    : p-ab12cd34ef
+  lien  : <url-de-ton-instance>/?peer=p-ab12cd34ef
 ```
+
+(Le lien complet ne s'affiche que si `BETE_APP_URL` est défini — voir plus bas.)
 
 Ouvre ce lien (ou son QR) sur tes appareils : ils se synchronisent avec le Pi.
 
 L'id est **stable** : il est mémorisé dans `data/peer-id` et réutilisé à chaque
 redémarrage, donc le lien ne change pas. (Tu peux aussi l'imposer avec la variable
-d'environnement `TODOMAPPA_ID`.)
+d'environnement `BETE_ID`.)
 
 ## Multi-board
 
-Un seul serveur héberge **plusieurs pense-bêtes**. Le board ciblé est choisi côté
+Un seul serveur héberge **plusieurs boards**. Le board ciblé est choisi côté
 client par l'URL : `?peer=<id>&id=<board>` (sans `id`, board par défaut du lien).
 Chaque board est persisté dans `server/data/boards/<board>.json`.
 
@@ -77,25 +82,27 @@ Pour partir d'un board existant plutôt que vide :
 
 ## Configuration (variables d'environnement)
 
-| Variable             | Rôle                                      | Défaut                                   |
-|----------------------|-------------------------------------------|------------------------------------------|
-| `TODOMAPPA_ID`       | Force l'id du peer                         | mémorisé dans `data/peer-id`             |
-| `TODOMAPPA_DATA`     | Dossier de données                        | `./data`                                 |
-| `TODOMAPPA_APP_URL`  | Base de l'URL affichée                     | `https://remisarrailh.github.io/pensebete/` |
+| Variable          | Rôle                                | Défaut                     |
+|-------------------|--------------------------------------|-----------------------------|
+| `BETE_ID`         | Force l'id du peer                  | mémorisé dans `data/peer-id`|
+| `BETE_DATA`       | Dossier de données                  | `./data`                    |
+| `BETE_APP_URL`    | Base de l'URL affichée (facultatif) | (aucun — lien relatif générique) |
+| `BETE_MAX_BOARDS` | Limite de boards en mémoire         | `300`                       |
 
 ## Lancer en service (systemd)
 
-`/etc/systemd/system/todomappa.service` :
+`/etc/systemd/system/bete.service` :
 
 ```ini
 [Unit]
-Description=TODOMAPPA host
+Description=Bete host
 After=network-online.target
 Wants=network-online.target
 
 [Service]
-WorkingDirectory=/home/pi/TODOMAPPA/server
-ExecStart=/usr/bin/node todomappa-host.js
+WorkingDirectory=/home/pi/bete/server
+Environment=BETE_APP_URL=https://ton-domaine.example/
+ExecStart=/usr/bin/node bete-host.js
 Restart=always
 RestartSec=5
 User=pi
@@ -106,8 +113,8 @@ WantedBy=multi-user.target
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now todomappa
-journalctl -u todomappa -f   # voir les logs / l'id
+sudo systemctl enable --now bete
+journalctl -u bete -f   # voir les logs / l'id
 ```
 
 ## Notes

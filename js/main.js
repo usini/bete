@@ -1,20 +1,20 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr27bxz8';
-import { setView } from './camera.js?v=mr27bxz8';
-import { render } from './render.js?v=mr27bxz8';
-import { step, reset } from './physics.js?v=mr27bxz8';
-import * as minimap from './minimap.js?v=mr27bxz8';
-import * as input from './input.js?v=mr27bxz8';
-import * as fx from './fx.js?v=mr27bxz8';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mr27bxz8';
-import { recordBoard, getBoardEntry } from './boards.js?v=mr27bxz8';
-import { TUTORIAL } from './tutorial.js?v=mr27bxz8';
-import { applyTheme } from './theme.js?v=mr27bxz8';
-import { initSettings, openSettings } from './settings.js?v=mr27bxz8';
-import { recordLiaison, getLiaison } from './liaisons.js?v=mr27bxz8';
-import { positionVideoOverlay } from './video.js?v=mr27bxz8';
-import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mr27bxz8';
-import { migrateImages } from './images.js?v=mr27bxz8';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr2946h3';
+import { setView } from './camera.js?v=mr2946h3';
+import { render } from './render.js?v=mr2946h3';
+import { step, reset } from './physics.js?v=mr2946h3';
+import * as minimap from './minimap.js?v=mr2946h3';
+import * as input from './input.js?v=mr2946h3';
+import * as fx from './fx.js?v=mr2946h3';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mr2946h3';
+import { recordBoard, getBoardEntry } from './boards.js?v=mr2946h3';
+import { TUTORIAL } from './tutorial.js?v=mr2946h3';
+import { applyTheme } from './theme.js?v=mr2946h3';
+import { initSettings, openSettings } from './settings.js?v=mr2946h3';
+import { recordLiaison, getLiaison } from './liaisons.js?v=mr2946h3';
+import { positionVideoOverlay } from './video.js?v=mr2946h3';
+import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mr2946h3';
+import { migrateImages } from './images.js?v=mr2946h3';
 
 applyTheme(); // applique le thème enregistré dès le démarrage
 
@@ -45,7 +45,7 @@ window.addEventListener('resize', resize);
 resize();
 
 
-// ---- Choix du board (multi pense-bêtes) ----
+// ---- Choix du board (multi-boards) ----
 function sanitizeId(s) {
   return String(s).toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'home';
 }
@@ -56,9 +56,9 @@ const fileUrl = params.get('file');
 const nameParam = params.get('name');
 
 // Premier lancement : on envoie l'utilisateur vers le tutoriel (puis l'app vit sur home).
-const REDIRECT = !localStorage.getItem('todomappa:seen') && !idParam && !peerId && !fileUrl;
+const REDIRECT = !localStorage.getItem('bete:seen') && !idParam && !peerId && !fileUrl;
 if (REDIRECT) {
-  try { localStorage.setItem('todomappa:seen', '1'); } catch (e) { /* */ }
+  try { localStorage.setItem('bete:seen', '1'); } catch (e) { /* */ }
   recordBoard('home', 'Home', null);
   recordBoard('tutorial', 'Tutoriel', null);
   location.replace(location.pathname + '?id=tutorial');
@@ -120,7 +120,7 @@ function resolveBoardName(id) {
     name = getBoardName() || nameParam || (getBoardEntry(id) && getBoardEntry(id).name) || id;
   }
   setBoardName(name);
-  document.title = 'TODOMAPPA' + (id === 'home' ? '' : ' · ' + name);
+  document.title = 'Bete' + (id === 'home' ? '' : ' · ' + name);
 }
 
 function applyBoardNameUI() {
@@ -148,7 +148,7 @@ function beginRenameBoard() {
     el.removeEventListener('keydown', onKey);
     const nm = (el.textContent || '').replace(/\n/g, ' ').trim().slice(0, 40) || getBoardName();
     setBoardName(nm); el.textContent = nm;
-    document.title = 'TODOMAPPA · ' + nm;
+    document.title = 'Bete · ' + nm;
     recordBoard(boardId, nm, peerId || null);
     scheduleSave();
   };
@@ -163,7 +163,7 @@ async function loadFromUrl(url) {
     if (!load(await res.json())) throw new Error('JSON invalide');
     state.nodes.forEach(reset);
   } catch (err) {
-    console.warn('TODOMAPPA: échec du chargement de', url, err);
+    console.warn('Bete : échec du chargement de', url, err);
     // Repli : localStorage ou démo, et on réactive la sauvegarde.
     setSaveSuppressed(false);
     if (!restore()) seedIfHome();
@@ -200,8 +200,8 @@ if (!REDIRECT) {
     spk.addEventListener('mousedown', tog);
     spk.addEventListener('touchstart', tog);
   }
-  // Handle de debug (inspection console : todomappa.state).
-  window.todomappa = { state, fx };
+  // Handle de debug (inspection console : bete.state).
+  window.bete = { state, fx };
   requestAnimationFrame(loop);
 }
 

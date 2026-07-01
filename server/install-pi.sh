@@ -1,21 +1,24 @@
 #!/usr/bin/env bash
-# Installe (ou met à jour) l'hôte TODOMAPPA en service systemd sur un Raspberry Pi.
+# Installe (ou met à jour) l'hôte Bete en service systemd sur un Raspberry Pi.
 #
 # Usage rapide (sur le Pi) :
-#   curl -fsSL https://raw.githubusercontent.com/remisarrailh/pensebete/main/server/install-pi.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/usini/bete/main/server/install-pi.sh | bash
 #
 # Un id de peer PRIVÉ est généré automatiquement au premier lancement et stocké
 # dans server/data/peer-id (jamais commité). Il est réutilisé ensuite.
 #
 # Variables d'environnement optionnelles :
-#   TODOMAPPA_ID   force un id précis (sinon généré aléatoirement)
-#   TODOMAPPA_DIR  dossier de clonage (def: $HOME/pensebete)
+#   BETE_ID       force un id précis (sinon généré aléatoirement)
+#   BETE_DIR      dossier de clonage (def: $HOME/bete)
+#   BETE_REPO     dépôt à cloner, si tu as forké le projet (def: ce dépôt)
+#   BETE_APP_URL  URL de l'app statique, pour afficher un lien complet en fin
+#                 d'installation (def: aucun — affiche un lien relatif générique)
 set -euo pipefail
 
-REPO="https://github.com/remisarrailh/pensebete.git"
-DEST="${TODOMAPPA_DIR:-$HOME/pensebete}"
-SERVICE="todomappa"
-APP_URL="https://remisarrailh.github.io/pensebete/"
+REPO="${BETE_REPO:-https://github.com/usini/bete.git}"
+DEST="${BETE_DIR:-$HOME/bete}"
+SERVICE="bete"
+APP_URL="${BETE_APP_URL:-}"
 
 say() { printf '\n\033[32m[install]\033[0m %s\n' "$*"; }
 die() { printf '\n\033[31m[install] %s\033[0m\n' "$*" >&2; exit 1; }
@@ -44,12 +47,12 @@ fi
 DATA="$DEST/server/data"
 mkdir -p "$DATA"
 ID_FILE="$DATA/peer-id"
-if [ -n "${TODOMAPPA_ID:-}" ]; then
-  PEER_ID="$TODOMAPPA_ID"; echo "$PEER_ID" > "$ID_FILE"
+if [ -n "${BETE_ID:-}" ]; then
+  PEER_ID="$BETE_ID"; echo "$PEER_ID" > "$ID_FILE"
 elif [ -s "$ID_FILE" ]; then
   PEER_ID="$(cat "$ID_FILE")"
 else
-  PEER_ID="$(node -e "console.log('tm-'+require('crypto').randomBytes(16).toString('hex'))")"
+  PEER_ID="$(node -e "console.log('p-'+require('crypto').randomBytes(16).toString('hex'))")"
   echo "$PEER_ID" > "$ID_FILE"
   say "Nouvel id privé généré (stocké dans $ID_FILE)"
 fi
@@ -65,13 +68,14 @@ SVC_PATH="/etc/systemd/system/$SERVICE.service"
 say "Écriture du service $SVC_PATH"
 sudo tee "$SVC_PATH" >/dev/null <<EOF
 [Unit]
-Description=TODOMAPPA host (PeerJS headless)
+Description=Bete host (PeerJS headless)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 WorkingDirectory=$DEST/server
-ExecStart=$(command -v node) todomappa-host.js
+Environment=BETE_APP_URL=$APP_URL
+ExecStart=$(command -v node) bete-host.js
 Restart=always
 RestartSec=5
 User=$(id -un)
@@ -89,5 +93,10 @@ say "Statut :"
 sudo systemctl --no-pager --lines=6 status "$SERVICE" || true
 say "Terminé ✅"
 say "Ton lien PRIVÉ (ne le partage qu'avec tes appareils) :"
-say "  ${APP_URL}?peer=${PEER_ID}"
+if [ -n "$APP_URL" ]; then
+  say "  ${APP_URL}?peer=${PEER_ID}"
+else
+  say "  <url-de-ton-instance>/?peer=${PEER_ID}"
+  say "  (relance avec BETE_APP_URL=https://... pour afficher le lien complet la prochaine fois)"
+fi
 say "Logs en direct : journalctl -u $SERVICE -f"

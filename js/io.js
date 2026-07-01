@@ -1,8 +1,8 @@
 // Export / Import JSON.
-import { serialize, load, getBoardId, scheduleSave } from './state.js?v=mr27bxz8';
-import { reset } from './physics.js?v=mr27bxz8';
-import { state } from './state.js?v=mr27bxz8';
-import { inlineImages, migrateImages } from './images.js?v=mr27bxz8';
+import { serialize, load, getBoardId, scheduleSave } from './state.js?v=mr2946h3';
+import { reset } from './physics.js?v=mr2946h3';
+import { state } from './state.js?v=mr2946h3';
+import { inlineImages, migrateImages } from './images.js?v=mr2946h3';
 
 export async function exportJSON() {
   const snap = serialize();          // objets neufs (mutation sûre)
@@ -12,7 +12,7 @@ export async function exportJSON() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'todomappa-' + getBoardId() + '.json';
+  a.download = 'bete-' + getBoardId() + '.json';
   document.body.appendChild(a);
   a.click();
   a.remove();

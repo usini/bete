@@ -1,6 +1,6 @@
 // Identité de l'utilisateur (locale au navigateur) : un id stable + un nom choisi.
-const UID = 'todomappa-uid';
-const UNAME = 'todomappa-username';
+const UID = 'bete:uid';
+const UNAME = 'bete:username';
 
 export function getUserId() {
   try {

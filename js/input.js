@@ -3,19 +3,19 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr27bxz8';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr27bxz8';
-import { dragTo, reset } from './physics.js?v=mr27bxz8';
-import { pointInHex } from './geom.js?v=mr27bxz8';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr27bxz8';
-import { storeImage, resolveSrc } from './images.js?v=mr27bxz8';
-import { explodeElementCascade } from './fx.js?v=mr27bxz8';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr27bxz8';
-import { openSettings } from './settings.js?v=mr27bxz8';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr27bxz8';
-import { toggleDebug } from './debug.js?v=mr27bxz8';
-import { youTubeId } from './yt.js?v=mr27bxz8';
-import { setActiveVideo } from './video.js?v=mr27bxz8';
+} from './state.js?v=mr2946h3';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr2946h3';
+import { dragTo, reset } from './physics.js?v=mr2946h3';
+import { pointInHex } from './geom.js?v=mr2946h3';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr2946h3';
+import { storeImage, resolveSrc } from './images.js?v=mr2946h3';
+import { explodeElementCascade } from './fx.js?v=mr2946h3';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr2946h3';
+import { openSettings } from './settings.js?v=mr2946h3';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr2946h3';
+import { toggleDebug } from './debug.js?v=mr2946h3';
+import { youTubeId } from './yt.js?v=mr2946h3';
+import { setActiveVideo } from './video.js?v=mr2946h3';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }

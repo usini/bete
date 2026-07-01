@@ -2,7 +2,7 @@
 // Écoute par défaut : tant qu'on est en liaison, on répond aux appels (on entend
 // tout le monde). Le bouton micro ne contrôle que NOTRE émission (parler).
 // L'audio ne passe PAS par le Pi : navigateur <-> navigateur (latence faible).
-import { getPeer, getPresence, setLocalVoice, onIncomingCall } from './sync.js?v=mr27bxz8';
+import { getPeer, getPresence, setLocalVoice, onIncomingCall } from './sync.js?v=mr2946h3';
 
 let micOn = false;
 let listenOn = true; // écoute activée par défaut
@@ -17,21 +17,21 @@ const calls = {}; // remotePeerId -> { conn, audio }
 // que le micro parle) et réacquiert automatiquement le flux s'il est coupé par l'OS
 // (appel entrant, perte de focus, etc.), pour garder le micro actif en continu.
 let alwaysOn = false;
-try { alwaysOn = localStorage.getItem('todomappa:micalwayson') === '1'; } catch (e) { /* */ }
+try { alwaysOn = localStorage.getItem('bete:micalwayson') === '1'; } catch (e) { /* */ }
 export function isAlwaysOn() { return alwaysOn; }
 export function setAlwaysOn(v) {
   alwaysOn = !!v;
-  try { localStorage.setItem('todomappa:micalwayson', alwaysOn ? '1' : '0'); } catch (e) { /* */ }
+  try { localStorage.setItem('bete:micalwayson', alwaysOn ? '1' : '0'); } catch (e) { /* */ }
   if (alwaysOn && micOn) acquireWakeLock(); else releaseWakeLock();
 }
 
 // Micro d'entrée préféré (deviceId), si le téléphone/PC en a plusieurs.
 let preferredMicId = '';
-try { preferredMicId = localStorage.getItem('todomappa:micdevice') || ''; } catch (e) { /* */ }
+try { preferredMicId = localStorage.getItem('bete:micdevice') || ''; } catch (e) { /* */ }
 export function getPreferredMic() { return preferredMicId; }
 export function setPreferredMic(id) {
   preferredMicId = id || '';
-  try { localStorage.setItem('todomappa:micdevice', preferredMicId); } catch (e) { /* */ }
+  try { localStorage.setItem('bete:micdevice', preferredMicId); } catch (e) { /* */ }
   if (micOn) restartMic(); // applique tout de suite si on parle déjà
 }
 // Liste des micros disponibles (nécessite un accès micro déjà accordé pour avoir les labels).

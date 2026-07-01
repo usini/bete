@@ -1,8 +1,8 @@
 // Lecteur YouTube inline : une iframe superposée au bloc, qui suit la caméra.
 // Un seul lecteur actif à la fois (clic sur un bloc-vidéo = lecture).
-import { state } from './state.js?v=mr27bxz8';
-import { worldToScreen } from './camera.js?v=mr27bxz8';
-import { youTubeId, ytEmbed } from './yt.js?v=mr27bxz8';
+import { state } from './state.js?v=mr2946h3';
+import { worldToScreen } from './camera.js?v=mr2946h3';
+import { youTubeId, ytEmbed } from './yt.js?v=mr2946h3';
 
 let activeId = null;   // id du node en lecture
 let wrap = null;       // conteneur DOM (iframe + croix)

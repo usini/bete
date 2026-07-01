@@ -1,6 +1,6 @@
 // Liaisons nommées (locales au navigateur) : Serveur 1, Famille, Temporaire…
 // Une liaison = un id de peer (hôte) auquel se connecter, + un nom choisi.
-const KEY = 'todomappa:liaisons';
+const KEY = 'bete:liaisons';
 
 export function listLiaisons() {
   try { const a = JSON.parse(localStorage.getItem(KEY)); return Array.isArray(a) ? a : []; }
