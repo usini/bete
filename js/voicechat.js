@@ -2,15 +2,25 @@
 // Écoute par défaut : tant qu'on est en liaison, on répond aux appels (on entend
 // tout le monde). Le bouton micro ne contrôle que NOTRE émission (parler).
 // L'audio ne passe PAS par le Pi : navigateur <-> navigateur (latence faible).
-import { getPeer, getPresence, setLocalVoice, onIncomingCall } from './sync.js?v=mr1uhycm';
+import { getPeer, getPresence, setLocalVoice, onIncomingCall } from './sync.js?v=mr1urypt';
 
 let micOn = false;
+let listenOn = true; // écoute activée par défaut
 let micStream = null;
 let silentStream = null;
 let _ac = null;
 const calls = {}; // remotePeerId -> { conn, audio }
 
 export function isMicOn() { return micOn; }
+export function isListenOn() { return listenOn; }
+
+// Coupe / réactive l'écoute (audio entrant). Par défaut activée.
+export function toggleListen() {
+  listenOn = !listenOn;
+  Object.values(calls).forEach((c) => { if (c.audio) c.audio.muted = !listenOn; });
+  reconcile();
+  return listenOn;
+}
 
 // Piste audio silencieuse (pour participer/écouter sans demander le micro).
 function silent() {
@@ -62,7 +72,8 @@ function reconcile() {
   const want = {};
   getPresence().forEach((u) => {
     if (u.me || !u.peerId) return;
-    if (!micOn && !u.voice) return; // personne ne parle de ce côté -> pas besoin
+    // On se connecte si NOUS parlons (pour être entendu), ou si on écoute quelqu'un qui parle.
+    if (!micOn && !(listenOn && u.voice)) return;
     want[u.peerId] = 1;
     if (calls[u.peerId]) return;
     if (myId < u.peerId) { // l'id le plus petit initie (anti-doublon)
@@ -76,6 +87,7 @@ setInterval(reconcile, 1500);
 // Appel entrant : on répond TOUJOURS (écoute par défaut), avec notre piste courante.
 onIncomingCall((conn) => {
   if (calls[conn.peer]) { try { conn.close(); } catch (e) { /* */ } return; } // glare
+  if (!micOn && !listenOn) { try { conn.close(); } catch (e) { /* */ } return; } // ni parler ni écouter
   try { conn.answer(outStream()); } catch (e) { /* */ }
   attachCall(conn.peer, conn);
 });
@@ -91,6 +103,7 @@ function playRemote(remoteId, stream) {
   const c = calls[remoteId];
   if (!c) return;
   if (!c.audio) { const a = new Audio(); a.autoplay = true; a.playsInline = true; c.audio = a; }
+  c.audio.muted = !listenOn;
   c.audio.srcObject = stream;
   c.audio.play().catch(() => {});
 }

@@ -397,8 +397,33 @@ html, body {
 #voicebtn.on { background: #fe4365; border-color: #fff; color: #fff; animation: micpulse 1.2s ease-in-out infinite; }
 @keyframes micpulse { 0%, 100% { box-shadow: 0 0 8px rgba(254,67,101,0.5); } 50% { box-shadow: 0 0 18px rgba(254,67,101,0.9); } }
 
+/* Bouton haut-parleur (écoute on/off), à droite du micro. */
+#speakerbtn {
+  position: fixed; top: 10px; left: 106px; z-index: 23;
+  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; padding: 0;
+  background: var(--node-bg); border: 3px solid var(--green); color: var(--green);
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.35); cursor: pointer;
+}
+#speakerbtn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#speakerbtn svg polygon { fill: currentColor; stroke: none; }
+#speakerbtn.hidden { display: none; }
+#speakerbtn .spk-off { display: none; }
+#speakerbtn.off { color: #fe4365; border-color: #fe4365; }
+#speakerbtn.off .spk-on { display: none; }
+#speakerbtn.off .spk-off { display: inline; }
+
+/* Bandeau "qui parle". */
+#speakers {
+  position: fixed; top: 56px; left: 50%; transform: translateX(-50%); z-index: 21;
+  display: none; font-size: 9px; letter-spacing: 1px; color: #fff;
+  background: #fe4365; border: 2px solid #fff; padding: 3px 9px;
+  box-shadow: 0 0 10px rgba(254, 67, 101, 0.5);
+  white-space: nowrap; max-width: 80vw; overflow: hidden; text-overflow: ellipsis;
+}
+#speakers.show { display: block; }
+
 /* Décale l'astuce à droite des boutons. */
-#hint { left: 106px; top: 22px; }
+#hint { left: 154px; top: 22px; }
 
 /* ---- Rectangle de sélection (marquee) ---- */
 #marquee {

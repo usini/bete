@@ -1,12 +1,12 @@
 // Rendu du board : grille pixel, cercles, hexagones, rectangles, glow néon, sélection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr1uhycm';
-import { view, worldToScreen } from './camera.js?v=mr1uhycm';
-import { stretch } from './physics.js?v=mr1uhycm';
-import { hexCorners } from './geom.js?v=mr1uhycm';
-import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr1uhycm';
-import { fmtDur } from './voice.js?v=mr1uhycm';
-import { getCursors } from './sync.js?v=mr1uhycm';
-import { youTubeId, ytThumb } from './yt.js?v=mr1uhycm';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr1urypt';
+import { view, worldToScreen } from './camera.js?v=mr1urypt';
+import { stretch } from './physics.js?v=mr1urypt';
+import { hexCorners } from './geom.js?v=mr1urypt';
+import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr1urypt';
+import { fmtDur } from './voice.js?v=mr1urypt';
+import { getCursors, getPresence } from './sync.js?v=mr1urypt';
+import { youTubeId, ytThumb } from './yt.js?v=mr1urypt';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -52,6 +52,8 @@ const cursorRender = {}; // uid -> { rx, ry } position lissée (animation A->B)
 
 function drawCursors(ctx) {
   const list = getCursors();
+  const speaking = {};
+  getPresence().forEach((u) => { if (u.voice) speaking[u.uid] = 1; });
   const seen = {};
   for (const c of list) {
     seen[c.uid] = 1;
@@ -77,8 +79,8 @@ function drawCursors(ctx) {
     ctx.lineTo(p.x + 11, p.y + 13);
     ctx.closePath();
     ctx.fill(); ctx.stroke();
-    // Étiquette nom.
-    const name = c.name || 'Invité';
+    // Étiquette nom (préfixe 🎤 si la personne parle).
+    const name = (speaking[c.uid] ? '🎤 ' : '') + (c.name || 'Invité');
     ctx.font = '11px ' + (theme().pixel ? "'Press Start 2P', monospace" : "'Segoe UI', sans-serif");
     ctx.textBaseline = 'top';
     const tw = ctx.measureText(name).width;

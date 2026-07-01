@@ -1,19 +1,19 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr1uhycm';
-import { setView } from './camera.js?v=mr1uhycm';
-import { render } from './render.js?v=mr1uhycm';
-import { step, reset } from './physics.js?v=mr1uhycm';
-import * as minimap from './minimap.js?v=mr1uhycm';
-import * as input from './input.js?v=mr1uhycm';
-import * as fx from './fx.js?v=mr1uhycm';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount } from './sync.js?v=mr1uhycm';
-import { recordBoard, getBoardEntry } from './boards.js?v=mr1uhycm';
-import { TUTORIAL } from './tutorial.js?v=mr1uhycm';
-import { applyTheme } from './theme.js?v=mr1uhycm';
-import { initSettings, openSettings } from './settings.js?v=mr1uhycm';
-import { recordLiaison, getLiaison } from './liaisons.js?v=mr1uhycm';
-import { positionVideoOverlay } from './video.js?v=mr1uhycm';
-import { toggleMic, isMicOn } from './voicechat.js?v=mr1uhycm';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr1urypt';
+import { setView } from './camera.js?v=mr1urypt';
+import { render } from './render.js?v=mr1urypt';
+import { step, reset } from './physics.js?v=mr1urypt';
+import * as minimap from './minimap.js?v=mr1urypt';
+import * as input from './input.js?v=mr1urypt';
+import * as fx from './fx.js?v=mr1urypt';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mr1urypt';
+import { recordBoard, getBoardEntry } from './boards.js?v=mr1urypt';
+import { TUTORIAL } from './tutorial.js?v=mr1urypt';
+import { applyTheme } from './theme.js?v=mr1urypt';
+import { initSettings, openSettings } from './settings.js?v=mr1urypt';
+import { recordLiaison, getLiaison } from './liaisons.js?v=mr1urypt';
+import { positionVideoOverlay } from './video.js?v=mr1urypt';
+import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mr1urypt';
 
 applyTheme(); // applique le thème enregistré dès le démarrage
 
@@ -189,6 +189,12 @@ if (!REDIRECT) {
     vbtn.addEventListener('mousedown', tog);
     vbtn.addEventListener('touchstart', tog);
   }
+  const spk = document.getElementById('speakerbtn');
+  if (spk) {
+    const tog = (e) => { e.preventDefault(); e.stopPropagation(); toggleListen(); spk.classList.toggle('off', !isListenOn()); };
+    spk.addEventListener('mousedown', tog);
+    spk.addEventListener('touchstart', tog);
+  }
   // Handle de debug (inspection console : todomappa.state).
   window.todomappa = { state, fx };
   requestAnimationFrame(loop);
@@ -216,6 +222,20 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
+// Bandeau "qui parle" : liste des participants avec le micro actif.
+let lastSpeakers = '';
+function updateSpeakers(connected) {
+  const el = document.getElementById('speakers');
+  if (!el) return;
+  const talkers = connected ? getPresence().filter((u) => u.voice).map((u) => (u.me ? 'Toi' : (u.name || 'Invité'))) : [];
+  const sig = talkers.join(',');
+  if (sig === lastSpeakers) return;
+  lastSpeakers = sig;
+  if (!talkers.length) { el.classList.remove('show'); el.textContent = ''; return; }
+  el.textContent = '🎤 ' + talkers.join(', ');
+  el.classList.add('show');
+}
+
 // Indicateur de la liaison active (haut centre) + bouton déconnecter.
 let lastLiaison = '';
 function updateLiaisonBadge() {
@@ -225,6 +245,9 @@ function updateLiaisonBadge() {
   const sig = (st.role || '') + '|' + name + '|' + count;
   const vb = document.getElementById('voicebtn');
   if (vb) { vb.classList.toggle('hidden', !st.role); if (!st.role) vb.classList.remove('on'); }
+  const spk = document.getElementById('speakerbtn');
+  if (spk) spk.classList.toggle('hidden', !st.role);
+  updateSpeakers(!!st.role);
   if (sig === lastLiaison) return;
   lastLiaison = sig;
   const el = document.getElementById('liaisonbadge');
