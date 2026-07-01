@@ -1,19 +1,19 @@
 // Bootstrap + boucle de rendu.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mqwus8x9';
-import { setView } from './camera.js?v=mqwus8x9';
-import { render } from './render.js?v=mqwus8x9';
-import { step, reset } from './physics.js?v=mqwus8x9';
-import * as minimap from './minimap.js?v=mqwus8x9';
-import * as input from './input.js?v=mqwus8x9';
-import * as fx from './fx.js?v=mqwus8x9';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount } from './sync.js?v=mqwus8x9';
-import { recordBoard, getBoardEntry } from './boards.js?v=mqwus8x9';
-import { TUTORIAL } from './tutorial.js?v=mqwus8x9';
-import { applyTheme } from './theme.js?v=mqwus8x9';
-import { initSettings, openSettings } from './settings.js?v=mqwus8x9';
-import { recordLiaison, getLiaison } from './liaisons.js?v=mqwus8x9';
-import { positionVideoOverlay } from './video.js?v=mqwus8x9';
-import { toggleMic, isMicOn } from './voicechat.js?v=mqwus8x9';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr1uhycm';
+import { setView } from './camera.js?v=mr1uhycm';
+import { render } from './render.js?v=mr1uhycm';
+import { step, reset } from './physics.js?v=mr1uhycm';
+import * as minimap from './minimap.js?v=mr1uhycm';
+import * as input from './input.js?v=mr1uhycm';
+import * as fx from './fx.js?v=mr1uhycm';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount } from './sync.js?v=mr1uhycm';
+import { recordBoard, getBoardEntry } from './boards.js?v=mr1uhycm';
+import { TUTORIAL } from './tutorial.js?v=mr1uhycm';
+import { applyTheme } from './theme.js?v=mr1uhycm';
+import { initSettings, openSettings } from './settings.js?v=mr1uhycm';
+import { recordLiaison, getLiaison } from './liaisons.js?v=mr1uhycm';
+import { positionVideoOverlay } from './video.js?v=mr1uhycm';
+import { toggleMic, isMicOn } from './voicechat.js?v=mr1uhycm';
 
 applyTheme(); // applique le thème enregistré dès le démarrage
 
@@ -185,7 +185,7 @@ if (!REDIRECT) {
   initSettings();
   const vbtn = document.getElementById('voicebtn');
   if (vbtn) {
-    const tog = async (e) => { e.preventDefault(); e.stopPropagation(); await toggleVoiceChat(); vbtn.classList.toggle('on', isVoiceOn()); };
+    const tog = async (e) => { e.preventDefault(); e.stopPropagation(); await toggleMic(); vbtn.classList.toggle('on', isMicOn()); };
     vbtn.addEventListener('mousedown', tog);
     vbtn.addEventListener('touchstart', tog);
   }

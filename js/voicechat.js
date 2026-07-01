@@ -2,7 +2,7 @@
 // Écoute par défaut : tant qu'on est en liaison, on répond aux appels (on entend
 // tout le monde). Le bouton micro ne contrôle que NOTRE émission (parler).
 // L'audio ne passe PAS par le Pi : navigateur <-> navigateur (latence faible).
-import { getPeer, getPresence, setLocalVoice, onIncomingCall } from './sync.js?v=mqwus8x9';
+import { getPeer, getPresence, setLocalVoice, onIncomingCall } from './sync.js?v=mr1uhycm';
 
 let micOn = false;
 let micStream = null;
