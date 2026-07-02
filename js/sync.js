@@ -2,12 +2,12 @@
 // We only synchronize the CONTENT (text, image, color, description, links,
 // creation/deletion): neither the camera nor the positions/sizes. Each screen
 // therefore keeps its own view. Merge by id, conflicts resolved with LWW + HOST priority.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr2lpyvb';
-import { reset } from './physics.js?v=mr2lpyvb';
-import { explodeElementCascade } from './fx.js?v=mr2lpyvb';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr2lpyvb';
-import { onImageArrived } from './images.js?v=mr2lpyvb';
-import { getUserId, displayName } from './users.js?v=mr2lpyvb';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr3alkln';
+import { reset } from './physics.js?v=mr3alkln';
+import { explodeElementCascade } from './fx.js?v=mr3alkln';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr3alkln';
+import { onImageArrived } from './images.js?v=mr3alkln';
+import { getUserId, displayName } from './users.js?v=mr3alkln';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host
@@ -706,7 +706,7 @@ function connectToHost() {
   conn.on('data', (msg) => {
     lastHostMsg = now(); // any message (including ping) proves the host is alive
     const wasFirst = clientFirstSync && msg && msg.type === 'sync';
-    handleData(msg);
+    handleData(msg, conn); // origin = our single host connection (needed to answer audioReq/imgReq)
     if (wasFirst) clientStatus && clientStatus('synced');
   });
   conn.on('close', () => { clientStatus && clientStatus('closed'); scheduleClientRetry(); });

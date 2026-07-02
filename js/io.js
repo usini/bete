@@ -1,9 +1,9 @@
 // JSON export / import.
-import { serialize, load, getBoardId, scheduleSave } from './state.js?v=mr2lpyvb';
-import { reset } from './physics.js?v=mr2lpyvb';
-import { state } from './state.js?v=mr2lpyvb';
-import { inlineImages, migrateImages } from './images.js?v=mr2lpyvb';
-import { t } from './i18n.js?v=mr2lpyvb';
+import { serialize, load, getBoardId, scheduleSave } from './state.js?v=mr3alkln';
+import { reset } from './physics.js?v=mr3alkln';
+import { state } from './state.js?v=mr3alkln';
+import { inlineImages, migrateImages } from './images.js?v=mr3alkln';
+import { t } from './i18n.js?v=mr3alkln';
 
 export async function exportJSON() {
   const snap = serialize();          // fresh objects (safe to mutate)

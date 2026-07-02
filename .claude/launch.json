@@ -6,6 +6,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["-y", "http-server", "-p", "8080", "-c-1"],
       "port": 8080
+    },
+    {
+      "name": "forgotten-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "C:/Users/remi/Desktop/Dev/FORGOTTEN", "run", "dev", "--", "--port", "5173"],
+      "port": 5173
     }
   ]
 }
