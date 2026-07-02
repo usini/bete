@@ -1,14 +1,14 @@
 // Board rendering: pixel grid, circles, hexagons, rectangles, neon glow, selection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr3rtn0v';
-import { view, worldToScreen } from './camera.js?v=mr3rtn0v';
-import { stretch } from './physics.js?v=mr3rtn0v';
-import { hexCorners } from './geom.js?v=mr3rtn0v';
-import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr3rtn0v';
-import { fmtDur } from './voice.js?v=mr3rtn0v';
-import { getCursors, getPresence } from './sync.js?v=mr3rtn0v';
-import { youTubeId, ytThumb } from './yt.js?v=mr3rtn0v';
-import { getImageEl } from './images.js?v=mr3rtn0v';
-import { t } from './i18n.js?v=mr3rtn0v';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr3s4erp';
+import { view, worldToScreen } from './camera.js?v=mr3s4erp';
+import { stretch } from './physics.js?v=mr3s4erp';
+import { hexCorners } from './geom.js?v=mr3s4erp';
+import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr3s4erp';
+import { fmtDur } from './voice.js?v=mr3s4erp';
+import { getCursors, getPresence } from './sync.js?v=mr3s4erp';
+import { youTubeId, ytThumb } from './yt.js?v=mr3s4erp';
+import { getImageEl } from './images.js?v=mr3s4erp';
+import { t } from './i18n.js?v=mr3s4erp';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -561,41 +561,107 @@ function drawRect(ctx, n, color, selected, zoom) {
   ctx.restore();
 }
 
-// Splits into lines, respecting explicit line breaks + word wrapping.
-function wrapLines(ctx, text, maxW) {
-  const out = [];
-  for (const para of String(text).split('\n')) {
-    const words = para.split(/\s+/).filter(Boolean);
-    if (!words.length) { out.push(''); continue; }
-    let cur = '';
-    for (const word of words) {
-      const test = cur ? cur + ' ' + word : word;
-      if (ctx.measureText(test).width > maxW && cur) { out.push(cur); cur = word; }
-      else cur = test;
-    }
-    if (cur) out.push(cur);
+// Minimal inline markdown: **bold**, *italic*/_italic_. Returns text runs.
+function parseInline(text) {
+  const segs = [];
+  const re = /\*\*(.+?)\*\*|\*(.+?)\*|_(.+?)_/g;
+  let last = 0, m;
+  while ((m = re.exec(text))) {
+    if (m.index > last) segs.push({ text: text.slice(last, m.index), bold: false, italic: false });
+    if (m[1] !== undefined) segs.push({ text: m[1], bold: true, italic: false });
+    else segs.push({ text: m[2] !== undefined ? m[2] : m[3], bold: false, italic: true });
+    last = re.lastIndex;
   }
+  if (last < text.length) segs.push({ text: text.slice(last), bold: false, italic: false });
+  return segs.length ? segs : [{ text, bold: false, italic: false }];
+}
+
+// Per-line markdown: "# heading" (bold), "- item" / "* item" (bullet), + inline bold/italic.
+// Returns one token array per paragraph (blank line -> empty array).
+function parseMarkdown(text) {
+  return String(text).split('\n').map((raw) => {
+    let line = raw;
+    let bullet = false;
+    const bm = line.match(/^\s*[-*]\s+(.*)$/);
+    if (bm) { bullet = true; line = bm[1]; }
+    const hm = line.match(/^\s*#{1,6}\s+(.*)$/);
+    let heading = false;
+    if (hm) { heading = true; line = hm[1]; }
+    const tokens = [];
+    if (bullet) tokens.push({ word: '•', bold: false, italic: false });
+    for (const seg of parseInline(line)) {
+      for (const word of seg.text.split(/\s+/).filter(Boolean)) {
+        tokens.push({ word, bold: seg.bold || heading, italic: seg.italic });
+      }
+    }
+    return tokens;
+  });
+}
+
+function tokFont(fs, fam, tok) {
+  return (tok.italic ? 'italic ' : '') + (tok.bold ? 'bold ' : '') + fs + 'px ' + fam;
+}
+
+// Greedy word-wrap of one paragraph's tokens, keeping bold/italic per word.
+function wrapParagraph(ctx, fam, fs, tokens, maxW) {
+  if (!tokens.length) return [[]];
+  ctx.font = `${fs}px ${fam}`;
+  const spaceW = ctx.measureText(' ').width;
+  const out = [];
+  let cur = [], curW = 0;
+  for (const tok of tokens) {
+    ctx.font = tokFont(fs, fam, tok);
+    const w = ctx.measureText(tok.word).width;
+    const addW = cur.length ? spaceW + w : w;
+    if (curW + addW > maxW && cur.length) { out.push(cur); cur = [tok]; curW = w; }
+    else { cur.push(tok); curW += addW; }
+  }
+  out.push(cur);
   return out;
 }
 
-// Centered text that shrinks until it fits within (maxW x maxH).
+function lineWidth(ctx, fam, fs, line) {
+  ctx.font = `${fs}px ${fam}`;
+  const spaceW = ctx.measureText(' ').width;
+  let w = 0;
+  line.forEach((tok, i) => {
+    ctx.font = tokFont(fs, fam, tok);
+    w += ctx.measureText(tok.word).width + (i ? spaceW : 0);
+  });
+  return w;
+}
+
+// Centered text (supporting minimal markdown) that shrinks until it fits within (maxW x maxH).
 function drawFitted(ctx, text, maxW, maxH, baseFs) {
   const fam = FONT();
+  const paragraphs = parseMarkdown(text);
   let fs = Math.max(5, baseFs);
   let lines = [];
   for (let i = 0; i < 16; i++) {
-    ctx.font = `${fs}px ${fam}`;
-    lines = wrapLines(ctx, text, maxW);
+    lines = [];
+    for (const p of paragraphs) lines.push(...wrapParagraph(ctx, fam, fs, p, maxW));
     const lineH = fs * 1.4;
     const tall = lines.length * lineH > maxH;
-    const wide = lines.some(l => ctx.measureText(l).width > maxW);
+    const wide = lines.some((l) => lineWidth(ctx, fam, fs, l) > maxW);
     if ((!tall && !wide) || fs <= 5) break;
     fs = Math.max(5, fs * 0.86);
   }
-  ctx.font = `${fs}px ${fam}`;
   const lineH = fs * 1.4;
   const startY = -((lines.length - 1) * lineH) / 2;
-  lines.forEach((ln, i) => ctx.fillText(ln, 0, startY + i * lineH));
+  ctx.font = `${fs}px ${fam}`;
+  const spaceW = ctx.measureText(' ').width;
+  const align = ctx.textAlign;
+  ctx.textAlign = 'left';
+  lines.forEach((line, i) => {
+    const y = startY + i * lineH;
+    let x = align === 'center' ? -lineWidth(ctx, fam, fs, line) / 2 : 0;
+    line.forEach((tok) => {
+      ctx.font = tokFont(fs, fam, tok);
+      ctx.fillText(tok.word, x, y);
+      x += ctx.measureText(tok.word).width + spaceW;
+    });
+  });
+  ctx.textAlign = align;
 }
 
 // ---- utils ----
