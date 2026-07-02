@@ -66,6 +66,18 @@
   <!-- Status toast (P2P sync) -->
   <div id="toast"></div>
 
+  <!-- Reconnect-loop warning: shown when the liaison keeps flapping, offers a refresh -->
+  <div id="reconnectpopup" class="hidden">
+    <div class="rp-card">
+      <div class="rp-title" data-i18n="reconnect.title"></div>
+      <div class="rp-msg" data-i18n="reconnect.loopMessage"></div>
+      <div class="rp-actions">
+        <button id="reconnectRefresh" class="rp-refresh" data-i18n="reconnect.refresh"></button>
+        <button id="reconnectDismiss" class="rp-dismiss" data-i18n="reconnect.dismiss"></button>
+      </div>
+    </div>
+  </div>
+
   <!-- Liaison type indicator (direct P2P / TURN relay) -->
   <div id="netmode"></div>
 
@@ -78,6 +90,6 @@
   <!-- CRT scanlines overlay -->
   <div id="crt"></div>
 
-  <script type="module" src="js/main.js?v=mr3bprum"></script>
+  <script type="module" src="js/main.js?v=mr3o9vs4"></script>
 </body>
 </html>

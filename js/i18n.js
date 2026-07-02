@@ -31,6 +31,11 @@ const STRINGS = {
     'toast.hostDisconnected': 'HOST DISCONNECTED',
     'toast.homeLocal': 'HOME STAYS LOCAL (not connectable)',
 
+    'reconnect.title': 'CONNECTION ISSUE',
+    'reconnect.loopMessage': "The liaison keeps disconnecting and reconnecting. Refreshing the page usually fixes this.",
+    'reconnect.refresh': '↻ Refresh the page',
+    'reconnect.dismiss': 'Ignore',
+
     'net.relay': '● RELAY (TURN)',
     'net.p2p': '● DIRECT P2P',
     'net.connecting': '● CONNECTING…',
@@ -166,6 +171,11 @@ const STRINGS = {
     'toast.unreachable': 'LIAISON INJOIGNABLE',
     'toast.hostDisconnected': 'HOTE DECONNECTE',
     'toast.homeLocal': 'HOME RESTE LOCAL (non connectable)',
+
+    'reconnect.title': 'PROBLEME DE CONNEXION',
+    'reconnect.loopMessage': "La liaison n'arrête pas de se déconnecter et se reconnecter. Rafraîchir la page résout généralement le problème.",
+    'reconnect.refresh': '↻ Rafraîchir la page',
+    'reconnect.dismiss': 'Ignorer',
 
     'net.relay': '● RELAIS (TURN)',
     'net.p2p': '● P2P DIRECT',

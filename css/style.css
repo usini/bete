@@ -65,7 +65,7 @@ html, body {
   z-index: 20;
 }
 
-/* ---- Éditeur de texte ---- */
+/* ---- Text editor ---- */
 #editor {
   position: fixed;
   display: none;
@@ -150,7 +150,7 @@ html, body {
 .ritem-center { transition: transform 200ms ease, background 120ms, color 120ms; }
 .ritem-center:hover { background: var(--c, #39ff14); color: #04130a; }
 
-/* ---- Palette de couleurs ---- */
+/* ---- Color palette ---- */
 .palette {
   position: fixed;
   z-index: 45;
@@ -194,7 +194,7 @@ html, body {
   box-shadow: 0 0 28px rgba(57, 255, 20, 0.4);
 }
 
-/* ---- Nom du board (haut centre) ---- */
+/* ---- Board name (top center) ---- */
 #boardname {
   position: fixed;
   top: 12px;
@@ -221,7 +221,7 @@ html, body {
   overflow: visible;
 }
 
-/* ---- Indicateur de liaison active (haut centre) ---- */
+/* ---- Active liaison indicator (top center) ---- */
 #liaisonbadge {
   position: fixed;
   top: 34px;
@@ -290,7 +290,7 @@ html, body {
 }
 #boardpicker .bp-empty { font-size: 9px; color: var(--green-dim); padding: 8px 2px; }
 
-/* ---- Indicateur de type de liaison ---- */
+/* ---- Liaison type indicator ---- */
 #netmode {
   position: fixed;
   left: 12px;
@@ -332,7 +332,7 @@ html, body {
 }
 #linkbar.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
 
-/* ---- Toast de statut ---- */
+/* ---- Status toast ---- */
 #toast {
   position: fixed;
   top: 14px;
@@ -353,7 +353,7 @@ html, body {
 }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* ---- Adaptations tactiles (mobile) ---- */
+/* ---- Touch adaptations (mobile) ---- */
 @media (pointer: coarse) {
   body { cursor: default; }
   .ritem { width: 62px; height: 62px; }
@@ -412,7 +412,7 @@ html, body {
 #speakerbtn.off .spk-on { display: none; }
 #speakerbtn.off .spk-off { display: inline; }
 
-/* Bandeau "qui parle". */
+/* "Who's talking" banner. */
 #speakers {
   position: fixed; top: 56px; left: 50%; transform: translateX(-50%); z-index: 21;
   display: none; font-size: 9px; letter-spacing: 1px; color: #fff;
@@ -523,7 +523,30 @@ html, body {
 .rec-cancel { color: #cfd8d3; background: #11151a; border-color: #cfd8d3; }
 .rec-cancel:hover { background: #1a1f26; }
 
-/* ---- Panneau debug (touche ²) ---- */
+/* ---- Reconnect-loop warning ---- */
+#reconnectpopup {
+  position: fixed; inset: 0; z-index: 49;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: rgba(4, 8, 5, 0.85);
+}
+#reconnectpopup.hidden { display: none; }
+.rp-card {
+  background: var(--node-bg); border: 3px solid var(--green);
+  box-shadow: 0 0 24px rgba(57, 255, 20, 0.35);
+  padding: 22px 26px; max-width: 320px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.rp-title { font-family: 'Press Start 2P', monospace; font-size: 11px; color: var(--green); letter-spacing: 1px; }
+.rp-msg { font-size: 12px; color: var(--ink); line-height: 1.5; }
+.rp-actions { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.rp-actions button { font-family: inherit; font-size: 12px; padding: 12px 18px; cursor: pointer; border: 3px solid; width: 100%; }
+.rp-refresh { color: #04130a; background: var(--green); border-color: var(--green); font-weight: bold; }
+.rp-refresh:hover { background: #5cff42; }
+.rp-dismiss { color: #cfd8d3; background: #11151a; border-color: #cfd8d3; }
+.rp-dismiss:hover { background: #1a1f26; }
+
+/* ---- Debug panel ('²' key) ---- */
 #debug {
   position: fixed;
   top: 60px;

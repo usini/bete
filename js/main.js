@@ -1,21 +1,21 @@
 // Bootstrap + render loop.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr3bprum';
-import { setView } from './camera.js?v=mr3bprum';
-import { render } from './render.js?v=mr3bprum';
-import { step, reset } from './physics.js?v=mr3bprum';
-import * as minimap from './minimap.js?v=mr3bprum';
-import * as input from './input.js?v=mr3bprum';
-import * as fx from './fx.js?v=mr3bprum';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mr3bprum';
-import { recordBoard, getBoardEntry } from './boards.js?v=mr3bprum';
-import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mr3bprum';
-import { applyTheme } from './theme.js?v=mr3bprum';
-import { initSettings, openSettings } from './settings.js?v=mr3bprum';
-import { recordLiaison, getLiaison } from './liaisons.js?v=mr3bprum';
-import { positionVideoOverlay } from './video.js?v=mr3bprum';
-import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mr3bprum';
-import { migrateImages } from './images.js?v=mr3bprum';
-import { t, getLang, applyStaticI18n } from './i18n.js?v=mr3bprum';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr3o9vs4';
+import { setView } from './camera.js?v=mr3o9vs4';
+import { render } from './render.js?v=mr3o9vs4';
+import { step, reset } from './physics.js?v=mr3o9vs4';
+import * as minimap from './minimap.js?v=mr3o9vs4';
+import * as input from './input.js?v=mr3o9vs4';
+import * as fx from './fx.js?v=mr3o9vs4';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mr3o9vs4';
+import { recordBoard, getBoardEntry } from './boards.js?v=mr3o9vs4';
+import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mr3o9vs4';
+import { applyTheme } from './theme.js?v=mr3o9vs4';
+import { initSettings, openSettings } from './settings.js?v=mr3o9vs4';
+import { recordLiaison, getLiaison } from './liaisons.js?v=mr3o9vs4';
+import { positionVideoOverlay } from './video.js?v=mr3o9vs4';
+import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mr3o9vs4';
+import { migrateImages } from './images.js?v=mr3o9vs4';
+import { t, getLang, applyStaticI18n } from './i18n.js?v=mr3o9vs4';
 
 applyTheme(); // apply the saved theme right at startup
 applyStaticI18n(); // translate the static HTML chrome (buttons, hint, etc.)
@@ -27,6 +27,14 @@ function toast(msg, ms = 2400) {
   el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+}
+
+// Shown when the liaison keeps flapping (see sync.js noteReconnectCycle): a
+// toast would auto-hide and go unnoticed, so this is a persistent popup with
+// an explicit action instead.
+function showReconnectLoopPopup() {
+  const el = document.getElementById('reconnectpopup');
+  if (el) el.classList.remove('hidden');
 }
 
 const board = document.getElementById('board');
@@ -90,6 +98,7 @@ if (!REDIRECT) {
       else if (st === 'connected') toast(t('toast.connectedReceiving'));
       else if (st === 'error') toast(t('toast.unreachable'), 4000);
       else if (st === 'closed') toast(t('toast.hostDisconnected'), 4000);
+      else if (st === 'loop') showReconnectLoopPopup();
     });
   } else if (fileUrl) {
     setSaveSuppressed(true);
@@ -202,6 +211,11 @@ if (!REDIRECT) {
     spk.addEventListener('mousedown', tog);
     spk.addEventListener('touchstart', tog);
   }
+  const rpRefresh = document.getElementById('reconnectRefresh');
+  if (rpRefresh) rpRefresh.addEventListener('click', () => location.reload());
+  const rpDismiss = document.getElementById('reconnectDismiss');
+  if (rpDismiss) rpDismiss.addEventListener('click', () => document.getElementById('reconnectpopup').classList.add('hidden'));
+
   // Debug handle (console inspection: bete.state).
   window.bete = { state, fx };
   requestAnimationFrame(loop);

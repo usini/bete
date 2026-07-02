@@ -1,7 +1,7 @@
 // Visual theme + text size (preferences local to the browser).
 // 'pixel' = the original look (neon + glow) ; 'classic' = light, pastel
 // colors, no glow ; 'classic-dark' = dark, pastel, no glow.
-import { DEFAULT_GREEN } from './state.js?v=mr3bprum';
+import { DEFAULT_GREEN } from './state.js?v=mr3o9vs4';
 
 const PIXEL_FONT = "'Press Start 2P', monospace";
 const SANS_FONT = "'Segoe UI', system-ui, -apple-system, sans-serif";
@@ -66,7 +66,7 @@ export const THEME_LIST = [
   { id: 'classic-dark', label: 'Classic dark' },
 ];
 
-let themeId = 'pixel';
+let themeId = 'classic-dark';
 let textScale = 2.5;
 try { const t = localStorage.getItem('bete:theme'); if (t && THEMES[t]) themeId = t; } catch (e) { /* */ }
 try { const s = parseFloat(localStorage.getItem('bete:textscale')); if (s > 0) textScale = Math.max(0.5, Math.min(2.5, s)); } catch (e) { /* */ }

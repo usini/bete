@@ -2,12 +2,12 @@
 // We only synchronize the CONTENT (text, image, color, description, links,
 // creation/deletion): neither the camera nor the positions/sizes. Each screen
 // therefore keeps its own view. Merge by id, conflicts resolved with LWW + HOST priority.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr3bprum';
-import { reset } from './physics.js?v=mr3bprum';
-import { explodeElementCascade } from './fx.js?v=mr3bprum';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr3bprum';
-import { onImageArrived } from './images.js?v=mr3bprum';
-import { getUserId, displayName } from './users.js?v=mr3bprum';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr3o9vs4';
+import { reset } from './physics.js?v=mr3o9vs4';
+import { explodeElementCascade } from './fx.js?v=mr3o9vs4';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr3o9vs4';
+import { onImageArrived } from './images.js?v=mr3o9vs4';
+import { getUserId, displayName } from './users.js?v=mr3o9vs4';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host
@@ -60,6 +60,10 @@ let clientFirstSync = false;
 let forceFull = false;   // true = next send is the full board (delta otherwise)
 let lastDelSig = '';     // signature of the tombstone count (detects deletions)
 let reelectTries = 0;    // reconnect attempts before trying a host election
+let reconnectTimes = []; // timestamps of recent disconnect/reconnect cycles (loop detection)
+let loopWarned = false;  // 'loop' status already reported for this liaison (until it heals)
+const LOOP_WINDOW = 60000; // sliding window for counting reconnect cycles
+const LOOP_THRESHOLD = 10; // cycles within LOOP_WINDOW = stuck in a reconnect loop
 
 // True if we're connected as a client (opened via ?peer=).
 export function isClient() { return mode === 'client'; }
@@ -394,6 +398,7 @@ function handleData(msg, origin) {
       clientFirstSync = false;
       justFirst = true;
       reelectTries = 0; // sync received: the liaison is healthy
+      reconnectTimes = []; loopWarned = false; // healthy again: forget past reconnect cycles
       // We only overwrite the local board IF the remote board has content.
       // If it's empty (fresh server board), we keep the local one: it will seed the server.
       remoteEmpty = !(msg.n && Object.keys(msg.n).length)
@@ -796,9 +801,25 @@ function wireHostPeer(peer) {
   });
 }
 
+// Tracks disconnect/reconnect cycles in a sliding window. If the liaison is
+// stuck flapping (e.g. a broken network path that "succeeds" just long enough
+// to drop again), reconnecting forever never fixes it -- only a full page
+// reload (fresh WebRTC/ICE state) reliably does. Report it once so the UI can
+// suggest that, instead of silently retrying forever.
+function noteReconnectCycle() {
+  const t = now();
+  reconnectTimes.push(t);
+  reconnectTimes = reconnectTimes.filter((x) => t - x < LOOP_WINDOW);
+  if (!loopWarned && reconnectTimes.length >= LOOP_THRESHOLD) {
+    loopWarned = true;
+    clientStatus && clientStatus('loop');
+  }
+}
+
 // Automatic client reconnection if the host goes down (network error / refresh).
 function scheduleClientRetry() {
   if (mode !== 'client' || clientRetry) return;
+  noteReconnectCycle();
   clientStatus && clientStatus('reconnecting');
   clientRetry = setTimeout(() => {
     clientRetry = null;
