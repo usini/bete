@@ -192,7 +192,18 @@ function broadcastPresence(b) {
 
 function handleData(id, b, msg, origin) {
   if (!msg) return;
-  if (msg.type === 'sync') { if (merge(b, msg)) scheduleSave(id, b); }
+  if (msg.type === 'sync') {
+    if (merge(b, msg)) scheduleSave(id, b);
+    // Actively pull any brand-new voice memo's audio directly from whoever
+    // just announced it, instead of passively waiting for their proactive
+    // push (shareAudio) to arrive cleanly. Whoever sent this delta is the
+    // only one who could know about a fresh id, so they must be the recorder.
+    for (const nid in msg.n || {}) {
+      if (msg.n[nid].vc && !audioMem.has(nid)) {
+        try { if (origin.open) origin.send({ type: 'audioReq', id: nid }); } catch (e) { /* */ }
+      }
+    }
+  }
   else if (msg.type === 'move') { applyMove(b, msg); scheduleSave(id, b); }
   else if (msg.type === 'delete') { applyDelete(b, msg); scheduleSave(id, b); }
   else if (msg.type === 'audioReq') {

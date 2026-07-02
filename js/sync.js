@@ -2,12 +2,12 @@
 // We only synchronize the CONTENT (text, image, color, description, links,
 // creation/deletion): neither the camera nor the positions/sizes. Each screen
 // therefore keeps its own view. Merge by id, conflicts resolved with LWW + HOST priority.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr3b67qq';
-import { reset } from './physics.js?v=mr3b67qq';
-import { explodeElementCascade } from './fx.js?v=mr3b67qq';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr3b67qq';
-import { onImageArrived } from './images.js?v=mr3b67qq';
-import { getUserId, displayName } from './users.js?v=mr3b67qq';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr3bg97w';
+import { reset } from './physics.js?v=mr3bg97w';
+import { explodeElementCascade } from './fx.js?v=mr3bg97w';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr3bg97w';
+import { onImageArrived } from './images.js?v=mr3bg97w';
+import { getUserId, displayName } from './users.js?v=mr3bg97w';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host
@@ -399,6 +399,16 @@ function handleData(msg, origin) {
     // The client emits after the 1st sync. seed = remote board empty -> we send
     // our full board to seed it; otherwise we're already up to date -> deltas only.
     if (justFirst) startTick(remoteEmpty);
+    // Host (browser-hosted liaison, no Pi): same active pull as the Pi host --
+    // ask the sender directly for any brand-new voice memo's audio instead of
+    // passively waiting for their proactive push to land.
+    if (mode === 'host' && origin) {
+      for (const nid in msg.n || {}) {
+        if (msg.n[nid].vc) {
+          getAudio(nid).then((blob) => { if (!blob) sendTo(origin, { type: 'audioReq', id: nid }); }).catch(() => {});
+        }
+      }
+    }
   } else if (msg.type === 'move') {
     applyMove(msg);
   } else if (msg.type === 'delete') {
