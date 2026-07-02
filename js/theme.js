@@ -1,10 +1,11 @@
 // Visual theme + text size (preferences local to the browser).
 // 'pixel' = the original look (neon + glow) ; 'classic' = light, pastel
 // colors, no glow ; 'classic-dark' = dark, pastel, no glow.
-import { DEFAULT_GREEN } from './state.js?v=mr3s4erp';
+import { DEFAULT_GREEN } from './state.js?v=mr3tdiug';
 
 const PIXEL_FONT = "'Press Start 2P', monospace";
 const SANS_FONT = "'Segoe UI', system-ui, -apple-system, sans-serif";
+const XP_FONT = "Tahoma, Verdana, 'Segoe UI', sans-serif";
 
 const THEMES = {
   pixel: {
@@ -18,6 +19,11 @@ const THEMES = {
   'classic-dark': {
     bg: '#15171c', grid: '#262a31', nodeBg: '#21252c', ink: '#e8e8e8',
     accent: '#7bd88a', font: SANS_FONT, pixel: false, lightBg: false, glow: 0,
+  },
+  winxp: {
+    bg: '#3a6ea5', grid: 'rgba(255,255,255,0.14)', nodeBg: '#ece9d8', ink: '#000000',
+    accent: '#0a246a', font: XP_FONT, pixel: false, lightBg: true, glow: 0,
+    wallpaper: 'assets/winxp/bliss.png',
   },
 };
 
@@ -35,7 +41,7 @@ export function isDefaultColor(color) { return !color || color.toLowerCase() ===
 export function toneColor(color) {
   const t = THEMES[themeId];
   if (t.pixel) return color;
-  if (themeId === 'classic') {
+  if (themeId === 'classic' || themeId === 'winxp') {
     if (lum(color) > 0.72) return mix(color, '#1a1a1a', 0.8); // too light on white -> darken
     return mix(color, '#ffffff', 0.32); // pastel
   }
@@ -50,6 +56,10 @@ export function nodeStyle(color) {
   const t = THEMES[themeId];
   if (t.pixel) return { fill: t.nodeBg, border: color, text: color };
   const def = isDefaultColor(color);
+  if (themeId === 'winxp') {
+    if (def) return { fill: '#ece9d8', border: '#0a246a', text: '#000000' }; // XP window: silver + navy title
+    return { fill: '#ffffff', border: toneColor(color), text: '#000000' };
+  }
   if (themeId === 'classic') {
     if (def) return { fill: '#141414', border: '#141414', text: '#ffffff' }; // black square, white text
     return { fill: '#ffffff', border: toneColor(color), text: '#2a2a2a' };
@@ -64,6 +74,7 @@ export const THEME_LIST = [
   { id: 'pixel', label: 'Pixel Art' },
   { id: 'classic', label: 'Classic' },
   { id: 'classic-dark', label: 'Classic dark' },
+  { id: 'winxp', label: 'Windows XP' },
 ];
 
 let themeId = 'classic-dark';
@@ -90,6 +101,6 @@ export function setTheme(id) {
 // Applies the theme class to <body> (CSS handles the DOM elements).
 export function applyTheme() {
   const b = document.body;
-  b.classList.remove('theme-pixel', 'theme-classic', 'theme-classic-dark');
+  b.classList.remove('theme-pixel', 'theme-classic', 'theme-classic-dark', 'theme-winxp');
   b.classList.add('theme-' + themeId);
 }

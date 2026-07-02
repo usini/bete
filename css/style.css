@@ -491,15 +491,58 @@ html, body {
 .set-danger:hover { background: #fe4365; color: #fff; }
 
 /* ---- Light themes (classic font, no CRT) ---- */
-.theme-classic, .theme-classic-dark { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; -webkit-font-smoothing: auto; }
-.theme-classic #board, .theme-classic-dark #board { image-rendering: auto; }
-.theme-classic #crt, .theme-classic-dark #crt { display: none; }
+.theme-classic, .theme-classic-dark, .theme-winxp { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; -webkit-font-smoothing: auto; }
+.theme-classic #board, .theme-classic-dark #board, .theme-winxp #board { image-rendering: auto; }
+.theme-classic #crt, .theme-classic-dark #crt, .theme-winxp #crt { display: none; }
 .theme-classic { background: #f4f5f0; cursor: default; }
 .theme-classic #hint { color: #3a7d3a; text-shadow: none; }
 .theme-classic #boardname { color: #1f9d2f; text-shadow: none; }
 .theme-classic #netmode { color: #3a7d3a; }
 .theme-classic #settingsbtn { background: #fff; border-color: #1f9d2f; color: #1f9d2f; box-shadow: 0 0 0 2px rgba(0,0,0,0.08); }
 .theme-classic-dark { background: #15171c; }
+
+/* ---- Windows XP (Luna) theme: Tahoma, silver/navy chrome, Bliss wallpaper on the canvas ---- */
+.theme-winxp {
+  background: #3a6ea5;
+  cursor: url('../assets/winxp/cursor-arrow.png') 0 0, default;
+  font-family: Tahoma, Verdana, 'Segoe UI', sans-serif;
+}
+.theme-winxp #hint, .theme-winxp #netmode { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+.theme-winxp #boardname { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+.theme-winxp #settingsbtn, .theme-winxp #voicebtn, .theme-winxp #speakerbtn {
+  background: linear-gradient(#fff, #ece9d8);
+  border: 1px solid #0a246a;
+  border-radius: 4px;
+  color: #0a246a;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+}
+.theme-winxp #settingsbtn:hover, .theme-winxp #voicebtn:hover, .theme-winxp #speakerbtn:hover { background: linear-gradient(#e8f2ff, #cfe4fc); }
+.theme-winxp .ritem {
+  background: linear-gradient(#fff, #ece9d8);
+  border: 1px solid var(--c, #0a246a);
+  color: #0a246a;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.8);
+}
+.theme-winxp .ritem:hover, .theme-winxp .ritem:active { background: linear-gradient(#e8f2ff, #cfe4fc); color: #0a246a; }
+.theme-winxp .ritem svg { filter: none; }
+.theme-winxp .palette, .theme-winxp #boardpicker, .theme-winxp #imgpopup img, .theme-winxp .rec-card, .theme-winxp .rp-card {
+  background: #ece9d8; border: 1px solid #0a246a; box-shadow: 0 2px 10px rgba(0,0,0,0.45);
+}
+.theme-winxp #toast, .theme-winxp #linkbar { background: #ece9d8; color: #000; border: 1px solid #0a246a; }
+.theme-winxp #settings {
+  background: #ece9d8; color: #000; border-right: 1px solid #0a246a;
+}
+.theme-winxp .set-title, .theme-winxp .set-x, .theme-winxp .set-back { color: #0a246a; }
+.theme-winxp .set-label, .theme-winxp .set-sub { color: #3a5a8a; }
+.theme-winxp .set-theme, .theme-winxp .set-wide, .theme-winxp .set-btn, .theme-winxp .set-mini,
+.theme-winxp .set-liaison-name, .theme-winxp .set-new input, .theme-winxp .set-new button {
+  background: linear-gradient(#fff, #ece9d8); color: #0a246a; border: 1px solid #0a246a; border-radius: 3px;
+}
+.theme-winxp .set-theme.on { background: linear-gradient(#3a93ec, #0a246a); color: #fff; }
+.theme-winxp .set-theme:hover, .theme-winxp .set-wide:hover, .theme-winxp .set-btn:hover,
+.theme-winxp .set-mini:hover, .theme-winxp .set-liaison-name:hover, .theme-winxp .set-new button:hover {
+  background: linear-gradient(#e8f2ff, #cfe4fc);
+}
 
 /* ---- Voice memo recording window ---- */
 .recmodal {

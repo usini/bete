@@ -1,14 +1,14 @@
 // Board rendering: pixel grid, circles, hexagons, rectangles, neon glow, selection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr3s4erp';
-import { view, worldToScreen } from './camera.js?v=mr3s4erp';
-import { stretch } from './physics.js?v=mr3s4erp';
-import { hexCorners } from './geom.js?v=mr3s4erp';
-import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr3s4erp';
-import { fmtDur } from './voice.js?v=mr3s4erp';
-import { getCursors, getPresence } from './sync.js?v=mr3s4erp';
-import { youTubeId, ytThumb } from './yt.js?v=mr3s4erp';
-import { getImageEl } from './images.js?v=mr3s4erp';
-import { t } from './i18n.js?v=mr3s4erp';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr3tdiug';
+import { view, worldToScreen } from './camera.js?v=mr3tdiug';
+import { stretch } from './physics.js?v=mr3tdiug';
+import { hexCorners } from './geom.js?v=mr3tdiug';
+import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr3tdiug';
+import { fmtDur } from './voice.js?v=mr3tdiug';
+import { getCursors, getPresence } from './sync.js?v=mr3tdiug';
+import { youTubeId, ytThumb } from './yt.js?v=mr3tdiug';
+import { getImageEl } from './images.js?v=mr3tdiug';
+import { t } from './i18n.js?v=mr3tdiug';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -17,10 +17,25 @@ const GLOW = () => theme().glow;
 // legacy data URLs, http URLs (YouTube thumbnails) and 'idb:<hash>' refs (IndexedDB + peers).
 function getImg(src) { return getImageEl(src); }
 
+// Desktop wallpaper (e.g. winxp theme): fixed in screen space, covers the viewport.
+const wallpaperCache = {};
+function getWallpaper(src) {
+  let img = wallpaperCache[src];
+  if (!img) { img = new Image(); img.src = src; wallpaperCache[src] = img; }
+  return img;
+}
+
 export function render(ctx) {
   const { zoom } = state.camera;
-  ctx.fillStyle = theme().bg;
-  ctx.fillRect(0, 0, view.w, view.h);
+  const wp = theme().wallpaper ? getWallpaper(theme().wallpaper) : null;
+  if (wp && wp.complete && wp.naturalWidth) {
+    const sc = Math.max(view.w / wp.naturalWidth, view.h / wp.naturalHeight);
+    const dw = wp.naturalWidth * sc, dh = wp.naturalHeight * sc;
+    ctx.drawImage(wp, (view.w - dw) / 2, (view.h - dh) / 2, dw, dh);
+  } else {
+    ctx.fillStyle = theme().bg;
+    ctx.fillRect(0, 0, view.w, view.h);
+  }
 
   drawGrid(ctx);
 
