@@ -2,12 +2,12 @@
 // We only synchronize the CONTENT (text, image, color, description, links,
 // creation/deletion): neither the camera nor the positions/sizes. Each screen
 // therefore keeps its own view. Merge by id, conflicts resolved with LWW + HOST priority.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr3alkln';
-import { reset } from './physics.js?v=mr3alkln';
-import { explodeElementCascade } from './fx.js?v=mr3alkln';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr3alkln';
-import { onImageArrived } from './images.js?v=mr3alkln';
-import { getUserId, displayName } from './users.js?v=mr3alkln';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr3ax5zq';
+import { reset } from './physics.js?v=mr3ax5zq';
+import { explodeElementCascade } from './fx.js?v=mr3ax5zq';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr3ax5zq';
+import { onImageArrived } from './images.js?v=mr3ax5zq';
+import { getUserId, displayName } from './users.js?v=mr3ax5zq';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host
@@ -496,6 +496,17 @@ function ensureAudio(node) {
     requestAudio(node.id);
   }).catch(() => {});
 }
+
+// Periodic retry for voice memos still flagged _missing: unlike images (which
+// get a fresh request on every render frame via getImageEl), a memo's audio is
+// only fetched once, when the node first arrives. If that single round trip is
+// lost (e.g. the host hadn't cached it yet, a transient connection hiccup),
+// nothing ever retried it before — the block stayed broken until a page reload
+// forced a fresh full sync. This self-heals the same way images already do.
+setInterval(() => {
+  if (!conns.length) return;
+  for (const n of state.nodes) if (n.kind === 'voice' && n._missing) requestAudio(n.id);
+}, 4000);
 
 // On receiving a remote image block: fetches the image if missing locally.
 function ensureImage(ref) {
