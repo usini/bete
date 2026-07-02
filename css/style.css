@@ -457,9 +457,11 @@ html, body {
   font-size: 11px; color: var(--ink);
 }
 #settings.hidden { display: none; }
-.set-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.set-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; }
 .set-title { color: var(--green); font-size: 12px; letter-spacing: 1px; }
-.set-x { background: none; border: none; color: var(--green); font-size: 16px; cursor: pointer; }
+.set-x, .set-back { background: none; border: none; color: var(--green); font-size: 16px; cursor: pointer; }
+.set-back { flex: none; }
+.set-icon { margin-right: 6px; }
 .set-label { color: var(--green-dim); font-size: 9px; letter-spacing: 1px; margin: 14px 0 6px; text-transform: uppercase; }
 .set-sub { color: var(--green-dim); font-size: 8px; margin: 8px 0 4px; }
 .set-themes { display: flex; flex-direction: column; gap: 6px; }

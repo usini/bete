@@ -1,14 +1,15 @@
 // Settings menu: theme, language, text size, named liaisons, navigation
-// (tutorial / visited boards), clear the current board.
-import { state, getBoardId, scheduleSave } from './state.js?v=mr3ax5zq';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr3ax5zq';
-import { listBoards, buildBoardUrl } from './boards.js?v=mr3ax5zq';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr3ax5zq';
-import { liaisonStatus, disconnect, getPresence, announceName } from './sync.js?v=mr3ax5zq';
-import { exportJSON, importJSON } from './io.js?v=mr3ax5zq';
-import { getUserName, setUserName } from './users.js?v=mr3ax5zq';
-import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr3ax5zq';
-import { t, getLang, setLang, LANGS } from './i18n.js?v=mr3ax5zq';
+// (tutorial / visited boards), clear the current board. Audio and Visual
+// (theme/text size) live in their own sub-panels to keep the main list short.
+import { state, getBoardId, scheduleSave } from './state.js?v=mr3b67qq';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr3b67qq';
+import { listBoards, buildBoardUrl } from './boards.js?v=mr3b67qq';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr3b67qq';
+import { liaisonStatus, disconnect, getPresence, announceName } from './sync.js?v=mr3b67qq';
+import { exportJSON, importJSON } from './io.js?v=mr3b67qq';
+import { getUserName, setUserName } from './users.js?v=mr3b67qq';
+import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr3b67qq';
+import { t, getLang, setLang, LANGS } from './i18n.js?v=mr3b67qq';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
@@ -16,6 +17,9 @@ function el(tag, cls, txt) {
   if (txt != null) e.textContent = txt;
   return e;
 }
+
+// Which panel is currently shown: 'main' (the list) or a sub-panel.
+let view = 'main';
 
 export function initSettings() {
   const panel = document.getElementById('settings');
@@ -38,6 +42,7 @@ export function closeSettings() {
 function onOutside() { closeSettings(); }
 
 export function openSettings() {
+  view = 'main'; // always land on the main list, never a stale sub-panel
   const panel = document.getElementById('settings');
   build(panel);
   panel.classList.remove('hidden');
@@ -49,25 +54,48 @@ export function openSettings() {
 
 function build(panel) {
   panel.innerHTML = '';
+  if (view === 'audio') { buildAudio(panel); return; }
+  if (view === 'visual') { buildVisual(panel); return; }
+  buildMain(panel);
+}
 
+// Header for the main panel: title + close.
+function mainHead(panel) {
   const head = el('div', 'set-head');
   head.appendChild(el('div', 'set-title', t('settings.title')));
   const close = el('button', 'set-x', '✕');
   close.addEventListener('click', closeSettings);
   head.appendChild(close);
   panel.appendChild(head);
+}
 
-  // ---- Theme ----
-  panel.appendChild(el('div', 'set-label', t('settings.theme')));
-  const themes = el('div', 'set-themes');
-  THEME_LIST.forEach((th) => {
-    const b = el('button', 'set-theme' + (themeId_() === th.id ? ' on' : ''), th.label);
-    b.addEventListener('click', () => { setTheme(th.id); build(panel); });
-    themes.appendChild(b);
-  });
-  panel.appendChild(themes);
+// Header for a sub-panel: back arrow + title + close.
+function subHead(panel, titleKey) {
+  const head = el('div', 'set-head');
+  const back = el('button', 'set-back', '←');
+  back.title = t('settings.back');
+  back.addEventListener('click', () => { view = 'main'; build(panel); });
+  head.appendChild(back);
+  head.appendChild(el('div', 'set-title', t(titleKey)));
+  const close = el('button', 'set-x', '✕');
+  close.addEventListener('click', closeSettings);
+  head.appendChild(close);
+  panel.appendChild(head);
+}
 
-  // ---- Language ----
+function buildMain(panel) {
+  mainHead(panel);
+
+  // ---- Sub-menus ----
+  const audioBtn = el('button', 'set-wide', '🎧 ' + t('settings.audio'));
+  audioBtn.addEventListener('click', () => { view = 'audio'; build(panel); });
+  panel.appendChild(audioBtn);
+
+  const visualBtn = el('button', 'set-wide', '🎨 ' + t('settings.visual'));
+  visualBtn.addEventListener('click', () => { view = 'visual'; build(panel); });
+  panel.appendChild(visualBtn);
+
+  // ---- 1. Language ----
   panel.appendChild(el('div', 'set-label', t('settings.language')));
   const langs = el('div', 'set-themes');
   LANGS.forEach((l) => {
@@ -77,18 +105,45 @@ function build(panel) {
   });
   panel.appendChild(langs);
 
-  // ---- Text size ----
-  panel.appendChild(el('div', 'set-label', t('settings.textSize')));
-  const ts = el('div', 'set-row');
-  const minus = el('button', 'set-btn', '−');
-  const val = el('span', 'set-val', Math.round(getTextScale() * 100) + '%');
-  const plus = el('button', 'set-btn', '+');
-  minus.addEventListener('click', () => { setTextScale(getTextScale() - 0.1); val.textContent = Math.round(getTextScale() * 100) + '%'; });
-  plus.addEventListener('click', () => { setTextScale(getTextScale() + 0.1); val.textContent = Math.round(getTextScale() * 100) + '%'; });
-  ts.appendChild(minus); ts.appendChild(val); ts.appendChild(plus);
-  panel.appendChild(ts);
+  // ---- 2. User ----
+  panel.appendChild(el('div', 'set-label', t('settings.user')));
+  const nameRow = el('div', 'set-new');
+  const nin = el('input'); nin.placeholder = t('settings.namePlaceholder'); nin.maxLength = 24; nin.value = getUserName();
+  const nb = el('button', null, t('settings.ok'));
+  const saveName = () => { setUserName(nin.value.trim()); announceName(); build(panel); };
+  nb.addEventListener('click', saveName);
+  nin.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveName(); });
+  nameRow.appendChild(nin); nameRow.appendChild(nb);
+  panel.appendChild(nameRow);
 
-  // ---- Liaisons ----
+  const presence = getPresence();
+  if (presence.length) {
+    panel.appendChild(el('div', 'set-sub', t('settings.connectedCount', { n: presence.length })));
+    presence.forEach((u) => {
+      const label = (u.host ? '🟢 ' : '👤 ') + (u.name || t('liaison.guest')) + (u.me ? t('settings.you') : '') + (u.voice ? ' 🎤' : '');
+      panel.appendChild(el('div', 'set-empty', label));
+    });
+  }
+
+  // ---- 3. Navigation ----
+  panel.appendChild(el('div', 'set-label', t('settings.navigation')));
+  const tuto = el('button', 'set-wide', t('settings.replayTutorial'));
+  tuto.addEventListener('click', () => { location.href = location.pathname + '?id=tutorial'; });
+  panel.appendChild(tuto);
+
+  const cur = getBoardId();
+  const boards = listBoards().filter((b) => b.id !== cur);
+  if (boards.length) {
+    panel.appendChild(el('div', 'set-sub', t('settings.visitedBoards')));
+    boards.forEach((b) => {
+      const label = b.id === 'home' ? t('board.home') : b.id === 'tutorial' ? t('board.tutorial') : (b.name || b.id);
+      const row = el('button', 'set-wide', label);
+      row.addEventListener('click', () => { location.href = buildBoardUrl(b.id, b.peer, b.name); });
+      panel.appendChild(row);
+    });
+  }
+
+  // ---- 4. Liaisons ----
   panel.appendChild(el('div', 'set-label', t('settings.liaisons')));
   // Home is sanctuarized: never connected (so it can't be overwritten).
   if (getBoardId() === 'home') panel.appendChild(el('div', 'set-empty', t('settings.homeLocked')));
@@ -140,28 +195,33 @@ function build(panel) {
   joinRow.appendChild(jin); joinRow.appendChild(jb);
   panel.appendChild(joinRow);
 
-  // ---- Users ----
-  panel.appendChild(el('div', 'set-label', t('settings.user')));
-  const nameRow = el('div', 'set-new');
-  const nin = el('input'); nin.placeholder = t('settings.namePlaceholder'); nin.maxLength = 24; nin.value = getUserName();
-  const nb = el('button', null, t('settings.ok'));
-  const saveName = () => { setUserName(nin.value.trim()); announceName(); build(panel); };
-  nb.addEventListener('click', saveName);
-  nin.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveName(); });
-  nameRow.appendChild(nin); nameRow.appendChild(nb);
-  panel.appendChild(nameRow);
+  // ---- 5. Data: import / export ----
+  panel.appendChild(el('div', 'set-label', t('settings.data')));
+  const exp = el('button', 'set-wide', t('settings.export'));
+  exp.addEventListener('click', () => exportJSON());
+  panel.appendChild(exp);
+  const imp = el('button', 'set-wide', t('settings.import'));
+  imp.addEventListener('click', () => importJSON(() => { scheduleSave(); closeSettings(); }));
+  panel.appendChild(imp);
 
-  const presence = getPresence();
-  if (presence.length) {
-    panel.appendChild(el('div', 'set-sub', t('settings.connectedCount', { n: presence.length })));
-    presence.forEach((u) => {
-      const label = (u.host ? '🟢 ' : '👤 ') + (u.name || t('liaison.guest')) + (u.me ? t('settings.you') : '') + (u.voice ? ' 🎤' : '');
-      panel.appendChild(el('div', 'set-empty', label));
-    });
-  }
+  // ---- 6. Danger: clear the current board ----
+  panel.appendChild(el('div', 'set-label', t('settings.currentBoard')));
+  const clear = el('button', 'set-danger', t('settings.clearBoard'));
+  let armed = false;
+  clear.addEventListener('click', () => {
+    if (!armed) { armed = true; clear.textContent = t('settings.clearConfirm'); setTimeout(() => { armed = false; clear.textContent = t('settings.clearBoard'); }, 3000); return; }
+    state.nodes = []; state.circles = []; state.hexagons = [];
+    state.selected = null; state.selectedIds = [];
+    scheduleSave();
+    closeSettings();
+  });
+  panel.appendChild(clear);
+}
 
-  // ---- Voice ----
-  panel.appendChild(el('div', 'set-label', t('settings.voice')));
+// ---- Audio sub-panel: Always On (mobile) + input microphone ----
+function buildAudio(panel) {
+  subHead(panel, 'settings.audio');
+
   const alwaysRow = el('div', 'set-row');
   const alwaysBtn = el('button', 'set-theme' + (isAlwaysOn() ? ' on' : ''), (isAlwaysOn() ? '✓ ' : '') + t('settings.micAlwaysOn'));
   alwaysBtn.title = t('settings.micAlwaysOn.title');
@@ -187,46 +247,30 @@ function build(panel) {
       micList.appendChild(b);
     });
   });
+}
 
-  // ---- Navigation ----
-  panel.appendChild(el('div', 'set-label', t('settings.navigation')));
-  const tuto = el('button', 'set-wide', t('settings.replayTutorial'));
-  tuto.addEventListener('click', () => { location.href = location.pathname + '?id=tutorial'; });
-  panel.appendChild(tuto);
+// ---- Visual sub-panel: theme + text size ----
+function buildVisual(panel) {
+  subHead(panel, 'settings.visual');
 
-  const cur = getBoardId();
-  const boards = listBoards().filter((b) => b.id !== cur);
-  if (boards.length) {
-    panel.appendChild(el('div', 'set-sub', t('settings.visitedBoards')));
-    boards.forEach((b) => {
-      const label = b.id === 'home' ? t('board.home') : b.id === 'tutorial' ? t('board.tutorial') : (b.name || b.id);
-      const row = el('button', 'set-wide', label);
-      row.addEventListener('click', () => { location.href = buildBoardUrl(b.id, b.peer, b.name); });
-      panel.appendChild(row);
-    });
-  }
-
-  // ---- Data: import / export ----
-  panel.appendChild(el('div', 'set-label', t('settings.data')));
-  const exp = el('button', 'set-wide', t('settings.export'));
-  exp.addEventListener('click', () => exportJSON());
-  panel.appendChild(exp);
-  const imp = el('button', 'set-wide', t('settings.import'));
-  imp.addEventListener('click', () => importJSON(() => { scheduleSave(); closeSettings(); }));
-  panel.appendChild(imp);
-
-  // ---- Danger: clear the current board ----
-  panel.appendChild(el('div', 'set-label', t('settings.currentBoard')));
-  const clear = el('button', 'set-danger', t('settings.clearBoard'));
-  let armed = false;
-  clear.addEventListener('click', () => {
-    if (!armed) { armed = true; clear.textContent = t('settings.clearConfirm'); setTimeout(() => { armed = false; clear.textContent = t('settings.clearBoard'); }, 3000); return; }
-    state.nodes = []; state.circles = []; state.hexagons = [];
-    state.selected = null; state.selectedIds = [];
-    scheduleSave();
-    closeSettings();
+  panel.appendChild(el('div', 'set-label', t('settings.theme')));
+  const themes = el('div', 'set-themes');
+  THEME_LIST.forEach((th) => {
+    const b = el('button', 'set-theme' + (themeId_() === th.id ? ' on' : ''), th.label);
+    b.addEventListener('click', () => { setTheme(th.id); build(panel); });
+    themes.appendChild(b);
   });
-  panel.appendChild(clear);
+  panel.appendChild(themes);
+
+  panel.appendChild(el('div', 'set-label', t('settings.textSize')));
+  const ts = el('div', 'set-row');
+  const minus = el('button', 'set-btn', '−');
+  const val = el('span', 'set-val', Math.round(getTextScale() * 100) + '%');
+  const plus = el('button', 'set-btn', '+');
+  minus.addEventListener('click', () => { setTextScale(getTextScale() - 0.1); val.textContent = Math.round(getTextScale() * 100) + '%'; });
+  plus.addEventListener('click', () => { setTextScale(getTextScale() + 0.1); val.textContent = Math.round(getTextScale() * 100) + '%'; });
+  ts.appendChild(minus); ts.appendChild(val); ts.appendChild(plus);
+  panel.appendChild(ts);
 }
 
 function switchLiaison(peer) {

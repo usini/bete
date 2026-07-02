@@ -97,6 +97,9 @@ const STRINGS = {
     'alert.memoStorageFailed': 'Could not save the memo.',
 
     'settings.title': 'SETTINGS',
+    'settings.back': 'Back',
+    'settings.audio': 'Audio',
+    'settings.visual': 'Visual',
     'settings.theme': 'Theme',
     'settings.textSize': 'Text size',
     'settings.language': 'Language',
@@ -230,6 +233,9 @@ const STRINGS = {
     'alert.memoStorageFailed': 'Stockage du mémo impossible.',
 
     'settings.title': 'PARAMETRES',
+    'settings.back': 'Retour',
+    'settings.audio': 'Audio',
+    'settings.visual': 'Visuel',
     'settings.theme': 'Thème',
     'settings.textSize': 'Taille du texte',
     'settings.language': 'Langue',
