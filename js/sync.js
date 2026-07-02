@@ -2,12 +2,12 @@
 // We only synchronize the CONTENT (text, image, color, description, links,
 // creation/deletion): neither the camera nor the positions/sizes. Each screen
 // therefore keeps its own view. Merge by id, conflicts resolved with LWW + HOST priority.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr3bg97w';
-import { reset } from './physics.js?v=mr3bg97w';
-import { explodeElementCascade } from './fx.js?v=mr3bg97w';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr3bg97w';
-import { onImageArrived } from './images.js?v=mr3bg97w';
-import { getUserId, displayName } from './users.js?v=mr3bg97w';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr3bprum';
+import { reset } from './physics.js?v=mr3bprum';
+import { explodeElementCascade } from './fx.js?v=mr3bprum';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr3bprum';
+import { onImageArrived } from './images.js?v=mr3bprum';
+import { getUserId, displayName } from './users.js?v=mr3bprum';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host
@@ -329,8 +329,19 @@ function merge(remote) {
       mtimes[id] = (remote.mt && remote.mt[id]) || now();
       applied.add(id); changed = true;
     } else if (win(id)) {
-      if (rd.ref !== undefined) { if (ex.ref !== rd.ref) { ex.ref = rd.ref; changed = true; } }
+      if (rd.vc) {
+        // Existing block converted into a voice memo on the remote side (that's
+        // how memos are created: the radial menu converts a rectangle). Without
+        // this branch the receiver kept a plain rectangle until a full reload.
+        if (ex.kind !== 'voice') {
+          ex.kind = 'voice'; ex.dur = rd.dur || 0;
+          delete ex.text; delete ex.image; delete ex.link;
+          ensureAudio(ex);
+          changed = true;
+        } else if ((ex.dur || 0) !== (rd.dur || 0)) { ex.dur = rd.dur || 0; changed = true; }
+      } else if (rd.ref !== undefined) { if (ex.ref !== rd.ref) { ex.ref = rd.ref; changed = true; } }
       else {
+        if (ex.kind === 'voice') { delete ex.kind; delete ex.dur; changed = true; } // reverse conversion
         if ((ex.text || '') !== (rd.t || '')) { ex.text = rd.t || ''; changed = true; }
         const img = rd.img || undefined;
         if ((ex.image || undefined) !== img) { if (img) { ex.image = img; ensureImage(img); } else delete ex.image; changed = true; }
