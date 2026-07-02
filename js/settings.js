@@ -1,15 +1,15 @@
 // Settings menu: theme, language, text size, named liaisons, navigation
 // (tutorial / visited boards), clear the current board. Audio and Visual
 // (theme/text size) live in their own sub-panels to keep the main list short.
-import { state, getBoardId, scheduleSave } from './state.js?v=mr3pwjij';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr3pwjij';
-import { listBoards, buildBoardUrl } from './boards.js?v=mr3pwjij';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr3pwjij';
-import { liaisonStatus, disconnect, getPresence, announceName } from './sync.js?v=mr3pwjij';
-import { exportJSON, importJSON } from './io.js?v=mr3pwjij';
-import { getUserName, setUserName } from './users.js?v=mr3pwjij';
-import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr3pwjij';
-import { t, getLang, setLang, LANGS } from './i18n.js?v=mr3pwjij';
+import { state, getBoardId, scheduleSave } from './state.js?v=mr3qplto';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr3qplto';
+import { listBoards, buildBoardUrl } from './boards.js?v=mr3qplto';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr3qplto';
+import { liaisonStatus, disconnect, getPresence, announceName } from './sync.js?v=mr3qplto';
+import { exportJSON, importJSON } from './io.js?v=mr3qplto';
+import { getUserName, setUserName } from './users.js?v=mr3qplto';
+import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr3qplto';
+import { t, getLang, setLang, LANGS } from './i18n.js?v=mr3qplto';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);

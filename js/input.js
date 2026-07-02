@@ -3,20 +3,20 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr3pwjij';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr3pwjij';
-import { dragTo, reset } from './physics.js?v=mr3pwjij';
-import { pointInHex } from './geom.js?v=mr3pwjij';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr3pwjij';
-import { storeImage, resolveSrc } from './images.js?v=mr3pwjij';
-import { explodeElementCascade } from './fx.js?v=mr3pwjij';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr3pwjij';
-import { openSettings } from './settings.js?v=mr3pwjij';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr3pwjij';
-import { toggleDebug } from './debug.js?v=mr3pwjij';
-import { youTubeId } from './yt.js?v=mr3pwjij';
-import { setActiveVideo } from './video.js?v=mr3pwjij';
-import { t } from './i18n.js?v=mr3pwjij';
+} from './state.js?v=mr3qplto';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr3qplto';
+import { dragTo, reset } from './physics.js?v=mr3qplto';
+import { pointInHex } from './geom.js?v=mr3qplto';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr3qplto';
+import { storeImage, resolveSrc } from './images.js?v=mr3qplto';
+import { explodeElementCascade } from './fx.js?v=mr3qplto';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr3qplto';
+import { openSettings } from './settings.js?v=mr3qplto';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr3qplto';
+import { toggleDebug } from './debug.js?v=mr3qplto';
+import { youTubeId } from './yt.js?v=mr3qplto';
+import { setActiveVideo } from './video.js?v=mr3qplto';
+import { t } from './i18n.js?v=mr3qplto';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -818,7 +818,9 @@ function openContextAt(sx, sy) {
     const img = displayImage(r);
     if (img) items.push({ label: t('radial.viewImage'), icon: 'eye', color: COL.white, fn: () => openImagePopup(img) });
     if (!isLink) items.push({ label: t('radial.uploadImage'), icon: 'image', color: COL.cyan, fn: () => openImageFilePicker(r.x, r.y, r) });
-    if (!isLink) items.push({ label: t('radial.camera'), icon: 'camera', color: COL.cyan, fn: () => openCameraPicker(r.x, r.y, r) });
+    // Camera only makes sense on touch devices: on desktop capture= is ignored
+    // and it would just open the same file dialog as "Upload image".
+    if (!isLink && isCoarse) items.push({ label: t('radial.camera'), icon: 'camera', color: COL.cyan, fn: () => openCameraPicker(r.x, r.y, r) });
     if (!isLink && r.image) items.push({ label: t('radial.removeImage'), icon: 'imgx', color: COL.orange, fn: () => { delete r.image; scheduleSave(); } });
     // Transforming this rectangle (instead of dedicated entries in the main menu).
     if (!isLink && r.kind !== 'pancarte') {
