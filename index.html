@@ -87,9 +87,17 @@
   <!-- Hidden file input for import -->
   <input id="fileInput" type="file" accept="application/json,.json" hidden />
 
+  <!-- Hidden file inputs for images: plain picker vs. direct camera capture
+       (radial menu > Image / Camera). No "capture" attribute = regular
+       file/gallery picker on every platform; "capture=environment" jumps
+       straight to the phone's camera app on mobile (ignored on desktop,
+       falls back to a normal file picker there). -->
+  <input id="imageFileInput" type="file" accept="image/*" hidden />
+  <input id="imageCameraInput" type="file" accept="image/*" capture="environment" hidden />
+
   <!-- CRT scanlines overlay -->
   <div id="crt"></div>
 
-  <script type="module" src="js/main.js?v=mr3o9vs4"></script>
+  <script type="module" src="js/main.js?v=mr3pqjxh"></script>
 </body>
 </html>

@@ -3,20 +3,20 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr3o9vs4';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr3o9vs4';
-import { dragTo, reset } from './physics.js?v=mr3o9vs4';
-import { pointInHex } from './geom.js?v=mr3o9vs4';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr3o9vs4';
-import { storeImage, resolveSrc } from './images.js?v=mr3o9vs4';
-import { explodeElementCascade } from './fx.js?v=mr3o9vs4';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr3o9vs4';
-import { openSettings } from './settings.js?v=mr3o9vs4';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr3o9vs4';
-import { toggleDebug } from './debug.js?v=mr3o9vs4';
-import { youTubeId } from './yt.js?v=mr3o9vs4';
-import { setActiveVideo } from './video.js?v=mr3o9vs4';
-import { t } from './i18n.js?v=mr3o9vs4';
+} from './state.js?v=mr3pqjxh';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr3pqjxh';
+import { dragTo, reset } from './physics.js?v=mr3pqjxh';
+import { pointInHex } from './geom.js?v=mr3pqjxh';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr3pqjxh';
+import { storeImage, resolveSrc } from './images.js?v=mr3pqjxh';
+import { explodeElementCascade } from './fx.js?v=mr3pqjxh';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr3pqjxh';
+import { openSettings } from './settings.js?v=mr3pqjxh';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr3pqjxh';
+import { toggleDebug } from './debug.js?v=mr3pqjxh';
+import { youTubeId } from './yt.js?v=mr3pqjxh';
+import { setActiveVideo } from './video.js?v=mr3pqjxh';
+import { t } from './i18n.js?v=mr3pqjxh';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -77,10 +77,14 @@ const ICONS = {
   gear: '<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9 19 19M19 5l-2.1 2.1M7.1 16.9 5 19"/>',
   mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><line x1="12" y1="17.5" x2="12" y2="21"/><line x1="8.5" y1="21" x2="15.5" y2="21"/>',
   undo: '<path d="M9 7H16a4 4 0 0 1 0 8h-4"/><polyline points="9,3 5,7 9,11"/>',
+  image: '<rect x="3" y="4" width="18" height="16" rx="1.5"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 16l-5.5-5.5a1 1 0 0 0-1.4 0L9 15.5"/>',
+  camera: '<path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="14" r="3.5"/>',
   dot: '<circle cx="12" cy="12" r="3"/>',
 };
 let pendingBoardPos = null; // position where a new board will be created (if not null, a new board will be created on the next click)
 let pendingBoardTarget = null; // target board to link to when creating a new board (if not null, a new board will be created on the next click and linked to this target)
+let pendingImagePos = null;    // world position for a new image rectangle (file/camera picker)
+let pendingImageTarget = null; // existing rectangle to set/replace the image on (file/camera picker)
 // Radial menu (long press then drag to choose).
 let radialPressActive = false;
 let radialItems = [];
@@ -140,6 +144,12 @@ export function init(boardCanvas, changeCb) {
   const followBar = (e) => { e.stopPropagation(); e.preventDefault(); if (linkFocus) { const u = linkFocus.url; clearLinkFocus(); followLink(u); } };
   lb.addEventListener('mousedown', followBar);
   lb.addEventListener('touchstart', followBar);
+
+  // Image file picker / camera capture (radial menu > Upload image / Camera).
+  const imgFileInput = document.getElementById('imageFileInput');
+  if (imgFileInput) imgFileInput.addEventListener('change', () => { const f = imgFileInput.files && imgFileInput.files[0]; imgFileInput.value = ''; handleImageFile(f); });
+  const imgCamInput = document.getElementById('imageCameraInput');
+  if (imgCamInput) imgCamInput.addEventListener('change', () => { const f = imgCamInput.files && imgCamInput.files[0]; imgCamInput.value = ''; handleImageFile(f); });
 
   updateHint();
 }
@@ -491,10 +501,16 @@ function onTouchEnd(e) {
 function onDrop(e) {
   e.preventDefault();
   const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-  if (!file || !file.type.startsWith('image/')) return;
+  if (!file) return;
   const w = screenToWorld(e.clientX, e.clientY);
-  let target = hitRect(w);
-  // On a link: fills in the source.
+  placeImage(file, w.x, w.y, hitRect(w));
+}
+
+// Shared by drag-drop, paste, the file picker and the camera capture: creates
+// a new image rectangle at (wx, wy), or sets/replaces the image on an
+// existing one if target is given (its source, if target is a link).
+function placeImage(file, wx, wy, target) {
+  if (!file || !file.type.startsWith('image/')) return;
   if (target && target.ref) target = sourceOf(target);
 
   processImage(file, (src, ratio) => {
@@ -502,12 +518,29 @@ function onDrop(e) {
     if (target) { node = target; }
     else {
       const { w: nw, h: nh } = imageRectSize(ratio);
-      node = addRect(w.x - nw / 2, w.y - nh / 2, '');
+      node = addRect(wx - nw / 2, wy - nh / 2, '');
       node.w = nw; node.h = nh; reset(node);
     }
     state.selected = node.id;
     setNodeImage(node, src);
   });
+}
+
+// ---- Image file picker / camera capture (radial menu) ----
+function openImageFilePicker(wx, wy, target) {
+  pendingImagePos = { x: wx, y: wy };
+  pendingImageTarget = target || null;
+  document.getElementById('imageFileInput').click();
+}
+function openCameraPicker(wx, wy, target) {
+  pendingImagePos = { x: wx, y: wy };
+  pendingImageTarget = target || null;
+  document.getElementById('imageCameraInput').click();
+}
+function handleImageFile(file) {
+  const target = pendingImageTarget; pendingImageTarget = null;
+  const pos = pendingImagePos || screenToWorld(lastMouse.x, lastMouse.y); pendingImagePos = null;
+  if (file) placeImage(file, pos.x, pos.y, target);
 }
 
 // Stores the image in IndexedDB (ref 'idb:<hash>') then shares it with peers.
@@ -528,17 +561,6 @@ function imageRectSize(ratio) {
   return { w, h };
 }
 
-// Creates an image rectangle (centered on wx,wy) from a file.
-function spawnImageRect(file, wx, wy) {
-  processImage(file, (src, ratio) => {
-    const { w: nw, h: nh } = imageRectSize(ratio);
-    const n = addRect(wx - nw / 2, wy - nh / 2, '');
-    n.w = nw; n.h = nh; reset(n);
-    state.selected = n.id;
-    setNodeImage(n, src);
-  });
-}
-
 // Paste (Ctrl-V): an image from the clipboard creates an image rectangle;
 // otherwise pastes the copied internal element.
 function onPaste(e) {
@@ -555,7 +577,7 @@ function onPaste(e) {
         e.preventDefault();
         lastImgSig = sig; internalSince = false;
         const w = screenToWorld(lastMouse.x, lastMouse.y);
-        spawnImageRect(file, w.x, w.y);
+        placeImage(file, w.x, w.y, null);
         return;
       }
     }
@@ -795,6 +817,8 @@ function openContextAt(sx, sy) {
     items.push({ label: t('radial.clickableLink'), icon: 'link', color: COL.purple, fn: () => { const t = isLink ? sourceOf(r) : r; if (t) startEdit('link', t, r); } });
     const img = displayImage(r);
     if (img) items.push({ label: t('radial.viewImage'), icon: 'eye', color: COL.white, fn: () => openImagePopup(img) });
+    if (!isLink) items.push({ label: t('radial.uploadImage'), icon: 'image', color: COL.cyan, fn: () => openImageFilePicker(r.x, r.y, r) });
+    if (!isLink) items.push({ label: t('radial.camera'), icon: 'camera', color: COL.cyan, fn: () => openCameraPicker(r.x, r.y, r) });
     if (!isLink && r.image) items.push({ label: t('radial.removeImage'), icon: 'imgx', color: COL.orange, fn: () => { delete r.image; scheduleSave(); } });
     // Transforming this rectangle (instead of dedicated entries in the main menu).
     if (!isLink && r.kind !== 'pancarte') {
@@ -813,6 +837,8 @@ function openContextAt(sx, sy) {
     items = [
       { label: t('radial.rectangle'), icon: 'rect', color: COL.green, fn: () => { const n = addRect(w.x - 75, w.y - 35); reset(n); state.selected = n.id; startEdit('rect', n, n); scheduleSave(); } },
       { label: t('radial.sign'), icon: 'pancarte', color: COL.wood, fn: () => { const n = { id: newId(), kind: 'pancarte', x: w.x - 120, y: w.y - 65, w: 240, h: 130, text: '' }; state.nodes.push(n); reset(n); state.selected = n.id; startEdit('rect', n, n); scheduleSave(); } },
+      { label: t('radial.uploadImage'), icon: 'image', color: COL.cyan, fn: () => openImageFilePicker(w.x, w.y, null) },
+      { label: t('radial.camera'), icon: 'camera', color: COL.cyan, fn: () => openCameraPicker(w.x, w.y, null) },
       { label: t('radial.circle'), icon: 'circle', color: COL.cyan, fn: () => { const c = addCircle(w.x, w.y); state.selected = c.id; scheduleSave(); } },
       { label: t('radial.hexagon'), icon: 'hexa', color: COL.orange, fn: () => { const h = addHexagon(w.x, w.y); state.selected = h.id; scheduleSave(); } },
       { label: t('radial.liaison'), icon: 'share', color: COL.magenta, fn: () => createLiaison(w.x, w.y) },
