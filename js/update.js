@@ -3,8 +3,8 @@
 // A no-op on the web build. Loaded from a CDN (esm.sh) only when running in
 // the desktop wrapper, same pattern as the PeerJS/QR CDN loads in sync.js --
 // keeps the web bundle free of any npm dependency.
-import { isDesktop } from './platform.js?v=mr5ckyas';
-import { t } from './i18n.js?v=mr5ckyas';
+import { isDesktop } from './platform.js?v=mr5dqjb6';
+import { t } from './i18n.js?v=mr5dqjb6';
 
 const UPDATER_MOD = 'https://esm.sh/@tauri-apps/plugin-updater@2';
 const PROCESS_MOD = 'https://esm.sh/@tauri-apps/plugin-process@2';

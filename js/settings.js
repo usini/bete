@@ -1,16 +1,16 @@
 // Settings menu: theme, language, text size, named liaisons, navigation
 // (tutorial / visited boards), clear the current board. Audio and Visual
 // (theme/text size) live in their own sub-panels to keep the main list short.
-import { state, getBoardId, scheduleSave } from './state.js?v=mr5ckyas';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr5ckyas';
-import { listBoards, buildBoardUrl } from './boards.js?v=mr5ckyas';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr5ckyas';
-import { liaisonStatus, disconnect, getPresence, announceName } from './sync.js?v=mr5ckyas';
-import { exportJSON, importJSON } from './io.js?v=mr5ckyas';
-import { getUserName, setUserName } from './users.js?v=mr5ckyas';
-import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr5ckyas';
-import { t, getLang, setLang, LANGS } from './i18n.js?v=mr5ckyas';
-import { isDesktop, getLinkMode, setLinkMode } from './platform.js?v=mr5ckyas';
+import { state, getBoardId, scheduleSave } from './state.js?v=mr5dqjb6';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr5dqjb6';
+import { listBoards, buildBoardUrl } from './boards.js?v=mr5dqjb6';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr5dqjb6';
+import { liaisonStatus, disconnect, getPresence, announceName } from './sync.js?v=mr5dqjb6';
+import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mr5dqjb6';
+import { getUserName, setUserName } from './users.js?v=mr5dqjb6';
+import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr5dqjb6';
+import { t, getLang, setLang, LANGS } from './i18n.js?v=mr5dqjb6';
+import { isDesktop, getLinkMode, setLinkMode } from './platform.js?v=mr5dqjb6';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
@@ -217,6 +217,12 @@ function buildMain(panel) {
   const imp = el('button', 'set-wide', t('settings.import'));
   imp.addEventListener('click', () => importJSON(() => { scheduleSave(); closeSettings(); }));
   panel.appendChild(imp);
+  const expAll = el('button', 'set-wide', t('settings.exportAll'));
+  expAll.addEventListener('click', () => exportAllBoards());
+  panel.appendChild(expAll);
+  const impAll = el('button', 'set-wide', t('settings.importAll'));
+  impAll.addEventListener('click', () => importAllBoards(() => { closeSettings(); location.reload(); }));
+  panel.appendChild(impAll);
 
   // ---- 6. Danger: clear the current board ----
   panel.appendChild(el('div', 'set-label', t('settings.currentBoard')));

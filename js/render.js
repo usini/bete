@@ -1,14 +1,14 @@
 // Board rendering: pixel grid, circles, hexagons, rectangles, neon glow, selection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr5ckyas';
-import { view, worldToScreen } from './camera.js?v=mr5ckyas';
-import { stretch } from './physics.js?v=mr5ckyas';
-import { hexCorners } from './geom.js?v=mr5ckyas';
-import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr5ckyas';
-import { fmtDur } from './voice.js?v=mr5ckyas';
-import { getCursors, getPresence } from './sync.js?v=mr5ckyas';
-import { youTubeId, ytThumb } from './yt.js?v=mr5ckyas';
-import { getImageEl } from './images.js?v=mr5ckyas';
-import { t } from './i18n.js?v=mr5ckyas';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr5dqjb6';
+import { view, worldToScreen } from './camera.js?v=mr5dqjb6';
+import { stretch } from './physics.js?v=mr5dqjb6';
+import { hexCorners } from './geom.js?v=mr5dqjb6';
+import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr5dqjb6';
+import { fmtDur } from './voice.js?v=mr5dqjb6';
+import { getCursors, getPresence } from './sync.js?v=mr5dqjb6';
+import { youTubeId, ytThumb } from './yt.js?v=mr5dqjb6';
+import { getImageEl } from './images.js?v=mr5dqjb6';
+import { t } from './i18n.js?v=mr5dqjb6';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
