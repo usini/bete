@@ -71,6 +71,26 @@ default board). Each board is persisted in `server/data/boards/<board>.json`.
   (instead of being overwritten). Connecting to an **already-filled** board:
   you adopt the server's.
 
+## Read-only boards (owner token)
+
+A board can be locked ("Read-only for guests" in the app's Settings > Liaisons)
+so only its **owner** can edit; everyone else can only watch (see cursors,
+hear voice chat, still get audio/image assets on demand).
+
+Since every connection to this server is symmetric (no built-in notion of
+"the host" the way a browser hosting its own liaison has), ownership is
+tracked per board via a random **owner token**: the first browser that ever
+connects to a fresh board is automatically adopted as its owner (the token is
+generated client-side, stored in that browser's `localStorage`, and sent on
+every connection). Later connections are only recognized as owner if they
+present the same token. This is stored in the board's file
+(`server/data/boards/<board>.json`, fields `ownerToken` / `readOnly`).
+
+**Lost the owner token** (cleared browser storage, different device, etc.)?
+Edit the board's JSON file directly on the server and remove the `ownerToken`
+field (or delete it and restart the server), then reconnect from the browser
+you want to be the new owner — it will be re-adopted as the fresh board's owner.
+
 ## Bootstrapping with an existing board
 
 To start from an existing board instead of an empty one:

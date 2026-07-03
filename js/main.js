@@ -1,23 +1,23 @@
 // Bootstrap + render loop.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr5eh0h7';
-import { setView } from './camera.js?v=mr5eh0h7';
-import { render } from './render.js?v=mr5eh0h7';
-import { step, reset } from './physics.js?v=mr5eh0h7';
-import * as minimap from './minimap.js?v=mr5eh0h7';
-import * as input from './input.js?v=mr5eh0h7';
-import * as fx from './fx.js?v=mr5eh0h7';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mr5eh0h7';
-import { recordBoard, getBoardEntry } from './boards.js?v=mr5eh0h7';
-import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mr5eh0h7';
-import { applyTheme } from './theme.js?v=mr5eh0h7';
-import { initSettings, openSettings } from './settings.js?v=mr5eh0h7';
-import { recordLiaison, getLiaison } from './liaisons.js?v=mr5eh0h7';
-import { positionVideoOverlay } from './video.js?v=mr5eh0h7';
-import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mr5eh0h7';
-import { migrateImages } from './images.js?v=mr5eh0h7';
-import { t, getLang, applyStaticI18n } from './i18n.js?v=mr5eh0h7';
-import { initDesktopLink } from './platform.js?v=mr5eh0h7';
-import { checkForUpdate } from './update.js?v=mr5eh0h7';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr5ggbha';
+import { setView } from './camera.js?v=mr5ggbha';
+import { render } from './render.js?v=mr5ggbha';
+import { step, reset } from './physics.js?v=mr5ggbha';
+import * as minimap from './minimap.js?v=mr5ggbha';
+import * as input from './input.js?v=mr5ggbha';
+import * as fx from './fx.js?v=mr5ggbha';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mr5ggbha';
+import { recordBoard, getBoardEntry } from './boards.js?v=mr5ggbha';
+import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mr5ggbha';
+import { applyTheme } from './theme.js?v=mr5ggbha';
+import { initSettings, openSettings } from './settings.js?v=mr5ggbha';
+import { recordLiaison, getLiaison } from './liaisons.js?v=mr5ggbha';
+import { positionVideoOverlay } from './video.js?v=mr5ggbha';
+import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mr5ggbha';
+import { migrateImages } from './images.js?v=mr5ggbha';
+import { t, getLang, applyStaticI18n } from './i18n.js?v=mr5ggbha';
+import { initDesktopLink } from './platform.js?v=mr5ggbha';
+import { checkForUpdate } from './update.js?v=mr5ggbha';
 
 applyTheme(); // apply the saved theme right at startup
 applyStaticI18n(); // translate the static HTML chrome (buttons, hint, etc.)
@@ -243,6 +243,7 @@ function loop(now) {
   minimap.render();
   updateNetMode();
   updateLiaisonBadge();
+  input.updateHint(); // reflects a read-only lock/unlock received from the host at any time
   positionVideoOverlay(); // realigns the inline YouTube player on its block
   requestAnimationFrame(loop);
 }

@@ -16,6 +16,7 @@ const STRINGS = {
     'hint.default': 'RIGHT CLICK / LONG PRESS = MENU',
     'hint.active': 'INTERACTION ON · LONG PRESS = MENU',
     'hint.locked': 'VIEW ONLY · LONG PRESS TO ENABLE',
+    'hint.readOnly': '🔒 READ-ONLY BOARD (host only)',
 
     'button.settings': 'Settings',
     'button.mic.title': 'Mic: talk (listening is automatic)',
@@ -82,6 +83,7 @@ const STRINGS = {
     'radial.selection': 'Selection',
     'radial.settings': 'Settings',
     'radial.lock': 'Lock',
+    'radial.readOnly': '🔒 Read-only board',
 
     'boardPicker.title': 'LINK TO A BOARD',
     'boardPicker.newPlaceholder': 'New board…',
@@ -121,6 +123,8 @@ const STRINGS = {
     'settings.shareInternet': 'Internet',
     'settings.shareLan': 'Local network',
     'settings.shareMode.hint': 'Address embedded in links given to other people (liaison, board links). Internet: bete.usini.eu. Local network: this computer\'s LAN address (only reachable on the same Wi-Fi/network).',
+    'settings.lockBoard': 'Read-only for guests',
+    'settings.lockBoard.title': 'Only you (the host) can edit while this is on. Guests can still watch, hear voice chat and see cursors.',
     'settings.homeLocked': "🔒 Home is local: not connectable (protected from being overwritten).",
     'settings.connected': 'Connected',
     'settings.disconnect.title': 'Disconnect',
@@ -172,6 +176,7 @@ const STRINGS = {
     'hint.default': 'CLIC DROIT&nbsp;/&nbsp;APPUI LONG&nbsp;=&nbsp;MENU',
     'hint.active': 'INTERACTION ON · APPUI LONG = MENU',
     'hint.locked': 'VUE SEULE · APPUI LONG POUR ACTIVER',
+    'hint.readOnly': '🔒 BOARD EN LECTURE SEULE (hôte uniquement)',
 
     'button.settings': 'Paramètres',
     'button.mic.title': "Micro : parler (l'écoute est automatique)",
@@ -238,6 +243,7 @@ const STRINGS = {
     'radial.selection': 'Sélection',
     'radial.settings': 'Paramètres',
     'radial.lock': 'Verrouiller',
+    'radial.readOnly': '🔒 Board en lecture seule',
 
     'boardPicker.title': 'LIEN VERS UN BOARD',
     'boardPicker.newPlaceholder': 'Nouveau board…',
@@ -277,6 +283,8 @@ const STRINGS = {
     'settings.shareInternet': 'Internet',
     'settings.shareLan': 'Réseau local',
     'settings.shareMode.hint': "Adresse utilisée dans les liens donnés à d'autres personnes (liaison, liens vers un board). Internet : bete.usini.eu. Réseau local : l'adresse de cet ordinateur sur le réseau (accessible uniquement sur le même Wi-Fi/réseau).",
+    'settings.lockBoard': 'Lecture seule pour les invités',
+    'settings.lockBoard.title': "Seul toi (l'hôte) peux modifier tant que c'est activé. Les invités peuvent quand même regarder, entendre le vocal et voir les curseurs.",
     'settings.homeLocked': "🔒 Home est local : non connectable (protégé contre l'écrasement).",
     'settings.connected': 'Connecté',
     'settings.disconnect.title': 'Déconnecter',

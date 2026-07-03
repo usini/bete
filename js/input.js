@@ -3,20 +3,20 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr5eh0h7';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr5eh0h7';
-import { dragTo, reset } from './physics.js?v=mr5eh0h7';
-import { pointInHex } from './geom.js?v=mr5eh0h7';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr5eh0h7';
-import { storeImage, resolveSrc } from './images.js?v=mr5eh0h7';
-import { explodeElementCascade } from './fx.js?v=mr5eh0h7';
-import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr5eh0h7';
-import { openSettings } from './settings.js?v=mr5eh0h7';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr5eh0h7';
-import { toggleDebug } from './debug.js?v=mr5eh0h7';
-import { youTubeId } from './yt.js?v=mr5eh0h7';
-import { setActiveVideo } from './video.js?v=mr5eh0h7';
-import { t } from './i18n.js?v=mr5eh0h7';
+} from './state.js?v=mr5ggbha';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr5ggbha';
+import { dragTo, reset } from './physics.js?v=mr5ggbha';
+import { pointInHex } from './geom.js?v=mr5ggbha';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr5ggbha';
+import { storeImage, resolveSrc } from './images.js?v=mr5ggbha';
+import { explodeElementCascade } from './fx.js?v=mr5ggbha';
+import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr5ggbha';
+import { openSettings } from './settings.js?v=mr5ggbha';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr5ggbha';
+import { toggleDebug } from './debug.js?v=mr5ggbha';
+import { youTubeId } from './yt.js?v=mr5ggbha';
+import { setActiveVideo } from './video.js?v=mr5ggbha';
+import { t } from './i18n.js?v=mr5ggbha';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -38,10 +38,19 @@ let lastTapPos = null;
 const isCoarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 let interactionEnabled = !isCoarse;
 
+// Read-only board: true only for a connected GUEST (never for the host/owner,
+// never for someone editing locally outside of a liaison). Enforced for real
+// on the host side (sync.js ignores/never relays a guest's edits) -- this is
+// just the matching read-only UI/UX on the guest's screen.
+function isLocked() { return state.readOnly === true && isClient() && !isOwner(); }
+function canInteract() { return interactionEnabled && !isLocked(); }
+
 // Update the hint text based on the current interaction mode.
-function updateHint() {
+export function updateHint() {
   const h = document.getElementById('hint');
-  if (!h || !isCoarse) return;
+  if (!h) return;
+  if (isLocked()) { h.textContent = t('hint.readOnly'); return; }
+  if (!isCoarse) return;
   h.textContent = interactionEnabled ? t('hint.active') : t('hint.locked');
 }
 
@@ -211,9 +220,9 @@ function toggleSelect(id) {
 function pointerDown(sx, sy, opts) {
   closeMenus();
   const shift = !!(opts && opts.shift);
-  // Locked interaction (mobile default): only pans.
+  // Locked interaction (mobile default, or a read-only guest): only pans.
   // (but a tap on a link is still handled at pointerUp, see finishDrag).
-  if (!interactionEnabled) { drag = { mode: 'pan', px: sx, py: sy, sx0: sx, sy0: sy }; return; }
+  if (!canInteract()) { drag = { mode: 'pan', px: sx, py: sy, sx0: sx, sy0: sy }; return; }
   const w = screenToWorld(sx, sy);
 
   const r = hitRect(w);
@@ -332,7 +341,7 @@ function pointerUp() {
 
 // Resize cursor (PC) when hovering a resizable edge/corner.
 function updateCursor(sx, sy) {
-  if (!canvas || !interactionEnabled) return;
+  if (!canvas || !canInteract()) return;
   const w = screenToWorld(sx, sy);
   let resize = false;
   const r = hitRect(w);
@@ -510,6 +519,7 @@ function onDrop(e) {
 // a new image rectangle at (wx, wy), or sets/replaces the image on an
 // existing one if target is given (its source, if target is a link).
 function placeImage(file, wx, wy, target) {
+  if (isLocked()) return; // read-only guest: paste/drop/picker/camera all funnel through here
   if (!file || !file.type.startsWith('image/')) return;
   if (target && target.ref) target = sourceOf(target);
 
@@ -565,6 +575,7 @@ function imageRectSize(ratio) {
 // otherwise pastes the copied internal element.
 function onPaste(e) {
   if (editing) return; // while editing, the textarea pastes normally
+  if (isLocked()) return;
   const items = (e.clipboardData && e.clipboardData.items) || [];
   for (const it of items) {
     if (it.type && it.type.startsWith('image/')) {
@@ -613,7 +624,7 @@ function handleDouble(sx, sy) {
   // Double-tap/click on a link => follows it directly (allowed even when locked).
   if (r && displayLink(r)) { clearLinkFocus(); followLink(displayLink(r)); return; }
   if (r && r.kind === 'voice') { toggleVoice(r); return; } // double-click = playback
-  if (!interactionEnabled) return; // locked: no editing/opening
+  if (!canInteract()) return; // locked: no editing/opening
   if (r) {
     const img = displayImage(r);
     if (img) { openImagePopup(img); return; }
@@ -632,8 +643,9 @@ function onKeyDown(e) {
   if (e.key === '²' || e.code === 'Backquote') { toggleDebug(); e.preventDefault(); return; }
 
   const mod = e.ctrlKey || e.metaKey;
+  if (mod && (e.key === 'c' || e.key === 'C')) { copySelection(); e.preventDefault(); return; } // read-only: copying locally is fine
+  if (isLocked()) return; // read-only guest: no undo, no delete
   if (mod && (e.key === 'z' || e.key === 'Z')) { doUndo(); e.preventDefault(); return; }
-  if (mod && (e.key === 'c' || e.key === 'C')) { copySelection(); e.preventDefault(); return; }
   // Pasting (Ctrl-V) is handled by the 'paste' event (see onPaste) so we can
   // read an image from the clipboard.
 
@@ -798,7 +810,13 @@ function openContextAt(sx, sy) {
   const hz = !r ? (hitHexagon(w) || hitCircle(w)) : null;
 
   let items;
-  if (r && r.kind === 'liaison') {
+  if (isLocked()) {
+    // Read-only guest: no creation/edit/delete anywhere. A liaison block still
+    // offers "Copy link" (a read action), everything else just informs.
+    items = (r && r.kind === 'liaison')
+      ? [{ label: t('radial.copyLink'), icon: 'copy', color: COL.green, fn: () => copyLink(r) }]
+      : [{ label: t('radial.readOnly'), icon: 'lock', color: COL.orange, fn: () => {} }];
+  } else if (r && r.kind === 'liaison') {
     items = [{ label: t('radial.copyLink'), icon: 'copy', color: COL.green, fn: () => copyLink(r) }];
     if (!isClient()) items.push({ label: t('radial.newLink'), icon: 'refresh', color: COL.yellow, fn: () => refreshHostId(r) });
     items.push({ label: t('radial.delete'), icon: 'trash', color: COL.red, fn: () => removeElement(r) });

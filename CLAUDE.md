@@ -171,6 +171,17 @@ dictionary objects (`STRINGS.fr`, `STRINGS.en`) plus a lookup function.
 - Audio and images NEVER transit as base64 in the sync payload: they're sent
   as binary on demand (`audioReq`/`audioRes`, `imgReq`/`imgRes` protocols) and
   cached locally (IndexedDB) + host-side (memory, bounded for images).
+- **Read-only boards** (`state.readOnly`, toggled via `setBoardReadOnly()`):
+  since the topology is a star (every client talks only to the host, never to
+  each other), the host can simply refuse to merge/relay `sync`/`move`/`delete`
+  content coming from a guest connection (`handleData`'s `origin` param is only
+  ever set for messages actually received over the wire — never for the
+  host's own local edits) — a real guarantee, not just a disabled UI. The
+  headless Pi host (`server/bete-host.js`) has no such built-in "host process"
+  to trust (every connection is symmetric there), so it uses a separate
+  **owner token** mechanism instead: the first client ever to connect to a
+  fresh board is auto-adopted as its owner (token generated client-side in
+  `js/liaisons.js`, `getOwnerToken()`); see `server/README.md`.
 
 ## Images: IndexedDB offload (`images.js`, `audio.js`)
 

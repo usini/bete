@@ -2,13 +2,14 @@
 // We only synchronize the CONTENT (text, image, color, description, links,
 // creation/deletion): neither the camera nor the positions/sizes. Each screen
 // therefore keeps its own view. Merge by id, conflicts resolved with LWW + HOST priority.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr5eh0h7';
-import { reset } from './physics.js?v=mr5eh0h7';
-import { explodeElementCascade } from './fx.js?v=mr5eh0h7';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr5eh0h7';
-import { onImageArrived } from './images.js?v=mr5eh0h7';
-import { getUserId, displayName } from './users.js?v=mr5eh0h7';
-import { shareOrigin } from './platform.js?v=mr5eh0h7';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr5ggbha';
+import { reset } from './physics.js?v=mr5ggbha';
+import { explodeElementCascade } from './fx.js?v=mr5ggbha';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr5ggbha';
+import { onImageArrived } from './images.js?v=mr5ggbha';
+import { getUserId, displayName } from './users.js?v=mr5ggbha';
+import { shareOrigin } from './platform.js?v=mr5ggbha';
+import { getOwnerToken } from './liaisons.js?v=mr5ggbha';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host
@@ -16,13 +17,18 @@ let hostHb = null;     // host side: heartbeat timer
 let cursors = {};      // uid -> { name, x, y, t }: other users' cursors
 let localVoice = false; // is our mic active (voice chat)?
 let incomingCb = null;  // callback for incoming media calls (voicechat)
+let iAmOwner = false;   // client side: has a headless host (Pi) confirmed our owner token?
 
 // Current local PeerJS peer (host or client) — used for audio calls.
 export function getPeer() { return mode === 'host' ? hostPeer : clientPeer; }
 export function setLocalVoice(v) { localVoice = !!v; announceName(); }
 export function onIncomingCall(cb) { incomingCb = cb; }
 function attachCallHandler(peer) { if (peer) peer.on('call', (c) => { if (incomingCb) incomingCb(c); }); }
-function helloMsg() { return { type: 'hello', uid: getUserId(), name: displayName(), peerId: (clientPeer && clientPeer.id) || null, voice: localVoice }; }
+function helloMsg() { return { type: 'hello', uid: getUserId(), name: displayName(), peerId: (clientPeer && clientPeer.id) || null, voice: localVoice, ownerToken: getOwnerToken(getBoardId()) }; }
+
+// True if we may toggle read-only: we ARE the host (browser-hosted liaison),
+// or a headless host (Pi) has confirmed our owner token belongs to this board.
+export function isOwner() { return mode === 'host' || iAmOwner; }
 
 const PEERJS_SRC = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
 const QR_SRC = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
@@ -68,6 +74,19 @@ const LOOP_THRESHOLD = 10; // cycles within LOOP_WINDOW = stuck in a reconnect l
 
 // True if we're connected as a client (opened via ?peer=).
 export function isClient() { return mode === 'client'; }
+
+// Host-only: locks/unlocks the board for connected guests. Persists locally
+// right away, and (if hosting) tells connected guests immediately -- the
+// regular tick() only sends when node/circle/hexagon content changed, so an
+// isolated readOnly toggle would otherwise never reach anyone already connected.
+export function setBoardReadOnly(v) {
+  state.readOnly = !!v;
+  scheduleSave();
+  if (mode === 'host') conns.forEach((c) => sendTo(c, { type: 'lock', readOnly: state.readOnly }));
+  // Headless host (Pi): we're technically a 'client' there too, even as the
+  // owner -- ask the Pi to apply + persist + rebroadcast to everyone else.
+  else if (mode === 'client' && iAmOwner && conns[0]) sendTo(conns[0], { type: 'lock', readOnly: state.readOnly });
+}
 // Host id (the one we're connected to as a client, or ours if we're hosting).
 export function hostId() { return mode === 'client' ? clientPeerId : (hostPeer && hostPeer.id) || null; }
 
@@ -291,7 +310,7 @@ function tick() {
     }
   }
   lastDelSig = delSig;
-  const payload = { type: 'sync', from: mode, n: outN, c: outC, h: outH, mt: mtOut, del: [...tombstones] };
+  const payload = { type: 'sync', from: mode, n: outN, c: outC, h: outH, mt: mtOut, del: [...tombstones], readOnly: state.readOnly };
   conns.forEach(c => { try { if (c.open) c.send(payload); } catch (e) { /* */ } });
 }
 
@@ -393,7 +412,25 @@ function mergeZones(arr, rem, remote, win, applied) {
 
 function handleData(msg, origin) {
   if (!msg) return;
+  // Read-only board: content coming from a guest is ignored outright (never
+  // merged, never relayed) -- 'origin' is only ever set for messages actually
+  // received from a peer connection (see the 3 conn.on('data', ...) call
+  // sites), so this can never fire for our own local edits.
+  if (mode === 'host' && state.readOnly && origin &&
+      (msg.type === 'sync' || msg.type === 'move' || msg.type === 'delete')) {
+    return;
+  }
+  if (msg.type === 'lock') {
+    if (mode === 'client') state.readOnly = !!msg.readOnly; // the host is the only source of truth for this flag
+    return;
+  }
   if (msg.type === 'sync') {
+    if (mode === 'client' && msg.readOnly !== undefined) state.readOnly = !!msg.readOnly;
+    // Headless host (Pi) only: tells each connection individually whether its
+    // owner token was recognized (see server/bete-host.js). A browser-hosted
+    // liaison never sends this field, so iAmOwner just stays false there --
+    // isOwner() already covers that case via mode === 'host' instead.
+    if (mode === 'client' && msg.owner !== undefined) iAmOwner = !!msg.owner;
     let justFirst = false, remoteEmpty = false;
     if (mode === 'client' && clientFirstSync) {
       clientFirstSync = false;
@@ -655,7 +692,7 @@ function openHostPeer(id) {
     if (hostNode) hostNode.status = 'connected';
     conn.on('open', () => {
       const content = buildContent(); // current state sent immediately to the newcomer
-      try { conn.send({ type: 'sync', from: 'host', n: content.n, c: content.c, h: content.h, mt: { ...mtimes }, del: [...tombstones] }); } catch (e) { /* */ }
+      try { conn.send({ type: 'sync', from: 'host', n: content.n, c: content.c, h: content.h, mt: { ...mtimes }, del: [...tombstones], readOnly: state.readOnly }); } catch (e) { /* */ }
     });
     conn.on('data', (msg) => { conn._lastSeen = now(); handleData(msg, conn); });
     conn.on('close', () => { conns = conns.filter(c => c !== conn); broadcastPresence(); });
@@ -735,7 +772,7 @@ export async function joinHost(peerId, onStatus) {
 
 function connectToHost() {
   if (!clientPeer || clientPeer.destroyed) return;
-  const conn = clientPeer.connect(clientPeerId, { reliable: true, metadata: { board: getBoardId() } });
+  const conn = clientPeer.connect(clientPeerId, { reliable: true, metadata: { board: getBoardId(), ownerToken: getOwnerToken(getBoardId()) } });
   conns = [conn];
   clientRoster = [];
   lastHostMsg = now();
@@ -794,7 +831,7 @@ function wireHostPeer(peer) {
     conns.push(conn);
     conn.on('open', () => {
       const c = buildContent();
-      try { conn.send({ type: 'sync', from: 'host', n: c.n, c: c.c, h: c.h, mt: { ...mtimes }, del: [...tombstones] }); } catch (e) { /* */ }
+      try { conn.send({ type: 'sync', from: 'host', n: c.n, c: c.c, h: c.h, mt: { ...mtimes }, del: [...tombstones], readOnly: state.readOnly }); } catch (e) { /* */ }
     });
     conn.on('data', (msg) => { conn._lastSeen = now(); handleData(msg, conn); });
     conn.on('close', () => { conns = conns.filter((x) => x !== conn); broadcastPresence(); });

@@ -1,5 +1,5 @@
 // Shared data model + localStorage persistence.
-import { pointInHex } from './geom.js?v=mr5eh0h7';
+import { pointInHex } from './geom.js?v=mr5ggbha';
 
 export const DEFAULT_GREEN = '#39ff14';
 
@@ -34,6 +34,7 @@ export const state = {
   hexagons: [], // hexagons : { id, x, y, r, color, description }
   selected: null, // selected id (rect, circle or hexagon)
   selectedIds: [], // multi-selection (rectangle ids) to move/delete as a group
+  readOnly: false, // board-level: only the host/owner may edit while a guest is connected
 };
 
 let _id = 1;
@@ -119,6 +120,7 @@ export function serialize() {
   return {
     version: state.version,
     name: _boardName || undefined,
+    readOnly: state.readOnly || undefined,
     camera: { ...state.camera },
     nodes: state.nodes
       .filter(n => n.kind !== 'liaison') // liaison blocks are transient
@@ -139,6 +141,7 @@ export function serialize() {
 export function load(obj) {
   if (!obj || typeof obj !== 'object') return false;
   if (obj.name != null) _boardName = obj.name;
+  state.readOnly = !!obj.readOnly;
   state.camera = obj.camera ? { ...obj.camera } : { x: 0, y: 0, zoom: 1 };
   state.nodes = Array.isArray(obj.nodes) ? obj.nodes.map(n => ({ ...n })) : [];
   state.circles = Array.isArray(obj.circles) ? obj.circles.map(c => ({ ...c })) : [];

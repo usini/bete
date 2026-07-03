@@ -38,3 +38,23 @@ export function removeLiaison(peer) {
 export function getLiaison(peer) {
   return listLiaisons().find((x) => x.peer === peer) || null;
 }
+
+// Owner token (per board): a random secret this browser presents to a
+// headless host (e.g. Raspberry Pi, see server/bete-host.js) to prove it's
+// the board's owner there. The server adopts whichever token shows up first
+// for a fresh board (first-claim, same trust model as the peer id itself)
+// and checks it on every later connection -- a browser-hosted liaison never
+// needs this (the hosting tab edits state directly, no token involved), but
+// sending it there too is harmless (a browser host just ignores it).
+const OWNER_KEY_PREFIX = 'bete:ownerkey:';
+export function getOwnerToken(boardId) {
+  const key = OWNER_KEY_PREFIX + (boardId || 'home');
+  try {
+    let token = localStorage.getItem(key);
+    if (!token) {
+      token = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : ('o-' + Math.random().toString(36).slice(2) + Date.now().toString(36));
+      localStorage.setItem(key, token);
+    }
+    return token;
+  } catch (e) { return null; }
+}

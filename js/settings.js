@@ -1,16 +1,16 @@
 // Settings menu: theme, language, text size, named liaisons, navigation
 // (tutorial / visited boards), clear the current board. Audio and Visual
 // (theme/text size) live in their own sub-panels to keep the main list short.
-import { state, getBoardId, scheduleSave } from './state.js?v=mr5eh0h7';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr5eh0h7';
-import { listBoards, buildBoardUrl } from './boards.js?v=mr5eh0h7';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr5eh0h7';
-import { liaisonStatus, disconnect, getPresence, announceName } from './sync.js?v=mr5eh0h7';
-import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mr5eh0h7';
-import { getUserName, setUserName } from './users.js?v=mr5eh0h7';
-import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr5eh0h7';
-import { t, getLang, setLang, LANGS } from './i18n.js?v=mr5eh0h7';
-import { isDesktop, getLinkMode, setLinkMode } from './platform.js?v=mr5eh0h7';
+import { state, getBoardId, scheduleSave } from './state.js?v=mr5ggbha';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr5ggbha';
+import { listBoards, buildBoardUrl } from './boards.js?v=mr5ggbha';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr5ggbha';
+import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mr5ggbha';
+import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mr5ggbha';
+import { getUserName, setUserName } from './users.js?v=mr5ggbha';
+import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr5ggbha';
+import { t, getLang, setLang, LANGS } from './i18n.js?v=mr5ggbha';
+import { isDesktop, getLinkMode, setLinkMode } from './platform.js?v=mr5ggbha';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
@@ -171,6 +171,14 @@ function buildMain(panel) {
     dc.addEventListener('click', () => { closeSettings(); disconnect(); });
     active.appendChild(dc);
     panel.appendChild(active);
+  }
+  // Owner-only (the host itself, or a Pi-confirmed owner token): locks the
+  // board so everyone else connected can only watch.
+  if (isOwner()) {
+    const lockBtn = el('button', 'set-theme' + (state.readOnly ? ' on' : ''), (state.readOnly ? '🔒 ' : '🔓 ') + t('settings.lockBoard'));
+    lockBtn.title = t('settings.lockBoard.title');
+    lockBtn.addEventListener('click', () => { setBoardReadOnly(!state.readOnly); build(panel); });
+    panel.appendChild(lockBtn);
   }
   const activePeer = new URLSearchParams(location.search).get('peer');
   const liaisons = listLiaisons();

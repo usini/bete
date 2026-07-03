@@ -96,6 +96,8 @@ function boardFromObj(obj) {
     content: { n: st.n || {}, c: st.c || {}, h: st.h || {} },
     mt: st.mt || {},
     del: new Set(st.del || []),
+    readOnly: !!st.readOnly,
+    ownerToken: st.ownerToken || null, // first client to say 'hello' on a fresh board claims it (see handleData)
     conns: [], lastSig: '', saveTimer: null,
   };
 }
@@ -118,7 +120,7 @@ function getBoard(id) {
   let b = boards.get(id);
   if (!b) {
     if (boards.size >= MAX_BOARDS) { console.warn('[bete] board limit reached, ephemeral board:', id); }
-    b = { content: { n: {}, c: {}, h: {} }, mt: {}, del: new Set(), conns: [], lastSig: '', saveTimer: null };
+    b = { content: { n: {}, c: {}, h: {} }, mt: {}, del: new Set(), readOnly: false, ownerToken: null, conns: [], lastSig: '', saveTimer: null };
     boards.set(id, b);
   }
   return b;
@@ -129,14 +131,25 @@ function scheduleSave(id, b) {
   b.saveTimer = setTimeout(() => {
     b.saveTimer = null;
     try {
-      fs.writeFileSync(path.join(BOARDS_DIR, id + '.json'), JSON.stringify({ ...b.content, mt: b.mt, del: [...b.del] }));
+      fs.writeFileSync(path.join(BOARDS_DIR, id + '.json'), JSON.stringify({ ...b.content, mt: b.mt, del: [...b.del], readOnly: b.readOnly, ownerToken: b.ownerToken }));
     } catch (e) { console.error('[bete] save failed', id, e); }
   }, 1000);
 }
 
 // --- Sync (LWW + host priority on tie), per board ---
-function buildPayload(b) {
-  return { type: 'sync', from: 'host', n: b.content.n, c: b.content.c, h: b.content.h, mt: { ...b.mt }, del: [...b.del] };
+// `owner` is set per-connection (never broadcast): only this specific client
+// gets told whether its token was recognized.
+function buildPayload(b, conn) {
+  return { type: 'sync', from: 'host', n: b.content.n, c: b.content.c, h: b.content.h, mt: { ...b.mt }, del: [...b.del], readOnly: b.readOnly, owner: !!(conn && conn._owner) };
+}
+
+// First-claim: a fresh board (no owner yet) adopts whichever token shows up
+// first, same trust model as the peer id itself. Later connections are only
+// recognized as owner if their token matches.
+function resolveOwner(id, b, conn, token) {
+  if (!token) { conn._owner = false; return; }
+  if (!b.ownerToken) { b.ownerToken = token; conn._owner = true; scheduleSave(id, b); return; }
+  conn._owner = b.ownerToken === token;
 }
 
 function merge(b, remote) {
@@ -190,8 +203,24 @@ function broadcastPresence(b) {
   for (const c of b.conns) if (c.open) { try { c.send(payload); } catch (e) { /* */ } }
 }
 
+function broadcastLock(b) {
+  const payload = { type: 'lock', readOnly: b.readOnly };
+  for (const c of b.conns) if (c.open) { try { c.send(payload); } catch (e) { /* */ } }
+}
+
 function handleData(id, b, msg, origin) {
   if (!msg) return;
+  // Read-only board: content from a non-owner connection is ignored outright
+  // (never merged, never relayed) -- mirrors the browser-hosted guard in
+  // js/sync.js, but keyed on the owner token (resolveOwner) since every
+  // connection here is symmetric, there's no single "host process" to trust.
+  if (b.readOnly && !origin._owner && (msg.type === 'sync' || msg.type === 'move' || msg.type === 'delete')) {
+    return;
+  }
+  if (msg.type === 'lock') {
+    if (origin._owner) { b.readOnly = !!msg.readOnly; scheduleSave(id, b); broadcastLock(b); }
+    return;
+  }
   if (msg.type === 'sync') {
     if (merge(b, msg)) scheduleSave(id, b);
     // Actively pull any brand-new voice memo's audio directly from whoever
@@ -228,6 +257,9 @@ function handleData(id, b, msg, origin) {
     return;
   } else if (msg.type === 'hello') {
     origin._uid = msg.uid; origin._name = msg.name; origin._peerId = msg.peerId; origin._voice = msg.voice;
+    // Redundant with the connection-metadata resolution (belt-and-suspenders,
+    // in case metadata didn't come through on some client): idempotent either way.
+    resolveOwner(id, b, origin, msg.ownerToken);
     broadcastPresence(b);
     return;
   } else if (msg.type === 'cursor') {
@@ -269,7 +301,7 @@ function tick() {
     const delChanged = b._lastDelSig !== delSig;
     if (!changed && !delChanged) { b.prevSigs = sigs; continue; }
     b.prevSigs = sigs; b._lastDelSig = delSig;
-    const payload = { type: 'sync', from: 'host', n: nn, c: cc, h: hh, mt, del: [...b.del] };
+    const payload = { type: 'sync', from: 'host', n: nn, c: cc, h: hh, mt, del: [...b.del], readOnly: b.readOnly };
     for (const c of b.conns) if (c.open) { try { c.send(payload); } catch (e) { /* */ } }
   }
 }
@@ -316,9 +348,10 @@ function start() {
     const id = sanitizeBoard(conn.metadata && conn.metadata.board);
     const b = getBoard(id);
     conn._lastSeen = now();
+    resolveOwner(id, b, conn, conn.metadata && conn.metadata.ownerToken);
     b.conns.push(conn);
-    console.log(`[bete] client connected on "${id}" (${b.conns.length})`);
-    conn.on('open', () => { try { conn.send(buildPayload(b)); } catch (e) { /* */ } });
+    console.log(`[bete] client connected on "${id}" (${b.conns.length})${conn._owner ? ' [owner]' : ''}`);
+    conn.on('open', () => { try { conn.send(buildPayload(b, conn)); } catch (e) { /* */ } });
     conn.on('data', (msg) => { conn._lastSeen = now(); handleData(id, b, msg, conn); });
     const drop = () => { const i = b.conns.indexOf(conn); if (i >= 0) b.conns.splice(i, 1); broadcastPresence(b); console.log(`[bete] client disconnected from "${id}" (${b.conns.length})`); };
     conn.on('close', drop);
