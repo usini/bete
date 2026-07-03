@@ -1,5 +1,5 @@
 // User identity (local to the browser): a stable id + a chosen name.
-import { t } from './i18n.js?v=mr3tdiug';
+import { t } from './i18n.js?v=mr5c3vkd';
 
 const UID = 'bete:uid';
 const UNAME = 'bete:username';

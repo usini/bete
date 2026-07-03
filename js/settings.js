@@ -1,15 +1,16 @@
 // Settings menu: theme, language, text size, named liaisons, navigation
 // (tutorial / visited boards), clear the current board. Audio and Visual
 // (theme/text size) live in their own sub-panels to keep the main list short.
-import { state, getBoardId, scheduleSave } from './state.js?v=mr3tdiug';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr3tdiug';
-import { listBoards, buildBoardUrl } from './boards.js?v=mr3tdiug';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr3tdiug';
-import { liaisonStatus, disconnect, getPresence, announceName } from './sync.js?v=mr3tdiug';
-import { exportJSON, importJSON } from './io.js?v=mr3tdiug';
-import { getUserName, setUserName } from './users.js?v=mr3tdiug';
-import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr3tdiug';
-import { t, getLang, setLang, LANGS } from './i18n.js?v=mr3tdiug';
+import { state, getBoardId, scheduleSave } from './state.js?v=mr5c3vkd';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr5c3vkd';
+import { listBoards, buildBoardUrl } from './boards.js?v=mr5c3vkd';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr5c3vkd';
+import { liaisonStatus, disconnect, getPresence, announceName } from './sync.js?v=mr5c3vkd';
+import { exportJSON, importJSON } from './io.js?v=mr5c3vkd';
+import { getUserName, setUserName } from './users.js?v=mr5c3vkd';
+import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr5c3vkd';
+import { t, getLang, setLang, LANGS } from './i18n.js?v=mr5c3vkd';
+import { isDesktop, getLinkMode, setLinkMode } from './platform.js?v=mr5c3vkd';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
@@ -141,6 +142,19 @@ function buildMain(panel) {
       row.addEventListener('click', () => { location.href = buildBoardUrl(b.id, b.peer, b.name); });
       panel.appendChild(row);
     });
+  }
+
+  // ---- Desktop only: which address to embed in links given to other people ----
+  if (isDesktop) {
+    panel.appendChild(el('div', 'set-label', t('settings.shareMode')));
+    const modes = el('div', 'set-themes');
+    const internet = el('button', 'set-theme' + (getLinkMode() === 'internet' ? ' on' : ''), t('settings.shareInternet'));
+    internet.addEventListener('click', () => { setLinkMode('internet'); build(panel); });
+    const lan = el('button', 'set-theme' + (getLinkMode() === 'lan' ? ' on' : ''), t('settings.shareLan'));
+    lan.addEventListener('click', () => { setLinkMode('lan'); build(panel); });
+    modes.appendChild(internet); modes.appendChild(lan);
+    panel.appendChild(modes);
+    panel.appendChild(el('div', 'set-sub', t('settings.shareMode.hint')));
   }
 
   // ---- 4. Liaisons ----

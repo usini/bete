@@ -1,4 +1,6 @@
 // History of visited boards + utilities (unique IDs, URLs).
+import { shareOrigin } from './platform.js?v=mr5c3vkd';
+
 const KEY = 'bete:boards';
 
 // Unique board ID (anti-collision, especially on a shared server).
@@ -29,6 +31,16 @@ export function getBoardEntry(id) {
 // Build the URL of a board (id + peer + optional name for initial display).
 export function buildBoardUrl(id, peer, name) {
   let u = location.origin + location.pathname + '?id=' + encodeURIComponent(id);
+  if (peer) u += '&peer=' + encodeURIComponent(peer);
+  if (name) u += '&name=' + encodeURIComponent(name);
+  return u;
+}
+
+// Same as buildBoardUrl, but for links handed to OTHER people (a "link to
+// board" block, synced to peers) rather than internal navigation — see
+// platform.js: shareOrigin() substitutes a reachable address on desktop.
+export function buildShareBoardUrl(id, peer, name) {
+  let u = shareOrigin() + '?id=' + encodeURIComponent(id);
   if (peer) u += '&peer=' + encodeURIComponent(peer);
   if (name) u += '&name=' + encodeURIComponent(name);
   return u;
