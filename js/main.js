@@ -1,26 +1,28 @@
 // Bootstrap + render loop.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr5c3vkd';
-import { setView } from './camera.js?v=mr5c3vkd';
-import { render } from './render.js?v=mr5c3vkd';
-import { step, reset } from './physics.js?v=mr5c3vkd';
-import * as minimap from './minimap.js?v=mr5c3vkd';
-import * as input from './input.js?v=mr5c3vkd';
-import * as fx from './fx.js?v=mr5c3vkd';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mr5c3vkd';
-import { recordBoard, getBoardEntry } from './boards.js?v=mr5c3vkd';
-import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mr5c3vkd';
-import { applyTheme } from './theme.js?v=mr5c3vkd';
-import { initSettings, openSettings } from './settings.js?v=mr5c3vkd';
-import { recordLiaison, getLiaison } from './liaisons.js?v=mr5c3vkd';
-import { positionVideoOverlay } from './video.js?v=mr5c3vkd';
-import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mr5c3vkd';
-import { migrateImages } from './images.js?v=mr5c3vkd';
-import { t, getLang, applyStaticI18n } from './i18n.js?v=mr5c3vkd';
-import { initDesktopLink } from './platform.js?v=mr5c3vkd';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr5ckyas';
+import { setView } from './camera.js?v=mr5ckyas';
+import { render } from './render.js?v=mr5ckyas';
+import { step, reset } from './physics.js?v=mr5ckyas';
+import * as minimap from './minimap.js?v=mr5ckyas';
+import * as input from './input.js?v=mr5ckyas';
+import * as fx from './fx.js?v=mr5ckyas';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mr5ckyas';
+import { recordBoard, getBoardEntry } from './boards.js?v=mr5ckyas';
+import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mr5ckyas';
+import { applyTheme } from './theme.js?v=mr5ckyas';
+import { initSettings, openSettings } from './settings.js?v=mr5ckyas';
+import { recordLiaison, getLiaison } from './liaisons.js?v=mr5ckyas';
+import { positionVideoOverlay } from './video.js?v=mr5ckyas';
+import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mr5ckyas';
+import { migrateImages } from './images.js?v=mr5ckyas';
+import { t, getLang, applyStaticI18n } from './i18n.js?v=mr5ckyas';
+import { initDesktopLink } from './platform.js?v=mr5ckyas';
+import { checkForUpdate } from './update.js?v=mr5ckyas';
 
 applyTheme(); // apply the saved theme right at startup
 applyStaticI18n(); // translate the static HTML chrome (buttons, hint, etc.)
 initDesktopLink(); // no-op on the web build; resolves the LAN address on desktop
+checkForUpdate(); // no-op on the web build; offers to install a newer desktop release
 
 let toastTimer = null;
 function toast(msg, ms = 2400) {
