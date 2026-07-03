@@ -1,0 +1,14 @@
+{
+  "name": "bete-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "sync": "node scripts/sync.mjs",
+    "dev": "npm run sync && tauri dev",
+    "build": "npm run sync && tauri build",
+    "icon": "tauri icon src-tauri/icons/app-icon.png"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}

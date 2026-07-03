@@ -87,7 +87,7 @@ js/voicechat.js           live voice chat (WebRTC mesh), Always On, mic choice
 js/settings.js            Settings panel (theme, language, liaisons, voice, data...)
 js/i18n.js                i18n engine: FR/EN dictionaries, t(), language detection/persistence
 js/boards.js, liaisons.js multi-board management + named liaisons
-js/theme.js               themes (pixel/classic/classic-dark), text size
+js/theme.js               themes (pixel/classic/classic-dark/winxp), text size
 js/users.js               local identity (uid, displayed name)
 js/yt.js, video.js         YouTube inline thumbnail/player integration
 js/fx.js                  particle explosion on deletion
@@ -95,6 +95,7 @@ js/tutorial.js             built-in demo board (read-only), FR + EN variants
 cachebust.mjs             adds ?v=<version> to imports before every deploy
 CNAME                     custom GitHub Pages domain (bete.usini.eu)
 server/                   headless Node host (Raspberry Pi) — see server/README.md
+desktop/                  Windows desktop wrapper (Tauri) — see desktop/README.md
 ```
 
 No bundler: modules are imported directly (`import ... from './x.js?v=...'`).
