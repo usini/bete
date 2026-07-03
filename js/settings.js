@@ -1,16 +1,16 @@
 // Settings menu: theme, language, text size, named liaisons, navigation
 // (tutorial / visited boards), clear the current board. Audio and Visual
 // (theme/text size) live in their own sub-panels to keep the main list short.
-import { state, getBoardId, scheduleSave } from './state.js?v=mr5dqjb6';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr5dqjb6';
-import { listBoards, buildBoardUrl } from './boards.js?v=mr5dqjb6';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr5dqjb6';
-import { liaisonStatus, disconnect, getPresence, announceName } from './sync.js?v=mr5dqjb6';
-import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mr5dqjb6';
-import { getUserName, setUserName } from './users.js?v=mr5dqjb6';
-import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr5dqjb6';
-import { t, getLang, setLang, LANGS } from './i18n.js?v=mr5dqjb6';
-import { isDesktop, getLinkMode, setLinkMode } from './platform.js?v=mr5dqjb6';
+import { state, getBoardId, scheduleSave } from './state.js?v=mr5eh0h7';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr5eh0h7';
+import { listBoards, buildBoardUrl } from './boards.js?v=mr5eh0h7';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr5eh0h7';
+import { liaisonStatus, disconnect, getPresence, announceName } from './sync.js?v=mr5eh0h7';
+import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mr5eh0h7';
+import { getUserName, setUserName } from './users.js?v=mr5eh0h7';
+import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr5eh0h7';
+import { t, getLang, setLang, LANGS } from './i18n.js?v=mr5eh0h7';
+import { isDesktop, getLinkMode, setLinkMode } from './platform.js?v=mr5eh0h7';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);

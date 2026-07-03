@@ -2,8 +2,8 @@
 // Listening by default: as long as we're in a liaison, we answer calls (we hear
 // everyone). The mic button only controls OUR emission (talking).
 // Audio does NOT go through the Pi: browser <-> browser (low latency).
-import { getPeer, getPresence, setLocalVoice, onIncomingCall } from './sync.js?v=mr5dqjb6';
-import { t } from './i18n.js?v=mr5dqjb6';
+import { getPeer, getPresence, setLocalVoice, onIncomingCall } from './sync.js?v=mr5eh0h7';
+import { t } from './i18n.js?v=mr5eh0h7';
 
 let micOn = false;
 let listenOn = true; // listening enabled by default
@@ -35,16 +35,40 @@ export function setPreferredMic(id) {
   try { localStorage.setItem('bete:micdevice', preferredMicId); } catch (e) { /* */ }
   if (micOn) restartMic(); // applies right away if already talking
 }
+// Pseudo-device: captures the computer's system/desktop audio (via the
+// browser's screen/tab-share picker) instead of a physical microphone --
+// lets someone play music/video and have others in the liaison hear it.
+export const SYSTEM_AUDIO_ID = 'system-audio';
+
 // List of available mics (needs a mic permission already granted to have labels).
 export async function listMics() {
+  let mics = [];
   try {
     const devs = await navigator.mediaDevices.enumerateDevices();
-    return devs.filter((d) => d.kind === 'audioinput');
-  } catch (e) { return []; }
+    mics = devs.filter((d) => d.kind === 'audioinput');
+  } catch (e) { /* */ }
+  if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+    mics = [{ deviceId: SYSTEM_AUDIO_ID, label: t('settings.micSystemAudio') }, ...mics];
+  }
+  return mics;
 }
 
 function micConstraints() {
   return { audio: preferredMicId ? { deviceId: { exact: preferredMicId } } : true };
+}
+
+// Resolves the input stream: either a physical mic (getUserMedia) or the
+// system-audio pseudo-device (getDisplayMedia, audio only -- the video track
+// is stopped immediately, we only wanted the share-audio checkbox).
+async function acquireStream() {
+  if (preferredMicId === SYSTEM_AUDIO_ID) {
+    const disp = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+    disp.getVideoTracks().forEach((tr) => tr.stop());
+    const tracks = disp.getAudioTracks();
+    if (!tracks.length) throw new Error('no system audio track (share-audio checkbox not ticked?)');
+    return new MediaStream(tracks);
+  }
+  return navigator.mediaDevices.getUserMedia(micConstraints());
 }
 
 async function acquireWakeLock() {
@@ -93,7 +117,7 @@ export async function toggleMic() {
     replaceOutgoing(silent().getAudioTracks()[0]);
     return false;
   }
-  try { micStream = await navigator.mediaDevices.getUserMedia(micConstraints()); }
+  try { micStream = await acquireStream(); }
   catch (e) { alert(t('alert.micUnavailable')); return false; }
   attachEndedWatch(micStream);
   micOn = true; setLocalVoice(true);
@@ -118,7 +142,7 @@ function attachEndedWatch(stream) {
 // Restarts the mic stream without cutting it in the UI (used by Always On + device change).
 async function restartMic() {
   stopMicStream();
-  try { micStream = await navigator.mediaDevices.getUserMedia(micConstraints()); }
+  try { micStream = await acquireStream(); }
   catch (e) { micStream = null; return; } // will retry on the next trigger (visibilitychange, etc.)
   attachEndedWatch(micStream);
   replaceOutgoing(micStream.getAudioTracks()[0]);
