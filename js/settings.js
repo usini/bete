@@ -1,16 +1,16 @@
 // Settings menu: theme, language, text size, named liaisons, navigation
 // (tutorial / visited boards), clear the current board. Audio and Visual
 // (theme/text size) live in their own sub-panels to keep the main list short.
-import { state, getBoardId, scheduleSave } from './state.js?v=mr66m3ia';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr66m3ia';
-import { listBoards, buildBoardUrl } from './boards.js?v=mr66m3ia';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr66m3ia';
-import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mr66m3ia';
-import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mr66m3ia';
-import { getUserName, setUserName } from './users.js?v=mr66m3ia';
-import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr66m3ia';
-import { t, getLang, setLang, LANGS } from './i18n.js?v=mr66m3ia';
-import { isDesktop, getLinkMode, setLinkMode } from './platform.js?v=mr66m3ia';
+import { state, getBoardId, scheduleSave } from './state.js?v=mr6709ex';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr6709ex';
+import { listBoards, buildBoardUrl } from './boards.js?v=mr6709ex';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr6709ex';
+import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mr6709ex';
+import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mr6709ex';
+import { getUserName, setUserName } from './users.js?v=mr6709ex';
+import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr6709ex';
+import { t, getLang, setLang, LANGS } from './i18n.js?v=mr6709ex';
+import { isDesktop, getLinkMode, setLinkMode } from './platform.js?v=mr6709ex';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);

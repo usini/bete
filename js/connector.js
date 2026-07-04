@@ -4,7 +4,7 @@
 // smart plug). See CLAUDE.md for the read-only vs. host distinction that
 // also applies here (a locked guest may watch a switch's state but not
 // flip it -- enforced in input.js, not in this module).
-import { scheduleSave } from './state.js?v=mr66m3ia';
+import { scheduleSave } from './state.js?v=mr6709ex';
 
 // Vendored locally (js/vendor/js-yaml.min.js) so the app keeps working
 // offline -- no CDN fetch at runtime, unlike the PeerJS/QR script loads in
@@ -78,17 +78,34 @@ export async function refreshConnector(node) {
   }
 }
 
-// Sends body_on/body_off (toggling from the current known value), then
+// Sends the on/off command (toggling from the current known value), then
 // re-reads the state to reflect what the device actually did.
+//
+// Two shapes, picked automatically from what's in the YAML:
+// - Gen2-style (resource + body_on/body_off): same URL, POST with a
+//   different JSON body depending on the target state.
+// - Gen1-style (resource_on/resource_off): a different URL per state, no
+//   body needed -- e.g. classic Shelly Bulb/Duo `?turn=on`/`?turn=off`.
 export async function toggleSwitch(node) {
   let cfg;
   try { cfg = await parseYaml(node.yaml); } catch (e) { node._status = 'error'; node._error = 'YAML: ' + e.message; return; }
-  if (!cfg.resource) { node._status = 'error'; node._error = 'no resource configured'; return; }
   const turningOn = !node._value;
-  const body = turningOn ? cfg.body_on : cfg.body_off;
+  let url, method, body;
+  if (cfg.resource_on || cfg.resource_off) {
+    url = turningOn ? cfg.resource_on : cfg.resource_off;
+    method = cfg.method || 'GET';
+    body = undefined;
+  } else if (cfg.resource) {
+    url = cfg.resource;
+    method = cfg.method || 'POST';
+    body = turningOn ? cfg.body_on : cfg.body_off;
+  } else {
+    node._status = 'error'; node._error = 'no resource configured'; return;
+  }
+  if (!url) { node._status = 'error'; node._error = 'no resource_on/resource_off for this state'; return; }
   node._status = 'loading';
   try {
-    await requestJson(cfg.resource, cfg.method || 'POST', cfg.headers, body);
+    await requestJson(url, method, cfg.headers, body);
     await refreshConnector(node);
   } catch (e) {
     node._status = 'error';
