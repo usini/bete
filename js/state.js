@@ -1,5 +1,5 @@
 // Shared data model + localStorage persistence.
-import { pointInHex } from './geom.js?v=mr65a6rk';
+import { pointInHex } from './geom.js?v=mr66m3ia';
 
 export const DEFAULT_GREEN = '#39ff14';
 
@@ -57,6 +57,16 @@ export function addHexagon(wx, wy, color = COLORS[4]) {
   const h = { id: newId(), x: wx, y: wy, r: 170, color, description: '' };
   state.hexagons.push(h);
   return h;
+}
+
+// IoT/HTTP connector block (triangle by default): talks to a device via a
+// small YAML program (see connector.js). 'display' picks the visual skin
+// ('triangle' generic, 'switch' on/off toggle) independently of the yaml,
+// so the same config can be shown differently per device without editing it.
+export function addConnector(wx, wy) {
+  const n = { id: newId(), x: wx, y: wy, w: 150, h: 130, kind: 'connector', yaml: '', display: 'triangle' };
+  state.nodes.push(n);
+  return n;
 }
 
 export function findById(id) {
@@ -127,6 +137,7 @@ export function serialize() {
       .map(n => {
         if (n.ref) return { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, ref: n.ref };
         if (n.kind === 'voice') return { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, kind: 'voice', dur: n.dur || 0 }; // audio in IndexedDB
+        if (n.kind === 'connector') return { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, kind: 'connector', yaml: n.yaml || '', display: n.display || 'triangle' };
         return { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, text: n.text, image: n.image || undefined, link: n.link || undefined, kind: n.kind === 'pancarte' ? 'pancarte' : undefined };
       }),
     circles: state.circles.map(c => ({

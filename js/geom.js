@@ -25,3 +25,13 @@ export function pointInPolygon(px, py, pts) {
 export function pointInHex(px, py, cx, cy, r) {
   return pointInPolygon(px, py, hexCorners(cx, cy, r));
 }
+
+// Triangle (point up) inscribed in a w x h box centered at (cx, cy) -- used
+// for the connector block. Hit-testing reuses the generic pointInPolygon.
+export function triCorners(cx, cy, w, h) {
+  return [
+    { x: cx, y: cy - h / 2 },
+    { x: cx + w / 2, y: cy + h / 2 },
+    { x: cx - w / 2, y: cy + h / 2 },
+  ];
+}

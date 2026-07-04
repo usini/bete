@@ -1,14 +1,14 @@
 // Board rendering: pixel grid, circles, hexagons, rectangles, neon glow, selection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr65a6rk';
-import { view, worldToScreen } from './camera.js?v=mr65a6rk';
-import { stretch } from './physics.js?v=mr65a6rk';
-import { hexCorners } from './geom.js?v=mr65a6rk';
-import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr65a6rk';
-import { fmtDur } from './voice.js?v=mr65a6rk';
-import { getCursors, getPresence } from './sync.js?v=mr65a6rk';
-import { youTubeId, ytThumb } from './yt.js?v=mr65a6rk';
-import { getImageEl } from './images.js?v=mr65a6rk';
-import { t } from './i18n.js?v=mr65a6rk';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr66m3ia';
+import { view, worldToScreen } from './camera.js?v=mr66m3ia';
+import { stretch } from './physics.js?v=mr66m3ia';
+import { hexCorners, triCorners } from './geom.js?v=mr66m3ia';
+import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr66m3ia';
+import { fmtDur } from './voice.js?v=mr66m3ia';
+import { getCursors, getPresence } from './sync.js?v=mr66m3ia';
+import { youTubeId, ytThumb } from './yt.js?v=mr66m3ia';
+import { getImageEl } from './images.js?v=mr66m3ia';
+import { t } from './i18n.js?v=mr66m3ia';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -48,6 +48,7 @@ export function render(ctx) {
     if (n.kind === 'liaison') drawLiaison(ctx, n, isSel(n.id), zoom);
     else if (n.kind === 'pancarte') drawPancarte(ctx, n, isSel(n.id), zoom);
     else if (n.kind === 'voice') drawVoice(ctx, n, isSel(n.id), zoom);
+    else if (n.kind === 'connector') drawConnector(ctx, n, isSel(n.id), zoom);
     else drawRect(ctx, n, effectiveColor(n), isSel(n.id), zoom);
   }
 
@@ -371,6 +372,77 @@ function drawVoice(ctx, n, selected, zoom) {
     ctx.fillRect(barX, barY, barW, barH);
     ctx.fillStyle = stl.text;
     ctx.fillRect(barX, barY, barW * Math.max(0, Math.min(1, n._prog || 0)), barH);
+  }
+  ctx.restore();
+}
+
+// IoT/HTTP connector block: 'triangle' (generic, status dot + last value) or
+// 'switch' (on/off toggle, see js/connector.js for the actual networking).
+const CONNECTOR_STATUS_COLOR = { idle: '#8a8a8a', loading: '#ffd400', ok: '#39ff14', error: '#fe4365' };
+
+function drawConnector(ctx, n, selected, zoom) {
+  const color = effectiveColor(n);
+  const stl = nodeStyle(color);
+  const rx = n._rx !== undefined ? n._rx : n.x;
+  const ry = n._ry !== undefined ? n._ry : n.y;
+  const p = worldToScreen(rx + n.w / 2, ry + n.h / 2);
+  const w = n.w * zoom, h = n.h * zoom;
+  const st = stretch(n);
+  const statusColor = CONNECTOR_STATUS_COLOR[n._status] || CONNECTOR_STATUS_COLOR.idle;
+
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  if (st.sx !== 1 || st.sy !== 1) { ctx.rotate(st.angle); ctx.scale(st.sx, st.sy); ctx.rotate(-st.angle); }
+
+  if (n.display === 'switch') {
+    const on = !!n._value;
+    ctx.shadowColor = on ? '#39ff14' : color;
+    ctx.shadowBlur = (selected ? 22 : 10) * GLOW();
+    ctx.fillStyle = on ? '#123a12' : stl.fill;
+    ctx.fillRect(-w / 2, -h / 2, w, h);
+    ctx.lineWidth = selected ? 5 : 3;
+    ctx.strokeStyle = on ? '#39ff14' : stl.border;
+    ctx.strokeRect(-w / 2, -h / 2, w, h);
+    ctx.shadowBlur = 0;
+
+    const fs = clamp(13 * zoom * getTextScale(), 8, 26);
+    ctx.font = `bold ${fs}px ${FONT()}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = on ? '#39ff14' : stl.text;
+    ctx.shadowColor = on ? '#39ff14' : color; ctx.shadowBlur = 4 * GLOW();
+    ctx.fillText(on ? t('connector.on') : t('connector.off'), 0, -h * 0.08);
+    ctx.shadowBlur = 0;
+  } else {
+    // Generic triangle: outline + a small status dot (top corner) + last value as text.
+    const pts = triCorners(0, 0, w, h);
+    ctx.beginPath();
+    pts.forEach((pt, i) => (i ? ctx.lineTo(pt.x, pt.y) : ctx.moveTo(pt.x, pt.y)));
+    ctx.closePath();
+    ctx.fillStyle = hexToRgba(color, 0.12);
+    ctx.fill();
+    ctx.shadowColor = color;
+    ctx.shadowBlur = (selected ? 22 : 10) * GLOW();
+    ctx.lineWidth = selected ? 5 : 3;
+    ctx.strokeStyle = color;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.beginPath();
+    ctx.arc(0, -h / 2 + 10 * zoom, Math.max(3, 4 * zoom), 0, Math.PI * 2);
+    ctx.fillStyle = statusColor;
+    ctx.fill();
+
+    if (n._value !== null && n._value !== undefined) {
+      const fs = clamp(12 * zoom * getTextScale(), 7, 22);
+      ctx.font = `${fs}px ${FONT()}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = stl.text;
+      ctx.shadowColor = color; ctx.shadowBlur = 3 * GLOW();
+      ctx.fillText(String(n._value), 0, h * 0.12);
+      ctx.shadowBlur = 0;
+    }
   }
   ctx.restore();
 }

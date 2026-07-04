@@ -566,6 +566,28 @@ html, body {
 .rec-cancel { color: #cfd8d3; background: #11151a; border-color: #cfd8d3; }
 .rec-cancel:hover { background: #1a1f26; }
 
+/* ---- Connector (IoT block) YAML editor ---- */
+.connector-card {
+  background: var(--node-bg); border: 3px solid var(--green);
+  box-shadow: 0 0 24px rgba(57, 255, 20, 0.35);
+  padding: 20px 24px; width: min(520px, 92vw);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.connector-title { color: var(--green); font-size: 12px; letter-spacing: 1px; }
+.connector-yaml {
+  width: 100%; height: 260px; resize: vertical;
+  font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.4;
+  background: #0d0f12; color: var(--ink); border: 2px solid var(--green-dim);
+  padding: 10px; outline: none; white-space: pre; tab-size: 2;
+}
+.connector-error { color: #fe4365; font-size: 11px; min-height: 14px; }
+.connector-actions { display: flex; gap: 10px; }
+.connector-actions button { font-family: inherit; font-size: 12px; padding: 11px 16px; cursor: pointer; border: 3px solid; flex: 1; }
+.connector-save { color: #04130a; background: var(--green); border-color: var(--green); font-weight: bold; }
+.connector-save:hover { background: #5cff42; }
+.connector-cancel { color: #cfd8d3; background: #11151a; border-color: #cfd8d3; }
+.connector-cancel:hover { background: #1a1f26; }
+
 /* ---- Reconnect-loop warning ---- */
 #reconnectpopup {
   position: fixed; inset: 0; z-index: 49;

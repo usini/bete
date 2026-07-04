@@ -2,14 +2,15 @@
 // We only synchronize the CONTENT (text, image, color, description, links,
 // creation/deletion): neither the camera nor the positions/sizes. Each screen
 // therefore keeps its own view. Merge by id, conflicts resolved with LWW + HOST priority.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr65a6rk';
-import { reset } from './physics.js?v=mr65a6rk';
-import { explodeElementCascade } from './fx.js?v=mr65a6rk';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr65a6rk';
-import { onImageArrived } from './images.js?v=mr65a6rk';
-import { getUserId, displayName } from './users.js?v=mr65a6rk';
-import { shareOrigin } from './platform.js?v=mr65a6rk';
-import { getOwnerToken } from './liaisons.js?v=mr65a6rk';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr66m3ia';
+import { reset } from './physics.js?v=mr66m3ia';
+import { explodeElementCascade } from './fx.js?v=mr66m3ia';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr66m3ia';
+import { onImageArrived } from './images.js?v=mr66m3ia';
+import { getUserId, displayName } from './users.js?v=mr66m3ia';
+import { shareOrigin } from './platform.js?v=mr66m3ia';
+import { getOwnerToken } from './liaisons.js?v=mr66m3ia';
+import { pollConnector, stopPolling } from './connector.js?v=mr66m3ia';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host
@@ -241,7 +242,7 @@ function nodeEntry(n) {
 // For the image: the 'idb:<hash>' ref is short and changes with the content -> we
 // use it as-is; a legacy data URL (long) is reduced to its length (size proxy).
 function imgSig(img) { return img ? (img.length < 128 ? img : img.length) : 0; }
-function sigNode(e) { return e.vc ? 'V' + e.dur : (e.ref !== undefined ? 'R' + e.ref : 'T' + e.t + '|' + imgSig(e.img) + '|' + (e.lk || '')); }
+function sigNode(e) { return e.vc ? 'V' + e.dur : e.cn ? 'C' + e.yml + '|' + e.disp : (e.ref !== undefined ? 'R' + e.ref : 'T' + e.t + '|' + imgSig(e.img) + '|' + (e.lk || '')); }
 function sigZone(e) { return 'Z' + e.col + '' + e.d; }
 
 function buildContent() {
@@ -249,6 +250,7 @@ function buildContent() {
   for (const node of state.nodes) {
     if (node.kind === 'liaison') continue;
     if (node.kind === 'voice') { n[node.id] = { vc: 1, dur: node.dur || 0, x: node.x, y: node.y, w: node.w, h: node.h }; continue; }
+    if (node.kind === 'connector') { n[node.id] = { cn: 1, yml: node.yaml || '', disp: node.display || 'triangle', x: node.x, y: node.y, w: node.w, h: node.h }; continue; }
     n[node.id] = nodeEntry(node);
   }
   for (const z of state.circles) c[z.id] = { col: z.color, d: z.description || '', x: z.x, y: z.y, r: z.r };
@@ -326,7 +328,7 @@ function merge(remote) {
   for (const id of remote.del || []) {
     tombstones.add(id);
     const el = findLocal(id);
-    if (el) { if (el.kind === 'voice') delAudio(id); explodeElementCascade(el); removeById(id); delete mtimes[id]; applied.add(id); changed = true; }
+    if (el) { if (el.kind === 'voice') delAudio(id); if (el.kind === 'connector') stopPolling(id); explodeElementCascade(el); removeById(id); delete mtimes[id]; applied.add(id); changed = true; }
   }
 
   const win = (id) => {
@@ -342,6 +344,7 @@ function merge(remote) {
     if (!ex) {
       let node;
       if (rd.vc) node = { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, kind: 'voice', dur: rd.dur || 0 };
+      else if (rd.cn) node = { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, kind: 'connector', yaml: rd.yml || '', display: rd.disp || 'triangle' };
       else node = rd.ref !== undefined
         ? { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, ref: rd.ref }
         : { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, text: rd.t || '', image: rd.img || undefined };
@@ -349,6 +352,7 @@ function merge(remote) {
       if (rd.lk) node.link = rd.lk;
       state.nodes.push(node); reset(node);
       if (rd.vc) ensureAudio(node); // fetches the audio from peers
+      if (rd.cn) pollConnector(node).catch(() => {}); // this device polls the device independently too
       if (node.image) ensureImage(node.image); // fetches the image from peers
       mtimes[id] = (remote.mt && remote.mt[id]) || now();
       applied.add(id); changed = true;
@@ -363,9 +367,14 @@ function merge(remote) {
           ensureAudio(ex);
           changed = true;
         } else if ((ex.dur || 0) !== (rd.dur || 0)) { ex.dur = rd.dur || 0; changed = true; }
+      } else if (rd.cn) {
+        if (ex.kind !== 'connector') { ex.kind = 'connector'; delete ex.text; delete ex.image; delete ex.link; changed = true; }
+        if ((ex.yaml || '') !== (rd.yml || '')) { ex.yaml = rd.yml || ''; changed = true; pollConnector(ex).catch(() => {}); }
+        if ((ex.display || 'triangle') !== (rd.disp || 'triangle')) { ex.display = rd.disp || 'triangle'; changed = true; }
       } else if (rd.ref !== undefined) { if (ex.ref !== rd.ref) { ex.ref = rd.ref; changed = true; } }
       else {
         if (ex.kind === 'voice') { delete ex.kind; delete ex.dur; changed = true; } // reverse conversion
+        if (ex.kind === 'connector') { delete ex.kind; delete ex.yaml; delete ex.display; stopPolling(ex.id); changed = true; } // reverse conversion
         if ((ex.text || '') !== (rd.t || '')) { ex.text = rd.t || ''; changed = true; }
         const img = rd.img || undefined;
         if ((ex.image || undefined) !== img) { if (img) { ex.image = img; ensureImage(img); } else delete ex.image; changed = true; }

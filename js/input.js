@@ -1,22 +1,23 @@
 // Mouse + touch input, elastic drag, hexagon links, radial menu,
 // palette, text editing, image popup.
 import {
-  state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
+  state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr65a6rk';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr65a6rk';
-import { dragTo, reset } from './physics.js?v=mr65a6rk';
-import { pointInHex } from './geom.js?v=mr65a6rk';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr65a6rk';
-import { storeImage, resolveSrc } from './images.js?v=mr65a6rk';
-import { explodeElementCascade } from './fx.js?v=mr65a6rk';
-import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr65a6rk';
-import { openSettings } from './settings.js?v=mr65a6rk';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr65a6rk';
-import { toggleDebug } from './debug.js?v=mr65a6rk';
-import { youTubeId } from './yt.js?v=mr65a6rk';
-import { setActiveVideo } from './video.js?v=mr65a6rk';
-import { t } from './i18n.js?v=mr65a6rk';
+} from './state.js?v=mr66m3ia';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr66m3ia';
+import { dragTo, reset } from './physics.js?v=mr66m3ia';
+import { pointInHex } from './geom.js?v=mr66m3ia';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr66m3ia';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr66m3ia';
+import { storeImage, resolveSrc } from './images.js?v=mr66m3ia';
+import { explodeElementCascade } from './fx.js?v=mr66m3ia';
+import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr66m3ia';
+import { openSettings } from './settings.js?v=mr66m3ia';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr66m3ia';
+import { toggleDebug } from './debug.js?v=mr66m3ia';
+import { youTubeId } from './yt.js?v=mr66m3ia';
+import { setActiveVideo } from './video.js?v=mr66m3ia';
+import { t } from './i18n.js?v=mr66m3ia';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -89,6 +90,8 @@ const ICONS = {
   image: '<rect x="3" y="4" width="18" height="16" rx="1.5"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 16l-5.5-5.5a1 1 0 0 0-1.4 0L9 15.5"/>',
   camera: '<path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="14" r="3.5"/>',
   dot: '<circle cx="12" cy="12" r="3"/>',
+  triangle: '<polygon points="12,4 20,19 4,19"/>',
+  power: '<line x1="12" y1="3" x2="12" y2="11"/><path d="M7 6a7 7 0 1 0 10 0"/>',
 };
 let pendingBoardPos = null; // position where a new board will be created (if not null, a new board will be created on the next click)
 let pendingBoardTarget = null; // target board to link to when creating a new board (if not null, a new board will be created on the next click and linked to this target)
@@ -624,7 +627,8 @@ function handleDouble(sx, sy) {
   // Double-tap/click on a link => follows it directly (allowed even when locked).
   if (r && displayLink(r)) { clearLinkFocus(); followLink(displayLink(r)); return; }
   if (r && r.kind === 'voice') { toggleVoice(r); return; } // double-click = playback
-  if (!canInteract()) return; // locked: no editing/opening
+  if (!canInteract()) return; // locked: no editing/opening (a read-only guest also can't flip a real switch)
+  if (r && r.kind === 'connector' && r.display === 'switch') { toggleSwitch(r); return; }
   if (r) {
     const img = displayImage(r);
     if (img) { openImagePopup(img); return; }
@@ -739,6 +743,38 @@ function openLink(url) {
   window.open(u, '_blank', 'noopener,noreferrer');
 }
 
+// Modal YAML program editor for a connector block (see connector.js).
+function openConnectorEditor(node) {
+  const m = document.createElement('div');
+  m.className = 'recmodal';
+  m.innerHTML = '<div class="connector-card">'
+    + '<div class="connector-title">' + t('connector.title') + '</div>'
+    + '<textarea class="connector-yaml" spellcheck="false"></textarea>'
+    + '<div class="connector-error"></div>'
+    + '<div class="connector-actions">'
+    + '<button class="connector-save">' + t('connector.save') + '</button>'
+    + '<button class="connector-cancel">' + t('connector.cancel') + '</button>'
+    + '</div></div>';
+  m.addEventListener('mousedown', (e) => e.stopPropagation());
+  m.addEventListener('touchstart', (e) => e.stopPropagation());
+  document.body.appendChild(m);
+
+  const ta = m.querySelector('.connector-yaml');
+  const errEl = m.querySelector('.connector-error');
+  ta.value = node.yaml || '';
+  setTimeout(() => ta.focus(), 50);
+
+  m.querySelector('.connector-cancel').addEventListener('click', () => m.remove());
+  m.querySelector('.connector-save').addEventListener('click', async () => {
+    try {
+      await applyConnectorProgram(node, ta.value);
+      m.remove();
+    } catch (e) {
+      errEl.textContent = t('alert.yamlInvalid') + (e.message ? ' (' + e.message + ')' : '');
+    }
+  });
+}
+
 // Removes an element (explosion + propagation; detaches the host if it's a Liaison).
 function removeElement(el) {
   if (!el) return;
@@ -751,6 +787,11 @@ function removeElement(el) {
   if (el.kind === 'voice') {
     explodeElementCascade(el);
     removeVoiceAudio(el.id); // erases the audio in IndexedDB
+    removeById(el.id); scheduleSave(); return;
+  }
+  if (el.kind === 'connector') {
+    explodeElementCascade(el);
+    stopPolling(el.id);
     removeById(el.id); scheduleSave(); return;
   }
   explodeElementCascade(el); // local explosion
@@ -829,6 +870,10 @@ function openContextAt(sx, sy) {
       { label: t('radial.playPause'), icon: 'mic', color: COL.green, fn: () => toggleVoice(r) },
       { label: t('radial.delete'), icon: 'trash', color: COL.red, fn: () => removeElement(r) },
     ];
+  } else if (r && r.kind === 'connector') {
+    items = [{ label: t('radial.editProgram'), icon: 'edit', color: COL.cyan, fn: () => openConnectorEditor(r) }];
+    if (r.display !== 'switch') items.push({ label: t('radial.makeSwitch'), icon: 'power', color: COL.wood, fn: () => { r.display = 'switch'; scheduleSave(); pollConnector(r); } });
+    items.push({ label: t('radial.delete'), icon: 'trash', color: COL.red, fn: () => removeElement(r) });
   } else if (r) {
     const isLink = !!r.ref;
     items = [{ label: t('radial.editText'), icon: 'edit', color: COL.cyan, fn: () => { const t = isLink ? sourceOf(r) : r; if (t) startEdit('rect', t, r); } }];
@@ -871,6 +916,7 @@ function openContextAt(sx, sy) {
       { label: t('radial.rectangle'), icon: 'rect', color: COL.green, fn: () => { const n = addRect(w.x - 75, w.y - 35); reset(n); state.selected = n.id; startEdit('rect', n, n); scheduleSave(); } },
       { label: t('radial.circle'), icon: 'circle', color: COL.cyan, fn: () => { const c = addCircle(w.x, w.y); state.selected = c.id; scheduleSave(); } },
       { label: t('radial.hexagon'), icon: 'hexa', color: COL.orange, fn: () => { const h = addHexagon(w.x, w.y); state.selected = h.id; scheduleSave(); } },
+      { label: t('radial.connector'), icon: 'triangle', color: COL.orange, fn: () => { const n = addConnector(w.x - 75, w.y - 65); reset(n); state.selected = n.id; scheduleSave(); openConnectorEditor(n); } },
       { label: t('radial.liaison'), icon: 'share', color: COL.magenta, fn: () => createLiaison(w.x, w.y) },
       { label: t('radial.undo'), icon: 'undo', color: COL.yellow, fn: () => doUndo() },
       { label: t('radial.selection'), icon: 'select', color: COL.yellow, fn: () => { selectArmed = true; } },

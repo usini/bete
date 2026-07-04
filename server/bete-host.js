@@ -77,6 +77,7 @@ function fromExport(obj) {
   for (const nd of obj.nodes || []) {
     if (nd.kind === 'liaison') continue;
     if (nd.ref !== undefined) n[nd.id] = { ref: nd.ref, x: nd.x, y: nd.y, w: nd.w, h: nd.h };
+    else if (nd.kind === 'connector') n[nd.id] = { cn: 1, yml: nd.yaml || '', disp: nd.display || 'triangle', x: nd.x, y: nd.y, w: nd.w, h: nd.h };
     else {
       const e = { t: nd.text || '', img: nd.image || null, x: nd.x, y: nd.y, w: nd.w, h: nd.h };
       if (nd.kind === 'pancarte') e.k = 'pancarte';

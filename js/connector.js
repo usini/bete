@@ -1,0 +1,121 @@
+// IoT/HTTP connector block: parses a small YAML program (schema inspired by
+// Home Assistant's `switch.rest` integration -- resource/method/body_on/
+// body_off/state_path) and polls/actuates a local device (e.g. a Shelly
+// smart plug). See CLAUDE.md for the read-only vs. host distinction that
+// also applies here (a locked guest may watch a switch's state but not
+// flip it -- enforced in input.js, not in this module).
+import { scheduleSave } from './state.js?v=mr66m3ia';
+
+// Vendored locally (js/vendor/js-yaml.min.js) so the app keeps working
+// offline -- no CDN fetch at runtime, unlike the PeerJS/QR script loads in
+// sync.js. Loaded lazily (only once a connector block actually exists).
+const YAML_SRC = 'js/vendor/js-yaml.min.js';
+let _yamlLoad = null;
+function loadYaml() {
+  if (_yamlLoad) return _yamlLoad;
+  _yamlLoad = new Promise((res, rej) => {
+    if (window.jsyaml) { res(window.jsyaml); return; }
+    const s = document.createElement('script');
+    s.src = YAML_SRC;
+    s.onload = () => res(window.jsyaml);
+    s.onerror = () => rej(new Error('load ' + YAML_SRC));
+    document.head.appendChild(s);
+  });
+  return _yamlLoad;
+}
+
+export async function parseYaml(text) {
+  const yaml = await loadYaml();
+  return yaml.load(text || '') || {};
+}
+
+// Accepts a plain dot-path ("output", "params.tC") or the Home Assistant
+// template shape ("{{ value_json.output }}"), extracted via regex -- no
+// real Jinja2 engine, just enough to reuse a single-variable HA snippet.
+export function extractPath(json, pathOrTemplate) {
+  if (!pathOrTemplate) return undefined;
+  const m = /^\{\{\s*value_json\.([\w.]+)\s*\}\}$/.exec(pathOrTemplate.trim());
+  const path = m ? m[1] : pathOrTemplate.trim();
+  return path.split('.').reduce((v, k) => (v == null ? undefined : v[k]), json);
+}
+
+// Chrome's Local Network Access API: opt-in so a request to a private IP
+// isn't blocked as mixed content on an HTTPS page. Harmless no-op on
+// browsers that don't know this fetch option yet.
+const PRIVATE_HOST_RE = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.|127\.|[a-z0-9-]+\.local)/i;
+export function connectorFetch(url, opts) {
+  const init = { ...opts };
+  try {
+    const host = new URL(url).hostname;
+    if (PRIVATE_HOST_RE.test(host)) init.targetAddressSpace = 'local';
+  } catch (e) { /* invalid URL: let fetch() report the real error */ }
+  return fetch(url, init);
+}
+
+async function requestJson(resource, method, headers, body) {
+  const res = await connectorFetch(resource, { method: method || 'GET', headers, body });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const txt = await res.text();
+  try { return JSON.parse(txt); } catch (e) { return txt; }
+}
+
+// Refreshes a connector's displayed value/status from its state_resource
+// (or resource, if no separate one is configured).
+export async function refreshConnector(node) {
+  let cfg;
+  try { cfg = await parseYaml(node.yaml); } catch (e) { node._status = 'error'; node._error = 'YAML: ' + e.message; return; }
+  if (!cfg.resource && !cfg.state_resource) { node._status = 'idle'; return; }
+  node._status = 'loading';
+  try {
+    const json = await requestJson(cfg.state_resource || cfg.resource, 'GET', cfg.headers);
+    node._value = cfg.state_path ? extractPath(json, cfg.state_path) : json;
+    node._status = 'ok';
+    node._lastFetch = Date.now();
+    node._error = '';
+  } catch (e) {
+    node._status = 'error';
+    node._error = e.message;
+  }
+}
+
+// Sends body_on/body_off (toggling from the current known value), then
+// re-reads the state to reflect what the device actually did.
+export async function toggleSwitch(node) {
+  let cfg;
+  try { cfg = await parseYaml(node.yaml); } catch (e) { node._status = 'error'; node._error = 'YAML: ' + e.message; return; }
+  if (!cfg.resource) { node._status = 'error'; node._error = 'no resource configured'; return; }
+  const turningOn = !node._value;
+  const body = turningOn ? cfg.body_on : cfg.body_off;
+  node._status = 'loading';
+  try {
+    await requestJson(cfg.resource, cfg.method || 'POST', cfg.headers, body);
+    await refreshConnector(node);
+  } catch (e) {
+    node._status = 'error';
+    node._error = e.message;
+  }
+}
+
+// ---- Per-node polling ----
+const timers = {}; // node id -> setInterval handle
+
+export function stopPolling(id) {
+  if (timers[id]) { clearInterval(timers[id]); delete timers[id]; }
+}
+
+export async function pollConnector(node) {
+  stopPolling(node.id);
+  let cfg;
+  try { cfg = await parseYaml(node.yaml); } catch (e) { node._status = 'error'; node._error = 'YAML: ' + e.message; return; }
+  await refreshConnector(node);
+  const seconds = Math.max(5, Number(cfg.poll_interval) || 30);
+  timers[node.id] = setInterval(() => refreshConnector(node), seconds * 1000);
+}
+
+// Re-parses + restarts polling after the YAML program changed in the editor.
+export async function applyConnectorProgram(node, yamlText) {
+  await parseYaml(yamlText); // throws on invalid YAML -- caller keeps the editor open on failure
+  node.yaml = yamlText;
+  scheduleSave();
+  await pollConnector(node);
+}
