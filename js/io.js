@@ -1,21 +1,14 @@
 // JSON export / import.
-import { serialize, load, getBoardId, scheduleSave } from './state.js?v=mr6jpt12';
-import { reset } from './physics.js?v=mr6jpt12';
-import { state } from './state.js?v=mr6jpt12';
-import { inlineImages, migrateImages } from './images.js?v=mr6jpt12';
-import { listBoards, recordBoard } from './boards.js?v=mr6jpt12';
-import { t } from './i18n.js?v=mr6jpt12';
+import { serialize, load, getBoardId, scheduleSave } from './state.js?v=mr6kmu9r';
+import { reset } from './physics.js?v=mr6kmu9r';
+import { state } from './state.js?v=mr6kmu9r';
+import { inlineImages, migrateImages } from './images.js?v=mr6kmu9r';
+import { listBoards, recordBoard } from './boards.js?v=mr6kmu9r';
+import { t } from './i18n.js?v=mr6kmu9r';
+import { saveTextFile } from './platform.js?v=mr6kmu9r';
 
 function downloadJSON(obj, filename) {
-  const blob = new Blob([JSON.stringify(obj)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  saveTextFile(JSON.stringify(obj), filename, 'json');
 }
 
 export async function exportJSON() {

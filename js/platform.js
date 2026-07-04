@@ -44,3 +44,46 @@ export function shareOrigin() {
   if (linkMode === 'lan' && lanUrl) return lanUrl;
   return 'https://bete.usini.eu/';
 }
+
+// Saves a text file to disk, on web and desktop alike.
+//
+// On the web build, the classic Blob + <a download> trick works fine (every
+// browser shows its own "Save As" / auto-download behavior for it). Inside
+// the Tauri desktop wrapper (WebView2 on Windows), that same trick silently
+// does nothing -- WKWebView/WebView2 don't implement the `download`
+// attribute the way a real browser tab does, so nothing gets saved and
+// nothing is shown to the user either. The fix is to go through Tauri's
+// dialog + fs plugins instead: a real native Save As dialog, then a plugin
+// write to the path the user picked (that path is exempt from the fs
+// plugin's path-scope allowlist, since it came from the dialog itself).
+const DIALOG_MOD = 'https://esm.sh/@tauri-apps/plugin-dialog@2';
+const FS_MOD = 'https://esm.sh/@tauri-apps/plugin-fs@2';
+
+export async function saveTextFile(text, filename, extFilter) {
+  if (!isDesktop) {
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return true;
+  }
+  try {
+    const { save } = await import(DIALOG_MOD);
+    const { writeTextFile } = await import(FS_MOD);
+    const path = await save({
+      defaultPath: filename,
+      filters: extFilter ? [{ name: extFilter.toUpperCase(), extensions: [extFilter] }] : undefined,
+    });
+    if (!path) return false; // user cancelled the dialog
+    await writeTextFile(path, text);
+    return true;
+  } catch (e) {
+    console.error('Bete: saveTextFile failed', e);
+    return false;
+  }
+}

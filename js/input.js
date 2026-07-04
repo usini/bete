@@ -3,21 +3,21 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr6jpt12';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr6jpt12';
-import { dragTo, reset } from './physics.js?v=mr6jpt12';
-import { pointInHex } from './geom.js?v=mr6jpt12';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr6jpt12';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr6jpt12';
-import { storeImage, resolveSrc } from './images.js?v=mr6jpt12';
-import { explodeElementCascade } from './fx.js?v=mr6jpt12';
-import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr6jpt12';
-import { openSettings } from './settings.js?v=mr6jpt12';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr6jpt12';
-import { toggleDebug } from './debug.js?v=mr6jpt12';
-import { youTubeId } from './yt.js?v=mr6jpt12';
-import { setActiveVideo } from './video.js?v=mr6jpt12';
-import { t } from './i18n.js?v=mr6jpt12';
+} from './state.js?v=mr6kmu9r';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr6kmu9r';
+import { dragTo, reset } from './physics.js?v=mr6kmu9r';
+import { pointInHex } from './geom.js?v=mr6kmu9r';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr6kmu9r';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr6kmu9r';
+import { storeImage, resolveSrc } from './images.js?v=mr6kmu9r';
+import { explodeElementCascade } from './fx.js?v=mr6kmu9r';
+import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr6kmu9r';
+import { openSettings } from './settings.js?v=mr6kmu9r';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr6kmu9r';
+import { toggleDebug } from './debug.js?v=mr6kmu9r';
+import { youTubeId } from './yt.js?v=mr6kmu9r';
+import { setActiveVideo } from './video.js?v=mr6kmu9r';
+import { t } from './i18n.js?v=mr6kmu9r';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }

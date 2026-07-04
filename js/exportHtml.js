@@ -3,9 +3,10 @@
 // browser with no server and no dependency on this app being installed.
 // Connector blocks (IoT) are dropped entirely -- they'd otherwise imply a
 // live network poll, which contradicts "frozen snapshot".
-import { serialize, getBoardName } from './state.js?v=mr6jpt12';
-import { inlineImages } from './images.js?v=mr6jpt12';
-import { theme, getTextScale } from './theme.js?v=mr6jpt12';
+import { serialize, getBoardName } from './state.js?v=mr6kmu9r';
+import { inlineImages } from './images.js?v=mr6kmu9r';
+import { theme, getTextScale } from './theme.js?v=mr6kmu9r';
+import { saveTextFile } from './platform.js?v=mr6kmu9r';
 
 // Fetches a same-origin asset (e.g. the winxp wallpaper) and inlines it as a
 // data URL, so the exported file has zero external file dependencies.
@@ -35,15 +36,8 @@ export async function exportBoardHtml() {
   if (th.wallpaper) themeSnap.wallpaper = await assetToDataUrl(th.wallpaper);
 
   const html = buildViewerHtml(snap, themeSnap, getTextScale(), getBoardName() || 'Bete');
-  const blob = new Blob([html], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'bete-' + (getBoardName() || 'board').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.html';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const filename = 'bete-' + (getBoardName() || 'board').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.html';
+  await saveTextFile(html, filename, 'html');
 }
 
 // The exported page is fully self-contained: no imports, no build, just the

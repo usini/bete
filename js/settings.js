@@ -1,17 +1,17 @@
 // Settings menu: theme, language, text size, named liaisons, navigation
 // (tutorial / visited boards), clear the current board. Audio and Visual
 // (theme/text size) live in their own sub-panels to keep the main list short.
-import { state, getBoardId, scheduleSave } from './state.js?v=mr6jpt12';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr6jpt12';
-import { listBoards, buildBoardUrl } from './boards.js?v=mr6jpt12';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr6jpt12';
-import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mr6jpt12';
-import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mr6jpt12';
-import { exportBoardHtml } from './exportHtml.js?v=mr6jpt12';
-import { getUserName, setUserName } from './users.js?v=mr6jpt12';
-import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr6jpt12';
-import { t, getLang, setLang, LANGS } from './i18n.js?v=mr6jpt12';
-import { isDesktop, getLinkMode, setLinkMode, getAppVersion } from './platform.js?v=mr6jpt12';
+import { state, getBoardId, scheduleSave } from './state.js?v=mr6kmu9r';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr6kmu9r';
+import { listBoards, buildBoardUrl } from './boards.js?v=mr6kmu9r';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr6kmu9r';
+import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mr6kmu9r';
+import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mr6kmu9r';
+import { exportBoardHtml } from './exportHtml.js?v=mr6kmu9r';
+import { getUserName, setUserName } from './users.js?v=mr6kmu9r';
+import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr6kmu9r';
+import { t, getLang, setLang, LANGS } from './i18n.js?v=mr6kmu9r';
+import { isDesktop, getLinkMode, setLinkMode, getAppVersion } from './platform.js?v=mr6kmu9r';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
