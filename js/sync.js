@@ -6,15 +6,15 @@
 // (falls back to host priority if both sides are on the same build) -- an
 // out-of-date host (stale tab, permanent Pi host not yet redeployed) must not
 // keep clobbering a freshly-updated peer's edits forever.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr6okg0j';
-import { reset } from './physics.js?v=mr6okg0j';
-import { explodeElementCascade } from './fx.js?v=mr6okg0j';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr6okg0j';
-import { onImageArrived } from './images.js?v=mr6okg0j';
-import { getUserId, displayName } from './users.js?v=mr6okg0j';
-import { shareOrigin } from './platform.js?v=mr6okg0j';
-import { getOwnerToken } from './liaisons.js?v=mr6okg0j';
-import { pollConnector, stopPolling } from './connector.js?v=mr6okg0j';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr6ox2uf';
+import { reset } from './physics.js?v=mr6ox2uf';
+import { explodeElementCascade } from './fx.js?v=mr6ox2uf';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr6ox2uf';
+import { onImageArrived } from './images.js?v=mr6ox2uf';
+import { getUserId, displayName } from './users.js?v=mr6ox2uf';
+import { shareOrigin } from './platform.js?v=mr6ox2uf';
+import { getOwnerToken } from './liaisons.js?v=mr6ox2uf';
+import { pollConnector, stopPolling } from './connector.js?v=mr6ox2uf';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host

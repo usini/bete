@@ -3,21 +3,22 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr6okg0j';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr6okg0j';
-import { dragTo, reset } from './physics.js?v=mr6okg0j';
-import { pointInHex } from './geom.js?v=mr6okg0j';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr6okg0j';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr6okg0j';
-import { storeImage, resolveSrc } from './images.js?v=mr6okg0j';
-import { explodeElementCascade } from './fx.js?v=mr6okg0j';
-import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr6okg0j';
-import { openSettings } from './settings.js?v=mr6okg0j';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr6okg0j';
-import { toggleDebug } from './debug.js?v=mr6okg0j';
-import { youTubeId } from './yt.js?v=mr6okg0j';
-import { setActiveVideo } from './video.js?v=mr6okg0j';
-import { t } from './i18n.js?v=mr6okg0j';
+} from './state.js?v=mr6ox2uf';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr6ox2uf';
+import { dragTo, reset } from './physics.js?v=mr6ox2uf';
+import { pointInHex } from './geom.js?v=mr6ox2uf';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr6ox2uf';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr6ox2uf';
+import { storeImage, resolveSrc } from './images.js?v=mr6ox2uf';
+import { explodeElementCascade } from './fx.js?v=mr6ox2uf';
+import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr6ox2uf';
+import { openSettings } from './settings.js?v=mr6ox2uf';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr6ox2uf';
+import { toggleDebug } from './debug.js?v=mr6ox2uf';
+import { youTubeId } from './yt.js?v=mr6ox2uf';
+import { setActiveVideo } from './video.js?v=mr6ox2uf';
+import { t } from './i18n.js?v=mr6ox2uf';
+import { openExternal } from './platform.js?v=mr6ox2uf';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -767,7 +768,7 @@ function openLink(url) {
   let u = String(url).trim();
   if (!u) return;
   if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(u)) u = 'https://' + u;
-  window.open(u, '_blank', 'noopener,noreferrer');
+  openExternal(u);
 }
 
 // Modal YAML program editor for a connector block (see connector.js).

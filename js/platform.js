@@ -87,3 +87,25 @@ export async function saveTextFile(text, filename, extFilter) {
     return false;
   }
 }
+
+// Opens an external (http/https) link in the system's default browser.
+//
+// On the web build, window.open(_blank) is exactly what you want. Inside the
+// Tauri desktop wrapper, window.open on an external URL doesn't reach a real
+// browser at all -- it either does nothing or tries to navigate the app's
+// own webview to it. The opener plugin's openUrl() hands the URL to the OS
+// instead, which is what actually launches the user's default browser.
+const OPENER_MOD = 'https://esm.sh/@tauri-apps/plugin-opener@2';
+
+export async function openExternal(url) {
+  if (!isDesktop) {
+    window.open(url, '_blank', 'noopener,noreferrer');
+    return;
+  }
+  try {
+    const { openUrl } = await import(OPENER_MOD);
+    await openUrl(url);
+  } catch (e) {
+    console.error('Bete: openExternal failed', e);
+  }
+}
