@@ -1,16 +1,16 @@
 // Settings menu: theme, language, text size, named liaisons, navigation
 // (tutorial / visited boards), clear the current board. Audio and Visual
 // (theme/text size) live in their own sub-panels to keep the main list short.
-import { state, getBoardId, scheduleSave } from './state.js?v=mr6hrnjr';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr6hrnjr';
-import { listBoards, buildBoardUrl } from './boards.js?v=mr6hrnjr';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr6hrnjr';
-import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mr6hrnjr';
-import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mr6hrnjr';
-import { getUserName, setUserName } from './users.js?v=mr6hrnjr';
-import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr6hrnjr';
-import { t, getLang, setLang, LANGS } from './i18n.js?v=mr6hrnjr';
-import { isDesktop, getLinkMode, setLinkMode, getAppVersion } from './platform.js?v=mr6hrnjr';
+import { state, getBoardId, scheduleSave } from './state.js?v=mr6jcn8i';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr6jcn8i';
+import { listBoards, buildBoardUrl } from './boards.js?v=mr6jcn8i';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr6jcn8i';
+import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mr6jcn8i';
+import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mr6jcn8i';
+import { getUserName, setUserName } from './users.js?v=mr6jcn8i';
+import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr6jcn8i';
+import { t, getLang, setLang, LANGS } from './i18n.js?v=mr6jcn8i';
+import { isDesktop, getLinkMode, setLinkMode, getAppVersion } from './platform.js?v=mr6jcn8i';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);

@@ -1,14 +1,15 @@
 // Board rendering: pixel grid, circles, hexagons, rectangles, neon glow, selection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr6hrnjr';
-import { view, worldToScreen } from './camera.js?v=mr6hrnjr';
-import { stretch } from './physics.js?v=mr6hrnjr';
-import { hexCorners, triCorners } from './geom.js?v=mr6hrnjr';
-import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr6hrnjr';
-import { fmtDur } from './voice.js?v=mr6hrnjr';
-import { getCursors, getPresence } from './sync.js?v=mr6hrnjr';
-import { youTubeId, ytThumb } from './yt.js?v=mr6hrnjr';
-import { getImageEl } from './images.js?v=mr6hrnjr';
-import { t } from './i18n.js?v=mr6hrnjr';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr6jcn8i';
+import { parseBoardUrl } from './boards.js?v=mr6jcn8i';
+import { view, worldToScreen } from './camera.js?v=mr6jcn8i';
+import { stretch } from './physics.js?v=mr6jcn8i';
+import { hexCorners, triCorners } from './geom.js?v=mr6jcn8i';
+import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr6jcn8i';
+import { fmtDur } from './voice.js?v=mr6jcn8i';
+import { getCursors, getPresence } from './sync.js?v=mr6jcn8i';
+import { youTubeId, ytThumb } from './yt.js?v=mr6jcn8i';
+import { getImageEl } from './images.js?v=mr6jcn8i';
+import { t } from './i18n.js?v=mr6jcn8i';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -627,6 +628,10 @@ function drawRect(ctx, n, color, selected, zoom) {
   const text = isLink ? (src ? src.text : '') : n.text;
   const image = isLink ? (src ? src.image : null) : n.image;
   const ytId = !image ? youTubeId(text) : null; // text = YouTube URL -> video
+  // A "link to board" rectangle (js/input.js createBoardLink) gets its own
+  // look: a red border with current running through it, rather than the
+  // plain dashed border shared by every clickable link.
+  const boardLink = !isLink && !!parseBoardUrl(displayLink(n));
 
   // Rendered (physics) position + center.
   const rx = n._rx !== undefined ? n._rx : n.x;
@@ -673,12 +678,26 @@ function drawRect(ctx, n, color, selected, zoom) {
     ctx.fillRect(-w / 2, -h / 2, w, h);
     ctx.shadowBlur = 0;
 
-    // Border (dashed for a link).
+    // Border: dashed for a ref-link, "live wire" red pulse for a board link,
+    // plain otherwise.
     ctx.lineWidth = selected ? 5 : 3;
-    ctx.strokeStyle = stl.border;
-    if (isLink) ctx.setLineDash([6 * zoom, 4 * zoom]);
-    ctx.strokeRect(-w / 2, -h / 2, w, h);
-    ctx.setLineDash([]);
+    if (boardLink) {
+      const dash = 9 * zoom, gap = 6 * zoom;
+      ctx.strokeStyle = '#fe4365';
+      ctx.shadowColor = '#fe4365';
+      ctx.shadowBlur = (8 + Math.sin(performance.now() / 120) * 5) * Math.max(GLOW(), 0.6);
+      ctx.setLineDash([dash, gap]);
+      ctx.lineDashOffset = -(performance.now() / 18) % (dash + gap);
+      ctx.strokeRect(-w / 2, -h / 2, w, h);
+      ctx.setLineDash([]);
+      ctx.lineDashOffset = 0;
+      ctx.shadowBlur = 0;
+    } else {
+      ctx.strokeStyle = stl.border;
+      if (isLink) ctx.setLineDash([6 * zoom, 4 * zoom]);
+      ctx.strokeRect(-w / 2, -h / 2, w, h);
+      ctx.setLineDash([]);
+    }
   }
 
   // Resize handle (bottom-right corner), only when selected alone.
