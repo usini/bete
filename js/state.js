@@ -1,5 +1,5 @@
 // Shared data model + localStorage persistence.
-import { pointInHex } from './geom.js?v=mr6jcn8i';
+import { pointInHex } from './geom.js?v=mr6jpt12';
 
 export const DEFAULT_GREEN = '#39ff14';
 
