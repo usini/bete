@@ -3,20 +3,20 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr64tr2w';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr64tr2w';
-import { dragTo, reset } from './physics.js?v=mr64tr2w';
-import { pointInHex } from './geom.js?v=mr64tr2w';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr64tr2w';
-import { storeImage, resolveSrc } from './images.js?v=mr64tr2w';
-import { explodeElementCascade } from './fx.js?v=mr64tr2w';
-import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr64tr2w';
-import { openSettings } from './settings.js?v=mr64tr2w';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr64tr2w';
-import { toggleDebug } from './debug.js?v=mr64tr2w';
-import { youTubeId } from './yt.js?v=mr64tr2w';
-import { setActiveVideo } from './video.js?v=mr64tr2w';
-import { t } from './i18n.js?v=mr64tr2w';
+} from './state.js?v=mr65686w';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr65686w';
+import { dragTo, reset } from './physics.js?v=mr65686w';
+import { pointInHex } from './geom.js?v=mr65686w';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr65686w';
+import { storeImage, resolveSrc } from './images.js?v=mr65686w';
+import { explodeElementCascade } from './fx.js?v=mr65686w';
+import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr65686w';
+import { openSettings } from './settings.js?v=mr65686w';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr65686w';
+import { toggleDebug } from './debug.js?v=mr65686w';
+import { youTubeId } from './yt.js?v=mr65686w';
+import { setActiveVideo } from './video.js?v=mr65686w';
+import { t } from './i18n.js?v=mr65686w';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -844,6 +844,7 @@ function openContextAt(sx, sy) {
     if (!isLink && r.kind !== 'pancarte') {
       items.push({ label: t('radial.boardLink'), icon: 'board', color: COL.cyan, fn: () => openBoardPicker(r.x, r.y, r) });
       if (!r.image) items.push({ label: t('radial.voiceMemo'), icon: 'mic', color: COL.red, fn: () => recordVoiceMemo(r.x, r.y, r) });
+      items.push({ label: t('radial.makeSign'), icon: 'pancarte', color: COL.wood, fn: () => { r.kind = 'pancarte'; scheduleSave(); } });
     }
     items.push({ label: isLink ? t('radial.unlink') : t('radial.delete'), icon: 'trash', color: COL.red, fn: () => { removeById(r.id); scheduleSave(); } });
   } else if (hz) {
@@ -856,7 +857,6 @@ function openContextAt(sx, sy) {
   } else {
     items = [
       { label: t('radial.rectangle'), icon: 'rect', color: COL.green, fn: () => { const n = addRect(w.x - 75, w.y - 35); reset(n); state.selected = n.id; startEdit('rect', n, n); scheduleSave(); } },
-      { label: t('radial.sign'), icon: 'pancarte', color: COL.wood, fn: () => { const n = { id: newId(), kind: 'pancarte', x: w.x - 120, y: w.y - 65, w: 240, h: 130, text: '' }; state.nodes.push(n); reset(n); state.selected = n.id; startEdit('rect', n, n); scheduleSave(); } },
       { label: t('radial.circle'), icon: 'circle', color: COL.cyan, fn: () => { const c = addCircle(w.x, w.y); state.selected = c.id; scheduleSave(); } },
       { label: t('radial.hexagon'), icon: 'hexa', color: COL.orange, fn: () => { const h = addHexagon(w.x, w.y); state.selected = h.id; scheduleSave(); } },
       { label: t('radial.liaison'), icon: 'share', color: COL.magenta, fn: () => createLiaison(w.x, w.y) },
