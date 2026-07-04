@@ -1,11 +1,11 @@
 // Voice memos: recording (MediaRecorder/Opus), IndexedDB storage,
 // play/pause, P2P sharing of the audio (see sync.js shareAudio/requestAudio).
-import { state, newId, scheduleSave } from './state.js?v=mr6lcnni';
-import { reset } from './physics.js?v=mr6lcnni';
-import { putAudio, getAudio, delAudio } from './audio.js?v=mr6lcnni';
-import { shareAudio, requestAudio } from './sync.js?v=mr6lcnni';
-import { t } from './i18n.js?v=mr6lcnni';
-import { acquireStream } from './voicechat.js?v=mr6lcnni';
+import { state, newId, scheduleSave } from './state.js?v=mr6o54sq';
+import { reset } from './physics.js?v=mr6o54sq';
+import { putAudio, getAudio, delAudio } from './audio.js?v=mr6o54sq';
+import { shareAudio, requestAudio } from './sync.js?v=mr6o54sq';
+import { t } from './i18n.js?v=mr6o54sq';
+import { acquireStream } from './voicechat.js?v=mr6o54sq';
 
 const players = {}; // id -> { audio, url }
 const MAX_MS = 60000; // max memo duration: 1 minute
