@@ -3,20 +3,20 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr65686w';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr65686w';
-import { dragTo, reset } from './physics.js?v=mr65686w';
-import { pointInHex } from './geom.js?v=mr65686w';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr65686w';
-import { storeImage, resolveSrc } from './images.js?v=mr65686w';
-import { explodeElementCascade } from './fx.js?v=mr65686w';
-import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr65686w';
-import { openSettings } from './settings.js?v=mr65686w';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr65686w';
-import { toggleDebug } from './debug.js?v=mr65686w';
-import { youTubeId } from './yt.js?v=mr65686w';
-import { setActiveVideo } from './video.js?v=mr65686w';
-import { t } from './i18n.js?v=mr65686w';
+} from './state.js?v=mr65a6rk';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr65a6rk';
+import { dragTo, reset } from './physics.js?v=mr65a6rk';
+import { pointInHex } from './geom.js?v=mr65a6rk';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr65a6rk';
+import { storeImage, resolveSrc } from './images.js?v=mr65a6rk';
+import { explodeElementCascade } from './fx.js?v=mr65a6rk';
+import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr65a6rk';
+import { openSettings } from './settings.js?v=mr65a6rk';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr65a6rk';
+import { toggleDebug } from './debug.js?v=mr65a6rk';
+import { youTubeId } from './yt.js?v=mr65a6rk';
+import { setActiveVideo } from './video.js?v=mr65a6rk';
+import { t } from './i18n.js?v=mr65a6rk';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -844,7 +844,19 @@ function openContextAt(sx, sy) {
     if (!isLink && r.kind !== 'pancarte') {
       items.push({ label: t('radial.boardLink'), icon: 'board', color: COL.cyan, fn: () => openBoardPicker(r.x, r.y, r) });
       if (!r.image) items.push({ label: t('radial.voiceMemo'), icon: 'mic', color: COL.red, fn: () => recordVoiceMemo(r.x, r.y, r) });
-      items.push({ label: t('radial.makeSign'), icon: 'pancarte', color: COL.wood, fn: () => { r.kind = 'pancarte'; scheduleSave(); } });
+      items.push({
+        label: t('radial.makeSign'), icon: 'pancarte', color: COL.wood,
+        fn: () => {
+          // Signs read as larger wooden boards: grow towards that size (keeping the center fixed) instead of just relabeling.
+          const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+          r.w = Math.max(r.w, 240); r.h = Math.max(r.h, 130);
+          r.x = cx - r.w / 2; r.y = cy - r.h / 2;
+          r.kind = 'pancarte';
+          scheduleSave();
+        },
+      });
+    } else if (!isLink && r.kind === 'pancarte') {
+      items.push({ label: t('radial.makeRect'), icon: 'rect', color: COL.green, fn: () => { delete r.kind; scheduleSave(); } });
     }
     items.push({ label: isLink ? t('radial.unlink') : t('radial.delete'), icon: 'trash', color: COL.red, fn: () => { removeById(r.id); scheduleSave(); } });
   } else if (hz) {

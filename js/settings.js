@@ -1,16 +1,16 @@
 // Settings menu: theme, language, text size, named liaisons, navigation
 // (tutorial / visited boards), clear the current board. Audio and Visual
 // (theme/text size) live in their own sub-panels to keep the main list short.
-import { state, getBoardId, scheduleSave } from './state.js?v=mr65686w';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr65686w';
-import { listBoards, buildBoardUrl } from './boards.js?v=mr65686w';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr65686w';
-import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mr65686w';
-import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mr65686w';
-import { getUserName, setUserName } from './users.js?v=mr65686w';
-import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr65686w';
-import { t, getLang, setLang, LANGS } from './i18n.js?v=mr65686w';
-import { isDesktop, getLinkMode, setLinkMode } from './platform.js?v=mr65686w';
+import { state, getBoardId, scheduleSave } from './state.js?v=mr65a6rk';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mr65a6rk';
+import { listBoards, buildBoardUrl } from './boards.js?v=mr65a6rk';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mr65a6rk';
+import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mr65a6rk';
+import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mr65a6rk';
+import { getUserName, setUserName } from './users.js?v=mr65a6rk';
+import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mr65a6rk';
+import { t, getLang, setLang, LANGS } from './i18n.js?v=mr65a6rk';
+import { isDesktop, getLinkMode, setLinkMode } from './platform.js?v=mr65a6rk';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
