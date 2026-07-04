@@ -1,7 +1,7 @@
 // Minimap : vue d'ensemble + viewport courant, clic pour recentrer.
-import { state, effectiveColor } from './state.js?v=mr6kmu9r';
-import { view, centerOn } from './camera.js?v=mr6kmu9r';
-import { hexCorners } from './geom.js?v=mr6kmu9r';
+import { state, effectiveColor } from './state.js?v=mr6lcnni';
+import { view, centerOn } from './camera.js?v=mr6lcnni';
+import { hexCorners } from './geom.js?v=mr6lcnni';
 
 let canvas, ctx, W, H;
 

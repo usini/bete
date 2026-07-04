@@ -611,6 +611,15 @@ html, body {
 .rp-dismiss { color: #cfd8d3; background: #11151a; border-color: #cfd8d3; }
 .rp-dismiss:hover { background: #1a1f26; }
 
+/* ---- Desktop update popup ---- */
+#updatepopup {
+  position: fixed; inset: 0; z-index: 49;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: rgba(4, 8, 5, 0.85);
+}
+#updatepopup.hidden { display: none; }
+
 /* ---- Debug panel ('²' key) ---- */
 #debug {
   position: fixed;
