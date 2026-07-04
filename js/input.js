@@ -3,21 +3,21 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr67crv3';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr67crv3';
-import { dragTo, reset } from './physics.js?v=mr67crv3';
-import { pointInHex } from './geom.js?v=mr67crv3';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr67crv3';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr67crv3';
-import { storeImage, resolveSrc } from './images.js?v=mr67crv3';
-import { explodeElementCascade } from './fx.js?v=mr67crv3';
-import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr67crv3';
-import { openSettings } from './settings.js?v=mr67crv3';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr67crv3';
-import { toggleDebug } from './debug.js?v=mr67crv3';
-import { youTubeId } from './yt.js?v=mr67crv3';
-import { setActiveVideo } from './video.js?v=mr67crv3';
-import { t } from './i18n.js?v=mr67crv3';
+} from './state.js?v=mr67o6w6';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr67o6w6';
+import { dragTo, reset } from './physics.js?v=mr67o6w6';
+import { pointInHex } from './geom.js?v=mr67o6w6';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr67o6w6';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr67o6w6';
+import { storeImage, resolveSrc } from './images.js?v=mr67o6w6';
+import { explodeElementCascade } from './fx.js?v=mr67o6w6';
+import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr67o6w6';
+import { openSettings } from './settings.js?v=mr67o6w6';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr67o6w6';
+import { toggleDebug } from './debug.js?v=mr67o6w6';
+import { youTubeId } from './yt.js?v=mr67o6w6';
+import { setActiveVideo } from './video.js?v=mr67o6w6';
+import { t } from './i18n.js?v=mr67o6w6';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -628,7 +628,7 @@ function handleDouble(sx, sy) {
   if (r && displayLink(r)) { clearLinkFocus(); followLink(displayLink(r)); return; }
   if (r && r.kind === 'voice') { toggleVoice(r); return; } // double-click = playback
   if (!canInteract()) return; // locked: no editing/opening (a read-only guest also can't flip a real switch)
-  if (r && r.kind === 'connector' && r.display === 'switch') { toggleSwitch(r); return; }
+  if (r && r.kind === 'connector' && r.display === 'switch') { r._pressT = performance.now(); toggleSwitch(r); return; } // _pressT drives the click animation (render.js), never synced
   if (r) {
     const img = displayImage(r);
     if (img) { openImagePopup(img); return; }

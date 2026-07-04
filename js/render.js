@@ -1,14 +1,14 @@
 // Board rendering: pixel grid, circles, hexagons, rectangles, neon glow, selection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr67crv3';
-import { view, worldToScreen } from './camera.js?v=mr67crv3';
-import { stretch } from './physics.js?v=mr67crv3';
-import { hexCorners, triCorners } from './geom.js?v=mr67crv3';
-import { theme, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr67crv3';
-import { fmtDur } from './voice.js?v=mr67crv3';
-import { getCursors, getPresence } from './sync.js?v=mr67crv3';
-import { youTubeId, ytThumb } from './yt.js?v=mr67crv3';
-import { getImageEl } from './images.js?v=mr67crv3';
-import { t } from './i18n.js?v=mr67crv3';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr67o6w6';
+import { view, worldToScreen } from './camera.js?v=mr67o6w6';
+import { stretch } from './physics.js?v=mr67o6w6';
+import { hexCorners, triCorners } from './geom.js?v=mr67o6w6';
+import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr67o6w6';
+import { fmtDur } from './voice.js?v=mr67o6w6';
+import { getCursors, getPresence } from './sync.js?v=mr67o6w6';
+import { youTubeId, ytThumb } from './yt.js?v=mr67o6w6';
+import { getImageEl } from './images.js?v=mr67o6w6';
+import { t } from './i18n.js?v=mr67o6w6';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -380,6 +380,111 @@ function drawVoice(ctx, n, selected, zoom) {
 // 'switch' (on/off toggle, see js/connector.js for the actual networking).
 const CONNECTOR_STATUS_COLOR = { idle: '#8a8a8a', loading: '#ffd400', ok: '#39ff14', error: '#fe4365' };
 
+// Click feedback: a short 0->1->0 pulse over ~220ms, set as n._pressT by
+// input.js on the toggling click (never serialized/synced, transient only).
+function pressAnim(n) {
+  if (!n._pressT) return 0;
+  const t = (performance.now() - n._pressT) / 220;
+  if (t >= 1) { delete n._pressT; return 0; }
+  return Math.sin(t * Math.PI);
+}
+
+// Pixel theme: a household wall light switch (beveled plastic plate, screws,
+// a rocker paddle that flips up when on, glowing green).
+function drawSwitchPixel(ctx, w, h, on, selected, zoom, press) {
+  ctx.fillStyle = '#3a3f47';
+  ctx.fillRect(-w / 2, -h / 2, w, h);
+  const bevel = Math.max(2, 3 * zoom);
+  ctx.fillStyle = '#5a616b';
+  ctx.fillRect(-w / 2, -h / 2, w, bevel);
+  ctx.fillRect(-w / 2, -h / 2, bevel, h);
+  ctx.fillStyle = '#1c2024';
+  ctx.fillRect(-w / 2, h / 2 - bevel, w, bevel);
+  ctx.fillRect(w / 2 - bevel, -h / 2, bevel, h);
+  if (selected) { ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 2; ctx.strokeRect(-w / 2 - 3, -h / 2 - 3, w + 6, h + 6); }
+
+  ctx.fillStyle = '#20242a';
+  const screwR = Math.max(1.5, 2 * zoom);
+  ctx.beginPath(); ctx.arc(0, -h / 2 + 10 * zoom, screwR, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(0, h / 2 - 10 * zoom, screwR, 0, Math.PI * 2); ctx.fill();
+
+  const slotW = w * 0.32, slotH = h * 0.62;
+  ctx.fillStyle = '#15171a';
+  ctx.fillRect(-slotW / 2, -slotH / 2, slotW, slotH);
+
+  const paddleH = slotH * 0.48;
+  const paddleY = (on ? -slotH / 2 : slotH / 2 - paddleH) + paddleH / 2;
+  ctx.save();
+  ctx.translate(0, paddleY);
+  ctx.scale(1, 1 - press * 0.18); // squash on click
+  ctx.shadowColor = on ? '#39ff14' : 'transparent';
+  ctx.shadowBlur = on ? 12 * zoom : 0;
+  ctx.fillStyle = on ? '#39ff14' : '#6b7178';
+  ctx.fillRect(-slotW / 2 + 2 * zoom, -paddleH / 2, slotW - 4 * zoom, paddleH);
+  ctx.restore();
+}
+
+// Classic themes (light + dark): a flat vector pill toggle, darker than the
+// classic-dark accent so it still reads as "a switch" rather than a badge.
+function drawSwitchVector(ctx, w, h, on, selected, zoom, press) {
+  const trackW = w * 0.7, trackH = h * 0.34, r = trackH / 2;
+  ctx.save();
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(-trackW / 2, -trackH / 2, trackW, trackH, r);
+  else ctx.rect(-trackW / 2, -trackH / 2, trackW, trackH); // older engines: square fallback
+  ctx.fillStyle = on ? '#1f6b28' : '#3a3e46';
+  ctx.fill();
+  if (selected) { ctx.strokeStyle = on ? '#39ff14' : '#8a8f99'; ctx.lineWidth = 2; ctx.stroke(); }
+
+  const knobR = trackH * 0.42 * (1 + press * 0.18);
+  const travel = trackW / 2 - r;
+  const knobX = on ? travel : -travel;
+  ctx.beginPath();
+  ctx.arc(knobX, 0, knobR, 0, Math.PI * 2);
+  ctx.fillStyle = '#f2f2f2';
+  ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = 4 * zoom;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+
+  const fs = clamp(10 * zoom * getTextScale(), 7, 16);
+  ctx.font = `${fs}px ${FONT()}`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = theme().ink;
+  ctx.fillText(on ? t('connector.on') : t('connector.off'), 0, trackH / 2 + fs);
+}
+
+// Windows XP theme: a beveled silver button with a small power-style LED,
+// pressing down (gradient inverts, shifts 2px) like a classic XP button.
+function drawSwitchWinXP(ctx, w, h, on, selected, zoom, press) {
+  ctx.save();
+  ctx.translate(0, press * 2 * zoom);
+  const grad = ctx.createLinearGradient(0, -h / 2, 0, h / 2);
+  if (press > 0.3) { grad.addColorStop(0, '#c8c8c8'); grad.addColorStop(1, '#f0f0f0'); }
+  else { grad.addColorStop(0, '#ffffff'); grad.addColorStop(1, '#ece9d8'); }
+  ctx.fillStyle = grad;
+  ctx.fillRect(-w / 2, -h / 2, w, h);
+  ctx.strokeStyle = '#0a246a';
+  ctx.lineWidth = selected ? 3 : 1.5;
+  ctx.strokeRect(-w / 2, -h / 2, w, h);
+
+  const ledR = Math.max(4, 6 * zoom);
+  ctx.beginPath();
+  ctx.arc(0, -h * 0.18, ledR, 0, Math.PI * 2);
+  ctx.fillStyle = on ? '#39ff14' : '#661111';
+  ctx.shadowColor = on ? '#39ff14' : 'transparent';
+  ctx.shadowBlur = on ? 8 * zoom : 0;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  const fs = clamp(11 * zoom * getTextScale(), 7, 18);
+  ctx.font = `bold ${fs}px Tahoma, sans-serif`;
+  ctx.fillStyle = '#000000';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(on ? t('connector.on') : t('connector.off'), 0, h * 0.22);
+  ctx.restore();
+}
+
 function drawConnector(ctx, n, selected, zoom) {
   const color = effectiveColor(n);
   const stl = nodeStyle(color);
@@ -396,23 +501,10 @@ function drawConnector(ctx, n, selected, zoom) {
 
   if (n.display === 'switch') {
     const on = !!n._value;
-    ctx.shadowColor = on ? '#39ff14' : color;
-    ctx.shadowBlur = (selected ? 22 : 10) * GLOW();
-    ctx.fillStyle = on ? '#123a12' : stl.fill;
-    ctx.fillRect(-w / 2, -h / 2, w, h);
-    ctx.lineWidth = selected ? 5 : 3;
-    ctx.strokeStyle = on ? '#39ff14' : stl.border;
-    ctx.strokeRect(-w / 2, -h / 2, w, h);
-    ctx.shadowBlur = 0;
-
-    const fs = clamp(13 * zoom * getTextScale(), 8, 26);
-    ctx.font = `bold ${fs}px ${FONT()}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = on ? '#39ff14' : stl.text;
-    ctx.shadowColor = on ? '#39ff14' : color; ctx.shadowBlur = 4 * GLOW();
-    ctx.fillText(on ? t('connector.on') : t('connector.off'), 0, -h * 0.08);
-    ctx.shadowBlur = 0;
+    const press = pressAnim(n);
+    if (theme().pixel) drawSwitchPixel(ctx, w, h, on, selected, zoom, press);
+    else if (themeId_() === 'winxp') drawSwitchWinXP(ctx, w, h, on, selected, zoom, press);
+    else drawSwitchVector(ctx, w, h, on, selected, zoom, press);
   } else {
     // Generic triangle: outline + a small status dot (top corner) + last value as text.
     const pts = triCorners(0, 0, w, h);
