@@ -3,21 +3,21 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr67o6w6';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr67o6w6';
-import { dragTo, reset } from './physics.js?v=mr67o6w6';
-import { pointInHex } from './geom.js?v=mr67o6w6';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr67o6w6';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr67o6w6';
-import { storeImage, resolveSrc } from './images.js?v=mr67o6w6';
-import { explodeElementCascade } from './fx.js?v=mr67o6w6';
-import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr67o6w6';
-import { openSettings } from './settings.js?v=mr67o6w6';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr67o6w6';
-import { toggleDebug } from './debug.js?v=mr67o6w6';
-import { youTubeId } from './yt.js?v=mr67o6w6';
-import { setActiveVideo } from './video.js?v=mr67o6w6';
-import { t } from './i18n.js?v=mr67o6w6';
+} from './state.js?v=mr67sz3h';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr67sz3h';
+import { dragTo, reset } from './physics.js?v=mr67sz3h';
+import { pointInHex } from './geom.js?v=mr67sz3h';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr67sz3h';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr67sz3h';
+import { storeImage, resolveSrc } from './images.js?v=mr67sz3h';
+import { explodeElementCascade } from './fx.js?v=mr67sz3h';
+import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr67sz3h';
+import { openSettings } from './settings.js?v=mr67sz3h';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr67sz3h';
+import { toggleDebug } from './debug.js?v=mr67sz3h';
+import { youTubeId } from './yt.js?v=mr67sz3h';
+import { setActiveVideo } from './video.js?v=mr67sz3h';
+import { t } from './i18n.js?v=mr67sz3h';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -922,7 +922,7 @@ function openContextAt(sx, sy) {
       { label: t('radial.rectangle'), icon: 'rect', color: COL.green, fn: () => { const n = addRect(w.x - 75, w.y - 35); reset(n); state.selected = n.id; startEdit('rect', n, n); scheduleSave(); } },
       { label: t('radial.circle'), icon: 'circle', color: COL.cyan, fn: () => { const c = addCircle(w.x, w.y); state.selected = c.id; scheduleSave(); } },
       { label: t('radial.hexagon'), icon: 'hexa', color: COL.orange, fn: () => { const h = addHexagon(w.x, w.y); state.selected = h.id; scheduleSave(); } },
-      { label: t('radial.connector'), icon: 'triangle', color: COL.orange, fn: () => { const n = addConnector(w.x - 75, w.y - 65); reset(n); state.selected = n.id; scheduleSave(); openConnectorEditor(n); } },
+      { label: t('radial.connector'), icon: 'triangle', color: COL.red, fn: () => { const n = addConnector(w.x - 75, w.y - 65); reset(n); state.selected = n.id; scheduleSave(); openConnectorEditor(n); } },
       { label: t('radial.liaison'), icon: 'share', color: COL.magenta, fn: () => createLiaison(w.x, w.y) },
       { label: t('radial.undo'), icon: 'undo', color: COL.yellow, fn: () => doUndo() },
       { label: t('radial.selection'), icon: 'select', color: COL.yellow, fn: () => { selectArmed = true; } },

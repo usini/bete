@@ -2,15 +2,15 @@
 // We only synchronize the CONTENT (text, image, color, description, links,
 // creation/deletion): neither the camera nor the positions/sizes. Each screen
 // therefore keeps its own view. Merge by id, conflicts resolved with LWW + HOST priority.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr67o6w6';
-import { reset } from './physics.js?v=mr67o6w6';
-import { explodeElementCascade } from './fx.js?v=mr67o6w6';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr67o6w6';
-import { onImageArrived } from './images.js?v=mr67o6w6';
-import { getUserId, displayName } from './users.js?v=mr67o6w6';
-import { shareOrigin } from './platform.js?v=mr67o6w6';
-import { getOwnerToken } from './liaisons.js?v=mr67o6w6';
-import { pollConnector, stopPolling } from './connector.js?v=mr67o6w6';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr67sz3h';
+import { reset } from './physics.js?v=mr67sz3h';
+import { explodeElementCascade } from './fx.js?v=mr67sz3h';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr67sz3h';
+import { onImageArrived } from './images.js?v=mr67sz3h';
+import { getUserId, displayName } from './users.js?v=mr67sz3h';
+import { shareOrigin } from './platform.js?v=mr67sz3h';
+import { getOwnerToken } from './liaisons.js?v=mr67sz3h';
+import { pollConnector, stopPolling } from './connector.js?v=mr67sz3h';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host
