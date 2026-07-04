@@ -20,8 +20,15 @@ npm run dev       # sync the static files + launch a dev window
 npm run build     # sync the static files + produce the installer
 ```
 
-`npm run build` outputs an NSIS installer at:
-`src-tauri/target/release/bundle/nsis/Bete_<version>_x64-setup.exe`
+`npm run build` outputs an MSI installer at:
+`src-tauri/target/release/bundle/msi/Bete_<version>_x64_en-US.msi`
+
+(MSI rather than NSIS: an unsigned NSIS `.exe` launched directly tends to get
+flagged hard by Windows SmartScreen; an MSI runs through `msiexec.exe`, a
+trusted signed Microsoft binary, which is usually less alarming. Note this
+doesn't replace real code signing -- an unsigned MSI can still warn -- it
+just softens the worst case. `bundle.targets` in `tauri.conf.json` controls
+this if you ever want to switch back or add NSIS alongside it.)
 
 ## How it stays in sync with the web app
 
@@ -58,7 +65,7 @@ The corresponding **public** key lives in `src-tauri/tauri.conf.json` under
 `plugins.updater.pubkey` — that one is safe to commit, it only verifies
 signatures, it can't create them.
 
-Each release publishes the NSIS installer + a `latest.json` manifest. Running
+Each release publishes the MSI installer + a `latest.json` manifest. Running
 desktop apps poll `js/update.js` (via the `tauri-plugin-updater`, pointed at
 `.../releases/latest/download/latest.json`) on every boot; if a newer signed
 version is found, a popup offers to download, install, and relaunch.
@@ -68,8 +75,8 @@ version is found, a popup offers to download, install, and relaunch.
 - P2P sync (PeerJS/WebRTC) works the same as in a browser — no native
   networking code was added.
 - The window uses the system WebView2 runtime (preinstalled on Windows 11,
-  auto-installed on Windows 10 by the NSIS installer) — this is why the
-  installer is a few MB instead of the ~150 MB an Electron app would need.
+  auto-installed on Windows 10 by the installer) — this is why it's a few MB
+  instead of the ~150 MB an Electron app would need.
 - App icon: `src-tauri/icons/app-icon.png` is a simple placeholder (dark
   background, neon-green square outline) generated to match the pixel-art
   favicon; regenerate everything from a new source with
