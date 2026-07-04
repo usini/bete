@@ -3,8 +3,8 @@
 // A no-op on the web build. Loaded from a CDN (esm.sh) only when running in
 // the desktop wrapper, same pattern as the PeerJS/QR CDN loads in sync.js --
 // keeps the web bundle free of any npm dependency.
-import { isDesktop } from './platform.js?v=mr67sz3h';
-import { t } from './i18n.js?v=mr67sz3h';
+import { isDesktop } from './platform.js?v=mr6hrnjr';
+import { t } from './i18n.js?v=mr6hrnjr';
 
 const UPDATER_MOD = 'https://esm.sh/@tauri-apps/plugin-updater@2';
 const PROCESS_MOD = 'https://esm.sh/@tauri-apps/plugin-process@2';
@@ -15,7 +15,13 @@ export async function checkForUpdate() {
     const { check } = await import(UPDATER_MOD);
     const update = await check();
     if (update) showUpdatePopup(update);
-  } catch (e) { /* update checks must never block the app */ }
+    else console.log('Bete: no update available (already on the latest version, or check returned null)');
+  } catch (e) {
+    // Never blocks the app, but a silent catch here means an update failure
+    // is otherwise invisible -- log it so `right-click > Inspect` (devtools
+    // enabled in the desktop build) can actually show what went wrong.
+    console.error('Bete: update check failed', e);
+  }
 }
 
 function showUpdatePopup(update) {

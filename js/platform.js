@@ -24,6 +24,13 @@ export async function initDesktopLink() {
   try { lanUrl = await window.__TAURI__.core.invoke('get_lan_url'); } catch (e) { lanUrl = null; }
 }
 
+// Displayed in Settings so a user can tell which build they're actually
+// running without guessing -- useful when troubleshooting the auto-updater.
+export async function getAppVersion() {
+  if (!isDesktop) return null;
+  try { return await window.__TAURI__.core.invoke('plugin:app|version'); } catch (e) { return null; }
+}
+
 // The origin+path to embed in links handed to OTHER people (liaison QR code,
 // "link to board" blocks) — as opposed to internal navigation (switching the
 // current window to a different local board), which must keep using the real
