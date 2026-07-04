@@ -1,16 +1,20 @@
 // Bidirectional P2P synchronization via PeerJS (WebRTC).
 // We only synchronize the CONTENT (text, image, color, description, links,
 // creation/deletion): neither the camera nor the positions/sizes. Each screen
-// therefore keeps its own view. Merge by id, conflicts resolved with LWW + HOST priority.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr6o54sq';
-import { reset } from './physics.js?v=mr6o54sq';
-import { explodeElementCascade } from './fx.js?v=mr6o54sq';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr6o54sq';
-import { onImageArrived } from './images.js?v=mr6o54sq';
-import { getUserId, displayName } from './users.js?v=mr6o54sq';
-import { shareOrigin } from './platform.js?v=mr6o54sq';
-import { getOwnerToken } from './liaisons.js?v=mr6o54sq';
-import { pollConnector, stopPolling } from './connector.js?v=mr6o54sq';
+// therefore keeps its own view. Merge by id, conflicts resolved with LWW; on a
+// tied timestamp, the tie-break prefers the peer running the newer app build
+// (falls back to host priority if both sides are on the same build) -- an
+// out-of-date host (stale tab, permanent Pi host not yet redeployed) must not
+// keep clobbering a freshly-updated peer's edits forever.
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr6okg0j';
+import { reset } from './physics.js?v=mr6okg0j';
+import { explodeElementCascade } from './fx.js?v=mr6okg0j';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr6okg0j';
+import { onImageArrived } from './images.js?v=mr6okg0j';
+import { getUserId, displayName } from './users.js?v=mr6okg0j';
+import { shareOrigin } from './platform.js?v=mr6okg0j';
+import { getOwnerToken } from './liaisons.js?v=mr6okg0j';
+import { pollConnector, stopPolling } from './connector.js?v=mr6okg0j';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host
@@ -25,7 +29,22 @@ export function getPeer() { return mode === 'host' ? hostPeer : clientPeer; }
 export function setLocalVoice(v) { localVoice = !!v; announceName(); }
 export function onIncomingCall(cb) { incomingCb = cb; }
 function attachCallHandler(peer) { if (peer) peer.on('call', (c) => { if (incomingCb) incomingCb(c); }); }
-function helloMsg() { return { type: 'hello', uid: getUserId(), name: displayName(), peerId: (clientPeer && clientPeer.id) || null, voice: localVoice, ownerToken: getOwnerToken(getBoardId()) }; }
+function helloMsg() { return { type: 'hello', uid: getUserId(), name: displayName(), peerId: (clientPeer && clientPeer.id) || null, voice: localVoice, ownerToken: getOwnerToken(getBoardId()), ver: MY_VERSION }; }
+
+// Our own build's cache-bust stamp (Date.now().toString(36) at the last
+// `node cachebust.mjs` run -- see cachebust.mjs), read straight off the
+// entry script's own src. Base36 timestamps of equal length compare
+// correctly as plain strings, and web/desktop both go through the same
+// cachebust step, so this doubles as a cross-build "who's newer" signal
+// without introducing a second, incompatible versioning scheme.
+function readBuildVersion() {
+  try {
+    const s = document.querySelector('script[type="module"][src*="main.js"]');
+    const m = s && s.src.match(/[?&]v=([^&"']+)/);
+    return (m && m[1]) || null;
+  } catch (e) { return null; }
+}
+const MY_VERSION = readBuildVersion();
 
 // True if we may toggle read-only: we ARE the host (browser-hosted liaison),
 // or a headless host (Pi) has confirmed our owner token belongs to this board.
@@ -312,7 +331,7 @@ function tick() {
     }
   }
   lastDelSig = delSig;
-  const payload = { type: 'sync', from: mode, n: outN, c: outC, h: outH, mt: mtOut, del: [...tombstones], readOnly: state.readOnly };
+  const payload = { type: 'sync', from: mode, ver: MY_VERSION, n: outN, c: outC, h: outH, mt: mtOut, del: [...tombstones], readOnly: state.readOnly };
   conns.forEach(c => { try { if (c.open) c.send(payload); } catch (e) { /* */ } });
 }
 
@@ -334,7 +353,13 @@ function merge(remote) {
   const win = (id) => {
     const rm = (remote.mt && remote.mt[id]) || 0;
     const lm = mtimes[id] || 0;
-    return rm > lm || (rm === lm && remote.from === 'host');
+    if (rm !== lm) return rm > lm;
+    // Tied timestamp: prefer whoever runs the newer app build (e.g. a stale
+    // host tab or an outdated Pi shouldn't keep overwriting a peer that's
+    // already redeployed); falls back to host priority when versions match
+    // or either side's version is unknown.
+    if (remote.ver && MY_VERSION && remote.ver !== MY_VERSION) return remote.ver > MY_VERSION;
+    return remote.from === 'host';
   };
 
   for (const id in remote.n || {}) {
@@ -701,7 +726,7 @@ function openHostPeer(id) {
     if (hostNode) hostNode.status = 'connected';
     conn.on('open', () => {
       const content = buildContent(); // current state sent immediately to the newcomer
-      try { conn.send({ type: 'sync', from: 'host', n: content.n, c: content.c, h: content.h, mt: { ...mtimes }, del: [...tombstones], readOnly: state.readOnly }); } catch (e) { /* */ }
+      try { conn.send({ type: 'sync', from: 'host', ver: MY_VERSION, n: content.n, c: content.c, h: content.h, mt: { ...mtimes }, del: [...tombstones], readOnly: state.readOnly }); } catch (e) { /* */ }
     });
     conn.on('data', (msg) => { conn._lastSeen = now(); handleData(msg, conn); });
     conn.on('close', () => { conns = conns.filter(c => c !== conn); broadcastPresence(); });
@@ -840,7 +865,7 @@ function wireHostPeer(peer) {
     conns.push(conn);
     conn.on('open', () => {
       const c = buildContent();
-      try { conn.send({ type: 'sync', from: 'host', n: c.n, c: c.c, h: c.h, mt: { ...mtimes }, del: [...tombstones], readOnly: state.readOnly }); } catch (e) { /* */ }
+      try { conn.send({ type: 'sync', from: 'host', ver: MY_VERSION, n: c.n, c: c.c, h: c.h, mt: { ...mtimes }, del: [...tombstones], readOnly: state.readOnly }); } catch (e) { /* */ }
     });
     conn.on('data', (msg) => { conn._lastSeen = now(); handleData(msg, conn); });
     conn.on('close', () => { conns = conns.filter((x) => x !== conn); broadcastPresence(); });

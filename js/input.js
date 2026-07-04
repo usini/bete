@@ -3,21 +3,21 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr6o54sq';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr6o54sq';
-import { dragTo, reset } from './physics.js?v=mr6o54sq';
-import { pointInHex } from './geom.js?v=mr6o54sq';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr6o54sq';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr6o54sq';
-import { storeImage, resolveSrc } from './images.js?v=mr6o54sq';
-import { explodeElementCascade } from './fx.js?v=mr6o54sq';
-import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr6o54sq';
-import { openSettings } from './settings.js?v=mr6o54sq';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr6o54sq';
-import { toggleDebug } from './debug.js?v=mr6o54sq';
-import { youTubeId } from './yt.js?v=mr6o54sq';
-import { setActiveVideo } from './video.js?v=mr6o54sq';
-import { t } from './i18n.js?v=mr6o54sq';
+} from './state.js?v=mr6okg0j';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr6okg0j';
+import { dragTo, reset } from './physics.js?v=mr6okg0j';
+import { pointInHex } from './geom.js?v=mr6okg0j';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr6okg0j';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr6okg0j';
+import { storeImage, resolveSrc } from './images.js?v=mr6okg0j';
+import { explodeElementCascade } from './fx.js?v=mr6okg0j';
+import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr6okg0j';
+import { openSettings } from './settings.js?v=mr6okg0j';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr6okg0j';
+import { toggleDebug } from './debug.js?v=mr6okg0j';
+import { youTubeId } from './yt.js?v=mr6okg0j';
+import { setActiveVideo } from './video.js?v=mr6okg0j';
+import { t } from './i18n.js?v=mr6okg0j';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -257,6 +257,18 @@ function pointerDown(sx, sy, opts) {
 
   const hz = hitHexagon(w) || hitCircle(w);
   if (hz) {
+    if (!hz.edge) {
+      // Shift+click: adds/removes from the multi-selection.
+      if (shift) { toggleSelect(hz.c.id); state.selected = hz.c.id; drag = null; scheduleSave(); return; }
+      // Click on a member of a multi-selection: moves the whole group.
+      if (state.selectedIds.length > 1 && state.selectedIds.indexOf(hz.c.id) !== -1) {
+        state.selected = hz.c.id;
+        drag = { mode: 'group', ids: state.selectedIds.slice(), lead: hz.c.id, offx: w.x - hz.c.x, offy: w.y - hz.c.y, orig: {} };
+        drag.ids.forEach((id) => { const m = findById(id); if (m) drag.orig[id] = { x: m.x, y: m.y }; });
+        lastPos = { x: w.x, y: w.y, t: performance.now() };
+        return;
+      }
+    }
     state.selectedIds = [];
     state.selected = hz.c.id;
     drag = hz.edge
@@ -376,7 +388,7 @@ function finishDrag() {
       if (tap && displayLink(n)) { handleLinkTap(n); return; }
       if (tap) clearLinkFocus();
     }
-    if (n && !n.ref) {
+    if (n && !n.ref && n.kind !== 'connector') {
       const cx = n.x + n.w / 2, cy = n.y + n.h / 2;
       const hex = hexagonAt(cx, cy);
       if (hex) {
@@ -411,6 +423,8 @@ function finishDrag() {
       const cx = nd.x + nd.w / 2, cy = nd.y + nd.h / 2;
       if (cx >= a.x && cx <= b.x && cy >= a.y && cy <= b.y) ids.push(nd.id);
     }
+    for (const z of state.circles) if (z.x >= a.x && z.x <= b.x && z.y >= a.y && z.y <= b.y) ids.push(z.id);
+    for (const z of state.hexagons) if (z.x >= a.x && z.x <= b.x && z.y >= a.y && z.y <= b.y) ids.push(z.id);
     // 0 or 1 block: falls back to simple selection (resize/edit possible).
     state.selectedIds = ids.length > 1 ? ids : [];
     state.selected = ids.length === 1 ? ids[0] : null;
