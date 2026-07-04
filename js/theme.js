@@ -1,7 +1,7 @@
 // Visual theme + text size (preferences local to the browser).
 // 'pixel' = the original look (neon + glow) ; 'classic' = light, pastel
 // colors, no glow ; 'classic-dark' = dark, pastel, no glow.
-import { DEFAULT_GREEN } from './state.js?v=mr5ggbha';
+import { DEFAULT_GREEN } from './state.js?v=mr64tr2w';
 
 const PIXEL_FONT = "'Press Start 2P', monospace";
 const SANS_FONT = "'Segoe UI', system-ui, -apple-system, sans-serif";

@@ -1,10 +1,11 @@
 // Voice memos: recording (MediaRecorder/Opus), IndexedDB storage,
 // play/pause, P2P sharing of the audio (see sync.js shareAudio/requestAudio).
-import { state, newId, scheduleSave } from './state.js?v=mr5ggbha';
-import { reset } from './physics.js?v=mr5ggbha';
-import { putAudio, getAudio, delAudio } from './audio.js?v=mr5ggbha';
-import { shareAudio, requestAudio } from './sync.js?v=mr5ggbha';
-import { t } from './i18n.js?v=mr5ggbha';
+import { state, newId, scheduleSave } from './state.js?v=mr64tr2w';
+import { reset } from './physics.js?v=mr64tr2w';
+import { putAudio, getAudio, delAudio } from './audio.js?v=mr64tr2w';
+import { shareAudio, requestAudio } from './sync.js?v=mr64tr2w';
+import { t } from './i18n.js?v=mr64tr2w';
+import { acquireStream } from './voicechat.js?v=mr64tr2w';
 
 const players = {}; // id -> { audio, url }
 const MAX_MS = 60000; // max memo duration: 1 minute
@@ -46,7 +47,7 @@ export async function recordVoiceMemo(wx, wy, target) {
     return;
   }
   let stream;
-  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  try { stream = await acquireStream(); } // honors the mic chosen in Settings > Audio, including "computer sound"
   catch (e) { alert(t('alert.micUnavailable')); return; }
 
   const mime = pickMime();

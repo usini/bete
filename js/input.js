@@ -3,20 +3,20 @@
 import {
   state, addRect, addCircle, addHexagon, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr5ggbha';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr5ggbha';
-import { dragTo, reset } from './physics.js?v=mr5ggbha';
-import { pointInHex } from './geom.js?v=mr5ggbha';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr5ggbha';
-import { storeImage, resolveSrc } from './images.js?v=mr5ggbha';
-import { explodeElementCascade } from './fx.js?v=mr5ggbha';
-import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr5ggbha';
-import { openSettings } from './settings.js?v=mr5ggbha';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr5ggbha';
-import { toggleDebug } from './debug.js?v=mr5ggbha';
-import { youTubeId } from './yt.js?v=mr5ggbha';
-import { setActiveVideo } from './video.js?v=mr5ggbha';
-import { t } from './i18n.js?v=mr5ggbha';
+} from './state.js?v=mr64tr2w';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr64tr2w';
+import { dragTo, reset } from './physics.js?v=mr64tr2w';
+import { pointInHex } from './geom.js?v=mr64tr2w';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr64tr2w';
+import { storeImage, resolveSrc } from './images.js?v=mr64tr2w';
+import { explodeElementCascade } from './fx.js?v=mr64tr2w';
+import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr64tr2w';
+import { openSettings } from './settings.js?v=mr64tr2w';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr64tr2w';
+import { toggleDebug } from './debug.js?v=mr64tr2w';
+import { youTubeId } from './yt.js?v=mr64tr2w';
+import { setActiveVideo } from './video.js?v=mr64tr2w';
+import { t } from './i18n.js?v=mr64tr2w';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }

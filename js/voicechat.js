@@ -2,8 +2,8 @@
 // Listening by default: as long as we're in a liaison, we answer calls (we hear
 // everyone). The mic button only controls OUR emission (talking).
 // Audio does NOT go through the Pi: browser <-> browser (low latency).
-import { getPeer, getPresence, setLocalVoice, onIncomingCall } from './sync.js?v=mr5ggbha';
-import { t } from './i18n.js?v=mr5ggbha';
+import { getPeer, getPresence, setLocalVoice, onIncomingCall } from './sync.js?v=mr64tr2w';
+import { t } from './i18n.js?v=mr64tr2w';
 
 let micOn = false;
 let listenOn = true; // listening enabled by default
@@ -59,8 +59,10 @@ function micConstraints() {
 
 // Resolves the input stream: either a physical mic (getUserMedia) or the
 // system-audio pseudo-device (getDisplayMedia, audio only -- the video track
-// is stopped immediately, we only wanted the share-audio checkbox).
-async function acquireStream() {
+// is stopped immediately, we only wanted the share-audio checkbox). Exported
+// so voice.js (memo recording) can honor the same mic choice, including
+// "computer sound", instead of always requesting a plain default mic.
+export async function acquireStream() {
   if (preferredMicId === SYSTEM_AUDIO_ID) {
     const disp = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
     disp.getVideoTracks().forEach((tr) => tr.stop());
