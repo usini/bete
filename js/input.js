@@ -3,21 +3,21 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr6709ex';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr6709ex';
-import { dragTo, reset } from './physics.js?v=mr6709ex';
-import { pointInHex } from './geom.js?v=mr6709ex';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr6709ex';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr6709ex';
-import { storeImage, resolveSrc } from './images.js?v=mr6709ex';
-import { explodeElementCascade } from './fx.js?v=mr6709ex';
-import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr6709ex';
-import { openSettings } from './settings.js?v=mr6709ex';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr6709ex';
-import { toggleDebug } from './debug.js?v=mr6709ex';
-import { youTubeId } from './yt.js?v=mr6709ex';
-import { setActiveVideo } from './video.js?v=mr6709ex';
-import { t } from './i18n.js?v=mr6709ex';
+} from './state.js?v=mr67crv3';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr67crv3';
+import { dragTo, reset } from './physics.js?v=mr67crv3';
+import { pointInHex } from './geom.js?v=mr67crv3';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr67crv3';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr67crv3';
+import { storeImage, resolveSrc } from './images.js?v=mr67crv3';
+import { explodeElementCascade } from './fx.js?v=mr67crv3';
+import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr67crv3';
+import { openSettings } from './settings.js?v=mr67crv3';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr67crv3';
+import { toggleDebug } from './debug.js?v=mr67crv3';
+import { youTubeId } from './yt.js?v=mr67crv3';
+import { setActiveVideo } from './video.js?v=mr67crv3';
+import { t } from './i18n.js?v=mr67crv3';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -642,6 +642,12 @@ function handleDouble(sx, sy) {
 
 function onKeyDown(e) {
   if (editing) return;
+  // Any other text field with focus (e.g. the connector YAML textarea, a
+  // settings input) must keep normal text-editing keys -- otherwise Delete/
+  // Backspace/Ctrl+Z there would hit the canvas shortcuts below and delete
+  // the selected block instead of editing the text.
+  const tag = document.activeElement && document.activeElement.tagName;
+  if (tag === 'TEXTAREA' || tag === 'INPUT') return;
 
   // '²' key (left of 1 on AZERTY): wobble debug panel.
   if (e.key === '²' || e.code === 'Backquote') { toggleDebug(); e.preventDefault(); return; }
