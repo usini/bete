@@ -109,3 +109,20 @@ export async function openExternal(url) {
     console.error('Bete: openExternal failed', e);
   }
 }
+
+// Hot-updates the desktop app's web assets (js/css/html) from bete.usini.eu
+// without a full MSI reinstall, for the common case where a fix only touches
+// this static web app and nothing in the Rust/plugin side. A no-op on the web
+// build (already always on the latest deploy). See check_web_update in
+// desktop/src-tauri/src/main.rs for the actual download/compare logic -- this
+// is intentionally "dumb" on the JS side: invoke the command, reload if it
+// says something changed, otherwise (including "offline") do nothing.
+export async function checkWebUpdate() {
+  if (!isDesktop) return;
+  try {
+    const updated = await window.__TAURI__.core.invoke('check_web_update');
+    if (updated) location.reload();
+  } catch (e) {
+    console.error('Bete: checkWebUpdate failed', e);
+  }
+}

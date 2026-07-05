@@ -1,6 +1,6 @@
 [package]
 name = "bete"
-version = "0.8.0"
+version = "0.9.0"
 description = "Bete - pixel-art mindmap (desktop wrapper)"
 edition = "2021"
 
@@ -18,6 +18,8 @@ tauri-plugin-process = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-opener = "2"
+ureq = "2"
+url = "2"
 
 [[bin]]
 name = "bete"

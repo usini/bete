@@ -1,29 +1,30 @@
 // Bootstrap + render loop.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr7ity22';
-import { setView } from './camera.js?v=mr7ity22';
-import { render } from './render.js?v=mr7ity22';
-import { step, reset } from './physics.js?v=mr7ity22';
-import * as minimap from './minimap.js?v=mr7ity22';
-import * as input from './input.js?v=mr7ity22';
-import * as fx from './fx.js?v=mr7ity22';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mr7ity22';
-import { recordBoard, getBoardEntry } from './boards.js?v=mr7ity22';
-import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mr7ity22';
-import { applyTheme } from './theme.js?v=mr7ity22';
-import { initSettings, openSettings } from './settings.js?v=mr7ity22';
-import { recordLiaison, getLiaison } from './liaisons.js?v=mr7ity22';
-import { positionVideoOverlay } from './video.js?v=mr7ity22';
-import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mr7ity22';
-import { migrateImages } from './images.js?v=mr7ity22';
-import { pollConnector } from './connector.js?v=mr7ity22';
-import { t, getLang, applyStaticI18n } from './i18n.js?v=mr7ity22';
-import { initDesktopLink } from './platform.js?v=mr7ity22';
-import { checkForUpdate } from './update.js?v=mr7ity22';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mr7jvkrx';
+import { setView } from './camera.js?v=mr7jvkrx';
+import { render } from './render.js?v=mr7jvkrx';
+import { step, reset } from './physics.js?v=mr7jvkrx';
+import * as minimap from './minimap.js?v=mr7jvkrx';
+import * as input from './input.js?v=mr7jvkrx';
+import * as fx from './fx.js?v=mr7jvkrx';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mr7jvkrx';
+import { recordBoard, getBoardEntry } from './boards.js?v=mr7jvkrx';
+import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mr7jvkrx';
+import { applyTheme } from './theme.js?v=mr7jvkrx';
+import { initSettings, openSettings } from './settings.js?v=mr7jvkrx';
+import { recordLiaison, getLiaison } from './liaisons.js?v=mr7jvkrx';
+import { positionVideoOverlay } from './video.js?v=mr7jvkrx';
+import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mr7jvkrx';
+import { migrateImages } from './images.js?v=mr7jvkrx';
+import { pollConnector } from './connector.js?v=mr7jvkrx';
+import { t, getLang, applyStaticI18n } from './i18n.js?v=mr7jvkrx';
+import { initDesktopLink, checkWebUpdate } from './platform.js?v=mr7jvkrx';
+import { checkForUpdate } from './update.js?v=mr7jvkrx';
 
 applyTheme(); // apply the saved theme right at startup
 applyStaticI18n(); // translate the static HTML chrome (buttons, hint, etc.)
 initDesktopLink(); // no-op on the web build; resolves the LAN address on desktop
-checkForUpdate(); // no-op on the web build; offers to install a newer desktop release
+checkForUpdate(); // no-op on the web build; offers to install a newer desktop release (Rust/plugin changes)
+checkWebUpdate(); // no-op on the web build; hot-updates js/css/html only, no reinstall needed
 
 let toastTimer = null;
 function toast(msg, ms = 2400) {

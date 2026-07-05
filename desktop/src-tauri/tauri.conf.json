@@ -1,22 +1,14 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Bete",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "identifier": "eu.usini.bete",
   "build": {
     "frontendDist": "../dist"
   },
   "app": {
     "withGlobalTauri": true,
-    "windows": [
-      {
-        "title": "Bete",
-        "width": 1280,
-        "height": 800,
-        "minWidth": 480,
-        "minHeight": 360
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": null
     }

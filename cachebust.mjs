@@ -4,7 +4,7 @@
 // (no more need to clear the cache).
 //
 // Run before every deployment commit: node cachebust.mjs
-import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
 
 const V = (process.argv[2] || Date.now().toString(36));
 
@@ -24,4 +24,20 @@ for (const f of files) {
   for (const re of patterns) s = s.replace(re, `$1?v=${V}$3`);
   if (s !== before) { writeFileSync(f, s); touched++; }
 }
-console.log(`cachebust: version ${V} applied (${touched} file(s))`);
+
+// Manifest for the desktop app's hot web-asset update (see desktop/src-tauri/src/main.rs
+// check_web_update): lists every file the desktop app needs to mirror locally
+// to run the current web build without a full MSI reinstall.
+function listDir(dir) {
+  let out = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const rel = dir + '/' + entry.name;
+    if (entry.isDirectory()) out = out.concat(listDir(rel));
+    else out.push(rel);
+  }
+  return out;
+}
+const manifestFiles = ['index.html', ...listDir('js'), ...listDir('css'), ...listDir('assets')];
+writeFileSync('manifest.json', JSON.stringify({ version: V, files: manifestFiles }, null, 1) + '\n');
+
+console.log(`cachebust: version ${V} applied (${touched} file(s)), manifest.json (${manifestFiles.length} file(s))`);
