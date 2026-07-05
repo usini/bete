@@ -3,24 +3,24 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr7mfvqi';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr7mfvqi';
-import { dragTo, reset } from './physics.js?v=mr7mfvqi';
-import { pointInHex } from './geom.js?v=mr7mfvqi';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr7mfvqi';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mr7mfvqi';
-import { getUserId } from './users.js?v=mr7mfvqi';
-import { storeImage, resolveSrc } from './images.js?v=mr7mfvqi';
-import { explodeElementCascade } from './fx.js?v=mr7mfvqi';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr7mfvqi';
-import { listLiaisons } from './liaisons.js?v=mr7mfvqi';
-import { openSettings } from './settings.js?v=mr7mfvqi';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr7mfvqi';
-import { toggleDebug } from './debug.js?v=mr7mfvqi';
-import { youTubeId } from './yt.js?v=mr7mfvqi';
-import { setActiveVideo } from './video.js?v=mr7mfvqi';
-import { t } from './i18n.js?v=mr7mfvqi';
-import { openExternal } from './platform.js?v=mr7mfvqi';
+} from './state.js?v=mr7mutc2';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr7mutc2';
+import { dragTo, reset } from './physics.js?v=mr7mutc2';
+import { pointInHex } from './geom.js?v=mr7mutc2';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector } from './connector.js?v=mr7mutc2';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mr7mutc2';
+import { getUserId } from './users.js?v=mr7mutc2';
+import { storeImage, resolveSrc } from './images.js?v=mr7mutc2';
+import { explodeElementCascade } from './fx.js?v=mr7mutc2';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr7mutc2';
+import { listLiaisons } from './liaisons.js?v=mr7mutc2';
+import { openSettings } from './settings.js?v=mr7mutc2';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr7mutc2';
+import { toggleDebug } from './debug.js?v=mr7mutc2';
+import { youTubeId } from './yt.js?v=mr7mutc2';
+import { setActiveVideo } from './video.js?v=mr7mutc2';
+import { t } from './i18n.js?v=mr7mutc2';
+import { openExternal } from './platform.js?v=mr7mutc2';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -662,6 +662,14 @@ function handleDouble(sx, sy) {
     // does), so ask them to flip it instead of trying to fetch it ourselves.
     if (r.bridge && r.creatorUid !== getUserId()) { requestSwitchToggle(r.id); return; }
     toggleSwitch(r);
+    return;
+  }
+  // Generic (triangle) connector: double-click force-refreshes it on demand --
+  // useful on its own with poll_interval: 0 in the yaml (no background timer
+  // at all, purely click-to-fetch), and harmless otherwise (just an early refresh).
+  if (r && r.kind === 'connector') {
+    if (isLocked()) return;
+    refreshConnector(r);
     return;
   }
   if (!canInteract()) return; // locked: no editing/opening

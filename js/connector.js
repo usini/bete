@@ -4,8 +4,8 @@
 // smart plug). See CLAUDE.md for the read-only vs. host distinction that
 // also applies here (a locked guest may watch a switch's state but not
 // flip it -- enforced in input.js, not in this module).
-import { scheduleSave } from './state.js?v=mr7mfvqi';
-import { getUserId } from './users.js?v=mr7mfvqi';
+import { scheduleSave } from './state.js?v=mr7mutc2';
+import { getUserId } from './users.js?v=mr7mutc2';
 
 // Vendored locally (js/vendor/js-yaml.min.js) so the app keeps working
 // offline -- no CDN fetch at runtime, unlike the PeerJS/QR script loads in
@@ -130,6 +130,9 @@ export async function pollConnector(node) {
   let cfg;
   try { cfg = await parseYaml(node.yaml); } catch (e) { node._status = 'error'; node._error = 'YAML: ' + e.message; return; }
   await refreshConnector(node);
+  // poll_interval: 0 -- manual-only mode: no background timer, the block is
+  // refreshed by double-clicking it instead (see input.js/handleDouble).
+  if (Number(cfg.poll_interval) === 0) return;
   const seconds = Math.max(5, Number(cfg.poll_interval) || 30);
   timers[node.id] = setInterval(() => refreshConnector(node), seconds * 1000);
 }
