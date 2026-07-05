@@ -3,22 +3,22 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr6ox2uf';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr6ox2uf';
-import { dragTo, reset } from './physics.js?v=mr6ox2uf';
-import { pointInHex } from './geom.js?v=mr6ox2uf';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr6ox2uf';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr6ox2uf';
-import { storeImage, resolveSrc } from './images.js?v=mr6ox2uf';
-import { explodeElementCascade } from './fx.js?v=mr6ox2uf';
-import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr6ox2uf';
-import { openSettings } from './settings.js?v=mr6ox2uf';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr6ox2uf';
-import { toggleDebug } from './debug.js?v=mr6ox2uf';
-import { youTubeId } from './yt.js?v=mr6ox2uf';
-import { setActiveVideo } from './video.js?v=mr6ox2uf';
-import { t } from './i18n.js?v=mr6ox2uf';
-import { openExternal } from './platform.js?v=mr6ox2uf';
+} from './state.js?v=mr7ity22';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr7ity22';
+import { dragTo, reset } from './physics.js?v=mr7ity22';
+import { pointInHex } from './geom.js?v=mr7ity22';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr7ity22';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr7ity22';
+import { storeImage, resolveSrc } from './images.js?v=mr7ity22';
+import { explodeElementCascade } from './fx.js?v=mr7ity22';
+import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr7ity22';
+import { openSettings } from './settings.js?v=mr7ity22';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr7ity22';
+import { toggleDebug } from './debug.js?v=mr7ity22';
+import { youTubeId } from './yt.js?v=mr7ity22';
+import { setActiveVideo } from './video.js?v=mr7ity22';
+import { t } from './i18n.js?v=mr7ity22';
+import { openExternal } from './platform.js?v=mr7ity22';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -649,8 +649,14 @@ function handleDouble(sx, sy) {
   // Double-tap/click on a link => follows it directly (allowed even when locked).
   if (r && displayLink(r)) { clearLinkFocus(); followLink(displayLink(r)); return; }
   if (r && r.kind === 'voice') { toggleVoice(r); return; } // double-click = playback
-  if (!canInteract()) return; // locked: no editing/opening (a read-only guest also can't flip a real switch)
-  if (r && r.kind === 'connector' && r.display === 'switch') { r._pressT = performance.now(); toggleSwitch(r); return; } // _pressT drives the click animation (render.js), never synced
+  // Connector switch: like voice playback, allowed even with mobile interaction
+  // locked (that lock is only meant to prevent accidental drags/edits) -- but
+  // still blocked for a real read-only P2P guest, who shouldn't flip a device.
+  if (r && r.kind === 'connector' && r.display === 'switch') {
+    if (isLocked()) return;
+    r._pressT = performance.now(); toggleSwitch(r); return; // _pressT drives the click animation (render.js), never synced
+  }
+  if (!canInteract()) return; // locked: no editing/opening
   if (r) {
     const img = displayImage(r);
     if (img) { openImagePopup(img); return; }
