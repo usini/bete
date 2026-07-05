@@ -1,15 +1,15 @@
 // Board rendering: pixel grid, circles, hexagons, rectangles, neon glow, selection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr7kswc6';
-import { parseBoardUrl } from './boards.js?v=mr7kswc6';
-import { view, worldToScreen } from './camera.js?v=mr7kswc6';
-import { stretch } from './physics.js?v=mr7kswc6';
-import { hexCorners, triCorners } from './geom.js?v=mr7kswc6';
-import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr7kswc6';
-import { fmtDur } from './voice.js?v=mr7kswc6';
-import { getCursors, getPresence } from './sync.js?v=mr7kswc6';
-import { youTubeId, ytThumb } from './yt.js?v=mr7kswc6';
-import { getImageEl } from './images.js?v=mr7kswc6';
-import { t } from './i18n.js?v=mr7kswc6';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr7lanz7';
+import { parseBoardUrl } from './boards.js?v=mr7lanz7';
+import { view, worldToScreen } from './camera.js?v=mr7lanz7';
+import { stretch } from './physics.js?v=mr7lanz7';
+import { hexCorners, triCorners } from './geom.js?v=mr7lanz7';
+import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr7lanz7';
+import { fmtDur } from './voice.js?v=mr7lanz7';
+import { getCursors, getPresence } from './sync.js?v=mr7lanz7';
+import { youTubeId, ytThumb } from './yt.js?v=mr7lanz7';
+import { getImageEl } from './images.js?v=mr7lanz7';
+import { t } from './i18n.js?v=mr7lanz7';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -537,6 +537,26 @@ function drawConnector(ctx, n, selected, zoom) {
       ctx.shadowBlur = 0;
     }
   }
+  if (n.bridge) drawBridgeBadge(ctx, w, h, zoom);
+  ctx.restore();
+}
+
+// Small cloud badge (top-right corner): marks a connector whose yaml isn't
+// synced anymore -- it's being remote-actuated by other peers through the
+// creator's own device instead (see sync.js switchReq/switchRes).
+function drawBridgeBadge(ctx, w, h, zoom) {
+  const cx = w / 2 - 12 * zoom, cy = -h / 2 + 10 * zoom, r = 6 * zoom;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.fillStyle = '#00b7eb';
+  ctx.shadowColor = '#00b7eb';
+  ctx.shadowBlur = 6 * GLOW();
+  ctx.beginPath();
+  ctx.arc(-r * 0.6, r * 0.15, r * 0.55, 0, Math.PI * 2);
+  ctx.arc(r * 0.15, -r * 0.1, r * 0.65, 0, Math.PI * 2);
+  ctx.arc(r * 0.7, r * 0.2, r * 0.5, 0, Math.PI * 2);
+  ctx.rect(-r * 0.6, r * 0.1, r * 1.3, r * 0.4);
+  ctx.fill();
   ctx.restore();
 }
 

@@ -4,7 +4,8 @@
 // smart plug). See CLAUDE.md for the read-only vs. host distinction that
 // also applies here (a locked guest may watch a switch's state but not
 // flip it -- enforced in input.js, not in this module).
-import { scheduleSave } from './state.js?v=mr7kswc6';
+import { scheduleSave } from './state.js?v=mr7lanz7';
+import { getUserId } from './users.js?v=mr7lanz7';
 
 // Vendored locally (js/vendor/js-yaml.min.js) so the app keeps working
 // offline -- no CDN fetch at runtime, unlike the PeerJS/QR script loads in
@@ -122,6 +123,10 @@ export function stopPolling(id) {
 
 export async function pollConnector(node) {
   stopPolling(node.id);
+  // Bridge mode: only the creator's own device has the real yaml (network
+  // bridge -- see sync.js) and can actually reach the device. Everyone else
+  // never polls locally; they see state pushed via switchRes instead.
+  if (node.bridge && node.creatorUid !== getUserId()) { node._status = 'idle'; return; }
   let cfg;
   try { cfg = await parseYaml(node.yaml); } catch (e) { node._status = 'error'; node._error = 'YAML: ' + e.message; return; }
   await refreshConnector(node);

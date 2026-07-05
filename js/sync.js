@@ -6,15 +6,15 @@
 // (falls back to host priority if both sides are on the same build) -- an
 // out-of-date host (stale tab, permanent Pi host not yet redeployed) must not
 // keep clobbering a freshly-updated peer's edits forever.
-import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr7kswc6';
-import { reset } from './physics.js?v=mr7kswc6';
-import { explodeElementCascade } from './fx.js?v=mr7kswc6';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr7kswc6';
-import { onImageArrived } from './images.js?v=mr7kswc6';
-import { getUserId, displayName } from './users.js?v=mr7kswc6';
-import { shareOrigin } from './platform.js?v=mr7kswc6';
-import { getOwnerToken } from './liaisons.js?v=mr7kswc6';
-import { pollConnector, stopPolling } from './connector.js?v=mr7kswc6';
+import { state, removeById, scheduleSave, getBoardId } from './state.js?v=mr7lanz7';
+import { reset } from './physics.js?v=mr7lanz7';
+import { explodeElementCascade } from './fx.js?v=mr7lanz7';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mr7lanz7';
+import { onImageArrived } from './images.js?v=mr7lanz7';
+import { getUserId, displayName } from './users.js?v=mr7lanz7';
+import { shareOrigin } from './platform.js?v=mr7lanz7';
+import { getOwnerToken } from './liaisons.js?v=mr7lanz7';
+import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mr7lanz7';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host
@@ -261,7 +261,7 @@ function nodeEntry(n) {
 // For the image: the 'idb:<hash>' ref is short and changes with the content -> we
 // use it as-is; a legacy data URL (long) is reduced to its length (size proxy).
 function imgSig(img) { return img ? (img.length < 128 ? img : img.length) : 0; }
-function sigNode(e) { return e.vc ? 'V' + e.dur : e.cn ? 'C' + e.yml + '|' + e.disp : (e.ref !== undefined ? 'R' + e.ref : 'T' + e.t + '|' + imgSig(e.img) + '|' + (e.lk || '')); }
+function sigNode(e) { return e.vc ? 'V' + e.dur : e.cn ? 'C' + e.yml + '|' + e.disp + '|' + e.br : (e.ref !== undefined ? 'R' + e.ref : 'T' + e.t + '|' + imgSig(e.img) + '|' + (e.lk || '')); }
 function sigZone(e) { return 'Z' + e.col + '' + e.d; }
 
 function buildContent() {
@@ -269,7 +269,17 @@ function buildContent() {
   for (const node of state.nodes) {
     if (node.kind === 'liaison') continue;
     if (node.kind === 'voice') { n[node.id] = { vc: 1, dur: node.dur || 0, x: node.x, y: node.y, w: node.w, h: node.h }; continue; }
-    if (node.kind === 'connector') { n[node.id] = { cn: 1, yml: node.yaml || '', disp: node.display || 'triangle', x: node.x, y: node.y, w: node.w, h: node.h }; continue; }
+    if (node.kind === 'connector') {
+      // In bridge mode the yaml (device address/credentials) is never sent
+      // to peers -- only the creator's own device keeps it, everyone else
+      // must go through switchReq/switchRes (see handleData) to actuate it.
+      n[node.id] = {
+        cn: 1, disp: node.display || 'triangle', creator: node.creatorUid || null, br: !!node.bridge,
+        yml: node.bridge ? '' : (node.yaml || ''),
+        x: node.x, y: node.y, w: node.w, h: node.h,
+      };
+      continue;
+    }
     n[node.id] = nodeEntry(node);
   }
   for (const z of state.circles) c[z.id] = { col: z.color, d: z.description || '', x: z.x, y: z.y, r: z.r };
@@ -369,7 +379,7 @@ function merge(remote) {
     if (!ex) {
       let node;
       if (rd.vc) node = { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, kind: 'voice', dur: rd.dur || 0 };
-      else if (rd.cn) node = { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, kind: 'connector', yaml: rd.yml || '', display: rd.disp || 'triangle' };
+      else if (rd.cn) node = { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, kind: 'connector', yaml: rd.yml || '', display: rd.disp || 'triangle', creatorUid: rd.creator || null, bridge: !!rd.br };
       else node = rd.ref !== undefined
         ? { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, ref: rd.ref }
         : { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, text: rd.t || '', image: rd.img || undefined };
@@ -394,6 +404,8 @@ function merge(remote) {
         } else if ((ex.dur || 0) !== (rd.dur || 0)) { ex.dur = rd.dur || 0; changed = true; }
       } else if (rd.cn) {
         if (ex.kind !== 'connector') { ex.kind = 'connector'; delete ex.text; delete ex.image; delete ex.link; changed = true; }
+        if (!ex.creatorUid && rd.creator) { ex.creatorUid = rd.creator; changed = true; } // stamped once, never overwritten after
+        if (!!ex.bridge !== !!rd.br) { ex.bridge = !!rd.br; changed = true; }
         if ((ex.yaml || '') !== (rd.yml || '')) { ex.yaml = rd.yml || ''; changed = true; pollConnector(ex).catch(() => {}); }
         if ((ex.display || 'triangle') !== (rd.disp || 'triangle')) { ex.display = rd.disp || 'triangle'; changed = true; }
       } else if (rd.ref !== undefined) { if (ex.ref !== rd.ref) { ex.ref = rd.ref; changed = true; } }
@@ -542,6 +554,25 @@ function handleData(msg, origin) {
     if (msg.uid !== getUserId()) cursors[msg.uid] = { name: msg.name, x: msg.x, y: msg.y, t: now() };
     if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); }); // relay to others
     return;
+  } else if (msg.type === 'switchReq') {
+    // Network-bridge connector: only the creator's device has the real yaml
+    // and can reach the device -- everyone else's toggle click ends up here,
+    // relayed (star topology: guests only ever talk to the host) until it
+    // reaches that one device.
+    const node = findLocal(msg.id);
+    if (!node || node.kind !== 'connector') return;
+    if (node.creatorUid === getUserId()) {
+      toggleSwitch(node).then(() => broadcastSwitchState(node));
+    } else if (mode === 'host') {
+      const target = conns.find((c) => c._uid === node.creatorUid);
+      if (target && target !== origin) sendTo(target, msg);
+    }
+    return;
+  } else if (msg.type === 'switchRes') {
+    const node = findLocal(msg.id);
+    if (node) { node._value = msg.value; node._status = msg.status; }
+    if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); });
+    return;
   }
   // The host relays one-off events to the other clients.
   if (mode === 'host' && (msg.type === 'move' || msg.type === 'delete')) {
@@ -550,6 +581,21 @@ function handleData(msg, origin) {
 }
 
 function sendTo(conn, msg) { try { if (conn && conn.open) conn.send(msg); } catch (e) { /* */ } }
+
+function broadcastSwitchState(node) {
+  const msg = { type: 'switchRes', id: node.id, value: node._value, status: node._status };
+  if (mode === 'host') conns.forEach((c) => sendTo(c, msg));
+  else if (mode === 'client' && conns[0]) sendTo(conns[0], msg);
+}
+
+// Bridge-mode toggle from a peer who doesn't have the connector's yaml
+// (see buildContent()): routes the request towards whichever device is the
+// creator, through the host if we're not it ourselves.
+export function requestSwitchToggle(id) {
+  if (!conns.length) return;
+  if (mode === 'host') handleData({ type: 'switchReq', id }, null);
+  else if (mode === 'client') sendTo(conns[0], { type: 'switchReq', id });
+}
 
 // ---- Voice memo sharing (binary audio over the DataChannel) ----
 // Broadcasts freshly recorded audio to all peers (host -> clients,

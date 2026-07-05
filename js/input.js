@@ -3,23 +3,24 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr7kswc6';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr7kswc6';
-import { dragTo, reset } from './physics.js?v=mr7kswc6';
-import { pointInHex } from './geom.js?v=mr7kswc6';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr7kswc6';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr7kswc6';
-import { storeImage, resolveSrc } from './images.js?v=mr7kswc6';
-import { explodeElementCascade } from './fx.js?v=mr7kswc6';
-import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr7kswc6';
-import { listLiaisons } from './liaisons.js?v=mr7kswc6';
-import { openSettings } from './settings.js?v=mr7kswc6';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr7kswc6';
-import { toggleDebug } from './debug.js?v=mr7kswc6';
-import { youTubeId } from './yt.js?v=mr7kswc6';
-import { setActiveVideo } from './video.js?v=mr7kswc6';
-import { t } from './i18n.js?v=mr7kswc6';
-import { openExternal } from './platform.js?v=mr7kswc6';
+} from './state.js?v=mr7lanz7';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr7lanz7';
+import { dragTo, reset } from './physics.js?v=mr7lanz7';
+import { pointInHex } from './geom.js?v=mr7lanz7';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr7lanz7';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mr7lanz7';
+import { getUserId } from './users.js?v=mr7lanz7';
+import { storeImage, resolveSrc } from './images.js?v=mr7lanz7';
+import { explodeElementCascade } from './fx.js?v=mr7lanz7';
+import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr7lanz7';
+import { listLiaisons } from './liaisons.js?v=mr7lanz7';
+import { openSettings } from './settings.js?v=mr7lanz7';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr7lanz7';
+import { toggleDebug } from './debug.js?v=mr7lanz7';
+import { youTubeId } from './yt.js?v=mr7lanz7';
+import { setActiveVideo } from './video.js?v=mr7lanz7';
+import { t } from './i18n.js?v=mr7lanz7';
+import { openExternal } from './platform.js?v=mr7lanz7';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -94,6 +95,7 @@ const ICONS = {
   dot: '<circle cx="12" cy="12" r="3"/>',
   triangle: '<polygon points="12,4 20,19 4,19"/>',
   power: '<line x1="12" y1="3" x2="12" y2="11"/><path d="M7 6a7 7 0 1 0 10 0"/>',
+  cloud: '<path d="M7 18a4.5 4.5 0 0 1-.7-8.94 5.5 5.5 0 0 1 10.7 1.2A4 4 0 0 1 17 18H7z"/>',
 };
 let pendingBoardPos = null; // position where a new board will be created (if not null, a new board will be created on the next click)
 let pendingBoardTarget = null; // target board to link to when creating a new board (if not null, a new board will be created on the next click and linked to this target)
@@ -655,7 +657,12 @@ function handleDouble(sx, sy) {
   // still blocked for a real read-only P2P guest, who shouldn't flip a device.
   if (r && r.kind === 'connector' && r.display === 'switch') {
     if (isLocked()) return;
-    r._pressT = performance.now(); toggleSwitch(r); return; // _pressT drives the click animation (render.js), never synced
+    r._pressT = performance.now(); // drives the click animation (render.js), never synced
+    // Network-bridge mode: we don't have the yaml (only the creator's device
+    // does), so ask them to flip it instead of trying to fetch it ourselves.
+    if (r.bridge && r.creatorUid !== getUserId()) { requestSwitchToggle(r.id); return; }
+    toggleSwitch(r);
+    return;
   }
   if (!canInteract()) return; // locked: no editing/opening
   if (r) {
@@ -810,6 +817,35 @@ function openConnectorEditor(node) {
   });
 }
 
+// Confirmation before turning on a connector's network-bridge mode: from
+// then on, the yaml (device address/credentials) stops being synced at all
+// (see sync.js buildContent) and every other connected peer can flip the
+// switch through us instead -- worth a deliberate "yes, really" click.
+// Reuses the connector-editor's modal look (recmodal/connector-card) rather
+// than window.confirm(), which the desktop build can't use at all (Tauri's
+// dialog ACL blocks it -- see platform.js).
+function openBridgeWarning(node) {
+  const m = document.createElement('div');
+  m.className = 'recmodal';
+  m.innerHTML = '<div class="connector-card">'
+    + '<div class="connector-title">' + t('bridge.warnTitle') + '</div>'
+    + '<div class="connector-error" style="color: var(--ink); min-height: 0;">' + t('bridge.warnBody') + '</div>'
+    + '<div class="connector-actions">'
+    + '<button class="connector-save">' + t('bridge.confirm') + '</button>'
+    + '<button class="connector-cancel">' + t('connector.cancel') + '</button>'
+    + '</div></div>';
+  m.addEventListener('mousedown', (e) => e.stopPropagation());
+  m.addEventListener('touchstart', (e) => e.stopPropagation());
+  document.body.appendChild(m);
+  m.querySelector('.connector-cancel').addEventListener('click', () => m.remove());
+  m.querySelector('.connector-save').addEventListener('click', () => {
+    node.bridge = true;
+    scheduleSave();
+    pollConnector(node);
+    m.remove();
+  });
+}
+
 // Removes an element (explosion + propagation; detaches the host if it's a Liaison).
 function removeElement(el) {
   if (!el) return;
@@ -908,6 +944,16 @@ function openContextAt(sx, sy) {
   } else if (r && r.kind === 'connector') {
     items = [{ label: t('radial.editProgram'), icon: 'edit', color: COL.cyan, fn: () => openConnectorEditor(r) }];
     if (r.display !== 'switch') items.push({ label: t('radial.makeSwitch'), icon: 'power', color: COL.wood, fn: () => { r.display = 'switch'; scheduleSave(); pollConnector(r); } });
+    // Network bridge: reserved to whoever created this connector (creatorUid
+    // is stamped once at creation, see state.js/addConnector) -- enabling it
+    // is what starts exposing the switch (without the yaml) to every other
+    // peer, so only the person who actually owns the local device should
+    // be able to flip that on.
+    if (!r.creatorUid || r.creatorUid === getUserId()) {
+      items.push(r.bridge
+        ? { label: t('radial.bridgeOff'), icon: 'cloud', color: COL.cyan, fn: () => { r.bridge = false; scheduleSave(); pollConnector(r); } }
+        : { label: t('radial.bridgeOn'), icon: 'cloud', color: COL.cyan, fn: () => openBridgeWarning(r) });
+    }
     items.push({ label: t('radial.delete'), icon: 'trash', color: COL.red, fn: () => removeElement(r) });
   } else if (r) {
     const isLink = !!r.ref;
