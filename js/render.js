@@ -1,15 +1,15 @@
 // Board rendering: pixel grid, circles, hexagons, rectangles, neon glow, selection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr81grc5';
-import { parseBoardUrl } from './boards.js?v=mr81grc5';
-import { view, worldToScreen } from './camera.js?v=mr81grc5';
-import { stretch } from './physics.js?v=mr81grc5';
-import { hexCorners, triCorners } from './geom.js?v=mr81grc5';
-import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr81grc5';
-import { fmtDur } from './voice.js?v=mr81grc5';
-import { getCursors, getPresence } from './sync.js?v=mr81grc5';
-import { youTubeId, ytThumb } from './yt.js?v=mr81grc5';
-import { getImageEl } from './images.js?v=mr81grc5';
-import { t } from './i18n.js?v=mr81grc5';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr81rpfm';
+import { parseBoardUrl } from './boards.js?v=mr81rpfm';
+import { view, worldToScreen } from './camera.js?v=mr81rpfm';
+import { stretch } from './physics.js?v=mr81rpfm';
+import { hexCorners, triCorners } from './geom.js?v=mr81rpfm';
+import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr81rpfm';
+import { fmtDur } from './voice.js?v=mr81rpfm';
+import { getCursors, getPresence } from './sync.js?v=mr81rpfm';
+import { youTubeId, ytThumb } from './yt.js?v=mr81rpfm';
+import { getImageEl } from './images.js?v=mr81rpfm';
+import { t } from './i18n.js?v=mr81rpfm';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -601,7 +601,105 @@ function drawConnectorReadout(ctx, n, color, stl, selected, zoom, w, h) {
 function drawConnectorClock(ctx, color, stl, selected, zoom, w, h, fmt) {
   if (theme().pixel) drawClockPixel(ctx, color, selected, zoom, w, h, fmt);
   else if (themeId_() === 'winxp') drawClockWinXP(ctx, color, selected, zoom, w, h, fmt);
-  else drawClockAnalog(ctx, color, stl, selected, zoom, w, h, fmt, themeId_() === 'classic');
+  else drawClockFlip(ctx, color, stl, selected, zoom, w, h, fmt, themeId_() === 'classic');
+}
+
+function roundRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// One flip-card tile per digit group (HH / MM / SS), split by a thin hinge
+// line -- the classic split-flap travel-clock look, distinct from the pixel
+// LCD panel even though both are "digital".
+function drawFlipTile(ctx, cx, w, h, text, face, ink, hinge, glowColor, glow) {
+  const r = Math.min(w, h) * 0.16;
+  roundRectPath(ctx, cx - w / 2, -h / 2, w, h, r);
+  ctx.fillStyle = face;
+  ctx.shadowColor = 'rgba(0,0,0,0.3)';
+  ctx.shadowBlur = 5;
+  ctx.shadowOffsetY = 2;
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+
+  ctx.beginPath();
+  ctx.moveTo(cx - w / 2 + r * 0.4, 0);
+  ctx.lineTo(cx + w / 2 - r * 0.4, 0);
+  ctx.strokeStyle = hinge;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.font = `700 ${h * 0.56}px ${FONT()}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = ink;
+  if (glow) { ctx.shadowColor = glowColor; ctx.shadowBlur = glow; }
+  ctx.fillText(text, cx, h * 0.03);
+  ctx.shadowBlur = 0;
+}
+
+// Classic / classic-dark: a row of flip-clock tiles (one per HH/MM/SS group)
+// with blinking colon dots between them, plus a small date pill underneath
+// if the format asks for a date. `light` picks the classic (white tiles) vs
+// classic-dark (node-bg tiles) palette.
+function drawClockFlip(ctx, color, stl, selected, zoom, w, h, fmt, light) {
+  const face = light ? '#ffffff' : stl.fill;
+  const ink = light ? '#23262b' : stl.text;
+  const hinge = light ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.12)';
+  const withDate = fmt === 'HH:MM:SS+DATE';
+  const showSec = fmt !== 'HH:MM';
+
+  ctx.shadowColor = color;
+  ctx.shadowBlur = (selected ? 18 : 0) * (light ? 0.4 : 1);
+  ctx.lineWidth = selected ? 4 : 2;
+  ctx.strokeStyle = color;
+  roundRectPath(ctx, -w / 2, -h / 2, w, h, Math.min(w, h) * 0.08);
+  if (selected) ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  const now = new Date();
+  const groups = [String(now.getHours()).padStart(2, '0'), String(now.getMinutes()).padStart(2, '0')];
+  if (showSec) groups.push(String(now.getSeconds()).padStart(2, '0'));
+
+  const availW = w * 0.86, tileH = h * (withDate ? 0.52 : 0.62);
+  const gap = availW * 0.06;
+  const tileW = (availW - gap * (groups.length - 1)) / groups.length;
+  const totalW = tileW * groups.length + gap * (groups.length - 1);
+  let x = -totalW / 2 + tileW / 2;
+  const yOff = withDate ? -h * 0.08 : 0;
+
+  ctx.save();
+  ctx.translate(0, yOff);
+  groups.forEach((g, i) => {
+    drawFlipTile(ctx, x, tileW, tileH, g, face, ink, hinge, color, light ? 0 : 5 * GLOW());
+    x += tileW + gap;
+    if (i < groups.length - 1) {
+      const blink = Math.floor(now.getTime() / 500) % 2 === 0;
+      if (blink) {
+        ctx.fillStyle = color;
+        ctx.beginPath(); ctx.arc(x - gap / 2, -tileH * 0.14, Math.max(1.5, tileH * 0.045), 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x - gap / 2, tileH * 0.14, Math.max(1.5, tileH * 0.045), 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  });
+  ctx.restore();
+
+  if (withDate) {
+    ctx.font = `${clamp(h * 0.11, 7, 15)}px ${FONT()}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = ink;
+    ctx.globalAlpha = 0.75;
+    ctx.fillText(now.toLocaleDateString(), 0, h * 0.36);
+    ctx.globalAlpha = 1;
+  }
 }
 
 // Pixel theme: a bedside digital alarm clock -- dark bezel, recessed LCD
@@ -660,87 +758,10 @@ function drawClockPixel(ctx, color, selected, zoom, w, h, fmt) {
   ctx.shadowBlur = 0;
 }
 
-// Classic / classic-dark: a real analog face -- hour ticks, hour/minute
-// hands, a second hand (hidden if the format doesn't need seconds), and a
-// small date window at 3 o'clock like an actual watch, if the format asks
-// for one. `light` picks the classic (white face) vs classic-dark (node-bg
-// face) palette.
-function drawClockAnalog(ctx, color, stl, selected, zoom, w, h, fmt, light) {
-  const r = Math.min(w, h) / 2 - (selected ? 4 : 2) * zoom;
-  const face = light ? '#ffffff' : stl.fill;
-  const tick = light ? '#3a3f47' : stl.text;
-  const hourCol = light ? '#23262b' : stl.text;
-  const secCol = color;
-
-  ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
-  ctx.fillStyle = face;
-  ctx.fill();
-  ctx.shadowColor = color;
-  ctx.shadowBlur = (selected ? 20 : 8) * GLOW();
-  ctx.lineWidth = selected ? 4 : 2.5;
-  ctx.strokeStyle = color;
-  ctx.stroke();
-  ctx.shadowBlur = 0;
-
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
-    const major = i % 3 === 0;
-    const inner = r * (major ? 0.76 : 0.85);
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
-    ctx.lineTo(Math.cos(a) * r * 0.92, Math.sin(a) * r * 0.92);
-    ctx.strokeStyle = tick;
-    ctx.lineWidth = (major ? 2.2 : 1.1) * zoom;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-  }
-
-  const withDate = fmt === 'HH:MM:SS+DATE';
-  if (withDate) {
-    ctx.save();
-    ctx.translate(r * 0.55, 0);
-    const bw = r * 0.4, bh = r * 0.26;
-    ctx.fillStyle = light ? '#fff' : '#0000000d';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(-bw / 2, -bh / 2, bw, bh);
-    ctx.strokeStyle = tick;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(-bw / 2, -bh / 2, bw, bh);
-    ctx.fillStyle = '#111';
-    ctx.font = `${clamp(bh * 0.6, 6, 16)}px ${FONT()}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(String(new Date().getDate()), 0, 1);
-    ctx.restore();
-  }
-
-  const now = new Date();
-  const hourA = ((now.getHours() % 12 + now.getMinutes() / 60) / 12) * Math.PI * 2 - Math.PI / 2;
-  const minA = ((now.getMinutes() + now.getSeconds() / 60) / 60) * Math.PI * 2 - Math.PI / 2;
-  const secA = (now.getSeconds() / 60) * Math.PI * 2 - Math.PI / 2;
-  const hand = (angle, len, lw, col) => {
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(Math.cos(angle) * len, Math.sin(angle) * len);
-    ctx.strokeStyle = col;
-    ctx.lineWidth = lw * zoom;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-  };
-  hand(hourA, r * 0.5, 3.2, hourCol);
-  hand(minA, r * 0.72, 2.1, hourCol);
-  if (fmt !== 'HH:MM') hand(secA, r * 0.8, 1.1, secCol);
-
-  ctx.beginPath();
-  ctx.arc(0, 0, Math.max(1.5, r * 0.045), 0, Math.PI * 2);
-  ctx.fillStyle = hourCol;
-  ctx.fill();
-}
-
-// Windows XP: the old "Date and Time" control-panel clock icon -- a cream
-// dial in a beveled plastic frame (same bevel treatment as drawSwitchWinXP),
-// black ticks/hands and a red second hand.
+// Windows XP: the old beveled-plastic frame (same treatment as
+// drawSwitchWinXP) around a recessed silver/navy LCD panel -- a digital
+// travel clock rather than an analog dial, staying skeuomorphic without
+// bringing back hands.
 function drawClockWinXP(ctx, color, selected, zoom, w, h, fmt) {
   ctx.fillStyle = '#ece9d8';
   ctx.fillRect(-w / 2, -h / 2, w, h);
@@ -755,53 +776,35 @@ function drawClockWinXP(ctx, color, selected, zoom, w, h, fmt) {
   ctx.strokeStyle = '#0a246a';
   ctx.strokeRect(-w / 2 + bevel / 2, -h / 2 + bevel / 2, w - bevel, h - bevel);
 
-  const r = Math.min(w, h) * 0.36;
-  ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
-  ctx.fillStyle = '#fdfaf0';
+  const padX = w * 0.14, padY = h * 0.22;
+  const sx = -w / 2 + padX, sy = -h / 2 + padY, sw = w - 2 * padX, sh = h - 2 * padY;
+  roundRectPath(ctx, sx, sy, sw, sh, Math.min(sw, sh) * 0.1);
+  ctx.fillStyle = '#a9c3d6';
   ctx.fill();
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 1.5;
   ctx.strokeStyle = '#0a246a';
   ctx.stroke();
 
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
-    const major = i % 3 === 0;
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(a) * r * (major ? 0.72 : 0.84), Math.sin(a) * r * (major ? 0.72 : 0.84));
-    ctx.lineTo(Math.cos(a) * r * 0.92, Math.sin(a) * r * 0.92);
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = major ? 1.8 : 1;
-    ctx.stroke();
-  }
-
   const now = new Date();
-  const hourA = ((now.getHours() % 12 + now.getMinutes() / 60) / 12) * Math.PI * 2 - Math.PI / 2;
-  const minA = ((now.getMinutes() + now.getSeconds() / 60) / 60) * Math.PI * 2 - Math.PI / 2;
-  const secA = (now.getSeconds() / 60) * Math.PI * 2 - Math.PI / 2;
-  const hand = (angle, len, lw, col) => {
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(Math.cos(angle) * len, Math.sin(angle) * len);
-    ctx.strokeStyle = col;
-    ctx.lineWidth = lw;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-  };
-  hand(hourA, r * 0.48, 2.6, '#000');
-  hand(minA, r * 0.7, 1.8, '#000');
-  if (fmt !== 'HH:MM') hand(secA, r * 0.76, 1, '#c02020');
-  ctx.beginPath();
-  ctx.arc(0, 0, 2, 0, Math.PI * 2);
-  ctx.fillStyle = '#000';
-  ctx.fill();
+  const showSec = fmt !== 'HH:MM';
+  const withDate = fmt === 'HH:MM:SS+DATE';
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+  const blink = Math.floor(now.getTime() / 500) % 2 === 0;
+  const sep = blink ? ':' : ' ';
+  const timeStr = showSec ? `${hh}${sep}${mm}${sep}${ss}` : `${hh}${sep}${mm}`;
+  const fs = clamp(sw / (timeStr.length * 0.62), 7, 40);
+  ctx.font = `bold ${fs}px 'Courier New', monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#0a246a';
+  ctx.fillText(timeStr, 0, withDate ? -sh * 0.16 : 0);
 
-  if (fmt === 'HH:MM:SS+DATE') {
-    ctx.font = `${clamp(Math.min(w, h) * 0.09, 7, 14)}px ${FONT()}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = '#000000';
-    ctx.fillText(now.toLocaleDateString(), 0, h / 2 - Math.min(w, h) * 0.16);
+  if (withDate) {
+    ctx.font = `${clamp(fs * 0.34, 6, 13)}px ${FONT()}`;
+    ctx.fillStyle = '#0a246a';
+    ctx.fillText(now.toLocaleDateString(), 0, sh * 0.24);
   }
 }
 
