@@ -1,0 +1,14 @@
+[[permission]]
+identifier = "allow-check-web-update"
+description = "Allows checking bete.usini.eu for a hot web-asset update"
+commands.allow = ["check_web_update"]
+
+[[permission]]
+identifier = "allow-get-lan-url"
+description = "Allows reading this machine's LAN URL for local-network sharing"
+commands.allow = ["get_lan_url"]
+
+[[set]]
+identifier = "default"
+description = "Default permissions for Bete's own application commands"
+permissions = ["allow-check-web-update", "allow-get-lan-url"]

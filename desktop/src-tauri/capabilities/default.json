@@ -11,6 +11,8 @@
     "process:default",
     "dialog:allow-save",
     "fs:allow-write-text-file",
+    "allow-check-web-update",
+    "allow-get-lan-url",
     {
       "identifier": "opener:allow-open-url",
       "allow": [
