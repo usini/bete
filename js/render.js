@@ -1,15 +1,15 @@
 // Board rendering: pixel grid, circles, hexagons, rectangles, neon glow, selection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr7o30jz';
-import { parseBoardUrl } from './boards.js?v=mr7o30jz';
-import { view, worldToScreen } from './camera.js?v=mr7o30jz';
-import { stretch } from './physics.js?v=mr7o30jz';
-import { hexCorners, triCorners } from './geom.js?v=mr7o30jz';
-import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr7o30jz';
-import { fmtDur } from './voice.js?v=mr7o30jz';
-import { getCursors, getPresence } from './sync.js?v=mr7o30jz';
-import { youTubeId, ytThumb } from './yt.js?v=mr7o30jz';
-import { getImageEl } from './images.js?v=mr7o30jz';
-import { t } from './i18n.js?v=mr7o30jz';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr81grc5';
+import { parseBoardUrl } from './boards.js?v=mr81grc5';
+import { view, worldToScreen } from './camera.js?v=mr81grc5';
+import { stretch } from './physics.js?v=mr81grc5';
+import { hexCorners, triCorners } from './geom.js?v=mr81grc5';
+import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr81grc5';
+import { fmtDur } from './voice.js?v=mr81grc5';
+import { getCursors, getPresence } from './sync.js?v=mr81grc5';
+import { youTubeId, ytThumb } from './yt.js?v=mr81grc5';
+import { getImageEl } from './images.js?v=mr81grc5';
+import { t } from './i18n.js?v=mr81grc5';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -590,36 +590,219 @@ function drawConnectorReadout(ctx, n, color, stl, selected, zoom, w, h) {
   }
 }
 
-// Local clock readout -- no network at all, just formats the current time
-// per the chosen clockFormat (picked via input.js: openClockFormatPicker).
-function formatClock(d, fmt) {
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mm = String(d.getMinutes()).padStart(2, '0');
-  const ss = String(d.getSeconds()).padStart(2, '0');
-  const time = fmt === 'HH:MM' ? `${hh}:${mm}` : `${hh}:${mm}:${ss}`;
-  return fmt === 'HH:MM:SS+DATE' ? [time, d.toLocaleDateString()] : [time];
-}
+// Local clock readout -- no network at all, just the current time per the
+// chosen clockFormat (picked via input.js: openClockFormatPicker), rendered
+// completely differently depending on the active theme (see below).
+// One clock, four completely different personalities depending on the active
+// theme -- a plain "HH:MM:SS in a box" felt like an afterthought, so each
+// variant leans into what that theme is already doing elsewhere (LCD glow
+// for pixel, a real analog face for the two classic themes, a skeuomorphic
+// desk clock for winxp) rather than just recoloring the same shape.
 function drawConnectorClock(ctx, color, stl, selected, zoom, w, h, fmt) {
-  ctx.fillStyle = stl.fill;
-  ctx.fillRect(-w / 2, -h / 2, w, h);
-  ctx.shadowColor = color;
-  ctx.shadowBlur = (selected ? 22 : 10) * GLOW();
-  ctx.lineWidth = selected ? 5 : 3;
-  ctx.strokeStyle = color;
-  ctx.strokeRect(-w / 2, -h / 2, w, h);
-  ctx.shadowBlur = 0;
+  if (theme().pixel) drawClockPixel(ctx, color, selected, zoom, w, h, fmt);
+  else if (themeId_() === 'winxp') drawClockWinXP(ctx, color, selected, zoom, w, h, fmt);
+  else drawClockAnalog(ctx, color, stl, selected, zoom, w, h, fmt, themeId_() === 'classic');
+}
 
-  const lines = formatClock(new Date(), fmt);
-  const fs = clamp((lines.length > 1 ? 15 : 18) * zoom * getTextScale(), 8, 30);
-  ctx.font = `${fs}px ${FONT()}`;
+// Pixel theme: a bedside digital alarm clock -- dark bezel, recessed LCD
+// panel, glowing segment-style digits with a blinking colon, tiny power LED.
+function drawClockPixel(ctx, color, selected, zoom, w, h, fmt) {
+  ctx.fillStyle = '#1c2024';
+  ctx.fillRect(-w / 2, -h / 2, w, h);
+  const bevel = Math.max(2, 3 * zoom);
+  ctx.fillStyle = '#3a3f47';
+  ctx.fillRect(-w / 2, -h / 2, w, bevel);
+  ctx.fillRect(-w / 2, -h / 2, bevel, h);
+  ctx.fillStyle = '#0d0f10';
+  ctx.fillRect(-w / 2, h / 2 - bevel, w, bevel);
+  ctx.fillRect(w / 2 - bevel, -h / 2, bevel, h);
+  if (selected) { ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 2; ctx.strokeRect(-w / 2 - 3, -h / 2 - 3, w + 6, h + 6); }
+
+  const padX = w * 0.1, padY = h * 0.16;
+  const sx = -w / 2 + padX, sy = -h / 2 + padY, sw = w - 2 * padX, sh = h - 2 * padY;
+  ctx.fillStyle = '#061a0e';
+  ctx.fillRect(sx, sy, sw, sh);
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = Math.max(1, 1.5 * zoom);
+  ctx.strokeRect(sx, sy, sw, sh);
+
+  const now = new Date();
+  const showSec = fmt !== 'HH:MM';
+  const blink = Math.floor(now.getTime() / 500) % 2 === 0;
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+  const sep = blink ? ':' : ' ';
+  const timeStr = showSec ? `${hh}${sep}${mm}${sep}${ss}` : `${hh}${sep}${mm}`;
+  const withDate = fmt === 'HH:MM:SS+DATE';
+  const fs = clamp(sw / (timeStr.length * 0.6), 8, 60);
+  ctx.font = `bold ${fs}px 'Courier New', monospace`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = stl.text;
-  ctx.shadowColor = color; ctx.shadowBlur = 4 * GLOW();
-  const lineH = fs * 1.3;
-  const startY = -((lines.length - 1) * lineH) / 2;
-  lines.forEach((line, i) => ctx.fillText(line, 0, startY + i * lineH));
+  ctx.fillStyle = '#39ff14';
+  ctx.shadowColor = '#39ff14';
+  ctx.shadowBlur = 8 * GLOW();
+  ctx.fillText(timeStr, 0, withDate ? -sh * 0.14 : 0);
   ctx.shadowBlur = 0;
+
+  if (withDate) {
+    ctx.font = `${clamp(fs * 0.32, 6, 16)}px 'Courier New', monospace`;
+    ctx.fillStyle = '#1f8f4a';
+    ctx.fillText(now.toLocaleDateString(), 0, sh * 0.26);
+  }
+
+  ctx.beginPath();
+  ctx.arc(w / 2 - 10 * zoom, -h / 2 + 10 * zoom, Math.max(1.5, 2 * zoom), 0, Math.PI * 2);
+  ctx.fillStyle = '#39ff14';
+  ctx.shadowColor = '#39ff14';
+  ctx.shadowBlur = 4 * GLOW();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+// Classic / classic-dark: a real analog face -- hour ticks, hour/minute
+// hands, a second hand (hidden if the format doesn't need seconds), and a
+// small date window at 3 o'clock like an actual watch, if the format asks
+// for one. `light` picks the classic (white face) vs classic-dark (node-bg
+// face) palette.
+function drawClockAnalog(ctx, color, stl, selected, zoom, w, h, fmt, light) {
+  const r = Math.min(w, h) / 2 - (selected ? 4 : 2) * zoom;
+  const face = light ? '#ffffff' : stl.fill;
+  const tick = light ? '#3a3f47' : stl.text;
+  const hourCol = light ? '#23262b' : stl.text;
+  const secCol = color;
+
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = face;
+  ctx.fill();
+  ctx.shadowColor = color;
+  ctx.shadowBlur = (selected ? 20 : 8) * GLOW();
+  ctx.lineWidth = selected ? 4 : 2.5;
+  ctx.strokeStyle = color;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
+    const major = i % 3 === 0;
+    const inner = r * (major ? 0.76 : 0.85);
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
+    ctx.lineTo(Math.cos(a) * r * 0.92, Math.sin(a) * r * 0.92);
+    ctx.strokeStyle = tick;
+    ctx.lineWidth = (major ? 2.2 : 1.1) * zoom;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  const withDate = fmt === 'HH:MM:SS+DATE';
+  if (withDate) {
+    ctx.save();
+    ctx.translate(r * 0.55, 0);
+    const bw = r * 0.4, bh = r * 0.26;
+    ctx.fillStyle = light ? '#fff' : '#0000000d';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(-bw / 2, -bh / 2, bw, bh);
+    ctx.strokeStyle = tick;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-bw / 2, -bh / 2, bw, bh);
+    ctx.fillStyle = '#111';
+    ctx.font = `${clamp(bh * 0.6, 6, 16)}px ${FONT()}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(new Date().getDate()), 0, 1);
+    ctx.restore();
+  }
+
+  const now = new Date();
+  const hourA = ((now.getHours() % 12 + now.getMinutes() / 60) / 12) * Math.PI * 2 - Math.PI / 2;
+  const minA = ((now.getMinutes() + now.getSeconds() / 60) / 60) * Math.PI * 2 - Math.PI / 2;
+  const secA = (now.getSeconds() / 60) * Math.PI * 2 - Math.PI / 2;
+  const hand = (angle, len, lw, col) => {
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(angle) * len, Math.sin(angle) * len);
+    ctx.strokeStyle = col;
+    ctx.lineWidth = lw * zoom;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  };
+  hand(hourA, r * 0.5, 3.2, hourCol);
+  hand(minA, r * 0.72, 2.1, hourCol);
+  if (fmt !== 'HH:MM') hand(secA, r * 0.8, 1.1, secCol);
+
+  ctx.beginPath();
+  ctx.arc(0, 0, Math.max(1.5, r * 0.045), 0, Math.PI * 2);
+  ctx.fillStyle = hourCol;
+  ctx.fill();
+}
+
+// Windows XP: the old "Date and Time" control-panel clock icon -- a cream
+// dial in a beveled plastic frame (same bevel treatment as drawSwitchWinXP),
+// black ticks/hands and a red second hand.
+function drawClockWinXP(ctx, color, selected, zoom, w, h, fmt) {
+  ctx.fillStyle = '#ece9d8';
+  ctx.fillRect(-w / 2, -h / 2, w, h);
+  const bevel = Math.max(2, 2.5 * zoom);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(-w / 2, -h / 2, w, bevel);
+  ctx.fillRect(-w / 2, -h / 2, bevel, h);
+  ctx.fillStyle = '#716f64';
+  ctx.fillRect(-w / 2, h / 2 - bevel, w, bevel);
+  ctx.fillRect(w / 2 - bevel, -h / 2, bevel, h);
+  ctx.lineWidth = selected ? 3 : 1.5;
+  ctx.strokeStyle = '#0a246a';
+  ctx.strokeRect(-w / 2 + bevel / 2, -h / 2 + bevel / 2, w - bevel, h - bevel);
+
+  const r = Math.min(w, h) * 0.36;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#fdfaf0';
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#0a246a';
+  ctx.stroke();
+
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
+    const major = i % 3 === 0;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * r * (major ? 0.72 : 0.84), Math.sin(a) * r * (major ? 0.72 : 0.84));
+    ctx.lineTo(Math.cos(a) * r * 0.92, Math.sin(a) * r * 0.92);
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = major ? 1.8 : 1;
+    ctx.stroke();
+  }
+
+  const now = new Date();
+  const hourA = ((now.getHours() % 12 + now.getMinutes() / 60) / 12) * Math.PI * 2 - Math.PI / 2;
+  const minA = ((now.getMinutes() + now.getSeconds() / 60) / 60) * Math.PI * 2 - Math.PI / 2;
+  const secA = (now.getSeconds() / 60) * Math.PI * 2 - Math.PI / 2;
+  const hand = (angle, len, lw, col) => {
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(angle) * len, Math.sin(angle) * len);
+    ctx.strokeStyle = col;
+    ctx.lineWidth = lw;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  };
+  hand(hourA, r * 0.48, 2.6, '#000');
+  hand(minA, r * 0.7, 1.8, '#000');
+  if (fmt !== 'HH:MM') hand(secA, r * 0.76, 1, '#c02020');
+  ctx.beginPath();
+  ctx.arc(0, 0, 2, 0, Math.PI * 2);
+  ctx.fillStyle = '#000';
+  ctx.fill();
+
+  if (fmt === 'HH:MM:SS+DATE') {
+    ctx.font = `${clamp(Math.min(w, h) * 0.09, 7, 14)}px ${FONT()}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = '#000000';
+    ctx.fillText(now.toLocaleDateString(), 0, h / 2 - Math.min(w, h) * 0.16);
+  }
 }
 
 // Small cloud badge (top-right corner): marks a connector whose yaml isn't
