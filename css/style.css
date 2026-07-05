@@ -589,6 +589,9 @@ html, body {
 .connector-save:hover { background: #5cff42; }
 .connector-cancel { color: #cfd8d3; background: #11151a; border-color: #cfd8d3; }
 .connector-cancel:hover { background: #1a1f26; }
+.connector-actions-col { flex-direction: column; }
+.connector-pick { color: var(--green); background: #11151a; border-color: var(--green-dim); }
+.connector-pick:hover { background: var(--green); color: #04130a; border-color: var(--green); }
 
 /* ---- Reconnect-loop warning ---- */
 #reconnectpopup {

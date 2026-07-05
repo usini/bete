@@ -1,6 +1,6 @@
 // Shared data model + localStorage persistence.
-import { pointInHex } from './geom.js?v=mr7mutc2';
-import { getUserId } from './users.js?v=mr7mutc2';
+import { pointInHex } from './geom.js?v=mr7n7ze8';
+import { getUserId } from './users.js?v=mr7n7ze8';
 
 export const DEFAULT_GREEN = '#39ff14';
 
@@ -141,7 +141,7 @@ export function serialize() {
       .map(n => {
         if (n.ref) return { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, ref: n.ref };
         if (n.kind === 'voice') return { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, kind: 'voice', dur: n.dur || 0 }; // audio in IndexedDB
-        if (n.kind === 'connector') return { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, kind: 'connector', yaml: n.yaml || '', display: n.display || 'triangle', creatorUid: n.creatorUid || null, bridge: !!n.bridge };
+        if (n.kind === 'connector') return { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, kind: 'connector', yaml: n.yaml || '', display: n.display || 'triangle', clockFormat: n.clockFormat || 'HH:MM:SS', creatorUid: n.creatorUid || null, bridge: !!n.bridge };
         return { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, text: n.text, image: n.image || undefined, link: n.link || undefined, kind: n.kind === 'pancarte' ? 'pancarte' : undefined };
       }),
     circles: state.circles.map(c => ({

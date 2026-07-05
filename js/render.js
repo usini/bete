@@ -1,15 +1,15 @@
 // Board rendering: pixel grid, circles, hexagons, rectangles, neon glow, selection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr7mutc2';
-import { parseBoardUrl } from './boards.js?v=mr7mutc2';
-import { view, worldToScreen } from './camera.js?v=mr7mutc2';
-import { stretch } from './physics.js?v=mr7mutc2';
-import { hexCorners, triCorners } from './geom.js?v=mr7mutc2';
-import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr7mutc2';
-import { fmtDur } from './voice.js?v=mr7mutc2';
-import { getCursors, getPresence } from './sync.js?v=mr7mutc2';
-import { youTubeId, ytThumb } from './yt.js?v=mr7mutc2';
-import { getImageEl } from './images.js?v=mr7mutc2';
-import { t } from './i18n.js?v=mr7mutc2';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mr7n7ze8';
+import { parseBoardUrl } from './boards.js?v=mr7n7ze8';
+import { view, worldToScreen } from './camera.js?v=mr7n7ze8';
+import { stretch } from './physics.js?v=mr7n7ze8';
+import { hexCorners, triCorners } from './geom.js?v=mr7n7ze8';
+import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mr7n7ze8';
+import { fmtDur } from './voice.js?v=mr7n7ze8';
+import { getCursors, getPresence } from './sync.js?v=mr7n7ze8';
+import { youTubeId, ytThumb } from './yt.js?v=mr7n7ze8';
+import { getImageEl } from './images.js?v=mr7n7ze8';
+import { t } from './i18n.js?v=mr7n7ze8';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -506,6 +506,10 @@ function drawConnector(ctx, n, selected, zoom) {
     if (theme().pixel) drawSwitchPixel(ctx, w, h, on, selected, zoom, press);
     else if (themeId_() === 'winxp') drawSwitchWinXP(ctx, w, h, on, selected, zoom, press);
     else drawSwitchVector(ctx, w, h, on, selected, zoom, press);
+  } else if (n.display === 'readout') {
+    drawConnectorReadout(ctx, n, color, stl, selected, zoom, w, h);
+  } else if (n.display === 'clock') {
+    drawConnectorClock(ctx, color, stl, selected, zoom, w, h, n.clockFormat || 'HH:MM:SS');
   } else {
     // Generic triangle: outline + a small status dot (top corner) + last value as text.
     const pts = triCorners(0, 0, w, h);
@@ -539,6 +543,83 @@ function drawConnector(ctx, n, selected, zoom) {
   }
   if (n.bridge) drawBridgeBadge(ctx, w, h, zoom);
   ctx.restore();
+}
+
+// Plain rectangle readout: last fetched value as fitted text, with a green
+// border that fades in/out (ripple) while a request is in flight, and a
+// small corner dot when poll_interval keeps it auto-refreshing in the
+// background (see connector.js: node._polling, never synced -- it just
+// reflects whether pollConnector() actually started a timer for this device).
+function drawConnectorReadout(ctx, n, color, stl, selected, zoom, w, h) {
+  ctx.fillStyle = stl.fill;
+  ctx.fillRect(-w / 2, -h / 2, w, h);
+
+  const loading = n._status === 'loading';
+  let borderColor = color, blur = (selected ? 22 : 10) * GLOW(), lineW = selected ? 5 : 3;
+  if (loading) {
+    const pulse = (Math.sin(performance.now() / 260) + 1) / 2; // 0..1 fade in/out
+    borderColor = '#39ff14';
+    blur = (10 + pulse * 20) * GLOW();
+    lineW = (selected ? 5 : 3) + pulse * 2;
+  }
+  ctx.shadowColor = borderColor;
+  ctx.shadowBlur = blur;
+  ctx.lineWidth = lineW;
+  ctx.strokeStyle = borderColor;
+  ctx.strokeRect(-w / 2, -h / 2, w, h);
+  ctx.shadowBlur = 0;
+
+  if (n._value !== null && n._value !== undefined) {
+    const fs = clamp(13 * zoom * getTextScale(), 7, 24);
+    ctx.shadowColor = color; ctx.shadowBlur = 4 * GLOW();
+    ctx.fillStyle = stl.text;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    drawFitted(ctx, String(n._value), w - 16 * zoom, h - 14 * zoom, fs);
+    ctx.shadowBlur = 0;
+  }
+
+  if (n._polling) {
+    ctx.beginPath();
+    ctx.arc(w / 2 - 9 * zoom, h / 2 - 9 * zoom, Math.max(2.5, 3.5 * zoom), 0, Math.PI * 2);
+    ctx.fillStyle = '#00b7eb';
+    ctx.shadowColor = '#00b7eb';
+    ctx.shadowBlur = 4 * GLOW();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+}
+
+// Local clock readout -- no network at all, just formats the current time
+// per the chosen clockFormat (picked via input.js: openClockFormatPicker).
+function formatClock(d, fmt) {
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  const time = fmt === 'HH:MM' ? `${hh}:${mm}` : `${hh}:${mm}:${ss}`;
+  return fmt === 'HH:MM:SS+DATE' ? [time, d.toLocaleDateString()] : [time];
+}
+function drawConnectorClock(ctx, color, stl, selected, zoom, w, h, fmt) {
+  ctx.fillStyle = stl.fill;
+  ctx.fillRect(-w / 2, -h / 2, w, h);
+  ctx.shadowColor = color;
+  ctx.shadowBlur = (selected ? 22 : 10) * GLOW();
+  ctx.lineWidth = selected ? 5 : 3;
+  ctx.strokeStyle = color;
+  ctx.strokeRect(-w / 2, -h / 2, w, h);
+  ctx.shadowBlur = 0;
+
+  const lines = formatClock(new Date(), fmt);
+  const fs = clamp((lines.length > 1 ? 15 : 18) * zoom * getTextScale(), 8, 30);
+  ctx.font = `${fs}px ${FONT()}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = stl.text;
+  ctx.shadowColor = color; ctx.shadowBlur = 4 * GLOW();
+  const lineH = fs * 1.3;
+  const startY = -((lines.length - 1) * lineH) / 2;
+  lines.forEach((line, i) => ctx.fillText(line, 0, startY + i * lineH));
+  ctx.shadowBlur = 0;
 }
 
 // Small cloud badge (top-right corner): marks a connector whose yaml isn't

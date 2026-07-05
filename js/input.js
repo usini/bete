@@ -3,24 +3,24 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr7mutc2';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr7mutc2';
-import { dragTo, reset } from './physics.js?v=mr7mutc2';
-import { pointInHex } from './geom.js?v=mr7mutc2';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector } from './connector.js?v=mr7mutc2';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mr7mutc2';
-import { getUserId } from './users.js?v=mr7mutc2';
-import { storeImage, resolveSrc } from './images.js?v=mr7mutc2';
-import { explodeElementCascade } from './fx.js?v=mr7mutc2';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr7mutc2';
-import { listLiaisons } from './liaisons.js?v=mr7mutc2';
-import { openSettings } from './settings.js?v=mr7mutc2';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr7mutc2';
-import { toggleDebug } from './debug.js?v=mr7mutc2';
-import { youTubeId } from './yt.js?v=mr7mutc2';
-import { setActiveVideo } from './video.js?v=mr7mutc2';
-import { t } from './i18n.js?v=mr7mutc2';
-import { openExternal } from './platform.js?v=mr7mutc2';
+} from './state.js?v=mr7n7ze8';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr7n7ze8';
+import { dragTo, reset } from './physics.js?v=mr7n7ze8';
+import { pointInHex } from './geom.js?v=mr7n7ze8';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector } from './connector.js?v=mr7n7ze8';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mr7n7ze8';
+import { getUserId } from './users.js?v=mr7n7ze8';
+import { storeImage, resolveSrc } from './images.js?v=mr7n7ze8';
+import { explodeElementCascade } from './fx.js?v=mr7n7ze8';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr7n7ze8';
+import { listLiaisons } from './liaisons.js?v=mr7n7ze8';
+import { openSettings } from './settings.js?v=mr7n7ze8';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr7n7ze8';
+import { toggleDebug } from './debug.js?v=mr7n7ze8';
+import { youTubeId } from './yt.js?v=mr7n7ze8';
+import { setActiveVideo } from './video.js?v=mr7n7ze8';
+import { t } from './i18n.js?v=mr7n7ze8';
+import { openExternal } from './platform.js?v=mr7n7ze8';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -96,6 +96,7 @@ const ICONS = {
   triangle: '<polygon points="12,4 20,19 4,19"/>',
   power: '<line x1="12" y1="3" x2="12" y2="11"/><path d="M7 6a7 7 0 1 0 10 0"/>',
   cloud: '<path d="M7 18a4.5 4.5 0 0 1-.7-8.94 5.5 5.5 0 0 1 10.7 1.2A4 4 0 0 1 17 18H7z"/>',
+  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.5 2"/>',
 };
 let pendingBoardPos = null; // position where a new board will be created (if not null, a new board will be created on the next click)
 let pendingBoardTarget = null; // target board to link to when creating a new board (if not null, a new board will be created on the next click and linked to this target)
@@ -664,10 +665,11 @@ function handleDouble(sx, sy) {
     toggleSwitch(r);
     return;
   }
-  // Generic (triangle) connector: double-click force-refreshes it on demand --
-  // useful on its own with poll_interval: 0 in the yaml (no background timer
-  // at all, purely click-to-fetch), and harmless otherwise (just an early refresh).
-  if (r && r.kind === 'connector') {
+  // Generic (triangle) or readout connector: double-click force-refreshes it
+  // on demand -- useful on its own with poll_interval: 0 in the yaml (no
+  // background timer at all, purely click-to-fetch), and harmless otherwise
+  // (just an early refresh). A clock has no network involved, nothing to do.
+  if (r && r.kind === 'connector' && r.display !== 'clock') {
     if (isLocked()) return;
     refreshConnector(r);
     return;
@@ -854,6 +856,33 @@ function openBridgeWarning(node) {
   });
 }
 
+// Format picker for the clock display: picking any option also switches the
+// block to display:'clock' if it wasn't already (same modal reopens later
+// via the "clock format" radial entry to just change the format).
+const CLOCK_FORMATS = ['HH:MM', 'HH:MM:SS', 'HH:MM:SS+DATE'];
+function openClockFormatPicker(node) {
+  const m = document.createElement('div');
+  m.className = 'recmodal';
+  m.innerHTML = '<div class="connector-card">'
+    + '<div class="connector-title">' + t('clock.formatTitle') + '</div>'
+    + '<div class="connector-actions connector-actions-col">'
+    + CLOCK_FORMATS.map((f) => '<button class="connector-pick" data-fmt="' + f + '">' + t('clock.' + f) + '</button>').join('')
+    + '</div>'
+    + '<div class="connector-actions"><button class="connector-cancel">' + t('connector.cancel') + '</button></div>'
+    + '</div>';
+  m.addEventListener('mousedown', (e) => e.stopPropagation());
+  m.addEventListener('touchstart', (e) => e.stopPropagation());
+  document.body.appendChild(m);
+  m.querySelectorAll('.connector-pick').forEach((b) => b.addEventListener('click', () => {
+    node.clockFormat = b.dataset.fmt;
+    if (node.display !== 'clock') node.display = 'clock';
+    scheduleSave();
+    pollConnector(node);
+    m.remove();
+  }));
+  m.querySelector('.connector-cancel').addEventListener('click', () => m.remove());
+}
+
 // Removes an element (explosion + propagation; detaches the host if it's a Liaison).
 function removeElement(el) {
   if (!el) return;
@@ -952,12 +981,16 @@ function openContextAt(sx, sy) {
   } else if (r && r.kind === 'connector') {
     items = [{ label: t('radial.editProgram'), icon: 'edit', color: COL.cyan, fn: () => openConnectorEditor(r) }];
     if (r.display !== 'switch') items.push({ label: t('radial.makeSwitch'), icon: 'power', color: COL.wood, fn: () => { r.display = 'switch'; scheduleSave(); pollConnector(r); } });
+    if (r.display !== 'readout') items.push({ label: t('radial.makeReadout'), icon: 'rect', color: COL.green, fn: () => { r.display = 'readout'; scheduleSave(); pollConnector(r); } });
+    items.push(r.display === 'clock'
+      ? { label: t('radial.clockFormat'), icon: 'clock', color: COL.cyan, fn: () => openClockFormatPicker(r) }
+      : { label: t('radial.makeClock'), icon: 'clock', color: COL.cyan, fn: () => openClockFormatPicker(r) });
     // Network bridge: reserved to whoever created this connector (creatorUid
     // is stamped once at creation, see state.js/addConnector) -- enabling it
     // is what starts exposing the switch (without the yaml) to every other
     // peer, so only the person who actually owns the local device should
-    // be able to flip that on.
-    if (!r.creatorUid || r.creatorUid === getUserId()) {
+    // be able to flip that on. Doesn't apply to a clock: no network involved.
+    if (r.display !== 'clock' && (!r.creatorUid || r.creatorUid === getUserId())) {
       items.push(r.bridge
         ? { label: t('radial.bridgeOff'), icon: 'cloud', color: COL.cyan, fn: () => { r.bridge = false; scheduleSave(); pollConnector(r); } }
         : { label: t('radial.bridgeOn'), icon: 'cloud', color: COL.cyan, fn: () => openBridgeWarning(r) });
