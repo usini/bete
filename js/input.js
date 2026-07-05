@@ -3,22 +3,23 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr7jvkrx';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr7jvkrx';
-import { dragTo, reset } from './physics.js?v=mr7jvkrx';
-import { pointInHex } from './geom.js?v=mr7jvkrx';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr7jvkrx';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr7jvkrx';
-import { storeImage, resolveSrc } from './images.js?v=mr7jvkrx';
-import { explodeElementCascade } from './fx.js?v=mr7jvkrx';
-import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr7jvkrx';
-import { openSettings } from './settings.js?v=mr7jvkrx';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr7jvkrx';
-import { toggleDebug } from './debug.js?v=mr7jvkrx';
-import { youTubeId } from './yt.js?v=mr7jvkrx';
-import { setActiveVideo } from './video.js?v=mr7jvkrx';
-import { t } from './i18n.js?v=mr7jvkrx';
-import { openExternal } from './platform.js?v=mr7jvkrx';
+} from './state.js?v=mr7kswc6';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr7kswc6';
+import { dragTo, reset } from './physics.js?v=mr7kswc6';
+import { pointInHex } from './geom.js?v=mr7kswc6';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr7kswc6';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage } from './sync.js?v=mr7kswc6';
+import { storeImage, resolveSrc } from './images.js?v=mr7kswc6';
+import { explodeElementCascade } from './fx.js?v=mr7kswc6';
+import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr7kswc6';
+import { listLiaisons } from './liaisons.js?v=mr7kswc6';
+import { openSettings } from './settings.js?v=mr7kswc6';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr7kswc6';
+import { toggleDebug } from './debug.js?v=mr7kswc6';
+import { youTubeId } from './yt.js?v=mr7kswc6';
+import { setActiveVideo } from './video.js?v=mr7kswc6';
+import { t } from './i18n.js?v=mr7kswc6';
+import { openExternal } from './platform.js?v=mr7kswc6';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -1110,16 +1111,49 @@ function closeMenus() {
 }
 
 // ---- Board picker (create a link to another board) ----
+// Picking a liaison is a separate, explicit choice from picking the target
+// board -- previously the link's peer was silently inherited from whichever
+// liaison happened to be currently connected (or the board's last-used one),
+// which meant the only way to point a link at a different liaison was to
+// hand-edit the generated URL. selectedLiaisonPeer holds that choice for the
+// lifetime of one picker session; undefined = not decided yet (defaults to
+// the current connection), null = explicitly "no liaison / local board".
+let selectedLiaisonPeer;
+
 function openBoardPicker(wx, wy, target) {
   closeMenus();
   pendingBoardPos = { x: wx, y: wy };
   pendingBoardTarget = target || null; // if provided: transforms this block into a link
+  selectedLiaisonPeer = hostId() || null;
   const bp = document.getElementById('boardpicker');
   bp.innerHTML = '';
   const title = document.createElement('div');
   title.className = 'bp-title';
   title.textContent = t('boardPicker.title');
   bp.appendChild(title);
+
+  // Liaison choice: which peer (if any) the link should carry.
+  const liaisonLabel = document.createElement('div');
+  liaisonLabel.className = 'bp-title';
+  liaisonLabel.textContent = t('boardPicker.liaison');
+  bp.appendChild(liaisonLabel);
+  const liaisonRows = [];
+  const addLiaisonRow = (label, peer) => {
+    const row = document.createElement('div');
+    row.className = 'bp-row bp-liaison-row';
+    row.textContent = label;
+    if (peer === selectedLiaisonPeer) row.classList.add('bp-selected');
+    row.addEventListener('click', () => {
+      selectedLiaisonPeer = peer;
+      liaisonRows.forEach((r) => r.el.classList.toggle('bp-selected', r.peer === peer));
+    });
+    liaisonRows.push({ el: row, peer });
+    bp.appendChild(row);
+  };
+  const currentHost = hostId();
+  if (currentHost) addLiaisonRow(t('boardPicker.liaisonCurrent'), currentHost);
+  listLiaisons().filter((l) => l.peer !== currentHost).forEach((l) => addLiaisonRow(l.name || l.peer, l.peer));
+  addLiaisonRow(t('boardPicker.liaisonNone'), null);
 
   // Create a new board.
   const newRow = document.createElement('div');
@@ -1130,7 +1164,7 @@ function openBoardPicker(wx, wy, target) {
   okb.textContent = '+';
   newRow.appendChild(inp); newRow.appendChild(okb);
   bp.appendChild(newRow);
-  const createNew = () => { const nm = inp.value.trim(); if (nm) createBoardLink(genBoardId(), nm, null); };
+  const createNew = () => { const nm = inp.value.trim(); if (nm) createBoardLink(genBoardId(), nm, selectedLiaisonPeer); };
   okb.addEventListener('click', createNew);
   inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') createNew(); });
 
@@ -1147,7 +1181,7 @@ function openBoardPicker(wx, wy, target) {
     const row = document.createElement('div');
     row.className = 'bp-row';
     row.textContent = b.id === 'home' ? t('board.home') : b.id === 'tutorial' ? t('board.tutorial') : (b.name || b.id);
-    row.addEventListener('click', () => createBoardLink(b.id, b.name, b.peer));
+    row.addEventListener('click', () => createBoardLink(b.id, b.name, selectedLiaisonPeer));
     bp.appendChild(row);
   });
 
@@ -1156,9 +1190,8 @@ function openBoardPicker(wx, wy, target) {
   setTimeout(() => inp.focus(), 50);
 }
 
-function createBoardLink(targetId, name, peerOverride) {
+function createBoardLink(targetId, name, peer) {
   closeMenus();
-  const peer = peerOverride || hostId() || null; // inherits the current host
   const url = buildShareBoardUrl(targetId, peer, name); // this link is synced to peers, not navigated locally
   if (pendingBoardTarget) {
     // Transforms the existing block into a link to the board (keeps its text if any).

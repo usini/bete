@@ -90,6 +90,9 @@ const STRINGS = {
     'radial.readOnly': '🔒 Read-only board',
 
     'boardPicker.title': 'LINK TO A BOARD',
+    'boardPicker.liaison': 'Liaison',
+    'boardPicker.liaisonCurrent': '● Current connection',
+    'boardPicker.liaisonNone': 'None (local board)',
     'boardPicker.newPlaceholder': 'New board…',
     'boardPicker.empty': '(no other board visited)',
 
@@ -262,6 +265,9 @@ const STRINGS = {
     'radial.readOnly': '🔒 Board en lecture seule',
 
     'boardPicker.title': 'LIEN VERS UN BOARD',
+    'boardPicker.liaison': 'Liaison',
+    'boardPicker.liaisonCurrent': '● Connexion actuelle',
+    'boardPicker.liaisonNone': 'Aucune (board local)',
     'boardPicker.newPlaceholder': 'Nouveau board…',
     'boardPicker.empty': '(aucun autre board visité)',
 

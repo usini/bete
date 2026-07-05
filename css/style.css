@@ -284,6 +284,8 @@ html, body {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 #boardpicker .bp-row:hover, #boardpicker .bp-new button:hover { background: var(--green); color: #04130a; }
+#boardpicker .bp-liaison-row { padding: 8px 10px; font-size: 9px; }
+#boardpicker .bp-liaison-row.bp-selected { background: var(--green); color: #04130a; border-color: var(--green); }
 #boardpicker .bp-new button {
   font-family: 'Press Start 2P', monospace; font-size: 10px; padding: 9px 11px;
   background: #0d0f12; color: var(--green); border: 2px solid var(--green); cursor: pointer;
