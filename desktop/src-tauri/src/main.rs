@@ -74,8 +74,19 @@ fn local_version(app: &tauri::AppHandle) -> Option<String> {
 // network hiccup mid-download never leaves a half-updated, broken UI. Offline
 // or any request failure is treated the same as "already up to date": we just
 // keep serving whatever we already have.
+//
+// The actual work is synchronous (blocking ureq calls, one per file), so it
+// MUST run off the main/event-loop thread via spawn_blocking -- otherwise the
+// whole window freezes (no repaint, no input) for as long as ~35 sequential
+// HTTP round trips take, which is exactly what happened before this was async.
 #[tauri::command]
-fn check_web_update(app: tauri::AppHandle) -> Result<bool, String> {
+async fn check_web_update(app: tauri::AppHandle) -> Result<bool, String> {
+    tauri::async_runtime::spawn_blocking(move || check_web_update_blocking(&app))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn check_web_update_blocking(app: &tauri::AppHandle) -> Result<bool, String> {
     let manifest_text = ureq::get(WEB_MANIFEST_URL)
         .timeout(std::time::Duration::from_secs(6))
         .call()

@@ -117,11 +117,20 @@ export async function openExternal(url) {
 // desktop/src-tauri/src/main.rs for the actual download/compare logic -- this
 // is intentionally "dumb" on the JS side: invoke the command, reload if it
 // says something changed, otherwise (including "offline") do nothing.
-export async function checkWebUpdate() {
+// onUpdated (optional): called just before the reload that applies the
+// update, so the caller can show something ("updating...") instead of the
+// app silently reloading out of nowhere -- runs off the main thread on the
+// Rust side (spawn_blocking), so this await doesn't freeze the window while
+// the new assets download, but a page reload with no warning still reads as
+// "did this just crash?" without it.
+export async function checkWebUpdate(onUpdated) {
   if (!isDesktop) return;
   try {
     const updated = await window.__TAURI__.core.invoke('check_web_update');
-    if (updated) location.reload();
+    if (updated) {
+      if (onUpdated) onUpdated();
+      setTimeout(() => location.reload(), 600); // long enough to actually see the message above
+    }
   } catch (e) {
     console.error('Bete: checkWebUpdate failed', e);
   }
