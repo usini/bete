@@ -3,24 +3,24 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr7lanz7';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr7lanz7';
-import { dragTo, reset } from './physics.js?v=mr7lanz7';
-import { pointInHex } from './geom.js?v=mr7lanz7';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr7lanz7';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mr7lanz7';
-import { getUserId } from './users.js?v=mr7lanz7';
-import { storeImage, resolveSrc } from './images.js?v=mr7lanz7';
-import { explodeElementCascade } from './fx.js?v=mr7lanz7';
-import { genBoardId, listBoards, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr7lanz7';
-import { listLiaisons } from './liaisons.js?v=mr7lanz7';
-import { openSettings } from './settings.js?v=mr7lanz7';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr7lanz7';
-import { toggleDebug } from './debug.js?v=mr7lanz7';
-import { youTubeId } from './yt.js?v=mr7lanz7';
-import { setActiveVideo } from './video.js?v=mr7lanz7';
-import { t } from './i18n.js?v=mr7lanz7';
-import { openExternal } from './platform.js?v=mr7lanz7';
+} from './state.js?v=mr7mfvqi';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr7mfvqi';
+import { dragTo, reset } from './physics.js?v=mr7mfvqi';
+import { pointInHex } from './geom.js?v=mr7mfvqi';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram } from './connector.js?v=mr7mfvqi';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mr7mfvqi';
+import { getUserId } from './users.js?v=mr7mfvqi';
+import { storeImage, resolveSrc } from './images.js?v=mr7mfvqi';
+import { explodeElementCascade } from './fx.js?v=mr7mfvqi';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr7mfvqi';
+import { listLiaisons } from './liaisons.js?v=mr7mfvqi';
+import { openSettings } from './settings.js?v=mr7mfvqi';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr7mfvqi';
+import { toggleDebug } from './debug.js?v=mr7mfvqi';
+import { youTubeId } from './yt.js?v=mr7mfvqi';
+import { setActiveVideo } from './video.js?v=mr7mfvqi';
+import { t } from './i18n.js?v=mr7mfvqi';
+import { openExternal } from './platform.js?v=mr7mfvqi';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -1238,7 +1238,7 @@ function openBoardPicker(wx, wy, target) {
 
 function createBoardLink(targetId, name, peer) {
   closeMenus();
-  const url = buildShareBoardUrl(targetId, peer, name); // this link is synced to peers, not navigated locally
+  const url = buildBoardUrl(targetId, peer, name); // always relative to location.origin -- clicked locally, never copy-pasted as-is
   if (pendingBoardTarget) {
     // Transforms the existing block into a link to the board (keeps its text if any).
     const t = pendingBoardTarget; pendingBoardTarget = null;

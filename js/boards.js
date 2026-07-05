@@ -1,6 +1,4 @@
 // History of visited boards + utilities (unique IDs, URLs).
-import { shareOrigin } from './platform.js?v=mr7lanz7';
-
 const KEY = 'bete:boards';
 
 // Unique board ID (anti-collision, especially on a shared server).
@@ -29,18 +27,13 @@ export function getBoardEntry(id) {
 }
 
 // Build the URL of a board (id + peer + optional name for initial display).
+// Always relative to location.origin -- a "link to board" block is meant to
+// be clicked from wherever the board is currently open (same window,
+// same origin), never a URL copy-pasted to someone else (that's the
+// liaison invite link's job, sync.js: buildUrl(), which does need
+// shareOrigin() since tauri://localhost isn't reachable by anyone else).
 export function buildBoardUrl(id, peer, name) {
   let u = location.origin + location.pathname + '?id=' + encodeURIComponent(id);
-  if (peer) u += '&peer=' + encodeURIComponent(peer);
-  if (name) u += '&name=' + encodeURIComponent(name);
-  return u;
-}
-
-// Same as buildBoardUrl, but for links handed to OTHER people (a "link to
-// board" block, synced to peers) rather than internal navigation — see
-// platform.js: shareOrigin() substitutes a reachable address on desktop.
-export function buildShareBoardUrl(id, peer, name) {
-  let u = shareOrigin() + '?id=' + encodeURIComponent(id);
   if (peer) u += '&peer=' + encodeURIComponent(peer);
   if (name) u += '&name=' + encodeURIComponent(name);
   return u;
