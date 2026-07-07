@@ -8,7 +8,12 @@ identifier = "allow-get-lan-url"
 description = "Allows reading this machine's LAN URL for local-network sharing"
 commands.allow = ["get_lan_url"]
 
+[[permission]]
+identifier = "allow-fetch-ics"
+description = "Allows fetching a .ics calendar feed server-side (bypasses browser CORS)"
+commands.allow = ["fetch_ics"]
+
 [[set]]
 identifier = "default"
 description = "Default permissions for Bete's own application commands"
-permissions = ["allow-check-web-update", "allow-get-lan-url"]
+permissions = ["allow-check-web-update", "allow-get-lan-url", "allow-fetch-ics"]
