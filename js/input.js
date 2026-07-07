@@ -3,26 +3,27 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mrannj5t';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrannj5t';
-import { dragTo, reset } from './physics.js?v=mrannj5t';
-import { pointInHex } from './geom.js?v=mrannj5t';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector } from './connector.js?v=mrannj5t';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrannj5t';
-import { getUserId } from './users.js?v=mrannj5t';
-import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrannj5t';
-import { getAudio, putAudio } from './audio.js?v=mrannj5t';
-import { toast } from './main.js?v=mrannj5t';
-import { explodeElementCascade } from './fx.js?v=mrannj5t';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mrannj5t';
-import { listLiaisons } from './liaisons.js?v=mrannj5t';
-import { openSettings } from './settings.js?v=mrannj5t';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrannj5t';
-import { toggleDebug } from './debug.js?v=mrannj5t';
-import { youTubeId } from './yt.js?v=mrannj5t';
-import { setActiveVideo } from './video.js?v=mrannj5t';
-import { t } from './i18n.js?v=mrannj5t';
-import { openExternal } from './platform.js?v=mrannj5t';
+} from './state.js?v=mrb8d9z5';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrb8d9z5';
+import { dragTo, reset } from './physics.js?v=mrb8d9z5';
+import { pointInHex } from './geom.js?v=mrb8d9z5';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector } from './connector.js?v=mrb8d9z5';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrb8d9z5';
+import { getUserId } from './users.js?v=mrb8d9z5';
+import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrb8d9z5';
+import { getAudio, putAudio } from './audio.js?v=mrb8d9z5';
+import { toast } from './main.js?v=mrb8d9z5';
+import { explodeElementCascade } from './fx.js?v=mrb8d9z5';
+import { genBoardId, listBoards, buildBoardUrl, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mrb8d9z5';
+import { listLiaisons } from './liaisons.js?v=mrb8d9z5';
+import { openSettings } from './settings.js?v=mrb8d9z5';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrb8d9z5';
+import { toggleDebug } from './debug.js?v=mrb8d9z5';
+import { youTubeId } from './yt.js?v=mrb8d9z5';
+import { setActiveVideo } from './video.js?v=mrb8d9z5';
+import { t } from './i18n.js?v=mrb8d9z5';
+import { openExternal } from './platform.js?v=mrb8d9z5';
+import { isIcsUrl } from './ics.js?v=mrb8d9z5';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -603,10 +604,22 @@ function imageRectSize(ratio) {
   return { w, h };
 }
 
+// True when the focus is in any text-entry element (textarea, input, or a
+// contenteditable like the board-name div): keyboard/paste shortcuts must
+// then keep their normal text behavior instead of acting on blocks. The
+// editing flag alone is not enough -- it only covers the #editor textarea,
+// not the connector YAML editor, the board-picker input or the board rename.
+function isTextEntryFocused() {
+  const el = document.activeElement;
+  if (!el) return false;
+  return el.tagName === 'TEXTAREA' || el.tagName === 'INPUT' || el.isContentEditable;
+}
+
 // Paste (Ctrl-V): an image from the clipboard creates an image rectangle;
 // otherwise pastes the copied internal element.
 function onPaste(e) {
   if (editing) return; // while editing, the textarea pastes normally
+  if (isTextEntryFocused()) return; // pasting text in a field must stay a text paste
   if (isLocked()) return;
   const cb = loadClipboard();
   const items = (e.clipboardData && e.clipboardData.items) || [];
@@ -696,14 +709,19 @@ function onKeyDown(e) {
   // settings input) must keep normal text-editing keys -- otherwise Delete/
   // Backspace/Ctrl+Z there would hit the canvas shortcuts below and delete
   // the selected block instead of editing the text.
-  const tag = document.activeElement && document.activeElement.tagName;
-  if (tag === 'TEXTAREA' || tag === 'INPUT') return;
+  if (isTextEntryFocused()) return;
 
   // '²' key (left of 1 on AZERTY): wobble debug panel.
   if (e.key === '²' || e.code === 'Backquote') { toggleDebug(); e.preventDefault(); return; }
 
   const mod = e.ctrlKey || e.metaKey;
-  if (mod && (e.key === 'c' || e.key === 'C')) { copySelection(); e.preventDefault(); return; } // read-only: copying locally is fine
+  if (mod && (e.key === 'c' || e.key === 'C')) {
+    // Text highlighted anywhere in the page (link bar, popup...): let the
+    // browser copy that text instead of hijacking Ctrl+C for the block.
+    const sel = window.getSelection && window.getSelection();
+    if (sel && !sel.isCollapsed && String(sel).trim()) return;
+    copySelection(); e.preventDefault(); return; // read-only: copying locally is fine
+  }
   if (isLocked()) return; // read-only guest: no undo, no delete
   if (mod && (e.key === 'z' || e.key === 'Z')) { doUndo(); e.preventDefault(); return; }
   // Pasting (Ctrl-V) is handled by the 'paste' event (see onPaste) so we can
@@ -728,6 +746,7 @@ function doUndo() {
 // Creates a Liaison block. Standalone: starts the P2P host. As a client: just
 // shows the link/QR of the host we're connected to (without becoming a host).
 function createLiaison(wx, wy) {
+  if (getBoardId() === 'home') return; // home is sanctuarized: never connected P2P
   const n = { id: newId(), kind: 'liaison', x: wx - 100, y: wy - 115, w: 200, h: 230, status: 'init' };
   state.nodes.push(n);
   reset(n);
@@ -781,9 +800,12 @@ function clearLinkFocus() {
 }
 
 // Follows a link: board => same tab (+ history); external => new tab.
+// A board URL may carry the public/LAN origin (shareable links, see
+// buildShareBoardUrl) -- navigation is rebuilt on the LOCAL origin so it
+// stays inside the app (the desktop webview must never leave 127.0.0.1).
 function followLink(url) {
   const bu = parseBoardUrl(url);
-  if (bu) { recordBoard(bu.id, bu.name, bu.peer); location.href = url; return; }
+  if (bu) { recordBoard(bu.id, bu.name, bu.peer); location.href = buildBoardUrl(bu.id, bu.peer, bu.name); return; }
   openLink(url);
 }
 
@@ -1106,7 +1128,8 @@ function openContextAt(sx, sy) {
       { label: t('radial.circle'), icon: 'circle', color: COL.cyan, fn: () => { const c = addCircle(w.x, w.y); state.selected = c.id; scheduleSave(); } },
       { label: t('radial.hexagon'), icon: 'hexa', color: COL.orange, fn: () => { const h = addHexagon(w.x, w.y); state.selected = h.id; scheduleSave(); } },
       { label: t('radial.connector'), icon: 'triangle', color: COL.red, fn: () => { const n = addConnector(w.x - 75, w.y - 65); reset(n); state.selected = n.id; scheduleSave(); openConnectorEditor(n); } },
-      { label: t('radial.liaison'), icon: 'share', color: COL.magenta, fn: () => createLiaison(w.x, w.y) },
+      // Home is sanctuarized (never connected P2P), so no liaison block there.
+      ...(getBoardId() === 'home' ? [] : [{ label: t('radial.liaison'), icon: 'share', color: COL.magenta, fn: () => createLiaison(w.x, w.y) }]),
       { label: t('radial.undo'), icon: 'undo', color: COL.yellow, fn: () => doUndo() },
       { label: t('radial.selection'), icon: 'select', color: COL.yellow, fn: () => { selectArmed = true; } },
       { label: t('radial.settings'), icon: 'gear', color: COL.white, fn: () => openSettings() },
@@ -1346,7 +1369,7 @@ function openBoardPicker(wx, wy, target) {
 
 function createBoardLink(targetId, name, peer) {
   closeMenus();
-  const url = buildBoardUrl(targetId, peer, name); // always relative to location.origin -- clicked locally, never copy-pasted as-is
+  const url = buildShareBoardUrl(targetId, peer, name); // shareable origin; followLink re-maps it to local navigation
   if (pendingBoardTarget) {
     // Transforms the existing block into a link to the board (keeps its text if any).
     const t = pendingBoardTarget; pendingBoardTarget = null;
@@ -1413,7 +1436,17 @@ function commitEdit() {
   const target = findById(editing.id);
   if (target) {
     if (editing.type === 'rect') target.text = ed.value;
-    else if (editing.type === 'link') { const v = ed.value.trim(); if (v) target.link = v; else delete target.link; }
+    else if (editing.type === 'link') {
+      const v = ed.value.trim();
+      if (v) target.link = v; else delete target.link;
+      // A .ics link turns the block into a week calendar (render.js): give it
+      // room to be readable right away (still freely resizable afterwards).
+      if (v && isIcsUrl(v) && !target.ref) {
+        if ((target.w || 0) < 340) target.w = 340;
+        if ((target.h || 0) < 200) target.h = 200;
+        reset(target);
+      }
+    }
     else target.description = ed.value.replace(/\n/g, ' ').trim();
     scheduleSave();
   }

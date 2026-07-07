@@ -4,8 +4,8 @@
 // smart plug). See CLAUDE.md for the read-only vs. host distinction that
 // also applies here (a locked guest may watch a switch's state but not
 // flip it -- enforced in input.js, not in this module).
-import { scheduleSave } from './state.js?v=mrannj5t';
-import { getUserId } from './users.js?v=mrannj5t';
+import { scheduleSave } from './state.js?v=mrb8d9z5';
+import { getUserId } from './users.js?v=mrb8d9z5';
 
 // Vendored locally (js/vendor/js-yaml.min.js) so the app keeps working
 // offline -- no CDN fetch at runtime, unlike the PeerJS/QR script loads in
@@ -124,6 +124,7 @@ export function stopPolling(id) {
 export async function pollConnector(node) {
   stopPolling(node.id);
   node._polling = false;
+  node._nextPollAt = 0;
   // Clock display: a local time readout, no network/yaml involved at all.
   if (node.display === 'clock') { node._status = 'idle'; return; }
   // Bridge mode: only the creator's own device has the real yaml (network
@@ -137,7 +138,8 @@ export async function pollConnector(node) {
   // refreshed by double-clicking it instead (see input.js/handleDouble).
   if (Number(cfg.poll_interval) === 0) return;
   const seconds = Math.max(5, Number(cfg.poll_interval) || 30);
-  timers[node.id] = setInterval(() => refreshConnector(node), seconds * 1000);
+  node._nextPollAt = Date.now() + seconds * 1000; // readout draws the countdown to this
+  timers[node.id] = setInterval(() => { node._nextPollAt = Date.now() + seconds * 1000; refreshConnector(node); }, seconds * 1000);
   node._polling = true; // drives the small corner indicator in render.js
 }
 

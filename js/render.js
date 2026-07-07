@@ -1,15 +1,16 @@
 // Board rendering: pixel grid, circles, hexagons, rectangles, neon glow, selection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mrannj5t';
-import { parseBoardUrl } from './boards.js?v=mrannj5t';
-import { view, worldToScreen } from './camera.js?v=mrannj5t';
-import { stretch } from './physics.js?v=mrannj5t';
-import { hexCorners, triCorners } from './geom.js?v=mrannj5t';
-import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mrannj5t';
-import { fmtDur } from './voice.js?v=mrannj5t';
-import { getCursors, getPresence } from './sync.js?v=mrannj5t';
-import { youTubeId, ytThumb } from './yt.js?v=mrannj5t';
-import { getImageEl } from './images.js?v=mrannj5t';
-import { t } from './i18n.js?v=mrannj5t';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mrb8d9z5';
+import { parseBoardUrl } from './boards.js?v=mrb8d9z5';
+import { view, worldToScreen } from './camera.js?v=mrb8d9z5';
+import { stretch } from './physics.js?v=mrb8d9z5';
+import { hexCorners, triCorners } from './geom.js?v=mrb8d9z5';
+import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mrb8d9z5';
+import { fmtDur } from './voice.js?v=mrb8d9z5';
+import { getCursors, getPresence } from './sync.js?v=mrb8d9z5';
+import { youTubeId, ytThumb } from './yt.js?v=mrb8d9z5';
+import { getImageEl } from './images.js?v=mrb8d9z5';
+import { t, getLang } from './i18n.js?v=mrb8d9z5';
+import { isIcsUrl, calendarWeek } from './ics.js?v=mrb8d9z5';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -587,6 +588,16 @@ function drawConnectorReadout(ctx, n, color, stl, selected, zoom, w, h) {
     ctx.shadowBlur = 4 * GLOW();
     ctx.fill();
     ctx.shadowBlur = 0;
+    // Countdown to the next poll, left of the dot (the loop redraws every frame).
+    if (n._nextPollAt) {
+      const remaining = Math.max(0, Math.ceil((n._nextPollAt - Date.now()) / 1000));
+      const fs = clamp(9 * zoom * getTextScale(), 6, 14);
+      ctx.font = `${fs}px ${FONT()}`;
+      ctx.fillStyle = '#00b7eb';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(remaining + 's', w / 2 - 16 * zoom, h / 2 - 4 * zoom);
+    }
   }
 }
 
@@ -915,6 +926,7 @@ function drawRect(ctx, n, color, selected, zoom) {
   const text = isLink ? (src ? src.text : '') : n.text;
   const image = isLink ? (src ? src.image : null) : n.image;
   const ytId = !image ? youTubeId(text) : null; // text = YouTube URL -> video
+  const icsUrl = (!image && !ytId && isIcsUrl(displayLink(n))) ? displayLink(n) : null; // link = .ics -> week calendar
   // A "link to board" rectangle (js/input.js createBoardLink) gets its own
   // look: a red border with current running through it, rather than the
   // plain dashed border shared by every clickable link.
@@ -1034,8 +1046,11 @@ function drawRect(ctx, n, color, selected, zoom) {
     ctx.closePath(); ctx.fill();
   }
 
-  // Text (shrunk to fit the rectangle, except for an image/video block).
-  if (text && !image && !ytId) {
+  // ICS calendar block: the body/border above stays, the content is a week grid.
+  if (icsUrl) drawIcsWeek(ctx, icsUrl, stl, color, zoom, w, h);
+
+  // Text (shrunk to fit the rectangle, except for an image/video/calendar block).
+  if (text && !image && !ytId && !icsUrl) {
     const baseFs = 13 * zoom * getTextScale();
     ctx.shadowBlur = 6 * GLOW();
     ctx.fillStyle = stl.text;
@@ -1044,6 +1059,104 @@ function drawRect(ctx, n, color, selected, zoom) {
     drawFitted(ctx, text, w - 16 * zoom, h - 14 * zoom, baseFs);
   }
   ctx.restore();
+}
+
+// Week calendar for a rectangle whose link is a .ics file (see js/ics.js).
+// Drawn in the block's centered coordinate space: x in [-w/2, w/2], y in
+// [-h/2, h/2]. Layout: a day-name header row, then 7 agenda columns with the
+// week's events stacked top-down (not a proportional timeline -- readable
+// even on a small block).
+function drawIcsWeek(ctx, url, stl, color, zoom, w, h) {
+  const cal = calendarWeek(url);
+  ctx.shadowBlur = 0;
+  if (!cal.days) {
+    const fs = clamp(11 * zoom, 8, 18);
+    ctx.font = `${fs}px ${FONT()}`;
+    ctx.fillStyle = stl.text;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(cal.status === 'error' ? t('ics.error') : t('ics.loading'), 0, 0);
+    return;
+  }
+
+  const pad = 4 * zoom;
+  const x0 = -w / 2 + pad, x1 = w / 2 - pad;
+  const y0 = -h / 2 + pad, y1 = h / 2 - pad;
+  const cw = (x1 - x0) / 7;
+  const hh = clamp(14 * zoom, 10, 26); // header row height
+  const lang = getLang() === 'fr' ? 'fr-FR' : 'en-US';
+  const today = new Date();
+
+  // Column separators + today's column highlight.
+  ctx.save();
+  ctx.globalAlpha = 0.35;
+  ctx.strokeStyle = stl.border;
+  ctx.lineWidth = 1;
+  for (let d = 1; d < 7; d++) {
+    const x = x0 + d * cw;
+    ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke();
+  }
+  ctx.beginPath(); ctx.moveTo(x0, y0 + hh); ctx.lineTo(x1, y0 + hh); ctx.stroke();
+  ctx.restore();
+
+  const fsHead = clamp(8 * zoom, 6, 13);
+  const fsEv = clamp(7 * zoom, 5, 12);
+  const evH = clamp(11 * zoom, 8, 17);
+
+  for (let d = 0; d < 7; d++) {
+    const day = new Date(cal.weekStart.getTime() + d * 86400000);
+    const colX = x0 + d * cw;
+    const isToday = day.getFullYear() === today.getFullYear() && day.getMonth() === today.getMonth() && day.getDate() === today.getDate();
+    if (isToday) {
+      ctx.save();
+      ctx.globalAlpha = 0.14;
+      ctx.fillStyle = color;
+      ctx.fillRect(colX, y0, cw, y1 - y0);
+      ctx.restore();
+    }
+
+    // Header: short day name + day-of-month.
+    ctx.font = `${fsHead}px ${FONT()}`;
+    ctx.fillStyle = stl.text;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    const label = day.toLocaleDateString(lang, { weekday: 'narrow' }).toUpperCase() + ' ' + day.getDate();
+    ctx.globalAlpha = isToday ? 1 : 0.75;
+    ctx.fillText(label, colX + cw / 2, y0 + 2, cw - 2);
+    ctx.globalAlpha = 1;
+
+    // Events, stacked; '+N' when they overflow the column.
+    const evs = cal.days[d];
+    let y = y0 + hh + 2;
+    const maxY = y1 - evH;
+    for (let i = 0; i < evs.length; i++) {
+      if (y > maxY && i < evs.length - 0) {
+        ctx.font = `${fsEv}px ${FONT()}`;
+        ctx.fillStyle = stl.text;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText('+' + (evs.length - i), colX + cw / 2, Math.min(y, y1 - fsEv));
+        break;
+      }
+      const ev = evs[i];
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(colX + 1, y, cw - 2, evH);
+      ctx.clip();
+      ctx.globalAlpha = ev.allDay ? 0.5 : 0.25;
+      ctx.fillStyle = color;
+      ctx.fillRect(colX + 1, y, cw - 2, evH);
+      ctx.globalAlpha = 1;
+      ctx.font = `${fsEv}px ${FONT()}`;
+      ctx.fillStyle = stl.text;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      const tm = ev.allDay ? '' : String(ev.start.getHours()).padStart(2, '0') + ':' + String(ev.start.getMinutes()).padStart(2, '0') + ' ';
+      ctx.fillText(tm + (ev.summary || ''), colX + 3, y + evH / 2);
+      ctx.restore();
+      y += evH + 2;
+    }
+  }
 }
 
 // Minimal inline markdown: **bold**, *italic*/_italic_. Returns text runs.

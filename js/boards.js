@@ -1,4 +1,6 @@
 // History of visited boards + utilities (unique IDs, URLs).
+import { appOrigins, shareOrigin } from './platform.js?v=mrb8d9z5';
+
 const KEY = 'bete:boards';
 
 // Unique board ID (anti-collision, especially on a shared server).
@@ -27,23 +29,41 @@ export function getBoardEntry(id) {
 }
 
 // Build the URL of a board (id + peer + optional name for initial display).
-// Always relative to location.origin -- a "link to board" block is meant to
-// be clicked from wherever the board is currently open (same window,
-// same origin), never a URL copy-pasted to someone else (that's the
-// liaison invite link's job, sync.js: buildUrl(), which does need
-// shareOrigin() since tauri://localhost isn't reachable by anyone else).
+// Relative to location.origin: for INTERNAL navigation (switching the current
+// window to another local board), which must resolve inside the desktop
+// webview too. Links meant to live in a block (copy-pasteable, shareable)
+// use buildShareBoardUrl below instead.
 export function buildBoardUrl(id, peer, name) {
-  let u = location.origin + location.pathname + '?id=' + encodeURIComponent(id);
+  return withBoardParams(location.origin + location.pathname, id, peer, name);
+}
+
+// Same, but on the shareable origin (public deployment or LAN address on
+// desktop, see platform.js: shareOrigin) -- used for "link to board" blocks,
+// so a link authored on desktop still means something outside this machine.
+// parseBoardUrl recognizes those as internal, so clicking one locally
+// navigates in-window instead of opening a browser.
+export function buildShareBoardUrl(id, peer, name) {
+  return withBoardParams(shareOrigin(), id, peer, name);
+}
+
+function withBoardParams(base, id, peer, name) {
+  let u = base + '?id=' + encodeURIComponent(id);
   if (peer) u += '&peer=' + encodeURIComponent(peer);
   if (name) u += '&name=' + encodeURIComponent(name);
   return u;
 }
 
-// Parse a board URL (returns null if invalid or not a board URL).
+// Parse a board URL (returns null if invalid or not a board URL). A URL is a
+// board URL when it lives under any of the app's own origins (local window,
+// public deployment or LAN address on desktop -- see platform.js: appOrigins).
 export function parseBoardUrl(url) {
   try {
     const u = new URL(url, location.href);
-    if (u.origin !== location.origin || u.pathname !== location.pathname) return null;
+    const internal = appOrigins().some((o) => {
+      try { const b = new URL(o, location.href); return u.origin === b.origin && u.pathname === b.pathname; }
+      catch (e) { return false; }
+    });
+    if (!internal) return null;
     const id = u.searchParams.get('id');
     if (!id) return null;
     return { id, peer: u.searchParams.get('peer'), name: u.searchParams.get('name') };

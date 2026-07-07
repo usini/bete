@@ -1,5 +1,5 @@
 {
- "version": "mrannj5t",
+ "version": "mrb8d9z5",
  "files": [
   "index.html",
   "js/audio.js",
@@ -11,6 +11,7 @@
   "js/fx.js",
   "js/geom.js",
   "js/i18n.js",
+  "js/ics.js",
   "js/images.js",
   "js/input.js",
   "js/io.js",

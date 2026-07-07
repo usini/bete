@@ -34,6 +34,11 @@ const STRINGS = {
     'toast.copied': 'COPIED {n}',
     'toast.pasted': 'PASTED {n}',
 
+    'ics.loading': 'CALENDAR...',
+    'ics.error': 'CALENDAR UNREACHABLE',
+    'settings.icsProxy': 'ICS proxy',
+    'settings.icsProxyPrompt': 'Proxy URL for fetching .ics calendars blocked by CORS (empty = direct fetch only). Example: http://raspberrypi.local:9741',
+
     'reconnect.title': 'CONNECTION ISSUE',
     'reconnect.loopMessage': "The liaison keeps disconnecting and reconnecting. Refreshing the page usually fixes this.",
     'reconnect.refresh': '↻ Refresh the page',
@@ -223,6 +228,11 @@ const STRINGS = {
     'toast.homeLocal': 'HOME RESTE LOCAL (non connectable)',
     'toast.copied': 'COPIE {n}',
     'toast.pasted': 'COLLE {n}',
+
+    'ics.loading': 'CALENDRIER...',
+    'ics.error': 'CALENDRIER INJOIGNABLE',
+    'settings.icsProxy': 'Proxy ICS',
+    'settings.icsProxyPrompt': 'URL du proxy pour recuperer les calendriers .ics bloques par CORS (vide = fetch direct uniquement). Exemple : http://raspberrypi.local:9741',
 
     'reconnect.title': 'PROBLEME DE CONNEXION',
     'reconnect.loopMessage': "La liaison n'arrête pas de se déconnecter et se reconnecter. Rafraîchir la page résout généralement le problème.",

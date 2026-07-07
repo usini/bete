@@ -9,6 +9,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import http from 'node:http';
 import { fileURLToPath } from 'node:url';
 
 // --- WebRTC/WebSocket polyfills to run the PeerJS client under Node ---
@@ -378,6 +379,46 @@ function start() {
       scheduleRestart();
     }
   });
+}
+
+// --- Optional ICS proxy (CORS relay for the app's calendar blocks) ---
+// Most calendar hosts (Google, iCloud...) don't send CORS headers, so the
+// web app can't fetch a .ics feed directly (js/ics.js). This tiny endpoint
+// fetches it server-side and re-serves it with permissive CORS. GET
+// /ics?url=<http(s)://...ics> only, size-capped, no other route. Configure
+// the proxy URL in the app under Settings > ICS proxy. BETE_ICS_PORT=0
+// disables it entirely.
+const ICS_PORT = parseInt(process.env.BETE_ICS_PORT || '9741', 10);
+const ICS_MAX_BYTES = 2 * 1024 * 1024;
+if (ICS_PORT) {
+  const CORS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': '*',
+    // Chrome Private Network Access: an HTTPS page fetching a LAN address
+    // sends a preflight that requires this opt-in from the local server.
+    'Access-Control-Allow-Private-Network': 'true',
+  };
+  const icsSrv = http.createServer((req, res) => {
+    if (req.method === 'OPTIONS') { res.writeHead(204, CORS); res.end(); return; }
+    let u;
+    try { u = new URL(req.url, 'http://localhost'); } catch (e) { res.writeHead(400, CORS); res.end('bad request'); return; }
+    if (req.method !== 'GET' || u.pathname !== '/ics') { res.writeHead(404, CORS); res.end('not found'); return; }
+    let target;
+    try { target = new URL(u.searchParams.get('url') || ''); } catch (e) { res.writeHead(400, CORS); res.end('bad url'); return; }
+    if (!/^https?:$/.test(target.protocol) || !/\.ics([?#]|$)/i.test(target.pathname + target.search)) {
+      res.writeHead(400, CORS); res.end('not an ics url'); return;
+    }
+    fetch(target, { redirect: 'follow', signal: AbortSignal.timeout(15000) }).then(async (r) => {
+      if (!r.ok) { res.writeHead(502, CORS); res.end('upstream ' + r.status); return; }
+      const buf = Buffer.from(await r.arrayBuffer());
+      if (buf.length > ICS_MAX_BYTES) { res.writeHead(413, CORS); res.end('too large'); return; }
+      res.writeHead(200, { ...CORS, 'Content-Type': 'text/calendar; charset=utf-8' });
+      res.end(buf);
+    }).catch(() => { res.writeHead(502, CORS); res.end('fetch failed'); });
+  });
+  icsSrv.on('error', (e) => console.error('[bete] ics proxy error:', e.message));
+  icsSrv.listen(ICS_PORT, () => console.log(`[bete] ICS proxy listening on :${ICS_PORT} (GET /ics?url=...)`));
 }
 
 setInterval(tick, 800);

@@ -11,12 +11,17 @@ function save(list) {
 }
 
 // Adds (or bumps) a liaison. name is optional (defaults to the id).
+// A name passed here (e.g. from a share URL) never overwrites a name the
+// user chose locally (renameLiaison sets the renamed flag; entries from
+// before that flag existed count as renamed when their name differs from
+// the raw peer id).
 export function recordLiaison(peer, name) {
   if (!peer) return;
   const list = listLiaisons();
   const i = list.findIndex((x) => x.peer === peer);
   if (i >= 0) {
-    if (name) list[i].name = name;
+    const renamed = list[i].renamed || (list[i].name && list[i].name !== peer);
+    if (name && !renamed) list[i].name = name;
     const [e] = list.splice(i, 1);
     list.unshift(e);
   } else {
@@ -28,7 +33,7 @@ export function recordLiaison(peer, name) {
 export function renameLiaison(peer, name) {
   const list = listLiaisons();
   const i = list.findIndex((x) => x.peer === peer);
-  if (i >= 0) { list[i].name = name || peer; save(list); }
+  if (i >= 0) { list[i].name = name || peer; list[i].renamed = true; save(list); }
 }
 
 export function removeLiaison(peer) {

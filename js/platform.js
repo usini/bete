@@ -39,10 +39,25 @@ export async function getAppVersion() {
 // tauri://localhost (or http://tauri.localhost) isn't reachable by anyone
 // else, so on desktop we substitute either the public deployment or this
 // machine's LAN address, per the user's choice in Settings > Sharing.
+const PUBLIC_URL = 'https://bete.usini.eu/'; // desktop-only fallback; web builds always use their own origin
 export function shareOrigin() {
   if (!isDesktop) return location.origin + location.pathname;
   if (linkMode === 'lan' && lanUrl) return lanUrl;
-  return 'https://bete.usini.eu/';
+  return PUBLIC_URL;
+}
+
+// Every origin+path that designates THIS app: a board URL under any of these
+// is an internal link (navigated in-window), not an external website. On the
+// web the local origin is enough; on desktop, links authored for sharing
+// carry the public or LAN address (see shareOrigin), and must still open
+// inside the app when clicked locally.
+export function appOrigins() {
+  const list = [location.origin + location.pathname];
+  if (isDesktop) {
+    list.push(PUBLIC_URL);
+    if (lanUrl) list.push(lanUrl);
+  }
+  return list;
 }
 
 // Saves a text file to disk, on web and desktop alike.

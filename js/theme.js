@@ -1,7 +1,7 @@
 // Visual theme + text size (preferences local to the browser).
 // 'pixel' = the original look (neon + glow) ; 'classic' = light, pastel
 // colors, no glow ; 'classic-dark' = dark, pastel, no glow.
-import { DEFAULT_GREEN } from './state.js?v=mrannj5t';
+import { DEFAULT_GREEN } from './state.js?v=mrb8d9z5';
 
 const PIXEL_FONT = "'Press Start 2P', monospace";
 const SANS_FONT = "'Segoe UI', system-ui, -apple-system, sans-serif";
@@ -80,6 +80,10 @@ export const THEME_LIST = [
 let themeId = 'classic-dark';
 let textScale = 2.5;
 try { const t = localStorage.getItem('bete:theme'); if (t && THEMES[t]) themeId = t; } catch (e) { /* */ }
+// ?theme= in the URL forces the theme for this view only (not persisted, so
+// the visitor's saved choice is untouched). Read at module load, before the
+// boot applyTheme() call, to avoid a flash of the wrong theme.
+try { const q = new URLSearchParams(location.search).get('theme'); if (q && THEMES[q]) themeId = q; } catch (e) { /* */ }
 try { const s = parseFloat(localStorage.getItem('bete:textscale')); if (s > 0) textScale = Math.max(0.5, Math.min(2.5, s)); } catch (e) { /* */ }
 
 export function theme() { return THEMES[themeId]; }

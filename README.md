@@ -88,3 +88,18 @@ https://your-instance.example/?file=https://example.com/board.json
 ```
 
 The file must be accessible over CORS (same origin, raw.githubusercontent.com, gist…). A relative path also works: `?file=boards/demo.json`.
+
+Other URL parameters:
+
+- `?theme=pixel|classic|classic-dark|winxp` forces the theme for that view only
+  (your saved choice in Settings is untouched).
+- `?peer=<id>&name=<name>` joining a liaison with a `name` pre-names it in your
+  liaison list — unless you already renamed it locally (your rename always wins).
+
+## Calendar blocks (.ics)
+
+Give a rectangle a link to a `.ics` file (or `webcal://`): it renders as the
+current week's calendar (Mon-Sun, refreshed every 15 min). Most calendar hosts
+block direct browser fetches (CORS); in that case use the desktop app (which
+fetches natively), or set Settings > ICS proxy to a relay such as the one the
+Raspberry Pi host exposes (see server/README.md).

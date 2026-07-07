@@ -109,6 +109,17 @@ To start from an existing board instead of an empty one:
 | `BETE_DATA`       | Data folder                           | `./data`                    |
 | `BETE_APP_URL`    | Base of the displayed URL (optional)  | (none — generic relative link) |
 | `BETE_MAX_BOARDS` | Limit of boards kept in memory        | `300`                       |
+| `BETE_ICS_PORT`   | ICS proxy port (`0` disables it)      | `9741`                      |
+
+### ICS proxy
+
+The app's calendar blocks (a rectangle whose link points to a `.ics` file)
+usually can't fetch the feed directly from the browser: most calendar hosts
+(Google, iCloud...) don't send CORS headers. The host exposes a tiny relay for
+that: `GET http://<pi>:9741/ics?url=<https://...ics>` fetches the feed
+server-side and re-serves it with permissive CORS (only `.ics` URLs, 2 MB
+cap, nothing else is proxied). Point the app at it via Settings > ICS proxy
+(e.g. `http://raspberrypi.local:9741`).
 
 ## Running as a service (systemd)
 
