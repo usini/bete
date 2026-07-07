@@ -1,8 +1,12 @@
 [package]
 name = "bete"
-version = "0.9.2"
+version = "0.9.3"
 description = "Bete - pixel-art mindmap (desktop wrapper)"
 edition = "2021"
+
+[lib]
+name = "bete_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
