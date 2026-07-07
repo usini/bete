@@ -3,27 +3,27 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mrb8d9z5';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrb8d9z5';
-import { dragTo, reset } from './physics.js?v=mrb8d9z5';
-import { pointInHex } from './geom.js?v=mrb8d9z5';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector } from './connector.js?v=mrb8d9z5';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrb8d9z5';
-import { getUserId } from './users.js?v=mrb8d9z5';
-import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrb8d9z5';
-import { getAudio, putAudio } from './audio.js?v=mrb8d9z5';
-import { toast } from './main.js?v=mrb8d9z5';
-import { explodeElementCascade } from './fx.js?v=mrb8d9z5';
-import { genBoardId, listBoards, buildBoardUrl, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mrb8d9z5';
-import { listLiaisons } from './liaisons.js?v=mrb8d9z5';
-import { openSettings } from './settings.js?v=mrb8d9z5';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrb8d9z5';
-import { toggleDebug } from './debug.js?v=mrb8d9z5';
-import { youTubeId } from './yt.js?v=mrb8d9z5';
-import { setActiveVideo } from './video.js?v=mrb8d9z5';
-import { t } from './i18n.js?v=mrb8d9z5';
-import { openExternal } from './platform.js?v=mrb8d9z5';
-import { isIcsUrl } from './ics.js?v=mrb8d9z5';
+} from './state.js?v=mrb9lvji';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrb9lvji';
+import { dragTo, reset } from './physics.js?v=mrb9lvji';
+import { pointInHex } from './geom.js?v=mrb9lvji';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector } from './connector.js?v=mrb9lvji';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrb9lvji';
+import { getUserId } from './users.js?v=mrb9lvji';
+import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrb9lvji';
+import { getAudio, putAudio } from './audio.js?v=mrb9lvji';
+import { toast } from './main.js?v=mrb9lvji';
+import { explodeElementCascade } from './fx.js?v=mrb9lvji';
+import { genBoardId, listBoards, buildBoardUrl, buildShareBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mrb9lvji';
+import { listLiaisons } from './liaisons.js?v=mrb9lvji';
+import { openSettings } from './settings.js?v=mrb9lvji';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrb9lvji';
+import { toggleDebug } from './debug.js?v=mrb9lvji';
+import { youTubeId } from './yt.js?v=mrb9lvji';
+import { setActiveVideo } from './video.js?v=mrb9lvji';
+import { t } from './i18n.js?v=mrb9lvji';
+import { openExternal } from './platform.js?v=mrb9lvji';
+import { isIcsUrl } from './ics.js?v=mrb9lvji';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -1430,22 +1430,28 @@ function startEdit(type, target, posNode) {
   ed.select();
 }
 
+// A .ics url (pasted as text or set as a link) turns the block into a week
+// calendar (render.js): give it room to be readable right away (still freely
+// resizable afterwards).
+function growForIcs(target, value) {
+  if (!value || !isIcsUrl(value) || target.ref) return;
+  if ((target.w || 0) < 340) target.w = 340;
+  if ((target.h || 0) < 200) target.h = 200;
+  reset(target);
+}
+
 function commitEdit() {
   if (!editing) return;
   const ed = document.getElementById('editor');
   const target = findById(editing.id);
   if (target) {
-    if (editing.type === 'rect') target.text = ed.value;
-    else if (editing.type === 'link') {
+    if (editing.type === 'rect') {
+      target.text = ed.value;
+      growForIcs(target, ed.value.trim());
+    } else if (editing.type === 'link') {
       const v = ed.value.trim();
       if (v) target.link = v; else delete target.link;
-      // A .ics link turns the block into a week calendar (render.js): give it
-      // room to be readable right away (still freely resizable afterwards).
-      if (v && isIcsUrl(v) && !target.ref) {
-        if ((target.w || 0) < 340) target.w = 340;
-        if ((target.h || 0) < 200) target.h = 200;
-        reset(target);
-      }
+      growForIcs(target, v);
     }
     else target.description = ed.value.replace(/\n/g, ' ').trim();
     scheduleSave();

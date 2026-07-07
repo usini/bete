@@ -93,8 +93,9 @@ Other URL parameters:
 
 - `?theme=pixel|classic|classic-dark|winxp` forces the theme for that view only
   (your saved choice in Settings is untouched).
-- `?peer=<id>&name=<name>` joining a liaison with a `name` pre-names it in your
-  liaison list — unless you already renamed it locally (your rename always wins).
+- `?peer=<id>&peer_name=<name>` joining a liaison with a `peer_name` pre-names it
+  in your liaison list — unless you already renamed it locally (your rename
+  always wins). Not to be confused with `&name=`, which names the *board*.
 
 ## Calendar blocks (.ics)
 

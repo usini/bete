@@ -1,24 +1,24 @@
 // Bootstrap + render loop.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mrb8d9z5';
-import { setView } from './camera.js?v=mrb8d9z5';
-import { render } from './render.js?v=mrb8d9z5';
-import { step, reset } from './physics.js?v=mrb8d9z5';
-import * as minimap from './minimap.js?v=mrb8d9z5';
-import * as input from './input.js?v=mrb8d9z5';
-import * as fx from './fx.js?v=mrb8d9z5';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mrb8d9z5';
-import { recordBoard, getBoardEntry } from './boards.js?v=mrb8d9z5';
-import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mrb8d9z5';
-import { applyTheme } from './theme.js?v=mrb8d9z5';
-import { initSettings, openSettings } from './settings.js?v=mrb8d9z5';
-import { recordLiaison, getLiaison } from './liaisons.js?v=mrb8d9z5';
-import { positionVideoOverlay } from './video.js?v=mrb8d9z5';
-import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mrb8d9z5';
-import { migrateImages } from './images.js?v=mrb8d9z5';
-import { pollConnector } from './connector.js?v=mrb8d9z5';
-import { t, getLang, applyStaticI18n } from './i18n.js?v=mrb8d9z5';
-import { initDesktopLink, checkWebUpdate } from './platform.js?v=mrb8d9z5';
-import { checkForUpdate } from './update.js?v=mrb8d9z5';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mrb9lvji';
+import { setView } from './camera.js?v=mrb9lvji';
+import { render } from './render.js?v=mrb9lvji';
+import { step, reset } from './physics.js?v=mrb9lvji';
+import * as minimap from './minimap.js?v=mrb9lvji';
+import * as input from './input.js?v=mrb9lvji';
+import * as fx from './fx.js?v=mrb9lvji';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mrb9lvji';
+import { recordBoard, getBoardEntry } from './boards.js?v=mrb9lvji';
+import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mrb9lvji';
+import { applyTheme } from './theme.js?v=mrb9lvji';
+import { initSettings, openSettings } from './settings.js?v=mrb9lvji';
+import { recordLiaison, getLiaison } from './liaisons.js?v=mrb9lvji';
+import { positionVideoOverlay } from './video.js?v=mrb9lvji';
+import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mrb9lvji';
+import { migrateImages } from './images.js?v=mrb9lvji';
+import { pollConnector } from './connector.js?v=mrb9lvji';
+import { t, getLang, applyStaticI18n } from './i18n.js?v=mrb9lvji';
+import { initDesktopLink, checkWebUpdate } from './platform.js?v=mrb9lvji';
+import { checkForUpdate } from './update.js?v=mrb9lvji';
 
 applyTheme(); // apply the saved theme right at startup
 applyStaticI18n(); // translate the static HTML chrome (buttons, hint, etc.)
@@ -74,6 +74,7 @@ const idParam = params.get('id');
 const peerId = params.get('peer');
 const fileUrl = params.get('file');
 const nameParam = params.get('name');
+const peerNameParam = params.get('peer_name');
 
 // First launch: send the user to the tutorial (afterwards the app lives on home).
 const REDIRECT = !localStorage.getItem('bete:seen') && !idParam && !peerId && !fileUrl;
@@ -100,7 +101,7 @@ if (!REDIRECT) {
   } else if (peerId && boardId !== 'home') {
     if (!restore()) seedIfHome();
     state.nodes.forEach(reset);
-    recordLiaison(peerId, nameParam); // remembers the active liaison; the URL name only applies if not renamed locally
+    recordLiaison(peerId, peerNameParam); // remembers the active liaison; the URL name only applies if not renamed locally
     toast(t('toast.connecting'));
     joinOrHost(peerId, (st) => {
       if (st === 'host') toast(t('toast.noHost'), 3500);

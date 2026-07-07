@@ -1,16 +1,16 @@
 // Board rendering: pixel grid, circles, hexagons, rectangles, neon glow, selection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mrb8d9z5';
-import { parseBoardUrl } from './boards.js?v=mrb8d9z5';
-import { view, worldToScreen } from './camera.js?v=mrb8d9z5';
-import { stretch } from './physics.js?v=mrb8d9z5';
-import { hexCorners, triCorners } from './geom.js?v=mrb8d9z5';
-import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mrb8d9z5';
-import { fmtDur } from './voice.js?v=mrb8d9z5';
-import { getCursors, getPresence } from './sync.js?v=mrb8d9z5';
-import { youTubeId, ytThumb } from './yt.js?v=mrb8d9z5';
-import { getImageEl } from './images.js?v=mrb8d9z5';
-import { t, getLang } from './i18n.js?v=mrb8d9z5';
-import { isIcsUrl, calendarWeek } from './ics.js?v=mrb8d9z5';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mrb9lvji';
+import { parseBoardUrl } from './boards.js?v=mrb9lvji';
+import { view, worldToScreen } from './camera.js?v=mrb9lvji';
+import { stretch } from './physics.js?v=mrb9lvji';
+import { hexCorners, triCorners } from './geom.js?v=mrb9lvji';
+import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mrb9lvji';
+import { fmtDur } from './voice.js?v=mrb9lvji';
+import { getCursors, getPresence } from './sync.js?v=mrb9lvji';
+import { youTubeId, ytThumb } from './yt.js?v=mrb9lvji';
+import { getImageEl } from './images.js?v=mrb9lvji';
+import { t, getLang } from './i18n.js?v=mrb9lvji';
+import { isIcsUrl, calendarWeek } from './ics.js?v=mrb9lvji';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -926,7 +926,10 @@ function drawRect(ctx, n, color, selected, zoom) {
   const text = isLink ? (src ? src.text : '') : n.text;
   const image = isLink ? (src ? src.image : null) : n.image;
   const ytId = !image ? youTubeId(text) : null; // text = YouTube URL -> video
-  const icsUrl = (!image && !ytId && isIcsUrl(displayLink(n))) ? displayLink(n) : null; // link = .ics -> week calendar
+  // .ics calendar: same "just paste it" convention as YouTube -- checks the
+  // text first (pasted directly), then the link field (set via the radial
+  // menu's "clickable link").
+  const icsUrl = (!image && !ytId) ? (isIcsUrl(text) ? text : (isIcsUrl(displayLink(n)) ? displayLink(n) : null)) : null;
   // A "link to board" rectangle (js/input.js createBoardLink) gets its own
   // look: a red border with current running through it, rather than the
   // plain dashed border shared by every clickable link.

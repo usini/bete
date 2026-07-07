@@ -6,15 +6,15 @@
 // (falls back to host priority if both sides are on the same build) -- an
 // out-of-date host (stale tab, permanent Pi host not yet redeployed) must not
 // keep clobbering a freshly-updated peer's edits forever.
-import { state, removeById, scheduleSave, getBoardId, getBoardName } from './state.js?v=mrb8d9z5';
-import { reset } from './physics.js?v=mrb8d9z5';
-import { explodeElementCascade } from './fx.js?v=mrb8d9z5';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrb8d9z5';
-import { onImageArrived } from './images.js?v=mrb8d9z5';
-import { getUserId, displayName } from './users.js?v=mrb8d9z5';
-import { shareOrigin } from './platform.js?v=mrb8d9z5';
-import { getOwnerToken, getLiaison } from './liaisons.js?v=mrb8d9z5';
-import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrb8d9z5';
+import { state, removeById, scheduleSave, getBoardId, getBoardName } from './state.js?v=mrb9lvji';
+import { reset } from './physics.js?v=mrb9lvji';
+import { explodeElementCascade } from './fx.js?v=mrb9lvji';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrb9lvji';
+import { onImageArrived } from './images.js?v=mrb9lvji';
+import { getUserId, displayName } from './users.js?v=mrb9lvji';
+import { shareOrigin } from './platform.js?v=mrb9lvji';
+import { getOwnerToken, getLiaison } from './liaisons.js?v=mrb9lvji';
+import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrb9lvji';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host
@@ -73,9 +73,11 @@ export function buildUrl(id) {
   const b = getBoardId();
   if (b) u += '&id=' + encodeURIComponent(b); // the QR opens the SAME board as the host
   // Carry a display name so the receiver's liaison list starts with a friendly
-  // name (their local rename, if any, still wins -- see recordLiaison).
+  // name (their local rename, if any, still wins -- see recordLiaison). A
+  // separate param from 'name' -- that one already means the BOARD's display
+  // name (see boards.js: buildBoardUrl), not the peer/liaison's.
   const nm = (getLiaison(id) && getLiaison(id).name !== id && getLiaison(id).name) || getBoardName();
-  if (nm) u += '&name=' + encodeURIComponent(nm);
+  if (nm) u += '&peer_name=' + encodeURIComponent(nm);
   return u;
 }
 
