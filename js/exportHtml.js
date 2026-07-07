@@ -3,10 +3,10 @@
 // browser with no server and no dependency on this app being installed.
 // Connector blocks (IoT) are dropped entirely -- they'd otherwise imply a
 // live network poll, which contradicts "frozen snapshot".
-import { serialize, getBoardName } from './state.js?v=mr81rpfm';
-import { inlineImages } from './images.js?v=mr81rpfm';
-import { theme, getTextScale } from './theme.js?v=mr81rpfm';
-import { saveTextFile } from './platform.js?v=mr81rpfm';
+import { serialize, getBoardName } from './state.js?v=mrannj5t';
+import { inlineImages } from './images.js?v=mrannj5t';
+import { theme, getTextScale } from './theme.js?v=mrannj5t';
+import { saveTextFile } from './platform.js?v=mrannj5t';
 
 // Fetches a same-origin asset (e.g. the winxp wallpaper) and inlines it as a
 // data URL, so the exported file has zero external file dependencies.

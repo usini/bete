@@ -31,6 +31,8 @@ const STRINGS = {
     'toast.unreachable': 'LIAISON UNREACHABLE',
     'toast.hostDisconnected': 'HOST DISCONNECTED',
     'toast.homeLocal': 'HOME STAYS LOCAL (not connectable)',
+    'toast.copied': 'COPIED {n}',
+    'toast.pasted': 'PASTED {n}',
 
     'reconnect.title': 'CONNECTION ISSUE',
     'reconnect.loopMessage': "The liaison keeps disconnecting and reconnecting. Refreshing the page usually fixes this.",
@@ -219,6 +221,8 @@ const STRINGS = {
     'toast.unreachable': 'LIAISON INJOIGNABLE',
     'toast.hostDisconnected': 'HOTE DECONNECTE',
     'toast.homeLocal': 'HOME RESTE LOCAL (non connectable)',
+    'toast.copied': 'COPIE {n}',
+    'toast.pasted': 'COLLE {n}',
 
     'reconnect.title': 'PROBLEME DE CONNEXION',
     'reconnect.loopMessage': "La liaison n'arrête pas de se déconnecter et se reconnecter. Rafraîchir la page résout généralement le problème.",

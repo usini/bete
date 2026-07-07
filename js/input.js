@@ -3,31 +3,34 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mr81rpfm';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mr81rpfm';
-import { dragTo, reset } from './physics.js?v=mr81rpfm';
-import { pointInHex } from './geom.js?v=mr81rpfm';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector } from './connector.js?v=mr81rpfm';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mr81rpfm';
-import { getUserId } from './users.js?v=mr81rpfm';
-import { storeImage, resolveSrc } from './images.js?v=mr81rpfm';
-import { explodeElementCascade } from './fx.js?v=mr81rpfm';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mr81rpfm';
-import { listLiaisons } from './liaisons.js?v=mr81rpfm';
-import { openSettings } from './settings.js?v=mr81rpfm';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mr81rpfm';
-import { toggleDebug } from './debug.js?v=mr81rpfm';
-import { youTubeId } from './yt.js?v=mr81rpfm';
-import { setActiveVideo } from './video.js?v=mr81rpfm';
-import { t } from './i18n.js?v=mr81rpfm';
-import { openExternal } from './platform.js?v=mr81rpfm';
+} from './state.js?v=mrannj5t';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrannj5t';
+import { dragTo, reset } from './physics.js?v=mrannj5t';
+import { pointInHex } from './geom.js?v=mrannj5t';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector } from './connector.js?v=mrannj5t';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrannj5t';
+import { getUserId } from './users.js?v=mrannj5t';
+import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrannj5t';
+import { getAudio, putAudio } from './audio.js?v=mrannj5t';
+import { toast } from './main.js?v=mrannj5t';
+import { explodeElementCascade } from './fx.js?v=mrannj5t';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl } from './boards.js?v=mrannj5t';
+import { listLiaisons } from './liaisons.js?v=mrannj5t';
+import { openSettings } from './settings.js?v=mrannj5t';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrannj5t';
+import { toggleDebug } from './debug.js?v=mrannj5t';
+import { youTubeId } from './yt.js?v=mrannj5t';
+import { setActiveVideo } from './video.js?v=mrannj5t';
+import { t } from './i18n.js?v=mrannj5t';
+import { openExternal } from './platform.js?v=mrannj5t';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
 let lastPos = { x: 0, y: 0, t: 0 };
 let editing = null;     // { type, id }
 let onChange = () => {};
-let clipboard = null;   // { isCircle?, isHex?, isLink?, data }
+let clipboard = null;   // { items: [{ isCircle?, isHex?, data }] } -- persisted to localStorage so it survives navigating to another board
+const CLIPBOARD_KEY = 'bete:clipboard';
 let internalSince = false; // have we copied a block since the last pasted image?
 let lastImgSig = '';       // signature of the last system image pasted
 let lastMouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
@@ -605,6 +608,7 @@ function imageRectSize(ratio) {
 function onPaste(e) {
   if (editing) return; // while editing, the textarea pastes normally
   if (isLocked()) return;
+  const cb = loadClipboard();
   const items = (e.clipboardData && e.clipboardData.items) || [];
   for (const it of items) {
     if (it.type && it.type.startsWith('image/')) {
@@ -613,7 +617,7 @@ function onPaste(e) {
         // Guard: if this is the SAME system image as the last one pasted and
         // we've copied a block since then, paste the internal block (not the stale image).
         const sig = file.size + ':' + file.type;
-        if (clipboard && internalSince && sig === lastImgSig) break;
+        if (cb && internalSince && sig === lastImgSig) break;
         e.preventDefault();
         lastImgSig = sig; internalSince = false;
         const w = screenToWorld(lastMouse.x, lastMouse.y);
@@ -622,7 +626,7 @@ function onPaste(e) {
       }
     }
   }
-  if (clipboard) { e.preventDefault(); pasteClipboard(); }
+  if (cb) { e.preventDefault(); pasteClipboard(); }
 }
 
 // Resizes (max 800px) and re-encodes to save on localStorage.
@@ -909,41 +913,104 @@ function removeElement(el) {
 }
 
 // ---- Copy / paste ----
-function copySelection() {
-  const el = state.selected && findById(state.selected);
-  if (!el || el.kind === 'liaison') return; // a P2P link can't be copied
+// The clipboard is persisted to localStorage (not just kept in memory) so it
+// survives navigating to another board -- switching boards in Bete is always
+// a full page reload (see boards.js/main.js), which would otherwise wipe it.
+// Each item is made self-contained: images are inlined to data URLs (an
+// 'idb:<hash>' ref is only guaranteed to resolve in the SAME browser/board
+// session) and voice-memo audio (keyed by node id, not content hash) is
+// carried along as a data URL too, since a pasted node gets a fresh id and
+// would otherwise point at a non-existent audio blob. Link nodes (ref) are
+// flattened to a real copy of their source's content, since the source node
+// they point to may not exist on the destination board.
+async function copySelection() {
+  const ids = state.selectedIds.length ? state.selectedIds.slice() : (state.selected ? [state.selected] : []);
+  const els = ids.map(findById).filter((el) => el && el.kind !== 'liaison'); // a P2P link can't be copied
+  if (!els.length) return;
 
-  const data = {};
-  for (const k in el) if (k[0] !== '_' && k !== 'id') data[k] = el[k];
-  clipboard = {
-    isCircle: state.circles.includes(el),
-    isHex: state.hexagons.includes(el),
-    data,
-  };
+  const items = [];
+  for (const el of els) {
+    const data = {};
+    for (const k in el) if (k[0] !== '_' && k !== 'id') data[k] = el[k];
+    if (data.ref) { // link node: flatten to a standalone copy of its resolved content
+      const src = sourceOf(el);
+      delete data.ref;
+      if (src) { data.text = src.text; data.image = src.image; data.link = src.link; }
+    }
+    if (data.image && data.image.indexOf('idb:') === 0) await inlineImages([data]);
+    if (el.kind === 'voice') {
+      try { const blob = await getAudio(el.id); if (blob) data._audioData = await blobToDataUrl(blob); } catch (e) { /* */ }
+    }
+    items.push({ isCircle: state.circles.includes(el), isHex: state.hexagons.includes(el), data });
+  }
+  clipboard = { items };
+  persistClipboard();
   internalSince = true; // an internal copy happened -> takes priority over the stale system image
   // Overwrites the SYSTEM clipboard (text): otherwise a previously copied image
   // resurfaces on the next Ctrl-V (onPaste detects the system image first).
   try {
-    const txt = el.text || el.description || ' ';
+    const txt = els[0].text || els[0].description || ' ';
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).catch(() => {});
   } catch (e) { /* */ }
+  toast(t('toast.copied', { n: items.length }));
 }
 
-function pasteClipboard() {
-  if (!clipboard) return;
+function persistClipboard() {
+  try { localStorage.setItem(CLIPBOARD_KEY, JSON.stringify(clipboard)); } catch (e) { /* quota / private mode: in-memory clipboard still works this session */ }
+}
+
+function loadClipboard() {
+  if (clipboard) return clipboard;
+  try {
+    const raw = localStorage.getItem(CLIPBOARD_KEY);
+    if (raw) clipboard = JSON.parse(raw);
+  } catch (e) { /* */ }
+  return clipboard;
+}
+
+// Circles/hexagons store x,y as their CENTER; rect-like nodes store x,y as
+// their TOP-LEFT corner (see render.js) -- normalize to a center point so
+// items of different kinds keep a correct relative layout on paste.
+function centerOf(item) {
+  const d = item.data;
+  return (item.isCircle || item.isHex) ? { x: d.x, y: d.y } : { x: d.x + (d.w || 150) / 2, y: d.y + (d.h || 70) / 2 };
+}
+
+async function pasteClipboard() {
+  const cb = loadClipboard();
+  if (!cb || !cb.items || !cb.items.length) return;
   const w = screenToWorld(lastMouse.x, lastMouse.y);
-  if (clipboard.isCircle || clipboard.isHex) {
-    const z = { ...clipboard.data, id: newId(), x: w.x, y: w.y };
-    (clipboard.isHex ? state.hexagons : state.circles).push(z);
-    state.selected = z.id;
-  } else {
-    const d = clipboard.data;
-    const n = { ...d, id: newId(), x: w.x - (d.w || 150) / 2, y: w.y - (d.h || 70) / 2 };
-    state.nodes.push(n);
-    reset(n);
-    state.selected = n.id;
+  // Anchor on the first item, centered at the mouse, so a multi-selection
+  // paste keeps its relative layout (matches the old single-item behavior).
+  const anchor = centerOf(cb.items[0]);
+  const newIds = [];
+  for (const item of cb.items) {
+    const d = item.data;
+    const c = centerOf(item);
+    const cx = w.x + (c.x - anchor.x), cy = w.y + (c.y - anchor.y);
+    let img = d.image;
+    if (img && img.indexOf('data:') === 0) { try { img = await storeImage(img); } catch (e) { /* keeps the data URL */ } }
+    if (item.isCircle || item.isHex) {
+      const z = { ...d, id: newId(), x: cx, y: cy };
+      (item.isHex ? state.hexagons : state.circles).push(z);
+      newIds.push(z.id);
+    } else {
+      const id = newId();
+      const n = { ...d, id, x: cx - (d.w || 150) / 2, y: cy - (d.h || 70) / 2 };
+      if (img) n.image = img;
+      delete n._audioData;
+      state.nodes.push(n);
+      reset(n);
+      if (d._audioData) {
+        try { const blob = dataUrlToBlob(d._audioData); await putAudio(id, blob); } catch (e) { /* */ }
+      }
+      newIds.push(id);
+    }
   }
+  if (newIds.length > 1) { state.selectedIds = newIds; state.selected = null; }
+  else { state.selected = newIds[0]; state.selectedIds = []; }
   scheduleSave();
+  toast(t('toast.pasted', { n: newIds.length }));
 }
 
 // ---- Radial menu ----

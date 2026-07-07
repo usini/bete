@@ -4,8 +4,8 @@
 // keeps a short reference 'idb:<hash>'. The bytes only transit ONCE per peer
 // (via sync.js: imgReq/imgRes), and a peer that already has the image never
 // re-downloads it.
-import { putImage, getImage } from './audio.js?v=mr81rpfm';
-import { requestImage } from './sync.js?v=mr81rpfm';
+import { putImage, getImage } from './audio.js?v=mrannj5t';
+import { requestImage } from './sync.js?v=mrannj5t';
 
 const els = new Map();   // ref -> HTMLImageElement (render cache, 1 per ref)
 const urls = new Map();  // hash -> objectURL (decoded blob, reused)
@@ -20,7 +20,7 @@ async function sha256Hex(buf) {
 }
 
 // data URL -> Blob (no fetch, so it works offline / on file://).
-function dataUrlToBlob(dataUrl) {
+export function dataUrlToBlob(dataUrl) {
   const c = dataUrl.indexOf(',');
   const meta = dataUrl.slice(0, c), b64 = dataUrl.slice(c + 1);
   const mime = (meta.match(/:(.*?);/) || [])[1] || 'image/png';
@@ -109,7 +109,7 @@ export async function migrateImages(nodes, onChange) {
   return n;
 }
 
-function blobToDataUrl(blob) {
+export function blobToDataUrl(blob) {
   return new Promise((res) => {
     const r = new FileReader();
     r.onload = () => res(r.result);
