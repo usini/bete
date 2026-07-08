@@ -163,6 +163,12 @@ const STRINGS = {
     'linkEditor.placeholder': 'https://...',
     'linkEditor.remove': 'Remove link',
 
+    'connector.confirmDelete': 'Delete',
+    'boardsView.deleteTitle': 'Delete this board?',
+    'boardsView.deleteBody': 'This permanently deletes "{name}" and all its content from this device. This cannot be undone.',
+    'boardsView.linked': '🔗 Linked to {name}',
+    'boardsView.unlinked': 'Unlinked',
+
     'settings.title': 'SETTINGS',
     'settings.back': 'Back',
     'settings.audio': 'Audio',
@@ -376,6 +382,12 @@ const STRINGS = {
     'linkEditor.title': 'Lien cliquable',
     'linkEditor.placeholder': 'https://...',
     'linkEditor.remove': 'Retirer le lien',
+
+    'connector.confirmDelete': 'Supprimer',
+    'boardsView.deleteTitle': 'Supprimer ce board ?',
+    'boardsView.deleteBody': 'Ceci supprime définitivement "{name}" et tout son contenu de cet appareil. Action irréversible.',
+    'boardsView.linked': '🔗 Lié à {name}',
+    'boardsView.unlinked': 'Délié',
 
     'settings.title': 'PARAMETRES',
     'settings.back': 'Retour',

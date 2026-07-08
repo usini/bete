@@ -601,6 +601,9 @@ html, body {
 .connector-save:hover { background: #5cff42; }
 .connector-cancel { color: #cfd8d3; background: #11151a; border-color: #cfd8d3; }
 .connector-cancel:hover { background: #1a1f26; }
+.connector-danger { color: #fff; background: #fe4365; border-color: #fff; font-weight: bold; }
+.connector-danger:hover { background: #ff5c79; }
+.confirm-body { color: var(--ink); font-size: 13px; opacity: 0.85; line-height: 1.4; }
 .connector-actions-col { flex-direction: column; }
 .connector-pick { color: var(--green); background: #11151a; border-color: var(--green-dim); }
 .connector-pick:hover { background: var(--green); color: #04130a; border-color: var(--green); }

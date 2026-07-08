@@ -1,5 +1,5 @@
 // History of visited boards + utilities (unique IDs, URLs).
-import { appOrigins, shareOrigin } from './platform.js?v=mrc6jjo8';
+import { appOrigins, shareOrigin } from './platform.js?v=mrci23u5';
 
 const KEY = 'bete:boards';
 
@@ -33,9 +33,20 @@ export function reservedBoardLabel(id, t) {
   return null;
 }
 
-// Forget a board (e.g., when deleted).
 export function getBoardEntry(id) {
   return listBoards().find((b) => b.id === id) || null;
+}
+
+// Forgets a board entirely: its history entry AND its saved content
+// (localStorage['bete:'+id], same key state.js uses). Used by the "boards"
+// directory board's delete-with-confirmation flow (js/input.js) -- unlike
+// deleting a normal rectangle, this destroys real data, so the reserved
+// boards (never meant to be deletable) are refused.
+export function deleteBoardData(id) {
+  if (!id || id === 'home' || id === 'tutorial' || id === 'boards') return;
+  const list = listBoards().filter((b) => b.id !== id);
+  try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) { /* */ }
+  try { localStorage.removeItem('bete:' + id); } catch (e) { /* */ }
 }
 
 // Build the URL of a board (id + peer + optional name for initial display).

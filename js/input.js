@@ -3,27 +3,27 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mrc6jjo8';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrc6jjo8';
-import { dragTo, reset } from './physics.js?v=mrc6jjo8';
-import { pointInHex } from './geom.js?v=mrc6jjo8';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrc6jjo8';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrc6jjo8';
-import { getUserId } from './users.js?v=mrc6jjo8';
-import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrc6jjo8';
-import { getAudio, putAudio } from './audio.js?v=mrc6jjo8';
-import { toast } from './main.js?v=mrc6jjo8';
-import { explodeElementCascade } from './fx.js?v=mrc6jjo8';
-import { genBoardId, listBoards, buildBoardUrl, buildShareBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrc6jjo8';
-import { listLiaisons } from './liaisons.js?v=mrc6jjo8';
-import { openSettings } from './settings.js?v=mrc6jjo8';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrc6jjo8';
-import { toggleDebug } from './debug.js?v=mrc6jjo8';
-import { youTubeId } from './yt.js?v=mrc6jjo8';
-import { setActiveVideo } from './video.js?v=mrc6jjo8';
-import { t } from './i18n.js?v=mrc6jjo8';
-import { openExternal } from './platform.js?v=mrc6jjo8';
-import { isIcsUrl } from './ics.js?v=mrc6jjo8';
+} from './state.js?v=mrci23u5';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrci23u5';
+import { dragTo, reset } from './physics.js?v=mrci23u5';
+import { pointInHex } from './geom.js?v=mrci23u5';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrci23u5';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrci23u5';
+import { getUserId } from './users.js?v=mrci23u5';
+import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrci23u5';
+import { getAudio, putAudio } from './audio.js?v=mrci23u5';
+import { toast } from './main.js?v=mrci23u5';
+import { explodeElementCascade } from './fx.js?v=mrci23u5';
+import { genBoardId, listBoards, buildBoardUrl, buildShareBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel, deleteBoardData } from './boards.js?v=mrci23u5';
+import { listLiaisons } from './liaisons.js?v=mrci23u5';
+import { openSettings } from './settings.js?v=mrci23u5';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrci23u5';
+import { toggleDebug } from './debug.js?v=mrci23u5';
+import { youTubeId } from './yt.js?v=mrci23u5';
+import { setActiveVideo } from './video.js?v=mrci23u5';
+import { t } from './i18n.js?v=mrci23u5';
+import { openExternal } from './platform.js?v=mrci23u5';
+import { isIcsUrl } from './ics.js?v=mrci23u5';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -397,6 +397,26 @@ function finishDrag() {
       if (tap && displayLink(n)) { handleLinkTap(n); return; }
       if (tap) clearLinkFocus();
     }
+    // "boards" directory board: dropping a board-link block inside a liaison
+    // circle (or back outside any circle) re-pairs that board with the
+    // circle's peer -- the simplest way to say "open this board through that
+    // liaison from now on" without a picker. See main.js: loadBoardsDirectory
+    // for how circles/peers are built, and state.js: effectiveColor for the
+    // same "last circle containing the center wins" containment rule.
+    if (n && n.link && getBoardId() === 'boards') {
+      const bu = parseBoardUrl(n.link);
+      if (bu) {
+        const cx = n.x + n.w / 2, cy = n.y + n.h / 2;
+        let newCircle = null;
+        for (const c of state.circles) { const dx = cx - c.x, dy = cy - c.y; if (dx * dx + dy * dy <= c.r * c.r) newCircle = c; }
+        const newPeer = newCircle ? newCircle.peer : null;
+        if ((bu.peer || null) !== (newPeer || null)) {
+          recordBoard(bu.id, bu.name, newPeer);
+          n.link = buildBoardUrl(bu.id, newPeer, bu.name);
+          toast(newPeer ? t('boardsView.linked', { name: newCircle.description || newPeer }) : t('boardsView.unlinked'));
+        }
+      }
+    }
     if (n && !n.ref && n.kind !== 'connector') {
       const cx = n.x + n.w / 2, cy = n.y + n.h / 2;
       const hex = hexagonAt(cx, cy);
@@ -742,13 +762,20 @@ function onKeyDown(e) {
 
   if (e.key === 'Delete' || e.key === 'Backspace') {
     if (state.selectedIds.length) {
-      state.selectedIds.slice().forEach((id) => removeElement(findById(id)));
+      state.selectedIds.slice().forEach((id) => removeMaybeConfirm(findById(id)));
       state.selectedIds = [];
       e.preventDefault();
       return;
     }
-    if (state.selected) { removeElement(findById(state.selected)); e.preventDefault(); }
+    if (state.selected) { removeMaybeConfirm(findById(state.selected)); e.preventDefault(); }
   }
+}
+
+// Routes a delete to the confirm-first flow on the "boards" directory board,
+// the normal no-questions-asked one everywhere else.
+function removeMaybeConfirm(el) {
+  if (el && getBoardId() === 'boards' && el.link) { deleteBoardBlock(el); return; }
+  removeElement(el);
 }
 
 // Undoes the last change + recalibrates physics/selection.
@@ -1093,6 +1120,17 @@ function openContextAt(sx, sy) {
   const hz = !r ? (hitHexagon(w) || hitCircle(w)) : null;
 
   let items;
+  // The built-in "boards" directory is auto-generated and otherwise
+  // non-editable (see main.js: loadBoardsDirectory) -- only two actions are
+  // allowed here: delete a board (with confirmation, see deleteBoardBlock)
+  // and dragging a block in/out of a liaison circle (see finishDrag), which
+  // needs no menu at all.
+  if (getBoardId() === 'boards') {
+    items = (r && r.link) ? [{ label: t('radial.delete'), icon: 'trash', color: COL.red, fn: () => deleteBoardBlock(r) }]
+      : [{ label: t('radial.settings'), icon: 'gear', color: COL.white, fn: () => openSettings() }];
+    openRadial(sx, sy, items);
+    return;
+  }
   if (isLocked()) {
     // Read-only guest: no creation/edit/delete anywhere. A liaison block still
     // offers "Copy link" (a read action), everything else just informs.
@@ -1525,6 +1563,40 @@ function openLinkEditor(target) {
   const rm = m.querySelector('.link-remove');
   if (rm) rm.addEventListener('click', () => { delete target.link; scheduleSave(); m.remove(); });
   m.querySelector('.connector-cancel').addEventListener('click', () => m.remove());
+}
+
+// Generic Yes/Cancel confirmation modal (reuses the connector-card chrome).
+function openConfirmModal(title, body, onConfirm) {
+  closeMenus();
+  const m = document.createElement('div');
+  m.className = 'recmodal';
+  m.innerHTML = '<div class="connector-card">'
+    + '<div class="connector-title">' + title + '</div>'
+    + '<div class="confirm-body">' + body + '</div>'
+    + '<div class="connector-actions">'
+    + '<button class="connector-danger">' + t('connector.confirmDelete') + '</button>'
+    + '<button class="connector-cancel">' + t('connector.cancel') + '</button>'
+    + '</div></div>';
+  m.addEventListener('mousedown', (e) => e.stopPropagation());
+  m.addEventListener('touchstart', (e) => e.stopPropagation());
+  document.body.appendChild(m);
+  m.querySelector('.connector-danger').addEventListener('click', () => { m.remove(); onConfirm(); });
+  m.querySelector('.connector-cancel').addEventListener('click', () => m.remove());
+}
+
+// Deletes a board-link block from the built-in "boards" directory: unlike a
+// normal rectangle, this destroys real data (the board's saved content), so
+// -- per the user's request -- it goes through a confirmation modal instead
+// of the usual no-questions-asked delete.
+function deleteBoardBlock(node) {
+  const bu = parseBoardUrl(node.link);
+  if (!bu) return;
+  const label = reservedBoardLabel(bu.id, t) || bu.name || bu.id;
+  openConfirmModal(t('boardsView.deleteTitle'), t('boardsView.deleteBody', { name: label }), () => {
+    deleteBoardData(bu.id);
+    removeById(node.id);
+    scheduleSave();
+  });
 }
 
 function commitEdit() {

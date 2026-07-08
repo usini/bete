@@ -1,16 +1,16 @@
 // Board rendering: pixel grid, circles, hexagons, rectangles, neon glow, selection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mrc6jjo8';
-import { parseBoardUrl } from './boards.js?v=mrc6jjo8';
-import { view, worldToScreen } from './camera.js?v=mrc6jjo8';
-import { stretch } from './physics.js?v=mrc6jjo8';
-import { hexCorners, triCorners } from './geom.js?v=mrc6jjo8';
-import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mrc6jjo8';
-import { fmtDur } from './voice.js?v=mrc6jjo8';
-import { getCursors, getPresence } from './sync.js?v=mrc6jjo8';
-import { youTubeId, ytThumb } from './yt.js?v=mrc6jjo8';
-import { getImageEl } from './images.js?v=mrc6jjo8';
-import { t, getLang } from './i18n.js?v=mrc6jjo8';
-import { isIcsUrl, calendarWeek } from './ics.js?v=mrc6jjo8';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mrci23u5';
+import { parseBoardUrl } from './boards.js?v=mrci23u5';
+import { view, worldToScreen } from './camera.js?v=mrci23u5';
+import { stretch } from './physics.js?v=mrci23u5';
+import { hexCorners, triCorners } from './geom.js?v=mrci23u5';
+import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mrci23u5';
+import { fmtDur } from './voice.js?v=mrci23u5';
+import { getCursors, getPresence } from './sync.js?v=mrci23u5';
+import { youTubeId, ytThumb } from './yt.js?v=mrci23u5';
+import { getImageEl } from './images.js?v=mrci23u5';
+import { t, getLang } from './i18n.js?v=mrci23u5';
+import { isIcsUrl, calendarWeek } from './ics.js?v=mrci23u5';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;

@@ -242,7 +242,15 @@ renaming unless asked.) Then check the logs: `sudo -n journalctl -u bete -n 20`.
   `loadBoardsDirectory()`) regenerated from `listBoards()` on every open;
   Home always keeps a link to it (`ensureBoardsLinkOnHome()`), and any other
   board opened for the first time gets a link back to Home
-  (`seedHomeLink()`).
+  (`seedHomeLink()`). Exactly two actions are still allowed on `boards`
+  itself (`js/input.js`): deleting a board block goes through a confirmation
+  modal and actually erases the board's saved content (`boards.js`:
+  `deleteBoardData()`), unlike a normal rectangle delete — and each known
+  liaison gets its own circle (peer stored on the in-memory-only `circle.peer`,
+  never serialized since this board's content is never saved); dragging a
+  board block in/out of a circle re-pairs it with that liaison
+  (`recordBoard(id, name, peer)`), same containment rule as
+  `state.js: effectiveColor()`.
 - Testing P2P sync with **two tabs of the same browser gives false negatives**
   (same `localStorage` → same uid → cursor/voice/presence collisions). Prefer
   two real devices, or at least two different browsers.
