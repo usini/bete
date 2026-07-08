@@ -257,6 +257,22 @@ function handleData(id, b, msg, origin) {
     if (msg.buf) cacheImg(msg.hash, msg); // bounded cache + resend as-is
     for (const c of b.conns) if (c !== origin && c.open) { try { c.send(msg); } catch (e) { /* */ } }
     return;
+  } else if (msg.type === 'icsReq') {
+    // Unlike a browser peer, Node has no CORS restriction at all -- the
+    // headless host can just fetch the calendar itself (like the standalone
+    // /ics proxy below, but over the data channel instead of HTTP), which is
+    // more reliable than relaying to some other browser client that might
+    // hit the exact same CORS wall a web requester does. Same .ics/size
+    // guard as the proxy: this isn't meant to be a general-purpose fetch relay.
+    fetchIcsForPeer(msg.url).then((text) => {
+      try { if (origin.open) origin.send({ type: 'icsRes', url: msg.url, text }); } catch (e) { /* */ }
+    }).catch((e) => {
+      try { if (origin.open) origin.send({ type: 'icsRes', url: msg.url, error: e.message }); } catch (e2) { /* */ }
+    });
+    return;
+  } else if (msg.type === 'icsRes') {
+    for (const c of b.conns) if (c !== origin && c.open) { try { c.send(msg); } catch (e) { /* */ } }
+    return;
   } else if (msg.type === 'hello') {
     origin._uid = msg.uid; origin._name = msg.name; origin._peerId = msg.peerId; origin._voice = msg.voice;
     // Redundant with the connection-metadata resolution (belt-and-suspenders,
@@ -381,15 +397,33 @@ function start() {
   });
 }
 
-// --- Optional ICS proxy (CORS relay for the app's calendar blocks) ---
-// Most calendar hosts (Google, iCloud...) don't send CORS headers, so the
-// web app can't fetch a .ics feed directly (js/ics.js). This tiny endpoint
-// fetches it server-side and re-serves it with permissive CORS. GET
-// /ics?url=<http(s)://...ics> only, size-capped, no other route. Configure
-// the proxy URL in the app under Settings > ICS proxy. BETE_ICS_PORT=0
-// disables it entirely.
-const ICS_PORT = parseInt(process.env.BETE_ICS_PORT || '9741', 10);
+// --- ICS calendar fetch (CORS relay for the app's calendar blocks) ---
+// Most calendar hosts (Google, iCloud...) don't send CORS headers, so a web
+// client can't fetch a .ics feed directly (js/ics.js). Node has no such
+// restriction, so this host can just fetch it and hand back the text --
+// either over the data channel (icsReq/icsRes, used automatically by any
+// connected client, browser or desktop) or over the standalone HTTP proxy
+// below (GET /ics?url=..., for a client that isn't/can't be connected as a
+// liaison). Same validation either way: only http(s) urls that look like an
+// ICS feed, size-capped -- this is not a general-purpose fetch relay.
 const ICS_MAX_BYTES = 2 * 1024 * 1024;
+async function fetchIcsForPeer(urlStr) {
+  let target;
+  try { target = new URL(urlStr); } catch (e) { throw new Error('bad url'); }
+  if (!/^https?:$/.test(target.protocol) || !/\.ics([?#]|$)/i.test(target.pathname + target.search)) {
+    throw new Error('not an ics url');
+  }
+  const r = await fetch(target, { redirect: 'follow', signal: AbortSignal.timeout(15000) });
+  if (!r.ok) throw new Error('upstream ' + r.status);
+  const buf = Buffer.from(await r.arrayBuffer());
+  if (buf.length > ICS_MAX_BYTES) throw new Error('too large');
+  return buf.toString('utf8');
+}
+
+// Optional standalone proxy (BETE_ICS_PORT=0 disables it): configure its URL
+// in the app under Settings > ICS proxy. Kept for a client that has no
+// liaison to relay the icsReq/icsRes above through.
+const ICS_PORT = parseInt(process.env.BETE_ICS_PORT || '9741', 10);
 if (ICS_PORT) {
   const CORS = {
     'Access-Control-Allow-Origin': '*',
@@ -404,18 +438,13 @@ if (ICS_PORT) {
     let u;
     try { u = new URL(req.url, 'http://localhost'); } catch (e) { res.writeHead(400, CORS); res.end('bad request'); return; }
     if (req.method !== 'GET' || u.pathname !== '/ics') { res.writeHead(404, CORS); res.end('not found'); return; }
-    let target;
-    try { target = new URL(u.searchParams.get('url') || ''); } catch (e) { res.writeHead(400, CORS); res.end('bad url'); return; }
-    if (!/^https?:$/.test(target.protocol) || !/\.ics([?#]|$)/i.test(target.pathname + target.search)) {
-      res.writeHead(400, CORS); res.end('not an ics url'); return;
-    }
-    fetch(target, { redirect: 'follow', signal: AbortSignal.timeout(15000) }).then(async (r) => {
-      if (!r.ok) { res.writeHead(502, CORS); res.end('upstream ' + r.status); return; }
-      const buf = Buffer.from(await r.arrayBuffer());
-      if (buf.length > ICS_MAX_BYTES) { res.writeHead(413, CORS); res.end('too large'); return; }
+    fetchIcsForPeer(u.searchParams.get('url') || '').then((text) => {
       res.writeHead(200, { ...CORS, 'Content-Type': 'text/calendar; charset=utf-8' });
-      res.end(buf);
-    }).catch(() => { res.writeHead(502, CORS); res.end('fetch failed'); });
+      res.end(text);
+    }).catch((e) => {
+      const code = e.message === 'not an ics url' || e.message === 'bad url' ? 400 : e.message === 'too large' ? 413 : 502;
+      res.writeHead(code, CORS); res.end(e.message);
+    });
   });
   icsSrv.on('error', (e) => console.error('[bete] ics proxy error:', e.message));
   icsSrv.listen(ICS_PORT, () => console.log(`[bete] ICS proxy listening on :${ICS_PORT} (GET /ics?url=...)`));

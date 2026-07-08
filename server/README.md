@@ -115,11 +115,13 @@ To start from an existing board instead of an empty one:
 
 The app's calendar blocks (a rectangle whose link points to a `.ics` file)
 usually can't fetch the feed directly from the browser: most calendar hosts
-(Google, iCloud...) don't send CORS headers. The host exposes a tiny relay for
-that: `GET http://<pi>:9741/ics?url=<https://...ics>` fetches the feed
-server-side and re-serves it with permissive CORS (only `.ics` URLs, 2 MB
-cap, nothing else is proxied). Point the app at it via Settings > ICS proxy
-(e.g. `http://raspberrypi.local:9741`).
+(Google, iCloud...) don't send CORS headers. Any client connected to this
+host as a liaison gets this automatically — the host fetches the feed for
+them over the data channel (`icsReq`/`icsRes`, no CORS restriction on Node),
+same validation either way (only `.ics` URLs, 2 MB cap, nothing else is
+fetched). For a client with no liaison at all, the host also exposes a
+standalone relay: `GET http://<pi>:9741/ics?url=<https://...ics>`. Point the
+app at it via Settings > ICS proxy (e.g. `http://raspberrypi.local:9741`).
 
 ## Running as a service (systemd)
 
