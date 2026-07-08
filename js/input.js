@@ -3,27 +3,27 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mrbw5u55';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrbw5u55';
-import { dragTo, reset } from './physics.js?v=mrbw5u55';
-import { pointInHex } from './geom.js?v=mrbw5u55';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrbw5u55';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrbw5u55';
-import { getUserId } from './users.js?v=mrbw5u55';
-import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrbw5u55';
-import { getAudio, putAudio } from './audio.js?v=mrbw5u55';
-import { toast } from './main.js?v=mrbw5u55';
-import { explodeElementCascade } from './fx.js?v=mrbw5u55';
-import { genBoardId, listBoards, buildBoardUrl, buildShareBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrbw5u55';
-import { listLiaisons } from './liaisons.js?v=mrbw5u55';
-import { openSettings } from './settings.js?v=mrbw5u55';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrbw5u55';
-import { toggleDebug } from './debug.js?v=mrbw5u55';
-import { youTubeId } from './yt.js?v=mrbw5u55';
-import { setActiveVideo } from './video.js?v=mrbw5u55';
-import { t } from './i18n.js?v=mrbw5u55';
-import { openExternal } from './platform.js?v=mrbw5u55';
-import { isIcsUrl } from './ics.js?v=mrbw5u55';
+} from './state.js?v=mrbwbw2t';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrbwbw2t';
+import { dragTo, reset } from './physics.js?v=mrbwbw2t';
+import { pointInHex } from './geom.js?v=mrbwbw2t';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrbwbw2t';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrbwbw2t';
+import { getUserId } from './users.js?v=mrbwbw2t';
+import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrbwbw2t';
+import { getAudio, putAudio } from './audio.js?v=mrbwbw2t';
+import { toast } from './main.js?v=mrbwbw2t';
+import { explodeElementCascade } from './fx.js?v=mrbwbw2t';
+import { genBoardId, listBoards, buildBoardUrl, buildShareBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrbwbw2t';
+import { listLiaisons } from './liaisons.js?v=mrbwbw2t';
+import { openSettings } from './settings.js?v=mrbwbw2t';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrbwbw2t';
+import { toggleDebug } from './debug.js?v=mrbwbw2t';
+import { youTubeId } from './yt.js?v=mrbwbw2t';
+import { setActiveVideo } from './video.js?v=mrbwbw2t';
+import { t } from './i18n.js?v=mrbwbw2t';
+import { openExternal } from './platform.js?v=mrbwbw2t';
+import { isIcsUrl } from './ics.js?v=mrbwbw2t';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -1179,7 +1179,7 @@ function openContextAt(sx, sy) {
       { label: t('radial.rectangle'), icon: 'rect', color: COL.green, fn: () => { const n = addRect(w.x - 75, w.y - 35); reset(n); state.selected = n.id; startEdit('rect', n, n); scheduleSave(); } },
       { label: t('radial.circle'), icon: 'circle', color: COL.cyan, fn: () => { const c = addCircle(w.x, w.y); state.selected = c.id; scheduleSave(); } },
       { label: t('radial.hexagon'), icon: 'hexa', color: COL.orange, fn: () => { const h = addHexagon(w.x, w.y); state.selected = h.id; scheduleSave(); } },
-      { label: t('radial.connector'), icon: 'triangle', color: COL.red, fn: () => { const n = addConnector(w.x - 75, w.y - 65); reset(n); state.selected = n.id; scheduleSave(); openConnectorEditor(n); } },
+      { label: t('radial.connector'), icon: 'triangle', color: COL.red, fn: () => { const n = addConnector(w.x - 75, w.y - 65); reset(n); state.selected = n.id; scheduleSave(); } },
       // Home is sanctuarized (never connected P2P), so no liaison block there.
       ...(getBoardId() === 'home' ? [] : [{ label: t('radial.liaison'), icon: 'share', color: COL.magenta, fn: () => createLiaison(w.x, w.y) }]),
       { label: t('radial.undo'), icon: 'undo', color: COL.yellow, fn: () => doUndo() },
