@@ -1,16 +1,16 @@
 // Board rendering: pixel grid, circles, hexagons, rectangles, neon glow, selection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mrbv2d22';
-import { parseBoardUrl } from './boards.js?v=mrbv2d22';
-import { view, worldToScreen } from './camera.js?v=mrbv2d22';
-import { stretch } from './physics.js?v=mrbv2d22';
-import { hexCorners, triCorners } from './geom.js?v=mrbv2d22';
-import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mrbv2d22';
-import { fmtDur } from './voice.js?v=mrbv2d22';
-import { getCursors, getPresence } from './sync.js?v=mrbv2d22';
-import { youTubeId, ytThumb } from './yt.js?v=mrbv2d22';
-import { getImageEl } from './images.js?v=mrbv2d22';
-import { t, getLang } from './i18n.js?v=mrbv2d22';
-import { isIcsUrl, calendarWeek } from './ics.js?v=mrbv2d22';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mrbvvlwr';
+import { parseBoardUrl } from './boards.js?v=mrbvvlwr';
+import { view, worldToScreen } from './camera.js?v=mrbvvlwr';
+import { stretch } from './physics.js?v=mrbvvlwr';
+import { hexCorners, triCorners } from './geom.js?v=mrbvvlwr';
+import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mrbvvlwr';
+import { fmtDur } from './voice.js?v=mrbvvlwr';
+import { getCursors, getPresence } from './sync.js?v=mrbvvlwr';
+import { youTubeId, ytThumb } from './yt.js?v=mrbvvlwr';
+import { getImageEl } from './images.js?v=mrbvvlwr';
+import { t, getLang } from './i18n.js?v=mrbvvlwr';
+import { isIcsUrl, calendarWeek } from './ics.js?v=mrbvvlwr';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -510,7 +510,7 @@ function drawConnector(ctx, n, selected, zoom) {
   } else if (n.display === 'readout') {
     drawConnectorReadout(ctx, n, color, stl, selected, zoom, w, h);
   } else if (n.display === 'clock') {
-    drawConnectorClock(ctx, color, stl, selected, zoom, w, h, n.clockFormat || 'HH:MM:SS');
+    drawConnectorClock(ctx, color, stl, selected, zoom, w, h, n);
   } else {
     // Generic triangle: outline + a small status dot (top corner) + last value as text.
     const pts = triCorners(0, 0, w, h);
@@ -601,18 +601,64 @@ function drawConnectorReadout(ctx, n, color, stl, selected, zoom, w, h) {
   }
 }
 
-// Local clock readout -- no network at all, just the current time per the
-// chosen clockFormat (picked via input.js: openClockFormatPicker), rendered
-// completely differently depending on the active theme (see below).
-// One clock, four completely different personalities depending on the active
-// theme -- a plain "HH:MM:SS in a box" felt like an afterthought, so each
-// variant leans into what that theme is already doing elsewhere (LCD glow
-// for pixel, a real analog face for the two classic themes, a skeuomorphic
-// desk clock for winxp) rather than just recoloring the same shape.
-function drawConnectorClock(ctx, color, stl, selected, zoom, w, h, fmt) {
-  if (theme().pixel) drawClockPixel(ctx, color, selected, zoom, w, h, fmt);
-  else if (themeId_() === 'winxp') drawClockWinXP(ctx, color, selected, zoom, w, h, fmt);
-  else drawClockFlip(ctx, color, stl, selected, zoom, w, h, fmt, themeId_() === 'classic');
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+// ms -> digit-pair groups for a flip-tile / segment display. Past 99 hours a
+// leading (unpadded) day count is prepended -- a countdown/stopwatch running
+// for multiple days still fits on one line instead of overflowing HH.
+function msToGroups(ms) {
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  let hh = Math.floor(totalSec / 3600);
+  const mm = Math.floor((totalSec % 3600) / 60);
+  const ss = totalSec % 60;
+  if (hh > 99) {
+    const dd = Math.floor(hh / 24);
+    hh %= 24;
+    return [String(dd), String(hh).padStart(2, '0'), String(mm).padStart(2, '0'), String(ss).padStart(2, '0')];
+  }
+  return [String(hh).padStart(2, '0'), String(mm).padStart(2, '0'), String(ss).padStart(2, '0')];
+}
+
+// What a clock connector should currently show, independent of theme:
+// either digit groups (HH:MM(:SS), stopwatch/countdown -- all "time-shaped",
+// tile/segment friendly) or a plain text line (day name / full date). `sub`
+// is an optional smaller secondary line (a date pill, or a paused/reached
+// hint for stopwatch/countdown).
+function clockContent(node, fmt) {
+  const now = new Date();
+  const lang = getLang() === 'fr' ? 'fr-FR' : 'en-US';
+  if (fmt === 'DAY') return { text: capitalize(now.toLocaleDateString(lang, { weekday: 'long' })) };
+  if (fmt === 'FULLDATE') return { text: capitalize(now.toLocaleDateString(lang, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })) };
+  if (fmt === 'STOPWATCH') {
+    const ms = (node.stopwatchStart ? now.getTime() - node.stopwatchStart : 0) + (node.stopwatchElapsed || 0);
+    return { groups: msToGroups(ms), sub: node.stopwatchStart ? '' : t('clock.paused') };
+  }
+  if (fmt === 'COUNTDOWN') {
+    if (!node.countdownTarget) return { text: t('clock.noTarget') };
+    const remain = node.countdownTarget - now.getTime();
+    if (remain <= 0) return { groups: ['00', '00', '00'], sub: t('clock.reached') };
+    return { groups: msToGroups(remain), sub: '' };
+  }
+  const showSec = fmt !== 'HH:MM';
+  const groups = [String(now.getHours()).padStart(2, '0'), String(now.getMinutes()).padStart(2, '0')];
+  if (showSec) groups.push(String(now.getSeconds()).padStart(2, '0'));
+  return { groups, sub: fmt === 'HH:MM:SS+DATE' ? now.toLocaleDateString(lang) : '' };
+}
+
+// Local clock readout -- no network at all, just the current time (or
+// stopwatch/countdown state) per the chosen clockFormat (picked via
+// input.js: openClockFormatPicker), rendered completely differently
+// depending on the active theme (see below). One clock, four completely
+// different personalities depending on the active theme -- a plain
+// "HH:MM:SS in a box" felt like an afterthought, so each variant leans into
+// what that theme is already doing elsewhere (LCD glow for pixel, a real
+// analog face for the two classic themes, a skeuomorphic desk clock for
+// winxp) rather than just recoloring the same shape.
+function drawConnectorClock(ctx, color, stl, selected, zoom, w, h, node) {
+  const info = clockContent(node, node.clockFormat || 'HH:MM:SS');
+  if (theme().pixel) drawClockPixel(ctx, color, selected, zoom, w, h, info);
+  else if (themeId_() === 'winxp') drawClockWinXP(ctx, color, selected, zoom, w, h, info);
+  else drawClockFlip(ctx, color, stl, selected, zoom, w, h, info, themeId_() === 'classic');
 }
 
 function roundRectPath(ctx, x, y, w, h, r) {
@@ -660,12 +706,10 @@ function drawFlipTile(ctx, cx, w, h, text, face, ink, hinge, glowColor, glow) {
 // with blinking colon dots between them, plus a small date pill underneath
 // if the format asks for a date. `light` picks the classic (white tiles) vs
 // classic-dark (node-bg tiles) palette.
-function drawClockFlip(ctx, color, stl, selected, zoom, w, h, fmt, light) {
+function drawClockFlip(ctx, color, stl, selected, zoom, w, h, info, light) {
   const face = light ? '#ffffff' : stl.fill;
   const ink = light ? '#23262b' : stl.text;
   const hinge = light ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.12)';
-  const withDate = fmt === 'HH:MM:SS+DATE';
-  const showSec = fmt !== 'HH:MM';
 
   ctx.shadowColor = color;
   ctx.shadowBlur = (selected ? 18 : 0) * (light ? 0.4 : 1);
@@ -675,16 +719,32 @@ function drawClockFlip(ctx, color, stl, selected, zoom, w, h, fmt, light) {
   if (selected) ctx.stroke();
   ctx.shadowBlur = 0;
 
-  const now = new Date();
-  const groups = [String(now.getHours()).padStart(2, '0'), String(now.getMinutes()).padStart(2, '0')];
-  if (showSec) groups.push(String(now.getSeconds()).padStart(2, '0'));
+  // Word-shaped content (day name / full date / "no target set"): no tiles,
+  // just fitted text on the same card background the tiles would otherwise
+  // provide -- `ink` is only legible against `face`, not the bare canvas.
+  if (info.text) {
+    roundRectPath(ctx, -w * 0.42, -h * 0.34, w * 0.84, h * 0.62, Math.min(w, h) * 0.1);
+    ctx.fillStyle = face;
+    ctx.fill();
+    ctx.font = `700 ${clamp(h * 0.2, 8, 26)}px ${FONT()}`;
+    ctx.fillStyle = ink;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (!light) { ctx.shadowColor = color; ctx.shadowBlur = 5 * GLOW(); }
+    drawFitted(ctx, info.text, w * 0.76, h * 0.5, clamp(h * 0.2, 8, 26));
+    ctx.shadowBlur = 0;
+    return;
+  }
 
-  const availW = w * 0.86, tileH = h * (withDate ? 0.52 : 0.62);
+  const groups = info.groups;
+  const withSub = !!info.sub;
+  const availW = w * 0.86, tileH = h * (withSub ? 0.52 : 0.62);
   const gap = availW * 0.06;
   const tileW = (availW - gap * (groups.length - 1)) / groups.length;
   const totalW = tileW * groups.length + gap * (groups.length - 1);
   let x = -totalW / 2 + tileW / 2;
-  const yOff = withDate ? -h * 0.08 : 0;
+  const yOff = withSub ? -h * 0.08 : 0;
+  const now = Date.now();
 
   ctx.save();
   ctx.translate(0, yOff);
@@ -692,7 +752,7 @@ function drawClockFlip(ctx, color, stl, selected, zoom, w, h, fmt, light) {
     drawFlipTile(ctx, x, tileW, tileH, g, face, ink, hinge, color, light ? 0 : 5 * GLOW());
     x += tileW + gap;
     if (i < groups.length - 1) {
-      const blink = Math.floor(now.getTime() / 500) % 2 === 0;
+      const blink = Math.floor(now / 500) % 2 === 0;
       if (blink) {
         ctx.fillStyle = color;
         ctx.beginPath(); ctx.arc(x - gap / 2, -tileH * 0.14, Math.max(1.5, tileH * 0.045), 0, Math.PI * 2); ctx.fill();
@@ -702,20 +762,20 @@ function drawClockFlip(ctx, color, stl, selected, zoom, w, h, fmt, light) {
   });
   ctx.restore();
 
-  if (withDate) {
+  if (withSub) {
     ctx.font = `${clamp(h * 0.11, 7, 15)}px ${FONT()}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = ink;
     ctx.globalAlpha = 0.75;
-    ctx.fillText(now.toLocaleDateString(), 0, h * 0.36);
+    ctx.fillText(info.sub, 0, h * 0.36);
     ctx.globalAlpha = 1;
   }
 }
 
 // Pixel theme: a bedside digital alarm clock -- dark bezel, recessed LCD
 // panel, glowing segment-style digits with a blinking colon, tiny power LED.
-function drawClockPixel(ctx, color, selected, zoom, w, h, fmt) {
+function drawClockPixel(ctx, color, selected, zoom, w, h, info) {
   ctx.fillStyle = '#1c2024';
   ctx.fillRect(-w / 2, -h / 2, w, h);
   const bevel = Math.max(2, 3 * zoom);
@@ -735,29 +795,27 @@ function drawClockPixel(ctx, color, selected, zoom, w, h, fmt) {
   ctx.lineWidth = Math.max(1, 1.5 * zoom);
   ctx.strokeRect(sx, sy, sw, sh);
 
-  const now = new Date();
-  const showSec = fmt !== 'HH:MM';
-  const blink = Math.floor(now.getTime() / 500) % 2 === 0;
-  const hh = String(now.getHours()).padStart(2, '0');
-  const mm = String(now.getMinutes()).padStart(2, '0');
-  const ss = String(now.getSeconds()).padStart(2, '0');
-  const sep = blink ? ':' : ' ';
-  const timeStr = showSec ? `${hh}${sep}${mm}${sep}${ss}` : `${hh}${sep}${mm}`;
-  const withDate = fmt === 'HH:MM:SS+DATE';
-  const fs = clamp(sw / (timeStr.length * 0.6), 8, 60);
+  let mainStr, subStr;
+  if (info.text) { mainStr = info.text; subStr = ''; }
+  else {
+    const blink = Math.floor(Date.now() / 500) % 2 === 0;
+    mainStr = info.groups.join(blink ? ':' : ' ');
+    subStr = info.sub || '';
+  }
+  const fs = clamp(sw / (mainStr.length * 0.6), 7, 60);
   ctx.font = `bold ${fs}px 'Courier New', monospace`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#39ff14';
   ctx.shadowColor = '#39ff14';
   ctx.shadowBlur = 8 * GLOW();
-  ctx.fillText(timeStr, 0, withDate ? -sh * 0.14 : 0);
+  ctx.fillText(mainStr, 0, subStr ? -sh * 0.14 : 0);
   ctx.shadowBlur = 0;
 
-  if (withDate) {
+  if (subStr) {
     ctx.font = `${clamp(fs * 0.32, 6, 16)}px 'Courier New', monospace`;
     ctx.fillStyle = '#1f8f4a';
-    ctx.fillText(now.toLocaleDateString(), 0, sh * 0.26);
+    ctx.fillText(subStr, 0, sh * 0.26);
   }
 
   ctx.beginPath();
@@ -773,7 +831,7 @@ function drawClockPixel(ctx, color, selected, zoom, w, h, fmt) {
 // drawSwitchWinXP) around a recessed silver/navy LCD panel -- a digital
 // travel clock rather than an analog dial, staying skeuomorphic without
 // bringing back hands.
-function drawClockWinXP(ctx, color, selected, zoom, w, h, fmt) {
+function drawClockWinXP(ctx, color, selected, zoom, w, h, info) {
   ctx.fillStyle = '#ece9d8';
   ctx.fillRect(-w / 2, -h / 2, w, h);
   const bevel = Math.max(2, 2.5 * zoom);
@@ -796,26 +854,24 @@ function drawClockWinXP(ctx, color, selected, zoom, w, h, fmt) {
   ctx.strokeStyle = '#0a246a';
   ctx.stroke();
 
-  const now = new Date();
-  const showSec = fmt !== 'HH:MM';
-  const withDate = fmt === 'HH:MM:SS+DATE';
-  const hh = String(now.getHours()).padStart(2, '0');
-  const mm = String(now.getMinutes()).padStart(2, '0');
-  const ss = String(now.getSeconds()).padStart(2, '0');
-  const blink = Math.floor(now.getTime() / 500) % 2 === 0;
-  const sep = blink ? ':' : ' ';
-  const timeStr = showSec ? `${hh}${sep}${mm}${sep}${ss}` : `${hh}${sep}${mm}`;
-  const fs = clamp(sw / (timeStr.length * 0.62), 7, 40);
+  let mainStr, subStr;
+  if (info.text) { mainStr = info.text; subStr = ''; }
+  else {
+    const blink = Math.floor(Date.now() / 500) % 2 === 0;
+    mainStr = info.groups.join(blink ? ':' : ' ');
+    subStr = info.sub || '';
+  }
+  const fs = clamp(sw / (mainStr.length * 0.62), 6, 40);
   ctx.font = `bold ${fs}px 'Courier New', monospace`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#0a246a';
-  ctx.fillText(timeStr, 0, withDate ? -sh * 0.16 : 0);
+  ctx.fillText(mainStr, 0, subStr ? -sh * 0.16 : 0);
 
-  if (withDate) {
+  if (subStr) {
     ctx.font = `${clamp(fs * 0.34, 6, 13)}px ${FONT()}`;
     ctx.fillStyle = '#0a246a';
-    ctx.fillText(now.toLocaleDateString(), 0, sh * 0.24);
+    ctx.fillText(subStr, 0, sh * 0.24);
   }
 }
 

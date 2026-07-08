@@ -4,8 +4,8 @@
 // smart plug). See CLAUDE.md for the read-only vs. host distinction that
 // also applies here (a locked guest may watch a switch's state but not
 // flip it -- enforced in input.js, not in this module).
-import { scheduleSave } from './state.js?v=mrbv2d22';
-import { getUserId } from './users.js?v=mrbv2d22';
+import { scheduleSave } from './state.js?v=mrbvvlwr';
+import { getUserId } from './users.js?v=mrbvvlwr';
 
 // Vendored locally (js/vendor/js-yaml.min.js) so the app keeps working
 // offline -- no CDN fetch at runtime, unlike the PeerJS/QR script loads in
@@ -149,4 +149,29 @@ export async function applyConnectorProgram(node, yamlText) {
   node.yaml = yamlText;
   scheduleSave();
   await pollConnector(node);
+}
+
+// ---- Stopwatch / countdown (clock display only, no yaml/network involved) ----
+// Elapsed time is `stopwatchElapsed` (folded in on every pause) plus, while
+// running, `Date.now() - stopwatchStart` -- computed on demand at render
+// time (render.js: clockContent), so nothing needs to tick while paused/idle.
+export function toggleStopwatch(node) {
+  if (node.stopwatchStart) {
+    node.stopwatchElapsed = (node.stopwatchElapsed || 0) + (Date.now() - node.stopwatchStart);
+    node.stopwatchStart = null;
+  } else {
+    node.stopwatchStart = Date.now();
+  }
+  scheduleSave();
+}
+
+export function resetStopwatch(node) {
+  node.stopwatchStart = null;
+  node.stopwatchElapsed = 0;
+  scheduleSave();
+}
+
+export function setCountdownTarget(node, epochMs) {
+  node.countdownTarget = epochMs || null;
+  scheduleSave();
 }

@@ -6,15 +6,15 @@
 // (falls back to host priority if both sides are on the same build) -- an
 // out-of-date host (stale tab, permanent Pi host not yet redeployed) must not
 // keep clobbering a freshly-updated peer's edits forever.
-import { state, removeById, scheduleSave, getBoardId, getBoardName } from './state.js?v=mrbv2d22';
-import { reset } from './physics.js?v=mrbv2d22';
-import { explodeElementCascade } from './fx.js?v=mrbv2d22';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrbv2d22';
-import { onImageArrived } from './images.js?v=mrbv2d22';
-import { getUserId, displayName } from './users.js?v=mrbv2d22';
-import { shareOrigin } from './platform.js?v=mrbv2d22';
-import { getOwnerToken, getLiaison } from './liaisons.js?v=mrbv2d22';
-import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrbv2d22';
+import { state, removeById, scheduleSave, getBoardId, getBoardName } from './state.js?v=mrbvvlwr';
+import { reset } from './physics.js?v=mrbvvlwr';
+import { explodeElementCascade } from './fx.js?v=mrbvvlwr';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrbvvlwr';
+import { onImageArrived } from './images.js?v=mrbvvlwr';
+import { getUserId, displayName } from './users.js?v=mrbvvlwr';
+import { shareOrigin } from './platform.js?v=mrbvvlwr';
+import { getOwnerToken, getLiaison } from './liaisons.js?v=mrbvvlwr';
+import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrbvvlwr';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host
@@ -267,7 +267,7 @@ function nodeEntry(n) {
 // For the image: the 'idb:<hash>' ref is short and changes with the content -> we
 // use it as-is; a legacy data URL (long) is reduced to its length (size proxy).
 function imgSig(img) { return img ? (img.length < 128 ? img : img.length) : 0; }
-function sigNode(e) { return e.vc ? 'V' + e.dur : e.cn ? 'C' + e.yml + '|' + e.disp + '|' + e.br + '|' + e.cf : (e.ref !== undefined ? 'R' + e.ref : 'T' + e.t + '|' + imgSig(e.img) + '|' + (e.lk || '')); }
+function sigNode(e) { return e.vc ? 'V' + e.dur : e.cn ? 'C' + e.yml + '|' + e.disp + '|' + e.br + '|' + e.cf + '|' + e.sws + '|' + e.swe + '|' + e.ct : (e.ref !== undefined ? 'R' + e.ref : 'T' + e.t + '|' + imgSig(e.img) + '|' + (e.lk || '')); }
 function sigZone(e) { return 'Z' + e.col + '' + e.d; }
 
 function buildContent() {
@@ -282,6 +282,8 @@ function buildContent() {
       n[node.id] = {
         cn: 1, disp: node.display || 'triangle', cf: node.clockFormat || 'HH:MM:SS', creator: node.creatorUid || null, br: !!node.bridge,
         yml: node.bridge ? '' : (node.yaml || ''),
+        // Clock display, stopwatch/countdown modes only:
+        sws: node.stopwatchStart || 0, swe: node.stopwatchElapsed || 0, ct: node.countdownTarget || 0,
         x: node.x, y: node.y, w: node.w, h: node.h,
       };
       continue;
@@ -385,7 +387,7 @@ function merge(remote) {
     if (!ex) {
       let node;
       if (rd.vc) node = { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, kind: 'voice', dur: rd.dur || 0 };
-      else if (rd.cn) node = { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, kind: 'connector', yaml: rd.yml || '', display: rd.disp || 'triangle', clockFormat: rd.cf || 'HH:MM:SS', creatorUid: rd.creator || null, bridge: !!rd.br };
+      else if (rd.cn) node = { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, kind: 'connector', yaml: rd.yml || '', display: rd.disp || 'triangle', clockFormat: rd.cf || 'HH:MM:SS', creatorUid: rd.creator || null, bridge: !!rd.br, stopwatchStart: rd.sws || null, stopwatchElapsed: rd.swe || 0, countdownTarget: rd.ct || null };
       else node = rd.ref !== undefined
         ? { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, ref: rd.ref }
         : { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, text: rd.t || '', image: rd.img || undefined };
@@ -415,6 +417,9 @@ function merge(remote) {
         if ((ex.yaml || '') !== (rd.yml || '')) { ex.yaml = rd.yml || ''; changed = true; pollConnector(ex).catch(() => {}); }
         if ((ex.display || 'triangle') !== (rd.disp || 'triangle')) { ex.display = rd.disp || 'triangle'; changed = true; pollConnector(ex).catch(() => {}); }
         if ((ex.clockFormat || 'HH:MM:SS') !== (rd.cf || 'HH:MM:SS')) { ex.clockFormat = rd.cf || 'HH:MM:SS'; changed = true; }
+        if ((ex.stopwatchStart || 0) !== (rd.sws || 0)) { ex.stopwatchStart = rd.sws || null; changed = true; }
+        if ((ex.stopwatchElapsed || 0) !== (rd.swe || 0)) { ex.stopwatchElapsed = rd.swe || 0; changed = true; }
+        if ((ex.countdownTarget || 0) !== (rd.ct || 0)) { ex.countdownTarget = rd.ct || null; changed = true; }
       } else if (rd.ref !== undefined) { if (ex.ref !== rd.ref) { ex.ref = rd.ref; changed = true; } }
       else {
         if (ex.kind === 'voice') { delete ex.kind; delete ex.dur; changed = true; } // reverse conversion

@@ -3,27 +3,27 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mrbv2d22';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrbv2d22';
-import { dragTo, reset } from './physics.js?v=mrbv2d22';
-import { pointInHex } from './geom.js?v=mrbv2d22';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector } from './connector.js?v=mrbv2d22';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrbv2d22';
-import { getUserId } from './users.js?v=mrbv2d22';
-import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrbv2d22';
-import { getAudio, putAudio } from './audio.js?v=mrbv2d22';
-import { toast } from './main.js?v=mrbv2d22';
-import { explodeElementCascade } from './fx.js?v=mrbv2d22';
-import { genBoardId, listBoards, buildBoardUrl, buildShareBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrbv2d22';
-import { listLiaisons } from './liaisons.js?v=mrbv2d22';
-import { openSettings } from './settings.js?v=mrbv2d22';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrbv2d22';
-import { toggleDebug } from './debug.js?v=mrbv2d22';
-import { youTubeId } from './yt.js?v=mrbv2d22';
-import { setActiveVideo } from './video.js?v=mrbv2d22';
-import { t } from './i18n.js?v=mrbv2d22';
-import { openExternal } from './platform.js?v=mrbv2d22';
-import { isIcsUrl } from './ics.js?v=mrbv2d22';
+} from './state.js?v=mrbvvlwr';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrbvvlwr';
+import { dragTo, reset } from './physics.js?v=mrbvvlwr';
+import { pointInHex } from './geom.js?v=mrbvvlwr';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrbvvlwr';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrbvvlwr';
+import { getUserId } from './users.js?v=mrbvvlwr';
+import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrbvvlwr';
+import { getAudio, putAudio } from './audio.js?v=mrbvvlwr';
+import { toast } from './main.js?v=mrbvvlwr';
+import { explodeElementCascade } from './fx.js?v=mrbvvlwr';
+import { genBoardId, listBoards, buildBoardUrl, buildShareBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrbvvlwr';
+import { listLiaisons } from './liaisons.js?v=mrbvvlwr';
+import { openSettings } from './settings.js?v=mrbvvlwr';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrbvvlwr';
+import { toggleDebug } from './debug.js?v=mrbvvlwr';
+import { youTubeId } from './yt.js?v=mrbvvlwr';
+import { setActiveVideo } from './video.js?v=mrbvvlwr';
+import { t } from './i18n.js?v=mrbvvlwr';
+import { openExternal } from './platform.js?v=mrbvvlwr';
+import { isIcsUrl } from './ics.js?v=mrbvvlwr';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -691,6 +691,19 @@ function handleDouble(sx, sy) {
     refreshConnector(r);
     return;
   }
+  // Clock display, stopwatch/countdown modes: double-click is the quick
+  // control (start/pause, or open the target picker) -- same actions as the
+  // radial menu entries, just faster to reach.
+  if (r && r.kind === 'connector' && r.display === 'clock' && r.clockFormat === 'STOPWATCH') {
+    if (isLocked()) return;
+    toggleStopwatch(r);
+    return;
+  }
+  if (r && r.kind === 'connector' && r.display === 'clock' && r.clockFormat === 'COUNTDOWN') {
+    if (isLocked()) return;
+    openCountdownPicker(r);
+    return;
+  }
   if (!canInteract()) return; // locked: no editing/opening
   if (r) {
     const img = displayImage(r);
@@ -885,7 +898,7 @@ function openBridgeWarning(node) {
 // Format picker for the clock display: picking any option also switches the
 // block to display:'clock' if it wasn't already (same modal reopens later
 // via the "clock format" radial entry to just change the format).
-const CLOCK_FORMATS = ['HH:MM', 'HH:MM:SS', 'HH:MM:SS+DATE'];
+const CLOCK_FORMATS = ['HH:MM', 'HH:MM:SS', 'HH:MM:SS+DATE', 'DAY', 'FULLDATE', 'STOPWATCH', 'COUNTDOWN'];
 function openClockFormatPicker(node) {
   const m = document.createElement('div');
   m.className = 'recmodal';
@@ -905,7 +918,39 @@ function openClockFormatPicker(node) {
     scheduleSave();
     pollConnector(node);
     m.remove();
+    if (node.clockFormat === 'COUNTDOWN' && !node.countdownTarget) openCountdownPicker(node);
   }));
+  m.querySelector('.connector-cancel').addEventListener('click', () => m.remove());
+}
+
+// Countdown target picker: a single datetime-local input, reusing the same
+// modal chrome as the clock format picker and the connector YAML editor.
+function openCountdownPicker(node) {
+  const m = document.createElement('div');
+  m.className = 'recmodal';
+  const toLocalInputValue = (ms) => {
+    const d = new Date(ms - new Date().getTimezoneOffset() * 60000);
+    return d.toISOString().slice(0, 16);
+  };
+  const initial = node.countdownTarget ? toLocalInputValue(node.countdownTarget) : '';
+  m.innerHTML = '<div class="connector-card">'
+    + '<div class="connector-title">' + t('clock.setTarget') + '</div>'
+    + '<div class="connector-actions connector-actions-col">'
+    + '<input type="datetime-local" class="countdown-input" value="' + initial + '">'
+    + '</div>'
+    + '<div class="connector-actions">'
+    + '<button class="connector-save">' + t('connector.save') + '</button>'
+    + '<button class="connector-cancel">' + t('connector.cancel') + '</button>'
+    + '</div></div>';
+  m.addEventListener('mousedown', (e) => e.stopPropagation());
+  m.addEventListener('touchstart', (e) => e.stopPropagation());
+  document.body.appendChild(m);
+  const inp = m.querySelector('.countdown-input');
+  m.querySelector('.connector-save').addEventListener('click', () => {
+    const ms = inp.value ? new Date(inp.value).getTime() : 0;
+    setCountdownTarget(node, ms > 0 ? ms : null);
+    m.remove();
+  });
   m.querySelector('.connector-cancel').addEventListener('click', () => m.remove());
 }
 
@@ -1074,6 +1119,13 @@ function openContextAt(sx, sy) {
     items.push(r.display === 'clock'
       ? { label: t('radial.clockFormat'), icon: 'clock', color: COL.cyan, fn: () => openClockFormatPicker(r) }
       : { label: t('radial.makeClock'), icon: 'clock', color: COL.cyan, fn: () => openClockFormatPicker(r) });
+    if (r.display === 'clock' && r.clockFormat === 'STOPWATCH') {
+      items.push({ label: r.stopwatchStart ? t('radial.pauseStopwatch') : t('radial.startStopwatch'), icon: 'clock', color: COL.green, fn: () => toggleStopwatch(r) });
+      items.push({ label: t('radial.resetStopwatch'), icon: 'undo', color: COL.yellow, fn: () => resetStopwatch(r) });
+    }
+    if (r.display === 'clock' && r.clockFormat === 'COUNTDOWN') {
+      items.push({ label: t('radial.setCountdown'), icon: 'clock', color: COL.green, fn: () => openCountdownPicker(r) });
+    }
     // Network bridge: reserved to whoever created this connector (creatorUid
     // is stamped once at creation, see state.js/addConnector) -- enabling it
     // is what starts exposing the switch (without the yaml) to every other
