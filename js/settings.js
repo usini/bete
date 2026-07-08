@@ -1,18 +1,21 @@
-// Settings menu: theme, language, text size, named liaisons, navigation
-// (tutorial / visited boards), clear the current board. Audio and Visual
-// (theme/text size) live in their own sub-panels to keep the main list short.
-import { state, getBoardId, scheduleSave } from './state.js?v=mrbxgej1';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mrbxgej1';
-import { listBoards, buildBoardUrl, reservedBoardLabel } from './boards.js?v=mrbxgej1';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mrbxgej1';
-import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mrbxgej1';
-import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mrbxgej1';
-import { exportBoardHtml } from './exportHtml.js?v=mrbxgej1';
-import { getUserName, setUserName } from './users.js?v=mrbxgej1';
-import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mrbxgej1';
-import { t, getLang, setLang, LANGS } from './i18n.js?v=mrbxgej1';
-import { isDesktop, getLinkMode, setLinkMode, getAppVersion } from './platform.js?v=mrbxgej1';
-import { getIcsProxy, setIcsProxy } from './ics.js?v=mrbxgej1';
+// Settings: a fullscreen options screen. The landing view is a hub of large
+// tiles (game-options style); everything lives in a sub-panel behind its
+// tile (visual, audio, user, liaisons, data) -- the old single-drawer layout
+// had grown into an unreadable wall of ~25 tiny buttons. The visited-boards
+// list that used to live here is gone: the built-in "boards" directory board
+// (js/main.js: loadBoardsDirectory) already is that list, one tile away.
+import { state, getBoardId, scheduleSave } from './state.js?v=mrc645bt';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mrc645bt';
+import { buildBoardUrl } from './boards.js?v=mrc645bt';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mrc645bt';
+import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mrc645bt';
+import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mrc645bt';
+import { exportBoardHtml } from './exportHtml.js?v=mrc645bt';
+import { getUserName, setUserName } from './users.js?v=mrc645bt';
+import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mrc645bt';
+import { t, getLang, setLang, LANGS } from './i18n.js?v=mrc645bt';
+import { isDesktop, getLinkMode, setLinkMode, getAppVersion } from './platform.js?v=mrc645bt';
+import { getIcsProxy, setIcsProxy } from './ics.js?v=mrc645bt';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
@@ -39,26 +42,27 @@ export function initSettings() {
 
 export function closeSettings() {
   document.getElementById('settings').classList.add('hidden');
-  document.removeEventListener('mousedown', onOutside);
-  document.removeEventListener('touchstart', onOutside);
+  document.removeEventListener('keydown', onEscape);
 }
-function onOutside() { closeSettings(); }
+// Fullscreen panel: there is no "outside" to click anymore, so Escape (and
+// the ✕ button) are the ways out.
+function onEscape(e) { if (e.key === 'Escape') closeSettings(); }
 
 export function openSettings() {
-  view = 'main'; // always land on the main list, never a stale sub-panel
+  view = 'main'; // always land on the hub, never a stale sub-panel
   const panel = document.getElementById('settings');
   build(panel);
   panel.classList.remove('hidden');
-  setTimeout(() => {
-    document.addEventListener('mousedown', onOutside, { once: true });
-    document.addEventListener('touchstart', onOutside, { once: true });
-  }, 0);
+  document.addEventListener('keydown', onEscape);
 }
 
 function build(panel) {
   panel.innerHTML = '';
   if (view === 'audio') { buildAudio(panel); return; }
   if (view === 'visual') { buildVisual(panel); return; }
+  if (view === 'user') { buildUser(panel); return; }
+  if (view === 'liaisons') { buildLiaisons(panel); return; }
+  if (view === 'data') { buildData(panel); return; }
   buildMain(panel);
 }
 
@@ -86,29 +90,40 @@ function subHead(panel, titleKey) {
   panel.appendChild(head);
 }
 
+// ---- Hub: a grid of large tiles, one per sub-panel or shortcut ----
 function buildMain(panel) {
   mainHead(panel);
 
-  // ---- Sub-menus ----
-  const audioBtn = el('button', 'set-wide', '🎧 ' + t('settings.audio'));
-  audioBtn.addEventListener('click', () => { view = 'audio'; build(panel); });
-  panel.appendChild(audioBtn);
+  const grid = el('div', 'set-grid');
+  const tile = (icon, label, fn) => {
+    const b = el('button', 'set-tile');
+    b.appendChild(el('span', 'set-tile-icon', icon));
+    b.appendChild(el('span', null, label));
+    b.addEventListener('click', fn);
+    grid.appendChild(b);
+  };
+  const goto = (v) => () => { view = v; build(panel); };
 
-  const visualBtn = el('button', 'set-wide', '🎨 ' + t('settings.visual'));
-  visualBtn.addEventListener('click', () => { view = 'visual'; build(panel); });
-  panel.appendChild(visualBtn);
+  tile('🎨', t('settings.visual'), goto('visual'));
+  tile('🎧', t('settings.audio'), goto('audio'));
+  tile('👤', t('settings.user'), goto('user'));
+  tile('🔗', t('settings.liaisons'), goto('liaisons'));
+  tile('💾', t('settings.data'), goto('data'));
+  tile('🗂', t('board.boards'), () => { location.href = buildBoardUrl('boards'); });
+  tile('🎓', t('settings.tutorial'), () => { location.href = location.pathname + '?id=tutorial'; });
+  panel.appendChild(grid);
 
-  // ---- 1. Language ----
-  panel.appendChild(el('div', 'set-label', t('settings.language')));
-  const langs = el('div', 'set-themes');
-  LANGS.forEach((l) => {
-    const b = el('button', 'set-theme' + (getLang() === l.code ? ' on' : ''), l.label);
-    b.addEventListener('click', () => { setLang(l.code); build(panel); });
-    langs.appendChild(b);
-  });
-  panel.appendChild(langs);
+  if (isDesktop) {
+    const foot = el('div', 'set-foot', t('settings.loading'));
+    panel.appendChild(foot);
+    getAppVersion().then((v) => { foot.textContent = t('settings.version', { v: v || '?' }); });
+  }
+}
 
-  // ---- 2. User ----
+// ---- User sub-panel: display name, language, connected people ----
+function buildUser(panel) {
+  subHead(panel, 'settings.user');
+
   panel.appendChild(el('div', 'set-label', t('settings.user')));
   const nameRow = el('div', 'set-new');
   const nin = el('input'); nin.placeholder = t('settings.namePlaceholder'); nin.maxLength = 24; nin.value = getUserName();
@@ -119,51 +134,29 @@ function buildMain(panel) {
   nameRow.appendChild(nin); nameRow.appendChild(nb);
   panel.appendChild(nameRow);
 
+  panel.appendChild(el('div', 'set-label', t('settings.language')));
+  const langs = el('div', 'set-themes');
+  LANGS.forEach((l) => {
+    const b = el('button', 'set-theme' + (getLang() === l.code ? ' on' : ''), l.label);
+    b.addEventListener('click', () => { setLang(l.code); build(panel); });
+    langs.appendChild(b);
+  });
+  panel.appendChild(langs);
+
   const presence = getPresence();
   if (presence.length) {
-    panel.appendChild(el('div', 'set-sub', t('settings.connectedCount', { n: presence.length })));
+    panel.appendChild(el('div', 'set-label', t('settings.connectedCount', { n: presence.length })));
     presence.forEach((u) => {
       const label = (u.host ? '🟢 ' : '👤 ') + (u.name || t('liaison.guest')) + (u.me ? t('settings.you') : '') + (u.voice ? ' 🎤' : '');
       panel.appendChild(el('div', 'set-empty', label));
     });
   }
+}
 
-  // ---- 3. Navigation ----
-  panel.appendChild(el('div', 'set-label', t('settings.navigation')));
-  const tuto = el('button', 'set-wide', t('settings.replayTutorial'));
-  tuto.addEventListener('click', () => { location.href = location.pathname + '?id=tutorial'; });
-  panel.appendChild(tuto);
+// ---- Liaisons sub-panel: active connection, lock, list, join, share mode ----
+function buildLiaisons(panel) {
+  subHead(panel, 'settings.liaisons');
 
-  const cur = getBoardId();
-  const boards = listBoards().filter((b) => b.id !== cur);
-  if (boards.length) {
-    panel.appendChild(el('div', 'set-sub', t('settings.visitedBoards')));
-    boards.forEach((b) => {
-      const label = reservedBoardLabel(b.id, t) || b.name || b.id;
-      const row = el('button', 'set-wide', label);
-      row.addEventListener('click', () => { location.href = buildBoardUrl(b.id, b.peer, b.name); });
-      panel.appendChild(row);
-    });
-  }
-
-  // ---- Desktop only: which address to embed in links given to other people ----
-  if (isDesktop) {
-    panel.appendChild(el('div', 'set-label', t('settings.shareMode')));
-    const modes = el('div', 'set-themes');
-    const internet = el('button', 'set-theme' + (getLinkMode() === 'internet' ? ' on' : ''), t('settings.shareInternet'));
-    internet.addEventListener('click', () => { setLinkMode('internet'); build(panel); });
-    const lan = el('button', 'set-theme' + (getLinkMode() === 'lan' ? ' on' : ''), t('settings.shareLan'));
-    lan.addEventListener('click', () => { setLinkMode('lan'); build(panel); });
-    modes.appendChild(internet); modes.appendChild(lan);
-    panel.appendChild(modes);
-    panel.appendChild(el('div', 'set-sub', t('settings.shareMode.hint')));
-    const verEl = el('div', 'set-empty', t('settings.loading'));
-    panel.appendChild(verEl);
-    getAppVersion().then((v) => { verEl.textContent = t('settings.version', { v: v || '?' }); });
-  }
-
-  // ---- 4. Liaisons ----
-  panel.appendChild(el('div', 'set-label', t('settings.liaisons')));
   // Home is sanctuarized: never connected (so it can't be overwritten).
   if (getBoardId() === 'home') panel.appendChild(el('div', 'set-empty', t('settings.homeLocked')));
   // Active liaison + disconnect.
@@ -182,6 +175,7 @@ function buildMain(panel) {
   if (isOwner()) {
     const lockBtn = el('button', 'set-theme' + (state.readOnly ? ' on' : ''), (state.readOnly ? '🔒 ' : '🔓 ') + t('settings.lockBoard'));
     lockBtn.title = t('settings.lockBoard.title');
+    lockBtn.style.display = 'block'; lockBtn.style.width = '100%'; lockBtn.style.margin = '5px 0';
     lockBtn.addEventListener('click', () => { setBoardReadOnly(!state.readOnly); build(panel); });
     panel.appendChild(lockBtn);
   }
@@ -195,9 +189,17 @@ function buildMain(panel) {
     name.addEventListener('click', () => switchLiaison(l.peer));
     const ren = el('button', 'set-mini', '✎');
     ren.title = t('settings.rename.title');
+    // Inline rename: the row swaps into an input + confirm (no native prompt).
     ren.addEventListener('click', () => {
-      const nm = prompt(t('settings.rename.prompt'), l.name || l.peer);
-      if (nm != null) { renameLiaison(l.peer, nm.trim() || l.peer); build(panel); }
+      row.innerHTML = '';
+      row.className = 'set-new';
+      const inp = el('input'); inp.value = l.name || l.peer; inp.maxLength = 40;
+      const ok = el('button', null, t('settings.ok'));
+      const commit = () => { renameLiaison(l.peer, inp.value.trim() || l.peer); build(panel); };
+      ok.addEventListener('click', commit);
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') commit(); else if (e.key === 'Escape') { e.stopPropagation(); build(panel); } });
+      row.appendChild(inp); row.appendChild(ok);
+      inp.focus(); inp.select();
     });
     const del = el('button', 'set-mini', '✕');
     del.title = t('settings.remove.title');
@@ -222,7 +224,24 @@ function buildMain(panel) {
   joinRow.appendChild(jin); joinRow.appendChild(jb);
   panel.appendChild(joinRow);
 
-  // ---- 5. Data: import / export ----
+  // Desktop only: which address to embed in links handed to other people.
+  if (isDesktop) {
+    panel.appendChild(el('div', 'set-label', t('settings.shareMode')));
+    const modes = el('div', 'set-themes');
+    const internet = el('button', 'set-theme' + (getLinkMode() === 'internet' ? ' on' : ''), t('settings.shareInternet'));
+    internet.addEventListener('click', () => { setLinkMode('internet'); build(panel); });
+    const lan = el('button', 'set-theme' + (getLinkMode() === 'lan' ? ' on' : ''), t('settings.shareLan'));
+    lan.addEventListener('click', () => { setLinkMode('lan'); build(panel); });
+    modes.appendChild(internet); modes.appendChild(lan);
+    panel.appendChild(modes);
+    panel.appendChild(el('div', 'set-sub', t('settings.shareMode.hint')));
+  }
+}
+
+// ---- Data sub-panel: import/export, ICS proxy, danger zone ----
+function buildData(panel) {
+  subHead(panel, 'settings.data');
+
   panel.appendChild(el('div', 'set-label', t('settings.data')));
   const exp = el('button', 'set-wide', t('settings.export'));
   exp.addEventListener('click', () => exportJSON());
@@ -239,17 +258,22 @@ function buildMain(panel) {
   const impAll = el('button', 'set-wide', t('settings.importAll'));
   impAll.addEventListener('click', () => importAllBoards(() => { closeSettings(); location.reload(); }));
   panel.appendChild(impAll);
+
   // ICS proxy (web only: on desktop the .ics fetch goes through Rust, no CORS).
   if (!isDesktop) {
-    const icsBtn = el('button', 'set-wide', t('settings.icsProxy') + (getIcsProxy() ? ' ✓' : ''));
-    icsBtn.addEventListener('click', () => {
-      const v = prompt(t('settings.icsProxyPrompt'), getIcsProxy());
-      if (v != null) { setIcsProxy(v.trim()); build(panel); }
-    });
-    panel.appendChild(icsBtn);
+    panel.appendChild(el('div', 'set-label', t('settings.icsProxy')));
+    panel.appendChild(el('div', 'set-sub', t('settings.icsProxyPrompt')));
+    const proxyRow = el('div', 'set-new');
+    const pin = el('input'); pin.placeholder = 'http://raspberrypi.local:9741'; pin.value = getIcsProxy();
+    const pb = el('button', null, t('settings.ok'));
+    const saveProxy = () => { setIcsProxy(pin.value.trim()); build(panel); };
+    pb.addEventListener('click', saveProxy);
+    pin.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveProxy(); });
+    proxyRow.appendChild(pin); proxyRow.appendChild(pb);
+    panel.appendChild(proxyRow);
   }
 
-  // ---- 6. Danger: clear the current board ----
+  // Danger: clear the current board (two-tap confirm).
   panel.appendChild(el('div', 'set-label', t('settings.currentBoard')));
   const clear = el('button', 'set-danger', t('settings.clearBoard'));
   let armed = false;

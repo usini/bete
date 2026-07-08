@@ -34,6 +34,8 @@ const STRINGS = {
     'toast.copied': 'COPIED {n}',
     'toast.pasted': 'PASTED {n}',
 
+    'settings.tutorial': 'Tutorial',
+
     'ics.loading': 'CALENDAR...',
     'ics.error': 'CALENDAR UNREACHABLE',
     'settings.icsProxy': 'ICS proxy',
@@ -241,6 +243,8 @@ const STRINGS = {
     'toast.homeLocal': 'HOME RESTE LOCAL (non connectable)',
     'toast.copied': 'COPIE {n}',
     'toast.pasted': 'COLLE {n}',
+
+    'settings.tutorial': 'Tutoriel',
 
     'ics.loading': 'CALENDRIER...',
     'ics.error': 'CALENDRIER INJOIGNABLE',
