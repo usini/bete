@@ -5,16 +5,17 @@
 //
 // CORS reality check: most calendar hosts (Google, iCloud...) don't send
 // Access-Control-Allow-Origin, so a direct browser fetch usually fails.
-// Escape hatches, in order:
+// Escape hatches (see fetchIcsText for the exact order, which differs by
+// platform since a direct web fetch is a near-guaranteed CORS failure while
+// desktop's own fetch isn't):
 //  - desktop: the fetch_ics Tauri command (Rust ureq, not subject to CORS);
+//  - P2P relay (requestIcsFromPeers, see sync.js): ask other connected peers
+//    (a desktop build, or one with a working proxy) to fetch it for us;
 //  - web: an optional proxy (Settings > ICS proxy), e.g. the endpoint served
-//    by server/bete-host.js on a Raspberry Pi (see server/README.md);
-//  - P2P relay (requestIcsFromPeers, see sync.js): if we're connected and
-//    neither of the above worked, ask other connected peers (a desktop
-//    build, or one with a working proxy) to fetch it on our behalf.
-import { isDesktop } from './platform.js?v=mrcjc0bj';
-import { connectorFetch } from './connector.js?v=mrcjc0bj';
-import { requestIcsFromPeers } from './sync.js?v=mrcjc0bj';
+//    by server/bete-host.js on a Raspberry Pi (see server/README.md).
+import { isDesktop } from './platform.js?v=mrcjk2fn';
+import { connectorFetch } from './connector.js?v=mrcjk2fn';
+import { requestIcsFromPeers } from './sync.js?v=mrcjk2fn';
 
 const PROXY_KEY = 'bete:icsproxy';
 export function getIcsProxy() {
@@ -92,11 +93,19 @@ function fetchIcsViaPeers(url) {
 }
 
 async function fetchIcsText(url) {
-  try {
-    return await fetchIcsLocal(url);
-  } catch (e) {
-    return await fetchIcsViaPeers(url);
+  if (isDesktop) {
+    // Desktop's own fetch_ics is native (no CORS) and doesn't need a proxy,
+    // so it's reliable enough to just try first -- asking peers would only
+    // add a pointless round trip on the common case.
+    try { return await fetchIcsLocal(url); } catch (e) { return await fetchIcsViaPeers(url); }
   }
+  // Web: most calendar hosts (Google, iCloud...) block a direct browser
+  // fetch outright (CORS), so trying it ourselves first is almost always a
+  // guaranteed failure -- ask connected peers (a desktop peer, or one with a
+  // working proxy) before falling back to our own attempt (which still
+  // succeeds if a proxy is configured locally, or occasionally when the host
+  // does allow CORS).
+  try { return await fetchIcsViaPeers(url); } catch (e) { return await fetchIcsLocal(url); }
 }
 
 // ---- Last-known-good cache (localStorage): survives a reload/offline start ----
