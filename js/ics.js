@@ -12,9 +12,9 @@
 //  - P2P relay (requestIcsFromPeers, see sync.js): if we're connected and
 //    neither of the above worked, ask other connected peers (a desktop
 //    build, or one with a working proxy) to fetch it on our behalf.
-import { isDesktop } from './platform.js?v=mrci23u5';
-import { connectorFetch } from './connector.js?v=mrci23u5';
-import { requestIcsFromPeers } from './sync.js?v=mrci23u5';
+import { isDesktop } from './platform.js?v=mrcinqje';
+import { connectorFetch } from './connector.js?v=mrcinqje';
+import { requestIcsFromPeers } from './sync.js?v=mrcinqje';
 
 const PROXY_KEY = 'bete:icsproxy';
 export function getIcsProxy() {

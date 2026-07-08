@@ -3,27 +3,27 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mrci23u5';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrci23u5';
-import { dragTo, reset } from './physics.js?v=mrci23u5';
-import { pointInHex } from './geom.js?v=mrci23u5';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrci23u5';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrci23u5';
-import { getUserId } from './users.js?v=mrci23u5';
-import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrci23u5';
-import { getAudio, putAudio } from './audio.js?v=mrci23u5';
-import { toast } from './main.js?v=mrci23u5';
-import { explodeElementCascade } from './fx.js?v=mrci23u5';
-import { genBoardId, listBoards, buildBoardUrl, buildShareBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel, deleteBoardData } from './boards.js?v=mrci23u5';
-import { listLiaisons } from './liaisons.js?v=mrci23u5';
-import { openSettings } from './settings.js?v=mrci23u5';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrci23u5';
-import { toggleDebug } from './debug.js?v=mrci23u5';
-import { youTubeId } from './yt.js?v=mrci23u5';
-import { setActiveVideo } from './video.js?v=mrci23u5';
-import { t } from './i18n.js?v=mrci23u5';
-import { openExternal } from './platform.js?v=mrci23u5';
-import { isIcsUrl } from './ics.js?v=mrci23u5';
+} from './state.js?v=mrcinqje';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrcinqje';
+import { dragTo, reset } from './physics.js?v=mrcinqje';
+import { pointInHex } from './geom.js?v=mrcinqje';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrcinqje';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrcinqje';
+import { getUserId } from './users.js?v=mrcinqje';
+import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrcinqje';
+import { getAudio, putAudio } from './audio.js?v=mrcinqje';
+import { toast } from './main.js?v=mrcinqje';
+import { explodeElementCascade } from './fx.js?v=mrcinqje';
+import { genBoardId, listBoards, buildBoardUrl, buildShareBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel, deleteBoardData } from './boards.js?v=mrcinqje';
+import { listLiaisons, removeLiaison } from './liaisons.js?v=mrcinqje';
+import { openSettings } from './settings.js?v=mrcinqje';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrcinqje';
+import { toggleDebug } from './debug.js?v=mrcinqje';
+import { youTubeId } from './yt.js?v=mrcinqje';
+import { setActiveVideo } from './video.js?v=mrcinqje';
+import { t } from './i18n.js?v=mrcinqje';
+import { openExternal } from './platform.js?v=mrcinqje';
+import { isIcsUrl } from './ics.js?v=mrcinqje';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -1121,13 +1121,15 @@ function openContextAt(sx, sy) {
 
   let items;
   // The built-in "boards" directory is auto-generated and otherwise
-  // non-editable (see main.js: loadBoardsDirectory) -- only two actions are
-  // allowed here: delete a board (with confirmation, see deleteBoardBlock)
-  // and dragging a block in/out of a liaison circle (see finishDrag), which
-  // needs no menu at all.
+  // non-editable (see main.js: loadBoardsDirectory) -- only three actions
+  // are allowed here: delete a board (with confirmation, deleteBoardBlock),
+  // delete a liaison circle (also forgets that liaison, deleteLiaisonCircle),
+  // and dragging a block in/out of a circle (see finishDrag), which needs no
+  // menu at all.
   if (getBoardId() === 'boards') {
-    items = (r && r.link) ? [{ label: t('radial.delete'), icon: 'trash', color: COL.red, fn: () => deleteBoardBlock(r) }]
-      : [{ label: t('radial.settings'), icon: 'gear', color: COL.white, fn: () => openSettings() }];
+    if (r && r.link) items = [{ label: t('radial.delete'), icon: 'trash', color: COL.red, fn: () => deleteBoardBlock(r) }];
+    else if (hz) items = [{ label: t('radial.delete'), icon: 'trash', color: COL.red, fn: () => deleteLiaisonCircle(hz.c) }];
+    else items = [{ label: t('radial.settings'), icon: 'gear', color: COL.white, fn: () => openSettings() }];
     openRadial(sx, sy, items);
     return;
   }
@@ -1595,6 +1597,19 @@ function deleteBoardBlock(node) {
   openConfirmModal(t('boardsView.deleteTitle'), t('boardsView.deleteBody', { name: label }), () => {
     deleteBoardData(bu.id);
     removeById(node.id);
+    scheduleSave();
+  });
+}
+
+// Deleting a liaison circle also forgets that liaison entirely (not just the
+// visual grouping) -- the circle only exists here as a stand-in for a real
+// liaison (js/main.js: loadBoardsDirectory), so removing it and keeping the
+// liaison around would be confusing (it'd just reappear on the next open).
+function deleteLiaisonCircle(circle) {
+  const label = circle.description || circle.peer;
+  openConfirmModal(t('boardsView.deleteLiaisonTitle'), t('boardsView.deleteLiaisonBody', { name: label }), () => {
+    if (circle.peer) removeLiaison(circle.peer);
+    removeById(circle.id);
     scheduleSave();
   });
 }

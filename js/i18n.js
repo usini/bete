@@ -168,6 +168,8 @@ const STRINGS = {
     'boardsView.deleteBody': 'This permanently deletes "{name}" and all its content from this device. This cannot be undone.',
     'boardsView.linked': '🔗 Linked to {name}',
     'boardsView.unlinked': 'Unlinked',
+    'boardsView.deleteLiaisonTitle': 'Forget this liaison?',
+    'boardsView.deleteLiaisonBody': 'This removes "{name}" from your liaisons. Any board linked to it just becomes unlinked, nothing else is deleted.',
 
     'settings.title': 'SETTINGS',
     'settings.back': 'Back',
@@ -388,6 +390,8 @@ const STRINGS = {
     'boardsView.deleteBody': 'Ceci supprime définitivement "{name}" et tout son contenu de cet appareil. Action irréversible.',
     'boardsView.linked': '🔗 Lié à {name}',
     'boardsView.unlinked': 'Délié',
+    'boardsView.deleteLiaisonTitle': 'Oublier cette liaison ?',
+    'boardsView.deleteLiaisonBody': 'Ceci retire "{name}" de vos liaisons. Les boards qui y étaient liés deviennent simplement déliés, rien d\'autre n\'est supprimé.',
 
     'settings.title': 'PARAMETRES',
     'settings.back': 'Retour',

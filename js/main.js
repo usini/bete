@@ -1,24 +1,24 @@
 // Bootstrap + render loop.
-import { state, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline, restore, COLORS } from './state.js?v=mrci23u5';
-import { setView } from './camera.js?v=mrci23u5';
-import { render } from './render.js?v=mrci23u5';
-import { step, reset } from './physics.js?v=mrci23u5';
-import * as minimap from './minimap.js?v=mrci23u5';
-import * as input from './input.js?v=mrci23u5';
-import * as fx from './fx.js?v=mrci23u5';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mrci23u5';
-import { recordBoard, getBoardEntry, listBoards, buildBoardUrl, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrci23u5';
-import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mrci23u5';
-import { applyTheme } from './theme.js?v=mrci23u5';
-import { initSettings, openSettings } from './settings.js?v=mrci23u5';
-import { recordLiaison, getLiaison, listLiaisons } from './liaisons.js?v=mrci23u5';
-import { positionVideoOverlay } from './video.js?v=mrci23u5';
-import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mrci23u5';
-import { migrateImages } from './images.js?v=mrci23u5';
-import { pollConnector } from './connector.js?v=mrci23u5';
-import { t, getLang, applyStaticI18n } from './i18n.js?v=mrci23u5';
-import { initDesktopLink, checkWebUpdate } from './platform.js?v=mrci23u5';
-import { checkForUpdate } from './update.js?v=mrci23u5';
+import { state, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline, restore, COLORS } from './state.js?v=mrcinqje';
+import { setView } from './camera.js?v=mrcinqje';
+import { render } from './render.js?v=mrcinqje';
+import { step, reset } from './physics.js?v=mrcinqje';
+import * as minimap from './minimap.js?v=mrcinqje';
+import * as input from './input.js?v=mrcinqje';
+import * as fx from './fx.js?v=mrcinqje';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mrcinqje';
+import { recordBoard, getBoardEntry, listBoards, buildBoardUrl, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrcinqje';
+import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mrcinqje';
+import { applyTheme } from './theme.js?v=mrcinqje';
+import { initSettings, openSettings } from './settings.js?v=mrcinqje';
+import { recordLiaison, getLiaison, listLiaisons } from './liaisons.js?v=mrcinqje';
+import { positionVideoOverlay } from './video.js?v=mrcinqje';
+import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mrcinqje';
+import { migrateImages } from './images.js?v=mrcinqje';
+import { pollConnector } from './connector.js?v=mrcinqje';
+import { t, getLang, applyStaticI18n } from './i18n.js?v=mrcinqje';
+import { initDesktopLink, checkWebUpdate } from './platform.js?v=mrcinqje';
+import { checkForUpdate } from './update.js?v=mrcinqje';
 
 applyTheme(); // apply the saved theme right at startup
 applyStaticI18n(); // translate the static HTML chrome (buttons, hint, etc.)
@@ -241,44 +241,54 @@ function ensureBoardsLinkOnHome() {
 // tied to -- see recordBoard's `peer` field), board-link blocks placed
 // inside the matching circle, anything without a (recognized) liaison in a
 // plain grid below. Dragging a block in/out of a circle re-pairs it with
-// that liaison (js/input.js: finishDrag) -- the circle's `.peer` is an
-// in-memory-only field (this whole board is regenerated on every open, see
-// setSaveSuppressed in the caller, so it never needs to round-trip through
-// serialize()'s field whitelist).
+// that liaison (js/input.js: finishDrag), deleting a circle forgets that
+// liaison entirely (js/input.js: deleteLiaisonCircle) -- the circle's
+// `.peer` is an in-memory-only field (this whole board is regenerated on
+// every open, see setSaveSuppressed in the caller, so it never needs to
+// round-trip through serialize()'s field whitelist).
 function loadBoardsDirectory() {
+  const BOARD_GAP_X = 170, BOARD_GAP_Y = 90;
   const list = listBoards().filter((b) => b.id !== 'boards');
   const liaisons = listLiaisons();
-  const R = 210;
-  const circles = liaisons.map((l, i) => {
-    const c = { id: newId(), x: (i - (liaisons.length - 1) / 2) * (R * 2.2), y: -30, r: R, color: COLORS[(i % (COLORS.length - 1)) + 1], description: l.name || l.peer };
-    c.peer = l.peer;
-    return c;
-  });
-  const circleByPeer = new Map(circles.map((c) => [c.peer, c]));
+  const peerSet = new Set(liaisons.map((l) => l.peer));
 
-  const grouped = new Map(); // circle -> boards[]
+  const grouped = new Map(); // peer -> boards[]
   const ungrouped = [];
   list.forEach((b) => {
-    const c = b.peer && circleByPeer.get(b.peer);
-    if (c) { if (!grouped.has(c)) grouped.set(c, []); grouped.get(c).push(b); }
+    if (b.peer && peerSet.has(b.peer)) { if (!grouped.has(b.peer)) grouped.set(b.peer, []); grouped.get(b.peer).push(b); }
     else ungrouped.push(b);
   });
 
   const boardNode = (b, x, y) => ({ id: newId(), x: x - 80, y: y - 35, w: 160, h: 70, text: reservedBoardLabel(b.id, t) || b.name || b.id, link: buildBoardUrl(b.id, b.peer, b.name) });
 
+  // Each circle is sized to actually contain its grid of boards (a fixed
+  // radius either clipped a big group or left a lone board looking lost in
+  // a huge empty circle) -- roughly square grid, radius = the grid's own
+  // half-diagonal plus padding for the description label drawn just above it.
+  const circles = [];
   const nodes = [];
-  for (const [c, boards] of grouped) {
-    const perRow = Math.max(1, Math.floor((c.r * 1.5) / 170));
-    boards.forEach((b, i) => {
-      const col = i % perRow, row = Math.floor(i / perRow);
-      nodes.push(boardNode(b, c.x + (col - (perRow - 1) / 2) * 170, c.y + (row - (Math.ceil(boards.length / perRow) - 1) / 2) * 80));
+  let cx = 0;
+  liaisons.forEach((l, i) => {
+    const boards = grouped.get(l.peer) || [];
+    const n = Math.max(boards.length, 1);
+    const cols = Math.max(1, Math.ceil(Math.sqrt(n)));
+    const rows = Math.max(1, Math.ceil(n / cols));
+    const r = Math.max(150, Math.hypot(cols * BOARD_GAP_X, rows * BOARD_GAP_Y) / 2 + 30);
+    if (i > 0) cx += circles[i - 1].r + r + 50;
+    const c = { id: newId(), x: cx, y: 0, r, color: COLORS[(i % (COLORS.length - 1)) + 1], description: l.name || l.peer };
+    c.peer = l.peer;
+    circles.push(c);
+    boards.forEach((b, k) => {
+      const col = k % cols, row = Math.floor(k / cols);
+      nodes.push(boardNode(b, c.x + (col - (cols - 1) / 2) * BOARD_GAP_X, c.y + (row - (rows - 1) / 2) * BOARD_GAP_Y));
     });
-  }
-  const cols = 4, gapX = 190, gapY = 100;
-  const baseY = circles.length ? R + 120 : -100;
+  });
+
+  const cols2 = 4, gapX2 = 190, gapY2 = 100;
+  const baseY = circles.length ? Math.max(...circles.map((c) => c.r)) + 130 : -100;
   ungrouped.forEach((b, i) => {
-    const col = i % cols, row = Math.floor(i / cols);
-    nodes.push(boardNode(b, (col - (cols - 1) / 2) * gapX, baseY + row * gapY));
+    const col = i % cols2, row = Math.floor(i / cols2);
+    nodes.push(boardNode(b, (col - (cols2 - 1) / 2) * gapX2, baseY + row * gapY2));
   });
 
   load({ version: 1, camera: { x: 0, y: 0, zoom: 1 }, nodes, circles, hexagons: [] });
