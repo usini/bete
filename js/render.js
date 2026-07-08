@@ -1,16 +1,16 @@
 // Board rendering: pixel grid, circles, hexagons, rectangles, neon glow, selection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mrciwau9';
-import { parseBoardUrl } from './boards.js?v=mrciwau9';
-import { view, worldToScreen } from './camera.js?v=mrciwau9';
-import { stretch } from './physics.js?v=mrciwau9';
-import { hexCorners, triCorners } from './geom.js?v=mrciwau9';
-import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mrciwau9';
-import { fmtDur } from './voice.js?v=mrciwau9';
-import { getCursors, getPresence } from './sync.js?v=mrciwau9';
-import { youTubeId, ytThumb } from './yt.js?v=mrciwau9';
-import { getImageEl } from './images.js?v=mrciwau9';
-import { t, getLang } from './i18n.js?v=mrciwau9';
-import { isIcsUrl, calendarWeek } from './ics.js?v=mrciwau9';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mrcjc0bj';
+import { parseBoardUrl } from './boards.js?v=mrcjc0bj';
+import { view, worldToScreen } from './camera.js?v=mrcjc0bj';
+import { stretch } from './physics.js?v=mrcjc0bj';
+import { hexCorners, triCorners } from './geom.js?v=mrcjc0bj';
+import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mrcjc0bj';
+import { fmtDur } from './voice.js?v=mrcjc0bj';
+import { getCursors, getPresence } from './sync.js?v=mrcjc0bj';
+import { youTubeId, ytThumb } from './yt.js?v=mrcjc0bj';
+import { getImageEl } from './images.js?v=mrcjc0bj';
+import { t, getLang } from './i18n.js?v=mrcjc0bj';
+import { isIcsUrl, calendarWeek } from './ics.js?v=mrcjc0bj';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -1146,13 +1146,19 @@ function drawIcsWeek(ctx, url, stl, color, zoom, w, h) {
   const lang = getLang() === 'fr' ? 'fr-FR' : 'en-US';
   const today = new Date();
 
-  // Sized off the block's own screen height (not just camera zoom) -- this is
-  // a resizable rectangle, and text stayed microscopic on a large block
-  // resized bigger at the default zoom, since only zoom fed into it before.
-  const dayH = clamp(h * 0.065, 14, 34);
-  const evH = clamp(h * 0.058, 13, 30);
-  const fsDay = clamp(dayH * 0.66, 10, 22);
-  const fsEv = clamp(evH * 0.62, 9, 20);
+  // Row height stretches to fill the block's available height -- a light
+  // week (few events) in a tall block otherwise left dead space at the
+  // bottom instead of using it, and a fixed size (even one scaled off just
+  // h) can't tell "7 headers + 2 events" from "7 headers + 30 events" apart.
+  // Still capped so a near-empty calendar in a huge block doesn't blow up
+  // into giant text.
+  const totalEvents = cal.days.reduce((sum, list) => sum + list.length, 0);
+  const avail = Math.max(40, y1 - y0);
+  const unit = clamp(avail / (7 * 1.15 + totalEvents), 12, 50);
+  const dayH = unit * 1.15;
+  const evH = unit;
+  const fsDay = clamp(dayH * 0.66, 10, 32);
+  const fsEv = clamp(evH * 0.62, 9, 28);
 
   let y = y0;
   for (let d = 0; d < 7; d++) {
