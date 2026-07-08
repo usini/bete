@@ -9,8 +9,8 @@
 //  - desktop: the fetch_ics Tauri command (Rust ureq, not subject to CORS);
 //  - web: an optional proxy (Settings > ICS proxy), e.g. the endpoint served
 //    by server/bete-host.js on a Raspberry Pi (see server/README.md).
-import { isDesktop } from './platform.js?v=mrbvvlwr';
-import { connectorFetch } from './connector.js?v=mrbvvlwr';
+import { isDesktop } from './platform.js?v=mrbw5u55';
+import { connectorFetch } from './connector.js?v=mrbw5u55';
 
 const PROXY_KEY = 'bete:icsproxy';
 export function getIcsProxy() {

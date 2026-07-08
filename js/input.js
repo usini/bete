@@ -3,27 +3,27 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mrbvvlwr';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrbvvlwr';
-import { dragTo, reset } from './physics.js?v=mrbvvlwr';
-import { pointInHex } from './geom.js?v=mrbvvlwr';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrbvvlwr';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrbvvlwr';
-import { getUserId } from './users.js?v=mrbvvlwr';
-import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrbvvlwr';
-import { getAudio, putAudio } from './audio.js?v=mrbvvlwr';
-import { toast } from './main.js?v=mrbvvlwr';
-import { explodeElementCascade } from './fx.js?v=mrbvvlwr';
-import { genBoardId, listBoards, buildBoardUrl, buildShareBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrbvvlwr';
-import { listLiaisons } from './liaisons.js?v=mrbvvlwr';
-import { openSettings } from './settings.js?v=mrbvvlwr';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrbvvlwr';
-import { toggleDebug } from './debug.js?v=mrbvvlwr';
-import { youTubeId } from './yt.js?v=mrbvvlwr';
-import { setActiveVideo } from './video.js?v=mrbvvlwr';
-import { t } from './i18n.js?v=mrbvvlwr';
-import { openExternal } from './platform.js?v=mrbvvlwr';
-import { isIcsUrl } from './ics.js?v=mrbvvlwr';
+} from './state.js?v=mrbw5u55';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrbw5u55';
+import { dragTo, reset } from './physics.js?v=mrbw5u55';
+import { pointInHex } from './geom.js?v=mrbw5u55';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrbw5u55';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrbw5u55';
+import { getUserId } from './users.js?v=mrbw5u55';
+import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrbw5u55';
+import { getAudio, putAudio } from './audio.js?v=mrbw5u55';
+import { toast } from './main.js?v=mrbw5u55';
+import { explodeElementCascade } from './fx.js?v=mrbw5u55';
+import { genBoardId, listBoards, buildBoardUrl, buildShareBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrbw5u55';
+import { listLiaisons } from './liaisons.js?v=mrbw5u55';
+import { openSettings } from './settings.js?v=mrbw5u55';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrbw5u55';
+import { toggleDebug } from './debug.js?v=mrbw5u55';
+import { youTubeId } from './yt.js?v=mrbw5u55';
+import { setActiveVideo } from './video.js?v=mrbw5u55';
+import { t } from './i18n.js?v=mrbw5u55';
+import { openExternal } from './platform.js?v=mrbw5u55';
+import { isIcsUrl } from './ics.js?v=mrbw5u55';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -1496,10 +1496,15 @@ function commitEdit() {
   if (!editing) return;
   const ed = document.getElementById('editor');
   const target = findById(editing.id);
+  let openMenuFor = null;
   if (target) {
     if (editing.type === 'rect') {
       target.text = ed.value;
       growForIcs(target, ed.value.trim());
+      // Left empty (clicked away without typing anything): assume a plain
+      // text rectangle isn't actually what's wanted here -- the radial menu
+      // is the fastest way to turn it into a link, an image, a connector...
+      if (!target.text.trim() && !target.image) openMenuFor = target;
     } else if (editing.type === 'link') {
       const v = ed.value.trim();
       if (v) target.link = v; else delete target.link;
@@ -1511,6 +1516,10 @@ function commitEdit() {
   editing = null;
   ed.classList.remove('show');
   document.getElementById('editDone').classList.remove('show');
+  if (openMenuFor) {
+    const p = worldToScreen(openMenuFor.x + openMenuFor.w / 2, openMenuFor.y + openMenuFor.h / 2);
+    openContextAt(p.x, p.y);
+  }
 }
 
 // Escape: closes the editor or the image popup.

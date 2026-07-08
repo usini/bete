@@ -1,18 +1,18 @@
 // Settings menu: theme, language, text size, named liaisons, navigation
 // (tutorial / visited boards), clear the current board. Audio and Visual
 // (theme/text size) live in their own sub-panels to keep the main list short.
-import { state, getBoardId, scheduleSave } from './state.js?v=mrbvvlwr';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mrbvvlwr';
-import { listBoards, buildBoardUrl, reservedBoardLabel } from './boards.js?v=mrbvvlwr';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mrbvvlwr';
-import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mrbvvlwr';
-import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mrbvvlwr';
-import { exportBoardHtml } from './exportHtml.js?v=mrbvvlwr';
-import { getUserName, setUserName } from './users.js?v=mrbvvlwr';
-import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mrbvvlwr';
-import { t, getLang, setLang, LANGS } from './i18n.js?v=mrbvvlwr';
-import { isDesktop, getLinkMode, setLinkMode, getAppVersion } from './platform.js?v=mrbvvlwr';
-import { getIcsProxy, setIcsProxy } from './ics.js?v=mrbvvlwr';
+import { state, getBoardId, scheduleSave } from './state.js?v=mrbw5u55';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mrbw5u55';
+import { listBoards, buildBoardUrl, reservedBoardLabel } from './boards.js?v=mrbw5u55';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mrbw5u55';
+import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mrbw5u55';
+import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mrbw5u55';
+import { exportBoardHtml } from './exportHtml.js?v=mrbw5u55';
+import { getUserName, setUserName } from './users.js?v=mrbw5u55';
+import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mrbw5u55';
+import { t, getLang, setLang, LANGS } from './i18n.js?v=mrbw5u55';
+import { isDesktop, getLinkMode, setLinkMode, getAppVersion } from './platform.js?v=mrbw5u55';
+import { getIcsProxy, setIcsProxy } from './ics.js?v=mrbw5u55';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
