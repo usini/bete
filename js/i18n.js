@@ -159,6 +159,10 @@ const STRINGS = {
     'clock.setTarget': 'Countdown target',
     'alert.memoStorageFailed': 'Could not save the memo.',
 
+    'linkEditor.title': 'Clickable link',
+    'linkEditor.placeholder': 'https://...',
+    'linkEditor.remove': 'Remove link',
+
     'settings.title': 'SETTINGS',
     'settings.back': 'Back',
     'settings.audio': 'Audio',
@@ -368,6 +372,10 @@ const STRINGS = {
     'clock.reached': 'ATTEINT',
     'clock.setTarget': 'Cible du compte à rebours',
     'alert.memoStorageFailed': 'Stockage du mémo impossible.',
+
+    'linkEditor.title': 'Lien cliquable',
+    'linkEditor.placeholder': 'https://...',
+    'linkEditor.remove': 'Retirer le lien',
 
     'settings.title': 'PARAMETRES',
     'settings.back': 'Retour',

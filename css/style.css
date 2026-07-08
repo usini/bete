@@ -604,10 +604,11 @@ html, body {
 .connector-actions-col { flex-direction: column; }
 .connector-pick { color: var(--green); background: #11151a; border-color: var(--green-dim); }
 .connector-pick:hover { background: var(--green); color: #04130a; border-color: var(--green); }
-.countdown-input {
+.countdown-input, .link-input {
   font-family: inherit; font-size: 13px; color: var(--ink);
   background: #0d0f12; border: 2px solid var(--green-dim); padding: 10px; outline: none;
 }
+.link-input { width: 100%; box-sizing: border-box; }
 
 /* ---- Reconnect-loop warning ---- */
 #reconnectpopup {

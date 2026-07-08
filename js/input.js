@@ -3,27 +3,27 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mrc645bt';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrc645bt';
-import { dragTo, reset } from './physics.js?v=mrc645bt';
-import { pointInHex } from './geom.js?v=mrc645bt';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrc645bt';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrc645bt';
-import { getUserId } from './users.js?v=mrc645bt';
-import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrc645bt';
-import { getAudio, putAudio } from './audio.js?v=mrc645bt';
-import { toast } from './main.js?v=mrc645bt';
-import { explodeElementCascade } from './fx.js?v=mrc645bt';
-import { genBoardId, listBoards, buildBoardUrl, buildShareBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrc645bt';
-import { listLiaisons } from './liaisons.js?v=mrc645bt';
-import { openSettings } from './settings.js?v=mrc645bt';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrc645bt';
-import { toggleDebug } from './debug.js?v=mrc645bt';
-import { youTubeId } from './yt.js?v=mrc645bt';
-import { setActiveVideo } from './video.js?v=mrc645bt';
-import { t } from './i18n.js?v=mrc645bt';
-import { openExternal } from './platform.js?v=mrc645bt';
-import { isIcsUrl } from './ics.js?v=mrc645bt';
+} from './state.js?v=mrc6jjo8';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrc6jjo8';
+import { dragTo, reset } from './physics.js?v=mrc6jjo8';
+import { pointInHex } from './geom.js?v=mrc6jjo8';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrc6jjo8';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrc6jjo8';
+import { getUserId } from './users.js?v=mrc6jjo8';
+import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrc6jjo8';
+import { getAudio, putAudio } from './audio.js?v=mrc6jjo8';
+import { toast } from './main.js?v=mrc6jjo8';
+import { explodeElementCascade } from './fx.js?v=mrc6jjo8';
+import { genBoardId, listBoards, buildBoardUrl, buildShareBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrc6jjo8';
+import { listLiaisons } from './liaisons.js?v=mrc6jjo8';
+import { openSettings } from './settings.js?v=mrc6jjo8';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrc6jjo8';
+import { toggleDebug } from './debug.js?v=mrc6jjo8';
+import { youTubeId } from './yt.js?v=mrc6jjo8';
+import { setActiveVideo } from './video.js?v=mrc6jjo8';
+import { t } from './i18n.js?v=mrc6jjo8';
+import { openExternal } from './platform.js?v=mrc6jjo8';
+import { isIcsUrl } from './ics.js?v=mrc6jjo8';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -1140,7 +1140,7 @@ function openContextAt(sx, sy) {
   } else if (r) {
     const isLink = !!r.ref;
     items = [{ label: t('radial.editText'), icon: 'edit', color: COL.cyan, fn: () => { const t = isLink ? sourceOf(r) : r; if (t) startEdit('rect', t, r); } }];
-    items.push({ label: t('radial.clickableLink'), icon: 'link', color: COL.purple, fn: () => { const t = isLink ? sourceOf(r) : r; if (t) startEdit('link', t, r); } });
+    items.push({ label: t('radial.clickableLink'), icon: 'link', color: COL.purple, fn: () => { const t = isLink ? sourceOf(r) : r; if (t) openLinkEditor(t); } });
     const img = displayImage(r);
     if (img) items.push({ label: t('radial.viewImage'), icon: 'eye', color: COL.white, fn: () => openImagePopup(img) });
     if (!isLink) items.push({ label: t('radial.uploadImage'), icon: 'image', color: COL.cyan, fn: () => openImageFilePicker(r.x, r.y, r) });
@@ -1459,13 +1459,13 @@ function startEdit(type, target, posNode) {
   const ed = document.getElementById('editor');
   const z = state.camera.zoom;
 
-  if (type === 'rect' || type === 'link') {
+  if (type === 'rect') {
     const p = worldToScreen(posNode.x, posNode.y);
     ed.style.left = p.x + 'px';
     ed.style.top = p.y + 'px';
     ed.style.width = (posNode.w * z) + 'px';
-    ed.style.height = (type === 'link' ? 40 : posNode.h * z) + 'px';
-    ed.value = type === 'link' ? (target.link || '') : (target.text || '');
+    ed.style.height = (posNode.h * z) + 'px';
+    ed.value = target.text || '';
   } else {
     const p = worldToScreen(posNode.x, posNode.y - posNode.r);
     const wpx = 220;
@@ -1492,6 +1492,41 @@ function growForIcs(target, value) {
   reset(target);
 }
 
+// Clickable-link editor: a proper modal instead of the tiny on-canvas editor
+// (which shrinks to an unreadable font at low zoom and is barely 40px tall --
+// fine for a block's own text, useless for pasting/checking a URL).
+function openLinkEditor(target) {
+  closeMenus();
+  const m = document.createElement('div');
+  m.className = 'recmodal';
+  m.innerHTML = '<div class="connector-card">'
+    + '<div class="connector-title">' + t('linkEditor.title') + '</div>'
+    + '<input type="text" class="link-input" placeholder="' + t('linkEditor.placeholder') + '">'
+    + '<div class="connector-actions">'
+    + '<button class="connector-save">' + t('connector.save') + '</button>'
+    + (target.link ? '<button class="link-remove">' + t('linkEditor.remove') + '</button>' : '')
+    + '<button class="connector-cancel">' + t('connector.cancel') + '</button>'
+    + '</div></div>';
+  m.addEventListener('mousedown', (e) => e.stopPropagation());
+  m.addEventListener('touchstart', (e) => e.stopPropagation());
+  document.body.appendChild(m);
+  const inp = m.querySelector('.link-input');
+  inp.value = target.link || '';
+  setTimeout(() => { inp.focus(); inp.select(); }, 50);
+  const save = () => {
+    const v = inp.value.trim();
+    if (v) target.link = v; else delete target.link;
+    growForIcs(target, v);
+    scheduleSave();
+    m.remove();
+  };
+  m.querySelector('.connector-save').addEventListener('click', save);
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
+  const rm = m.querySelector('.link-remove');
+  if (rm) rm.addEventListener('click', () => { delete target.link; scheduleSave(); m.remove(); });
+  m.querySelector('.connector-cancel').addEventListener('click', () => m.remove());
+}
+
 function commitEdit() {
   if (!editing) return;
   const ed = document.getElementById('editor');
@@ -1505,10 +1540,6 @@ function commitEdit() {
       // text rectangle isn't actually what's wanted here -- the radial menu
       // is the fastest way to turn it into a link, an image, a connector...
       if (!target.text.trim() && !target.image) openMenuFor = target;
-    } else if (editing.type === 'link') {
-      const v = ed.value.trim();
-      if (v) target.link = v; else delete target.link;
-      growForIcs(target, v);
     }
     else target.description = ed.value.replace(/\n/g, ' ').trim();
     scheduleSave();
