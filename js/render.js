@@ -1,16 +1,16 @@
 // Board rendering: pixel grid, circles, hexagons, rectangles, neon glow, selection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mrcinqje';
-import { parseBoardUrl } from './boards.js?v=mrcinqje';
-import { view, worldToScreen } from './camera.js?v=mrcinqje';
-import { stretch } from './physics.js?v=mrcinqje';
-import { hexCorners, triCorners } from './geom.js?v=mrcinqje';
-import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mrcinqje';
-import { fmtDur } from './voice.js?v=mrcinqje';
-import { getCursors, getPresence } from './sync.js?v=mrcinqje';
-import { youTubeId, ytThumb } from './yt.js?v=mrcinqje';
-import { getImageEl } from './images.js?v=mrcinqje';
-import { t, getLang } from './i18n.js?v=mrcinqje';
-import { isIcsUrl, calendarWeek } from './ics.js?v=mrcinqje';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mrciwau9';
+import { parseBoardUrl } from './boards.js?v=mrciwau9';
+import { view, worldToScreen } from './camera.js?v=mrciwau9';
+import { stretch } from './physics.js?v=mrciwau9';
+import { hexCorners, triCorners } from './geom.js?v=mrciwau9';
+import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mrciwau9';
+import { fmtDur } from './voice.js?v=mrciwau9';
+import { getCursors, getPresence } from './sync.js?v=mrciwau9';
+import { youTubeId, ytThumb } from './yt.js?v=mrciwau9';
+import { getImageEl } from './images.js?v=mrciwau9';
+import { t, getLang } from './i18n.js?v=mrciwau9';
+import { isIcsUrl, calendarWeek } from './ics.js?v=mrciwau9';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -1131,7 +1131,7 @@ function drawIcsWeek(ctx, url, stl, color, zoom, w, h) {
   const cal = calendarWeek(url);
   ctx.shadowBlur = 0;
   if (!cal.days) {
-    const fs = clamp(11 * zoom, 8, 18);
+    const fs = clamp(Math.min(w, h) * 0.07, 9, 22);
     ctx.font = `${fs}px ${FONT()}`;
     ctx.fillStyle = stl.text;
     ctx.textAlign = 'center';
@@ -1146,10 +1146,13 @@ function drawIcsWeek(ctx, url, stl, color, zoom, w, h) {
   const lang = getLang() === 'fr' ? 'fr-FR' : 'en-US';
   const today = new Date();
 
-  const fsDay = clamp(9 * zoom, 7, 13);
-  const fsEv = clamp(8 * zoom, 6, 13);
-  const dayH = clamp(14 * zoom, 11, 19);
-  const evH = clamp(13 * zoom, 10, 18);
+  // Sized off the block's own screen height (not just camera zoom) -- this is
+  // a resizable rectangle, and text stayed microscopic on a large block
+  // resized bigger at the default zoom, since only zoom fed into it before.
+  const dayH = clamp(h * 0.065, 14, 34);
+  const evH = clamp(h * 0.058, 13, 30);
+  const fsDay = clamp(dayH * 0.66, 10, 22);
+  const fsEv = clamp(evH * 0.62, 9, 20);
 
   let y = y0;
   for (let d = 0; d < 7; d++) {
