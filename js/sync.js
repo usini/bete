@@ -6,15 +6,16 @@
 // (falls back to host priority if both sides are on the same build) -- an
 // out-of-date host (stale tab, permanent Pi host not yet redeployed) must not
 // keep clobbering a freshly-updated peer's edits forever.
-import { state, removeById, scheduleSave, getBoardId, getBoardName } from './state.js?v=mrbwbw2t';
-import { reset } from './physics.js?v=mrbwbw2t';
-import { explodeElementCascade } from './fx.js?v=mrbwbw2t';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrbwbw2t';
-import { onImageArrived } from './images.js?v=mrbwbw2t';
-import { getUserId, displayName } from './users.js?v=mrbwbw2t';
-import { shareOrigin } from './platform.js?v=mrbwbw2t';
-import { getOwnerToken, getLiaison } from './liaisons.js?v=mrbwbw2t';
-import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrbwbw2t';
+import { state, removeById, scheduleSave, getBoardId, getBoardName } from './state.js?v=mrbxgej1';
+import { reset } from './physics.js?v=mrbxgej1';
+import { explodeElementCascade } from './fx.js?v=mrbxgej1';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrbxgej1';
+import { onImageArrived } from './images.js?v=mrbxgej1';
+import { getUserId, displayName } from './users.js?v=mrbxgej1';
+import { shareOrigin } from './platform.js?v=mrbxgej1';
+import { getOwnerToken, getLiaison } from './liaisons.js?v=mrbxgej1';
+import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrbxgej1';
+import { fetchIcsLocal, resolveIcsPeerResponse } from './ics.js?v=mrbxgej1';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host
@@ -585,6 +586,18 @@ function handleData(msg, origin) {
     if (node) { node._value = msg.value; node._status = msg.status; }
     if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); });
     return;
+  } else if (msg.type === 'icsReq') {
+    // A peer can't reach this calendar itself (CORS/offline): we try on
+    // their behalf (desktop's native fetch, or our own configured proxy).
+    // If WE can't either, the host relays the request further out (star
+    // topology: a plain client only ever talks to the host).
+    fetchIcsLocal(msg.url).then((text) => sendTo(origin, { type: 'icsRes', url: msg.url, text }))
+      .catch(() => { if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); }); });
+    return;
+  } else if (msg.type === 'icsRes') {
+    resolveIcsPeerResponse(msg.url, msg.text, msg.error);
+    if (mode === 'host') conns.forEach((c) => { if (c !== origin) sendTo(c, msg); }); // relay back toward whoever actually asked
+    return;
   }
   // The host relays one-off events to the other clients.
   if (mode === 'host' && (msg.type === 'move' || msg.type === 'delete')) {
@@ -642,6 +655,15 @@ export function shareImage(ref) {
 export function requestImage(hash) {
   if (!conns.length || !hash) return;
   conns.forEach((c) => sendTo(c, { type: 'imgReq', hash }));
+}
+
+// Asks connected peers to fetch a .ics calendar we couldn't reach ourselves
+// (called by ics.js). Returns false when there's nobody to ask (caller
+// shouldn't bother waiting on a timeout in that case).
+export function requestIcsFromPeers(url) {
+  if (!conns.length || !url) return false;
+  conns.forEach((c) => sendTo(c, { type: 'icsReq', url }));
+  return true;
 }
 
 // On receiving a remote memo: fetches the audio if missing locally.

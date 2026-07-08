@@ -99,8 +99,13 @@ Other URL parameters:
 
 ## Calendar blocks (.ics)
 
-Give a rectangle a link to a `.ics` file (or `webcal://`): it renders as the
-current week's calendar (Mon-Sun, refreshed every 15 min). Most calendar hosts
-block direct browser fetches (CORS); in that case use the desktop app (which
-fetches natively), or set Settings > ICS proxy to a relay such as the one the
-Raspberry Pi host exposes (see server/README.md).
+Give a rectangle a link to a `.ics` file (or `webcal://`, or just paste the
+url as the block's text): it renders as a week agenda (Mon-Sun, one line per
+event, refreshed every 15 min). Most calendar hosts block direct browser
+fetches (CORS); in that case use the desktop app (which fetches natively),
+or set Settings > ICS proxy to a relay such as the one the Raspberry Pi host
+exposes (see server/README.md). If neither works and you're connected to a
+liaison, the board asks other connected peers (e.g. a desktop build, or one
+with a working proxy) to fetch it on your behalf. The last successfully
+fetched calendar is also cached locally, so it still shows something while
+offline or waiting on a peer.

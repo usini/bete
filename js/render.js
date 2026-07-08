@@ -1,16 +1,16 @@
 // Board rendering: pixel grid, circles, hexagons, rectangles, neon glow, selection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mrbwbw2t';
-import { parseBoardUrl } from './boards.js?v=mrbwbw2t';
-import { view, worldToScreen } from './camera.js?v=mrbwbw2t';
-import { stretch } from './physics.js?v=mrbwbw2t';
-import { hexCorners, triCorners } from './geom.js?v=mrbwbw2t';
-import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mrbwbw2t';
-import { fmtDur } from './voice.js?v=mrbwbw2t';
-import { getCursors, getPresence } from './sync.js?v=mrbwbw2t';
-import { youTubeId, ytThumb } from './yt.js?v=mrbwbw2t';
-import { getImageEl } from './images.js?v=mrbwbw2t';
-import { t, getLang } from './i18n.js?v=mrbwbw2t';
-import { isIcsUrl, calendarWeek } from './ics.js?v=mrbwbw2t';
+import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mrbxgej1';
+import { parseBoardUrl } from './boards.js?v=mrbxgej1';
+import { view, worldToScreen } from './camera.js?v=mrbxgej1';
+import { stretch } from './physics.js?v=mrbxgej1';
+import { hexCorners, triCorners } from './geom.js?v=mrbxgej1';
+import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mrbxgej1';
+import { fmtDur } from './voice.js?v=mrbxgej1';
+import { getCursors, getPresence } from './sync.js?v=mrbxgej1';
+import { youTubeId, ytThumb } from './yt.js?v=mrbxgej1';
+import { getImageEl } from './images.js?v=mrbxgej1';
+import { t, getLang } from './i18n.js?v=mrbxgej1';
+import { isIcsUrl, calendarWeek } from './ics.js?v=mrbxgej1';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -1120,11 +1120,13 @@ function drawRect(ctx, n, color, selected, zoom) {
   ctx.restore();
 }
 
-// Week calendar for a rectangle whose link is a .ics file (see js/ics.js).
+// Week agenda for a rectangle whose link is a .ics file (see js/ics.js).
 // Drawn in the block's centered coordinate space: x in [-w/2, w/2], y in
-// [-h/2, h/2]. Layout: a day-name header row, then 7 agenda columns with the
-// week's events stacked top-down (not a proportional timeline -- readable
-// even on a small block).
+// [-h/2, h/2]. Layout: one day-heading row per day, immediately followed by
+// that day's events stacked one after another -- full block width for every
+// line (no per-weekday column), since a specific time-of-day position isn't
+// needed (the time is printed as part of the line) and a 7-column grid
+// mostly wastes width on days with few or no events.
 function drawIcsWeek(ctx, url, stl, color, zoom, w, h) {
   const cal = calendarWeek(url);
   ctx.shadowBlur = 0;
@@ -1138,83 +1140,75 @@ function drawIcsWeek(ctx, url, stl, color, zoom, w, h) {
     return;
   }
 
-  const pad = 4 * zoom;
+  const pad = 5 * zoom;
   const x0 = -w / 2 + pad, x1 = w / 2 - pad;
   const y0 = -h / 2 + pad, y1 = h / 2 - pad;
-  const cw = (x1 - x0) / 7;
-  const hh = clamp(14 * zoom, 10, 26); // header row height
   const lang = getLang() === 'fr' ? 'fr-FR' : 'en-US';
   const today = new Date();
 
-  // Column separators + today's column highlight.
-  ctx.save();
-  ctx.globalAlpha = 0.35;
-  ctx.strokeStyle = stl.border;
-  ctx.lineWidth = 1;
-  for (let d = 1; d < 7; d++) {
-    const x = x0 + d * cw;
-    ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke();
-  }
-  ctx.beginPath(); ctx.moveTo(x0, y0 + hh); ctx.lineTo(x1, y0 + hh); ctx.stroke();
-  ctx.restore();
+  const fsDay = clamp(9 * zoom, 7, 13);
+  const fsEv = clamp(8 * zoom, 6, 13);
+  const dayH = clamp(14 * zoom, 11, 19);
+  const evH = clamp(13 * zoom, 10, 18);
 
-  const fsHead = clamp(8 * zoom, 6, 13);
-  const fsEv = clamp(7 * zoom, 5, 12);
-  const evH = clamp(11 * zoom, 8, 17);
-
+  let y = y0;
   for (let d = 0; d < 7; d++) {
+    if (y >= y1) break; // out of room: stop drawing further days entirely
     const day = new Date(cal.weekStart.getTime() + d * 86400000);
-    const colX = x0 + d * cw;
     const isToday = day.getFullYear() === today.getFullYear() && day.getMonth() === today.getMonth() && day.getDate() === today.getDate();
+    const evs = cal.days[d];
+
+    // Day heading: full-width bar, highlighted for today.
     if (isToday) {
       ctx.save();
-      ctx.globalAlpha = 0.14;
+      ctx.globalAlpha = 0.16;
       ctx.fillStyle = color;
-      ctx.fillRect(colX, y0, cw, y1 - y0);
+      ctx.fillRect(x0, y, x1 - x0, Math.min(dayH, y1 - y));
       ctx.restore();
     }
-
-    // Header: short day name + day-of-month.
-    ctx.font = `${fsHead}px ${FONT()}`;
-    ctx.fillStyle = stl.text;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    const label = day.toLocaleDateString(lang, { weekday: 'narrow' }).toUpperCase() + ' ' + day.getDate();
-    ctx.globalAlpha = isToday ? 1 : 0.75;
-    ctx.fillText(label, colX + cw / 2, y0 + 2, cw - 2);
+    ctx.font = `700 ${fsDay}px ${FONT()}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = isToday ? color : stl.text;
+    ctx.globalAlpha = isToday ? 1 : 0.8;
+    const label = capitalize(day.toLocaleDateString(lang, { weekday: 'short' })) + ' ' + day.getDate();
+    ctx.fillText(label, x0 + 2, y + dayH / 2, x1 - x0 - 4);
     ctx.globalAlpha = 1;
+    y += dayH + 1;
 
-    // Events, stacked; '+N' when they overflow the column.
-    const evs = cal.days[d];
-    let y = y0 + hh + 2;
-    const maxY = y1 - evH;
-    for (let i = 0; i < evs.length; i++) {
-      if (y > maxY && i < evs.length - 0) {
+    for (let i = 0; i < evs.length && y < y1; i++) {
+      const ev = evs[i];
+      const remaining = evs.length - i;
+      const lastRow = y + evH * 2 > y1 && remaining > 1; // no room for this one AND a next -> summarize instead
+      if (lastRow) {
         ctx.font = `${fsEv}px ${FONT()}`;
         ctx.fillStyle = stl.text;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        ctx.fillText('+' + (evs.length - i), colX + cw / 2, Math.min(y, y1 - fsEv));
+        ctx.globalAlpha = 0.7;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('+' + remaining, x0 + 3, y + evH / 2);
+        ctx.globalAlpha = 1;
+        y += evH;
         break;
       }
-      const ev = evs[i];
       ctx.save();
       ctx.beginPath();
-      ctx.rect(colX + 1, y, cw - 2, evH);
+      ctx.rect(x0, y, x1 - x0, evH);
       ctx.clip();
-      ctx.globalAlpha = ev.allDay ? 0.5 : 0.25;
+      ctx.globalAlpha = ev.allDay ? 0.45 : 0.22;
       ctx.fillStyle = color;
-      ctx.fillRect(colX + 1, y, cw - 2, evH);
+      ctx.fillRect(x0 + 1, y, (x1 - x0) - 2, evH - 1);
       ctx.globalAlpha = 1;
       ctx.font = `${fsEv}px ${FONT()}`;
       ctx.fillStyle = stl.text;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      const tm = ev.allDay ? '' : String(ev.start.getHours()).padStart(2, '0') + ':' + String(ev.start.getMinutes()).padStart(2, '0') + ' ';
-      ctx.fillText(tm + (ev.summary || ''), colX + 3, y + evH / 2);
+      const tm = ev.allDay ? '' : String(ev.start.getHours()).padStart(2, '0') + ':' + String(ev.start.getMinutes()).padStart(2, '0') + '  ';
+      ctx.fillText(tm + (ev.summary || ''), x0 + 4, y + evH / 2);
       ctx.restore();
-      y += evH + 2;
+      y += evH + 1;
     }
+    y += 3; // gap before the next day
   }
 }
 

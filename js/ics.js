@@ -1,16 +1,20 @@
 // ICS calendar blocks: a rectangle whose link points to a .ics file renders
-// as a week calendar (see render.js: drawIcsWeek). This module handles the
+// as a week agenda (see render.js: drawIcsWeek). This module handles the
 // fetch (with its CORS workarounds), a minimal ICS parser, a best-effort
 // RRULE expansion, and the caches so render can poll synchronously per frame.
 //
 // CORS reality check: most calendar hosts (Google, iCloud...) don't send
 // Access-Control-Allow-Origin, so a direct browser fetch usually fails.
-// Two escape hatches, per the user's platform:
+// Escape hatches, in order:
 //  - desktop: the fetch_ics Tauri command (Rust ureq, not subject to CORS);
 //  - web: an optional proxy (Settings > ICS proxy), e.g. the endpoint served
-//    by server/bete-host.js on a Raspberry Pi (see server/README.md).
-import { isDesktop } from './platform.js?v=mrbwbw2t';
-import { connectorFetch } from './connector.js?v=mrbwbw2t';
+//    by server/bete-host.js on a Raspberry Pi (see server/README.md);
+//  - P2P relay (requestIcsFromPeers, see sync.js): if we're connected and
+//    neither of the above worked, ask other connected peers (a desktop
+//    build, or one with a working proxy) to fetch it on our behalf.
+import { isDesktop } from './platform.js?v=mrbxgej1';
+import { connectorFetch } from './connector.js?v=mrbxgej1';
+import { requestIcsFromPeers } from './sync.js?v=mrbxgej1';
 
 const PROXY_KEY = 'bete:icsproxy';
 export function getIcsProxy() {
@@ -32,7 +36,11 @@ function normalizeIcsUrl(url) {
   return String(url).trim().replace(/^webcal:\/\//i, 'https://');
 }
 
-async function fetchIcsText(url) {
+// Local-only fetch attempt (no peer relay): native on desktop, direct fetch
+// or configured proxy on the web. Also what we run when a PEER asks us to
+// fetch on their behalf (see resolveIcsPeerResponse/requestIcsFromPeers
+// below) -- that request must never itself cascade into asking other peers.
+export async function fetchIcsLocal(url) {
   const u = normalizeIcsUrl(url);
   if (isDesktop) {
     return await window.__TAURI__.core.invoke('fetch_ics', { url: u });
@@ -48,6 +56,66 @@ async function fetchIcsText(url) {
     if (!res.ok) throw new Error('proxy HTTP ' + res.status);
     return await res.text();
   }
+}
+
+// ---- P2P relay: ask other connected peers to fetch this url for us ----
+// Keyed by url so a reply from ANY peer (broadcast back through the host,
+// same star-topology relay as imgRes/audioRes) resolves whoever is waiting.
+const peerWaiters = new Map(); // url -> [{ resolve, reject }]
+const PEER_TIMEOUT_MS = 12000;
+
+// Called from sync.js when an icsRes arrives (text set on success, error on failure).
+export function resolveIcsPeerResponse(url, text, error) {
+  const waiters = peerWaiters.get(url);
+  if (!waiters) return;
+  peerWaiters.delete(url);
+  for (const w of waiters) (text != null ? w.resolve(text) : w.reject(new Error(error || 'peer fetch failed')));
+}
+
+function fetchIcsViaPeers(url) {
+  return new Promise((resolve, reject) => {
+    const isFirst = !peerWaiters.has(url);
+    if (isFirst) peerWaiters.set(url, []);
+    const entry = { resolve, reject };
+    peerWaiters.get(url).push(entry);
+    // No liaison at all: no point waiting out the timeout.
+    if (isFirst && !requestIcsFromPeers(url)) { peerWaiters.delete(url); reject(new Error('no peer connected')); return; }
+    setTimeout(() => {
+      const list = peerWaiters.get(url);
+      const i = list ? list.indexOf(entry) : -1;
+      if (i < 0) return; // already resolved
+      list.splice(i, 1);
+      if (!list.length) peerWaiters.delete(url);
+      reject(new Error('no peer answered'));
+    }, PEER_TIMEOUT_MS);
+  });
+}
+
+async function fetchIcsText(url) {
+  try {
+    return await fetchIcsLocal(url);
+  } catch (e) {
+    return await fetchIcsViaPeers(url);
+  }
+}
+
+// ---- Last-known-good cache (localStorage): survives a reload/offline start ----
+const CACHE_PREFIX = 'bete:icscache:';
+function cacheKey(url) {
+  let h = 0;
+  for (let i = 0; i < url.length; i++) h = (h * 31 + url.charCodeAt(i)) | 0;
+  return CACHE_PREFIX + (h >>> 0).toString(36);
+}
+function loadCachedIcs(url) {
+  try {
+    const raw = localStorage.getItem(cacheKey(url));
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    return obj && obj.url === url ? obj.text : null;
+  } catch (e) { return null; }
+}
+function saveCachedIcs(url, text) {
+  try { localStorage.setItem(cacheKey(url), JSON.stringify({ url, text })); } catch (e) { /* quota: keep serving from memory */ }
 }
 
 // ---- Minimal ICS parsing (VEVENT only, best-effort) ----
@@ -191,14 +259,22 @@ const weekCache = new Map(); // url -> { key, events }
 
 function refreshIfDue(url) {
   let c = cals.get(url);
-  if (!c) { c = { status: 'loading', raw: null, fetchedAt: 0, lastTry: 0, error: '', fetching: false }; cals.set(url, c); }
+  if (!c) {
+    c = { status: 'loading', raw: null, fetchedAt: 0, lastTry: 0, error: '', fetching: false };
+    // Last-known-good from a previous session: shown immediately (marked
+    // stale via fetchedAt=0, so a real refresh is still kicked off below)
+    // instead of a blank "loading" state while offline or waiting on a peer.
+    const cachedText = loadCachedIcs(url);
+    if (cachedText) { try { c.raw = parseIcs(cachedText); c.status = 'ok'; } catch (e) { /* corrupt cache: ignore */ } }
+    cals.set(url, c);
+  }
   const now = Date.now();
   const due = c.status === 'error' ? (now - c.lastTry > ERR_RETRY_MS) : (now - c.fetchedAt > REFRESH_MS);
   if (c.fetching || !due) return c;
   c.fetching = true;
   c.lastTry = now;
   fetchIcsText(url)
-    .then((text) => { c.raw = parseIcs(text); c.fetchedAt = Date.now(); c.status = 'ok'; c.error = ''; })
+    .then((text) => { c.raw = parseIcs(text); c.fetchedAt = Date.now(); c.status = 'ok'; c.error = ''; saveCachedIcs(url, text); })
     .catch((e) => { if (!c.raw) c.status = 'error'; c.error = e.message || String(e); })
     .finally(() => { c.fetching = false; });
   return c;
