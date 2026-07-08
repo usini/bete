@@ -56,6 +56,7 @@ const STRINGS = {
 
     'board.home': 'Home',
     'board.tutorial': 'Tutorial',
+    'board.boards': 'Boards',
 
     'radial.close': 'Close',
     'radial.enable': 'Enable',
@@ -251,6 +252,7 @@ const STRINGS = {
 
     'board.home': 'Home',
     'board.tutorial': 'Tutoriel',
+    'board.boards': 'Boards',
 
     'radial.close': 'Fermer',
     'radial.enable': 'Activer',

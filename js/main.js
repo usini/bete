@@ -1,24 +1,24 @@
 // Bootstrap + render loop.
-import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mrb9lvji';
-import { setView } from './camera.js?v=mrb9lvji';
-import { render } from './render.js?v=mrb9lvji';
-import { step, reset } from './physics.js?v=mrb9lvji';
-import * as minimap from './minimap.js?v=mrb9lvji';
-import * as input from './input.js?v=mrb9lvji';
-import * as fx from './fx.js?v=mrb9lvji';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mrb9lvji';
-import { recordBoard, getBoardEntry } from './boards.js?v=mrb9lvji';
-import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mrb9lvji';
-import { applyTheme } from './theme.js?v=mrb9lvji';
-import { initSettings, openSettings } from './settings.js?v=mrb9lvji';
-import { recordLiaison, getLiaison } from './liaisons.js?v=mrb9lvji';
-import { positionVideoOverlay } from './video.js?v=mrb9lvji';
-import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mrb9lvji';
-import { migrateImages } from './images.js?v=mrb9lvji';
-import { pollConnector } from './connector.js?v=mrb9lvji';
-import { t, getLang, applyStaticI18n } from './i18n.js?v=mrb9lvji';
-import { initDesktopLink, checkWebUpdate } from './platform.js?v=mrb9lvji';
-import { checkForUpdate } from './update.js?v=mrb9lvji';
+import { state, restore, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline } from './state.js?v=mrbv2d22';
+import { setView } from './camera.js?v=mrbv2d22';
+import { render } from './render.js?v=mrbv2d22';
+import { step, reset } from './physics.js?v=mrbv2d22';
+import * as minimap from './minimap.js?v=mrbv2d22';
+import * as input from './input.js?v=mrbv2d22';
+import * as fx from './fx.js?v=mrbv2d22';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mrbv2d22';
+import { recordBoard, getBoardEntry, listBoards, buildBoardUrl, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrbv2d22';
+import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mrbv2d22';
+import { applyTheme } from './theme.js?v=mrbv2d22';
+import { initSettings, openSettings } from './settings.js?v=mrbv2d22';
+import { recordLiaison, getLiaison } from './liaisons.js?v=mrbv2d22';
+import { positionVideoOverlay } from './video.js?v=mrbv2d22';
+import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mrbv2d22';
+import { migrateImages } from './images.js?v=mrbv2d22';
+import { pollConnector } from './connector.js?v=mrbv2d22';
+import { t, getLang, applyStaticI18n } from './i18n.js?v=mrbv2d22';
+import { initDesktopLink, checkWebUpdate } from './platform.js?v=mrbv2d22';
+import { checkForUpdate } from './update.js?v=mrbv2d22';
 
 applyTheme(); // apply the saved theme right at startup
 applyStaticI18n(); // translate the static HTML chrome (buttons, hint, etc.)
@@ -98,8 +98,13 @@ if (!REDIRECT) {
     load(getLang() === 'fr' ? TUTORIAL_FR : TUTORIAL_EN); // built-in board, read-only
     setSaveSuppressed(true);
     state.nodes.forEach(reset);
+  } else if (boardId === 'boards') {
+    loadBoardsDirectory(); // built-in board, regenerated on every open -- not user-editable
+    setSaveSuppressed(true);
+    state.nodes.forEach(reset);
   } else if (peerId && boardId !== 'home') {
-    if (!restore()) seedIfHome();
+    const isNew = !restore();
+    if (isNew) { seedIfHome(); seedHomeLink(); scheduleSave(); }
     state.nodes.forEach(reset);
     recordLiaison(peerId, peerNameParam); // remembers the active liaison; the URL name only applies if not renamed locally
     toast(t('toast.connecting'));
@@ -118,7 +123,8 @@ if (!REDIRECT) {
   } else {
     // Home is sanctuarized: never connected (so it can't be overwritten).
     if (peerId && boardId === 'home') toast(t('toast.homeLocal'), 3500);
-    if (!restore()) seedIfHome();
+    if (!restore()) { seedIfHome(); if (boardId !== 'home') { seedHomeLink(); scheduleSave(); } }
+    if (boardId === 'home') ensureBoardsLinkOnHome();
     state.nodes.forEach(reset);
   }
 
@@ -138,12 +144,7 @@ if (!REDIRECT) {
 
 // Resolves and applies the displayed board name.
 function resolveBoardName(id) {
-  let name;
-  if (id === 'home') name = t('board.home');
-  else if (id === 'tutorial') name = t('board.tutorial');
-  else {
-    name = getBoardName() || nameParam || (getBoardEntry(id) && getBoardEntry(id).name) || id;
-  }
+  const name = reservedBoardLabel(id, t) || getBoardName() || nameParam || (getBoardEntry(id) && getBoardEntry(id).name) || id;
   setBoardName(name);
   document.title = 'Bete' + (id === 'home' ? '' : ' · ' + name);
 }
@@ -151,7 +152,7 @@ function resolveBoardName(id) {
 function applyBoardNameUI() {
   const el = document.getElementById('boardname');
   el.textContent = getBoardName();
-  const editable = boardId !== 'home' && boardId !== 'tutorial';
+  const editable = boardId !== 'home' && boardId !== 'tutorial' && boardId !== 'boards';
   el.classList.toggle('editable', editable);
   if (editable && !el._wired) { el._wired = true; el.addEventListener('click', beginRenameBoard); }
 }
@@ -207,6 +208,51 @@ function seedDemo() {
   const link = { id: newId(), x: 130, y: -30, w: 150, h: 70, ref: a.id };
   state.nodes.push(link);
   reset(a); reset(b); reset(link);
+}
+
+// Any board opened for the very first time (never saved locally) gets a way
+// back: a plain link block to Home. Home itself never needs this (it's the
+// hub), and it's skipped when restore() succeeded (an existing board keeps
+// whatever the user already has, even if they later deleted this link).
+function seedHomeLink() {
+  const n = addRect(-80, -140, '🛖 ' + t('board.home'));
+  n.w = 160;
+  n.link = buildBoardUrl('home');
+  reset(n);
+}
+
+// Home always gets a link to the built-in "Boards" directory (idempotent --
+// checked/added on every Home load, not just when seeding fresh content, so
+// it also reaches existing Home boards created before this feature existed).
+function ensureBoardsLinkOnHome() {
+  const already = state.nodes.some((n) => !n.ref && n.link && (parseBoardUrl(n.link) || {}).id === 'boards');
+  if (already) return;
+  const n = addRect(150, -140, '🗂 ' + t('board.boards'));
+  n.w = 160;
+  n.link = buildBoardUrl('boards');
+  reset(n);
+  scheduleSave();
+}
+
+// Built-in "Boards" directory: a link block per known board, laid out in a
+// grid. Regenerated on every open (setSaveSuppressed keeps edits from
+// persisting) so it always reflects the current board list.
+function loadBoardsDirectory() {
+  const list = listBoards().filter((b) => b.id !== 'boards');
+  const cols = 4, gapX = 190, gapY = 100;
+  const nodes = list.map((b, i) => {
+    const col = i % cols, row = Math.floor(i / cols);
+    const label = reservedBoardLabel(b.id, t) || b.name || b.id;
+    return {
+      id: newId(),
+      x: (col - (cols - 1) / 2) * gapX - 80,
+      y: row * gapY - 100,
+      w: 160, h: 70,
+      text: label,
+      link: buildBoardUrl(b.id, b.peer, b.name),
+    };
+  });
+  load({ version: 1, camera: { x: 0, y: 0, zoom: 1 }, nodes, circles: [], hexagons: [] });
 }
 
 if (!REDIRECT) {

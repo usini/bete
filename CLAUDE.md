@@ -235,6 +235,14 @@ renaming unless asked.) Then check the logs: `sudo -n journalctl -u bete -n 20`.
 - Never commit the Pi's private peer id (`server/data/peer-id`) or any secrets.
 - The `home` board is **sanctuarized**: never connected over P2P (protects
   against accidental overwrite).
+- Reserved board ids (`home`, `tutorial`, `boards`) always display a
+  translated name (`js/boards.js`: `reservedBoardLabel()`) instead of
+  whatever is stored — don't special-case them again elsewhere, reuse that
+  helper. `boards` is a built-in, non-editable directory (`js/main.js`:
+  `loadBoardsDirectory()`) regenerated from `listBoards()` on every open;
+  Home always keeps a link to it (`ensureBoardsLinkOnHome()`), and any other
+  board opened for the first time gets a link back to Home
+  (`seedHomeLink()`).
 - Testing P2P sync with **two tabs of the same browser gives false negatives**
   (same `localStorage` → same uid → cursor/voice/presence collisions). Prefer
   two real devices, or at least two different browsers.

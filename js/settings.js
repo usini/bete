@@ -1,18 +1,18 @@
 // Settings menu: theme, language, text size, named liaisons, navigation
 // (tutorial / visited boards), clear the current board. Audio and Visual
 // (theme/text size) live in their own sub-panels to keep the main list short.
-import { state, getBoardId, scheduleSave } from './state.js?v=mrb9lvji';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mrb9lvji';
-import { listBoards, buildBoardUrl } from './boards.js?v=mrb9lvji';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mrb9lvji';
-import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mrb9lvji';
-import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mrb9lvji';
-import { exportBoardHtml } from './exportHtml.js?v=mrb9lvji';
-import { getUserName, setUserName } from './users.js?v=mrb9lvji';
-import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mrb9lvji';
-import { t, getLang, setLang, LANGS } from './i18n.js?v=mrb9lvji';
-import { isDesktop, getLinkMode, setLinkMode, getAppVersion } from './platform.js?v=mrb9lvji';
-import { getIcsProxy, setIcsProxy } from './ics.js?v=mrb9lvji';
+import { state, getBoardId, scheduleSave } from './state.js?v=mrbv2d22';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mrbv2d22';
+import { listBoards, buildBoardUrl, reservedBoardLabel } from './boards.js?v=mrbv2d22';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mrbv2d22';
+import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mrbv2d22';
+import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mrbv2d22';
+import { exportBoardHtml } from './exportHtml.js?v=mrbv2d22';
+import { getUserName, setUserName } from './users.js?v=mrbv2d22';
+import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mrbv2d22';
+import { t, getLang, setLang, LANGS } from './i18n.js?v=mrbv2d22';
+import { isDesktop, getLinkMode, setLinkMode, getAppVersion } from './platform.js?v=mrbv2d22';
+import { getIcsProxy, setIcsProxy } from './ics.js?v=mrbv2d22';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
@@ -139,7 +139,7 @@ function buildMain(panel) {
   if (boards.length) {
     panel.appendChild(el('div', 'set-sub', t('settings.visitedBoards')));
     boards.forEach((b) => {
-      const label = b.id === 'home' ? t('board.home') : b.id === 'tutorial' ? t('board.tutorial') : (b.name || b.id);
+      const label = reservedBoardLabel(b.id, t) || b.name || b.id;
       const row = el('button', 'set-wide', label);
       row.addEventListener('click', () => { location.href = buildBoardUrl(b.id, b.peer, b.name); });
       panel.appendChild(row);

@@ -1,5 +1,5 @@
 // History of visited boards + utilities (unique IDs, URLs).
-import { appOrigins, shareOrigin } from './platform.js?v=mrb9lvji';
+import { appOrigins, shareOrigin } from './platform.js?v=mrbv2d22';
 
 const KEY = 'bete:boards';
 
@@ -15,12 +15,22 @@ export function listBoards() {
 export function recordBoard(id, name, peer) {
   if (!id) return;
   // Reserved board IDs: stored name is just a fallback, actual display is
-  // translated at render time (settings.js special-cases 'home'/'tutorial').
+  // translated at render time -- see reservedBoardLabel below.
   if (id === 'home') name = 'Home';
   else if (id === 'tutorial') name = 'Tutorial';
+  else if (id === 'boards') name = 'Boards';
   const list = listBoards().filter((b) => b.id !== id);
   list.unshift({ id, name: name || id, peer: peer || null, ts: Date.now() });
   try { localStorage.setItem(KEY, JSON.stringify(list.slice(0, 100))); } catch (e) { /* */ }
+}
+
+// Reserved board ids always show a translated name instead of their stored
+// one (see recordBoard). Returns null for a regular, user-named board.
+export function reservedBoardLabel(id, t) {
+  if (id === 'home') return t('board.home');
+  if (id === 'tutorial') return t('board.tutorial');
+  if (id === 'boards') return t('board.boards');
+  return null;
 }
 
 // Forget a board (e.g., when deleted).
