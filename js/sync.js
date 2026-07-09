@@ -6,16 +6,16 @@
 // (falls back to host priority if both sides are on the same build) -- an
 // out-of-date host (stale tab, permanent Pi host not yet redeployed) must not
 // keep clobbering a freshly-updated peer's edits forever.
-import { state, removeById, scheduleSave, getBoardId, getBoardName } from './state.js?v=mrcjk2fn';
-import { reset } from './physics.js?v=mrcjk2fn';
-import { explodeElementCascade } from './fx.js?v=mrcjk2fn';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrcjk2fn';
-import { onImageArrived } from './images.js?v=mrcjk2fn';
-import { getUserId, displayName } from './users.js?v=mrcjk2fn';
-import { shareOrigin } from './platform.js?v=mrcjk2fn';
-import { getOwnerToken, getLiaison } from './liaisons.js?v=mrcjk2fn';
-import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrcjk2fn';
-import { fetchIcsLocal, resolveIcsPeerResponse } from './ics.js?v=mrcjk2fn';
+import { state, removeById, scheduleSave, getBoardId, getBoardName } from './state.js?v=mrddah4q';
+import { reset } from './physics.js?v=mrddah4q';
+import { explodeElementCascade } from './fx.js?v=mrddah4q';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrddah4q';
+import { onImageArrived } from './images.js?v=mrddah4q';
+import { getUserId, displayName } from './users.js?v=mrddah4q';
+import { shareOrigin } from './platform.js?v=mrddah4q';
+import { getOwnerToken, getLiaison } from './liaisons.js?v=mrddah4q';
+import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrddah4q';
+import { fetchIcsLocal, resolveIcsPeerResponse, retryFailedIcs } from './ics.js?v=mrddah4q';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host
@@ -807,6 +807,7 @@ function openHostPeer(id) {
     conn.on('open', () => {
       const content = buildContent(); // current state sent immediately to the newcomer
       try { conn.send({ type: 'sync', from: 'host', ver: MY_VERSION, n: content.n, c: content.c, h: content.h, mt: { ...mtimes }, del: [...tombstones], readOnly: state.readOnly }); } catch (e) { /* */ }
+      retryFailedIcs(); // a calendar block whose first attempt lost the connection race can use this new peer now
     });
     conn.on('data', (msg) => { conn._lastSeen = now(); handleData(msg, conn); });
     conn.on('close', () => { conns = conns.filter(c => c !== conn); broadcastPresence(); });
@@ -891,7 +892,11 @@ function connectToHost() {
   clientRoster = [];
   lastHostMsg = now();
   // The tick (emission) only starts after the 1st sync is received (see handleData).
-  conn.on('open', () => { lastHostMsg = now(); clientStatus && clientStatus('connected'); try { conn.send(helloMsg()); } catch (e) { /* */ } });
+  conn.on('open', () => {
+    lastHostMsg = now(); clientStatus && clientStatus('connected');
+    try { conn.send(helloMsg()); } catch (e) { /* */ }
+    retryFailedIcs(); // a calendar block whose first attempt lost the connection race can use this new peer now
+  });
   conn.on('data', (msg) => {
     lastHostMsg = now(); // any message (including ping) proves the host is alive
     const wasFirst = clientFirstSync && msg && msg.type === 'sync';

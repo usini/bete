@@ -1,5 +1,5 @@
 // History of visited boards + utilities (unique IDs, URLs).
-import { appOrigins, shareOrigin } from './platform.js?v=mrcjk2fn';
+import { appOrigins, shareOrigin } from './platform.js?v=mrddah4q';
 
 const KEY = 'bete:boards';
 

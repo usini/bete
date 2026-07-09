@@ -13,9 +13,9 @@
 //    (a desktop build, or one with a working proxy) to fetch it for us;
 //  - web: an optional proxy (Settings > ICS proxy), e.g. the endpoint served
 //    by server/bete-host.js on a Raspberry Pi (see server/README.md).
-import { isDesktop } from './platform.js?v=mrcjk2fn';
-import { connectorFetch } from './connector.js?v=mrcjk2fn';
-import { requestIcsFromPeers } from './sync.js?v=mrcjk2fn';
+import { isDesktop } from './platform.js?v=mrddah4q';
+import { connectorFetch } from './connector.js?v=mrddah4q';
+import { requestIcsFromPeers } from './sync.js?v=mrddah4q';
 
 const PROXY_KEY = 'bete:icsproxy';
 export function getIcsProxy() {
@@ -287,6 +287,16 @@ function refreshIfDue(url) {
     .catch((e) => { if (!c.raw) c.status = 'error'; c.error = e.message || String(e); })
     .finally(() => { c.fetching = false; });
   return c;
+}
+
+// Called by sync.js right when a liaison connection actually opens (host or
+// client side). The render loop tries a fresh board's calendar blocks on the
+// very first frame, almost always before joinOrHost's WebRTC handshake has
+// finished -- that attempt loses the peer-relay race, fails locally too
+// (CORS on the web build), and would otherwise sit on the up-to-1-minute
+// error-retry cadence before trying the (now available) peer again.
+export function retryFailedIcs() {
+  for (const c of cals.values()) if (c.status === 'error') c.lastTry = 0;
 }
 
 // Monday 00:00 (local) of the current week -> next Monday.
