@@ -160,6 +160,15 @@ dictionary objects (`STRINGS.fr`, `STRINGS.en`) plus a lookup function.
 - **Content only** is synced (text, image, color, description, links,
   creations/deletions, positions **on drop only**). The camera stays local to
   each screen.
+- **Board name + liaison name** ride along in every sync payload as `bn`
+  (`merge()` adopts it only if `getBoardName()` is still empty — never
+  clobbers a name we already have, whether from our own edit or an earlier
+  sync — and also names the liaison it arrived from via `recordLiaison`,
+  which itself no-ops over a local rename). This replaced the old
+  `?name=`/`?peer_name=` URL params, which were an easy-to-desync duplicate
+  of the exact same information already carried by the sync itself. The
+  headless Pi host mirrors this (`server/bete-host.js`: `b.name`, learned
+  once from whichever client's sync first carries a `bn` and persisted).
 - Host/client election (`joinOrHost`): the first to claim the peer id becomes
   the host, subsequent ones become clients. Host heartbeat (3s) + client
   watchdog (8s) to detect connection loss. **Cautious** reconnection: the

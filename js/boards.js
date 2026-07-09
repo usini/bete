@@ -1,5 +1,5 @@
 // History of visited boards + utilities (unique IDs, URLs).
-import { appOrigins, shareOrigin } from './platform.js?v=mrddah4q';
+import { appOrigins, shareOrigin } from './platform.js?v=mrdegg38';
 
 const KEY = 'bete:boards';
 
@@ -11,7 +11,11 @@ export function genBoardId() {
 export function listBoards() {
   try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { return []; }
 }
-// Memorize a board (the most recent at the head).
+// Memorize a board (the most recent at the head). A falsy `name` PRESERVES
+// whatever name this board already had on file (id as a last resort for a
+// never-seen board) instead of clobbering it -- callers that only know the
+// id/peer at this point (e.g. following a board link) rely on this to not
+// blow away a name that arrived earlier via sync (see sync.js: merge()).
 export function recordBoard(id, name, peer) {
   if (!id) return;
   // Reserved board IDs: stored name is just a fallback, actual display is
@@ -19,8 +23,11 @@ export function recordBoard(id, name, peer) {
   if (id === 'home') name = 'Home';
   else if (id === 'tutorial') name = 'Tutorial';
   else if (id === 'boards') name = 'Boards';
-  const list = listBoards().filter((b) => b.id !== id);
-  list.unshift({ id, name: name || id, peer: peer || null, ts: Date.now() });
+  const list = listBoards();
+  const i = list.findIndex((b) => b.id === id);
+  const finalName = name || (i >= 0 && list[i].name) || id;
+  if (i >= 0) list.splice(i, 1);
+  list.unshift({ id, name: finalName, peer: peer || null, ts: Date.now() });
   try { localStorage.setItem(KEY, JSON.stringify(list.slice(0, 100))); } catch (e) { /* */ }
 }
 
@@ -49,13 +56,16 @@ export function deleteBoardData(id) {
   try { localStorage.removeItem('bete:' + id); } catch (e) { /* */ }
 }
 
-// Build the URL of a board (id + peer + optional name for initial display).
-// Relative to location.origin: for INTERNAL navigation (switching the current
-// window to another local board), which must resolve inside the desktop
-// webview too. Links meant to live in a block (copy-pasteable, shareable)
-// use buildShareBoardUrl below instead.
-export function buildBoardUrl(id, peer, name) {
-  return withBoardParams(location.origin + location.pathname, id, peer, name);
+// Build the URL of a board (id + peer). Relative to location.origin: for
+// INTERNAL navigation (switching the current window to another local
+// board), which must resolve inside the desktop webview too. Links meant to
+// live in a block (copy-pasteable, shareable) use buildShareBoardUrl below
+// instead. No name param anymore -- a board/liaison's display name now
+// arrives over the wire, like the rest of the content (see sync.js: merge()
+// adopts a synced `bn` when the local one is still empty), instead of being
+// guessed from whatever the link happened to be created with.
+export function buildBoardUrl(id, peer) {
+  return withBoardParams(location.origin + location.pathname, id, peer);
 }
 
 // Same, but on the shareable origin (public deployment or LAN address on
@@ -63,14 +73,13 @@ export function buildBoardUrl(id, peer, name) {
 // so a link authored on desktop still means something outside this machine.
 // parseBoardUrl recognizes those as internal, so clicking one locally
 // navigates in-window instead of opening a browser.
-export function buildShareBoardUrl(id, peer, name) {
-  return withBoardParams(shareOrigin(), id, peer, name);
+export function buildShareBoardUrl(id, peer) {
+  return withBoardParams(shareOrigin(), id, peer);
 }
 
-function withBoardParams(base, id, peer, name) {
+function withBoardParams(base, id, peer) {
   let u = base + '?id=' + encodeURIComponent(id);
   if (peer) u += '&peer=' + encodeURIComponent(peer);
-  if (name) u += '&name=' + encodeURIComponent(name);
   return u;
 }
 
@@ -87,6 +96,6 @@ export function parseBoardUrl(url) {
     if (!internal) return null;
     const id = u.searchParams.get('id');
     if (!id) return null;
-    return { id, peer: u.searchParams.get('peer'), name: u.searchParams.get('name') };
+    return { id, peer: u.searchParams.get('peer') };
   } catch (e) { return null; }
 }

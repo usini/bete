@@ -6,16 +6,18 @@
 // (falls back to host priority if both sides are on the same build) -- an
 // out-of-date host (stale tab, permanent Pi host not yet redeployed) must not
 // keep clobbering a freshly-updated peer's edits forever.
-import { state, removeById, scheduleSave, getBoardId, getBoardName } from './state.js?v=mrddah4q';
-import { reset } from './physics.js?v=mrddah4q';
-import { explodeElementCascade } from './fx.js?v=mrddah4q';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrddah4q';
-import { onImageArrived } from './images.js?v=mrddah4q';
-import { getUserId, displayName } from './users.js?v=mrddah4q';
-import { shareOrigin } from './platform.js?v=mrddah4q';
-import { getOwnerToken, getLiaison } from './liaisons.js?v=mrddah4q';
-import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrddah4q';
-import { fetchIcsLocal, resolveIcsPeerResponse, retryFailedIcs } from './ics.js?v=mrddah4q';
+import { state, removeById, scheduleSave, getBoardId, getBoardName, setBoardName } from './state.js?v=mrdegg38';
+import { reset } from './physics.js?v=mrdegg38';
+import { explodeElementCascade } from './fx.js?v=mrdegg38';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrdegg38';
+import { onImageArrived } from './images.js?v=mrdegg38';
+import { getUserId, displayName } from './users.js?v=mrdegg38';
+import { shareOrigin } from './platform.js?v=mrdegg38';
+import { recordBoard } from './boards.js?v=mrdegg38';
+import { getOwnerToken, recordLiaison } from './liaisons.js?v=mrdegg38';
+import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrdegg38';
+import { fetchIcsLocal, resolveIcsPeerResponse, retryFailedIcs } from './ics.js?v=mrdegg38';
+import { refreshBoardNameUI } from './main.js?v=mrdegg38';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host
@@ -69,16 +71,13 @@ function loadScript(src) {
 export const loadQR = () => loadScript(QR_SRC);
 const loadPeer = () => loadScript(PEERJS_SRC);
 
+// No name param anymore -- the receiver's liaison list picks up a friendly
+// name once the sync payload arrives (see merge(): a synced `bn` also names
+// the liaison it came from, unless already renamed locally).
 export function buildUrl(id) {
   let u = shareOrigin() + '?peer=' + encodeURIComponent(id);
   const b = getBoardId();
   if (b) u += '&id=' + encodeURIComponent(b); // the QR opens the SAME board as the host
-  // Carry a display name so the receiver's liaison list starts with a friendly
-  // name (their local rename, if any, still wins -- see recordLiaison). A
-  // separate param from 'name' -- that one already means the BOARD's display
-  // name (see boards.js: buildBoardUrl), not the peer/liaison's.
-  const nm = (getLiaison(id) && getLiaison(id).name !== id && getLiaison(id).name) || getBoardName();
-  if (nm) u += '&peer_name=' + encodeURIComponent(nm);
   return u;
 }
 
@@ -350,7 +349,7 @@ function tick() {
     }
   }
   lastDelSig = delSig;
-  const payload = { type: 'sync', from: mode, ver: MY_VERSION, n: outN, c: outC, h: outH, mt: mtOut, del: [...tombstones], readOnly: state.readOnly };
+  const payload = { type: 'sync', from: mode, ver: MY_VERSION, n: outN, c: outC, h: outH, mt: mtOut, del: [...tombstones], readOnly: state.readOnly, bn: getBoardName() || undefined };
   conns.forEach(c => { try { if (c.open) c.send(payload); } catch (e) { /* */ } });
 }
 
@@ -362,6 +361,21 @@ function findLocal(id) {
 function merge(remote) {
   let changed = false;
   const applied = new Set();
+
+  // Board name: adopted once from the first sync that carries one, as long
+  // as we don't already have one locally (never overwrites a name we
+  // already know, whether it came from our own earlier edit or an earlier
+  // sync) -- replaces the old ?name=/?peer_name= URL params, which were
+  // just an awkward, easy-to-desync way of carrying the exact same info.
+  // Also names the liaison it arrived from (recordLiaison keeps any local
+  // rename regardless).
+  if (remote.bn && !getBoardName()) {
+    setBoardName(remote.bn);
+    recordBoard(getBoardId(), remote.bn, mode === 'client' ? hostId() : null);
+    if (mode === 'client') recordLiaison(hostId(), remote.bn);
+    changed = true;
+    refreshBoardNameUI();
+  }
 
   for (const id of remote.del || []) {
     tombstones.add(id);
@@ -806,7 +820,7 @@ function openHostPeer(id) {
     if (hostNode) hostNode.status = 'connected';
     conn.on('open', () => {
       const content = buildContent(); // current state sent immediately to the newcomer
-      try { conn.send({ type: 'sync', from: 'host', ver: MY_VERSION, n: content.n, c: content.c, h: content.h, mt: { ...mtimes }, del: [...tombstones], readOnly: state.readOnly }); } catch (e) { /* */ }
+      try { conn.send({ type: 'sync', from: 'host', ver: MY_VERSION, n: content.n, c: content.c, h: content.h, mt: { ...mtimes }, del: [...tombstones], readOnly: state.readOnly, bn: getBoardName() || undefined }); } catch (e) { /* */ }
       retryFailedIcs(); // a calendar block whose first attempt lost the connection race can use this new peer now
     });
     conn.on('data', (msg) => { conn._lastSeen = now(); handleData(msg, conn); });
@@ -950,7 +964,8 @@ function wireHostPeer(peer) {
     conns.push(conn);
     conn.on('open', () => {
       const c = buildContent();
-      try { conn.send({ type: 'sync', from: 'host', ver: MY_VERSION, n: c.n, c: c.c, h: c.h, mt: { ...mtimes }, del: [...tombstones], readOnly: state.readOnly }); } catch (e) { /* */ }
+      try { conn.send({ type: 'sync', from: 'host', ver: MY_VERSION, n: c.n, c: c.c, h: c.h, mt: { ...mtimes }, del: [...tombstones], readOnly: state.readOnly, bn: getBoardName() || undefined }); } catch (e) { /* */ }
+      retryFailedIcs(); // same fix as the other host-connection wiring above -- was missing here
     });
     conn.on('data', (msg) => { conn._lastSeen = now(); handleData(msg, conn); });
     conn.on('close', () => { conns = conns.filter((x) => x !== conn); broadcastPresence(); });

@@ -3,27 +3,27 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mrddah4q';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrddah4q';
-import { dragTo, reset } from './physics.js?v=mrddah4q';
-import { pointInHex } from './geom.js?v=mrddah4q';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrddah4q';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrddah4q';
-import { getUserId } from './users.js?v=mrddah4q';
-import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrddah4q';
-import { getAudio, putAudio } from './audio.js?v=mrddah4q';
-import { toast } from './main.js?v=mrddah4q';
-import { explodeElementCascade } from './fx.js?v=mrddah4q';
-import { genBoardId, listBoards, buildBoardUrl, buildShareBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel, deleteBoardData } from './boards.js?v=mrddah4q';
-import { listLiaisons, removeLiaison } from './liaisons.js?v=mrddah4q';
-import { openSettings } from './settings.js?v=mrddah4q';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrddah4q';
-import { toggleDebug } from './debug.js?v=mrddah4q';
-import { youTubeId } from './yt.js?v=mrddah4q';
-import { setActiveVideo } from './video.js?v=mrddah4q';
-import { t } from './i18n.js?v=mrddah4q';
-import { openExternal } from './platform.js?v=mrddah4q';
-import { isIcsUrl } from './ics.js?v=mrddah4q';
+} from './state.js?v=mrdegg38';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrdegg38';
+import { dragTo, reset } from './physics.js?v=mrdegg38';
+import { pointInHex } from './geom.js?v=mrdegg38';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrdegg38';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrdegg38';
+import { getUserId } from './users.js?v=mrdegg38';
+import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrdegg38';
+import { getAudio, putAudio } from './audio.js?v=mrdegg38';
+import { toast } from './main.js?v=mrdegg38';
+import { explodeElementCascade } from './fx.js?v=mrdegg38';
+import { genBoardId, listBoards, buildBoardUrl, buildShareBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel, deleteBoardData } from './boards.js?v=mrdegg38';
+import { listLiaisons, removeLiaison } from './liaisons.js?v=mrdegg38';
+import { openSettings } from './settings.js?v=mrdegg38';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrdegg38';
+import { toggleDebug } from './debug.js?v=mrdegg38';
+import { youTubeId } from './yt.js?v=mrdegg38';
+import { setActiveVideo } from './video.js?v=mrdegg38';
+import { t } from './i18n.js?v=mrdegg38';
+import { openExternal } from './platform.js?v=mrdegg38';
+import { isIcsUrl } from './ics.js?v=mrdegg38';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -411,8 +411,8 @@ function finishDrag() {
         for (const c of state.circles) { const dx = cx - c.x, dy = cy - c.y; if (dx * dx + dy * dy <= c.r * c.r) newCircle = c; }
         const newPeer = newCircle ? newCircle.peer : null;
         if ((bu.peer || null) !== (newPeer || null)) {
-          recordBoard(bu.id, bu.name, newPeer);
-          n.link = buildBoardUrl(bu.id, newPeer, bu.name);
+          recordBoard(bu.id, null, newPeer); // null: keeps whatever name this board already has on file
+          n.link = buildBoardUrl(bu.id, newPeer);
           toast(newPeer ? t('boardsView.linked', { name: newCircle.description || newPeer }) : t('boardsView.unlinked'));
         }
       }
@@ -845,7 +845,7 @@ function clearLinkFocus() {
 // stays inside the app (the desktop webview must never leave 127.0.0.1).
 function followLink(url) {
   const bu = parseBoardUrl(url);
-  if (bu) { recordBoard(bu.id, bu.name, bu.peer); location.href = buildBoardUrl(bu.id, bu.peer, bu.name); return; }
+  if (bu) { recordBoard(bu.id, null, bu.peer); location.href = buildBoardUrl(bu.id, bu.peer); return; }
   openLink(url);
 }
 
@@ -1461,7 +1461,7 @@ function openBoardPicker(wx, wy, target) {
 
 function createBoardLink(targetId, name, peer) {
   closeMenus();
-  const url = buildShareBoardUrl(targetId, peer, name); // shareable origin; followLink re-maps it to local navigation
+  const url = buildShareBoardUrl(targetId, peer); // shareable origin; followLink re-maps it to local navigation
   if (pendingBoardTarget) {
     // Transforms the existing block into a link to the board (keeps its text if any).
     const t = pendingBoardTarget; pendingBoardTarget = null;
@@ -1593,7 +1593,7 @@ function openConfirmModal(title, body, onConfirm) {
 function deleteBoardBlock(node) {
   const bu = parseBoardUrl(node.link);
   if (!bu) return;
-  const label = reservedBoardLabel(bu.id, t) || bu.name || bu.id;
+  const label = reservedBoardLabel(bu.id, t) || node.text || bu.id;
   openConfirmModal(t('boardsView.deleteTitle'), t('boardsView.deleteBody', { name: label }), () => {
     deleteBoardData(bu.id);
     removeById(node.id);

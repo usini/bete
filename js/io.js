@@ -1,11 +1,11 @@
 // JSON export / import.
-import { serialize, load, getBoardId, scheduleSave } from './state.js?v=mrddah4q';
-import { reset } from './physics.js?v=mrddah4q';
-import { state } from './state.js?v=mrddah4q';
-import { inlineImages, migrateImages } from './images.js?v=mrddah4q';
-import { listBoards, recordBoard } from './boards.js?v=mrddah4q';
-import { t } from './i18n.js?v=mrddah4q';
-import { saveTextFile } from './platform.js?v=mrddah4q';
+import { serialize, load, getBoardId, scheduleSave } from './state.js?v=mrdegg38';
+import { reset } from './physics.js?v=mrdegg38';
+import { state } from './state.js?v=mrdegg38';
+import { inlineImages, migrateImages } from './images.js?v=mrdegg38';
+import { listBoards, recordBoard } from './boards.js?v=mrdegg38';
+import { t } from './i18n.js?v=mrdegg38';
+import { saveTextFile } from './platform.js?v=mrdegg38';
 
 function downloadJSON(obj, filename) {
   saveTextFile(JSON.stringify(obj), filename, 'json');

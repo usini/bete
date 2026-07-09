@@ -1,24 +1,24 @@
 // Bootstrap + render loop.
-import { state, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline, restore, COLORS } from './state.js?v=mrddah4q';
-import { setView } from './camera.js?v=mrddah4q';
-import { render } from './render.js?v=mrddah4q';
-import { step, reset } from './physics.js?v=mrddah4q';
-import * as minimap from './minimap.js?v=mrddah4q';
-import * as input from './input.js?v=mrddah4q';
-import * as fx from './fx.js?v=mrddah4q';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mrddah4q';
-import { recordBoard, getBoardEntry, listBoards, buildBoardUrl, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrddah4q';
-import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mrddah4q';
-import { applyTheme } from './theme.js?v=mrddah4q';
-import { initSettings, openSettings } from './settings.js?v=mrddah4q';
-import { recordLiaison, getLiaison, listLiaisons } from './liaisons.js?v=mrddah4q';
-import { positionVideoOverlay } from './video.js?v=mrddah4q';
-import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mrddah4q';
-import { migrateImages } from './images.js?v=mrddah4q';
-import { pollConnector } from './connector.js?v=mrddah4q';
-import { t, getLang, applyStaticI18n } from './i18n.js?v=mrddah4q';
-import { initDesktopLink, checkWebUpdate } from './platform.js?v=mrddah4q';
-import { checkForUpdate } from './update.js?v=mrddah4q';
+import { state, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline, restore, COLORS } from './state.js?v=mrdegg38';
+import { setView } from './camera.js?v=mrdegg38';
+import { render } from './render.js?v=mrdegg38';
+import { step, reset } from './physics.js?v=mrdegg38';
+import * as minimap from './minimap.js?v=mrdegg38';
+import * as input from './input.js?v=mrdegg38';
+import * as fx from './fx.js?v=mrdegg38';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mrdegg38';
+import { recordBoard, getBoardEntry, listBoards, buildBoardUrl, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrdegg38';
+import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mrdegg38';
+import { applyTheme } from './theme.js?v=mrdegg38';
+import { initSettings, openSettings } from './settings.js?v=mrdegg38';
+import { recordLiaison, getLiaison, listLiaisons } from './liaisons.js?v=mrdegg38';
+import { positionVideoOverlay } from './video.js?v=mrdegg38';
+import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mrdegg38';
+import { migrateImages } from './images.js?v=mrdegg38';
+import { pollConnector } from './connector.js?v=mrdegg38';
+import { t, getLang, applyStaticI18n } from './i18n.js?v=mrdegg38';
+import { initDesktopLink, checkWebUpdate } from './platform.js?v=mrdegg38';
+import { checkForUpdate } from './update.js?v=mrdegg38';
 
 applyTheme(); // apply the saved theme right at startup
 applyStaticI18n(); // translate the static HTML chrome (buttons, hint, etc.)
@@ -73,8 +73,6 @@ const params = new URLSearchParams(location.search);
 const idParam = params.get('id');
 const peerId = params.get('peer');
 const fileUrl = params.get('file');
-const nameParam = params.get('name');
-const peerNameParam = params.get('peer_name');
 
 // First launch: send the user to the tutorial (afterwards the app lives on home).
 const REDIRECT = !localStorage.getItem('bete:seen') && !idParam && !peerId && !fileUrl;
@@ -106,7 +104,7 @@ if (!REDIRECT) {
     const isNew = !restore();
     if (isNew) { seedIfHome(); seedHomeLink(); scheduleSave(); }
     state.nodes.forEach(reset);
-    recordLiaison(peerId, peerNameParam); // remembers the active liaison; the URL name only applies if not renamed locally
+    recordLiaison(peerId); // remembers the active liaison; its display name arrives via sync (see sync.js: merge())
     toast(t('toast.connecting'));
     joinOrHost(peerId, (st) => {
       if (st === 'host') toast(t('toast.noHost'), 3500);
@@ -142,9 +140,12 @@ if (!REDIRECT) {
   for (const n of state.nodes) if (n.kind === 'connector') pollConnector(n).catch(() => {});
 }
 
-// Resolves and applies the displayed board name.
+// Resolves and applies the displayed board name. No URL fallback anymore
+// (see sync.js: a board/liaison's name is now learned from the P2P sync
+// payload itself, like the rest of the content) -- just what's already
+// saved locally, or the raw id until a sync (or a manual rename) fills it in.
 function resolveBoardName(id) {
-  const name = reservedBoardLabel(id, t) || getBoardName() || nameParam || (getBoardEntry(id) && getBoardEntry(id).name) || id;
+  const name = reservedBoardLabel(id, t) || getBoardName() || (getBoardEntry(id) && getBoardEntry(id).name) || id;
   setBoardName(name);
   document.title = 'Bete' + (id === 'home' ? '' : ' · ' + name);
 }
@@ -155,6 +156,15 @@ function applyBoardNameUI() {
   const editable = boardId !== 'home' && boardId !== 'tutorial' && boardId !== 'boards';
   el.classList.toggle('editable', editable);
   if (editable && !el._wired) { el._wired = true; el.addEventListener('click', beginRenameBoard); }
+}
+
+// Called by sync.js once a name arrives over the wire for a board we didn't
+// already have one for (see merge(): adopted only when getBoardName() was
+// empty) -- refreshes the title bar and tab title to reflect it right away,
+// since resolveBoardName/applyBoardNameUI above only run once at boot.
+export function refreshBoardNameUI() {
+  document.title = 'Bete' + (boardId === 'home' ? '' : ' · ' + getBoardName());
+  applyBoardNameUI();
 }
 
 function beginRenameBoard() {
@@ -259,7 +269,7 @@ function loadBoardsDirectory() {
     else ungrouped.push(b);
   });
 
-  const boardNode = (b, x, y) => ({ id: newId(), x: x - 80, y: y - 35, w: 160, h: 70, text: reservedBoardLabel(b.id, t) || b.name || b.id, link: buildBoardUrl(b.id, b.peer, b.name) });
+  const boardNode = (b, x, y) => ({ id: newId(), x: x - 80, y: y - 35, w: 160, h: 70, text: reservedBoardLabel(b.id, t) || b.name || b.id, link: buildBoardUrl(b.id, b.peer) });
 
   // Each circle is sized to actually contain its grid of boards (a fixed
   // radius either clipped a big group or left a lone board looking lost in

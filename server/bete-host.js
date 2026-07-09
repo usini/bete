@@ -89,7 +89,7 @@ function fromExport(obj) {
   }
   for (const z of obj.circles || []) { c[z.id] = { col: z.color, d: z.description || '', x: z.x, y: z.y, r: z.r }; m[z.id] = t; }
   for (const z of obj.hexagons || []) { h[z.id] = { col: z.color, d: z.description || '', x: z.x, y: z.y, r: z.r }; m[z.id] = t; }
-  return { n, c, h, mt: m, del: [] };
+  return { n, c, h, mt: m, del: [], name: obj.name || '' };
 }
 
 function boardFromObj(obj) {
@@ -100,6 +100,7 @@ function boardFromObj(obj) {
     del: new Set(st.del || []),
     readOnly: !!st.readOnly,
     ownerToken: st.ownerToken || null, // first client to say 'hello' on a fresh board claims it (see handleData)
+    name: st.name || '', // learned from whichever client's sync first carried one -- see merge()
     conns: [], lastSig: '', saveTimer: null,
   };
 }
@@ -122,7 +123,7 @@ function getBoard(id) {
   let b = boards.get(id);
   if (!b) {
     if (boards.size >= MAX_BOARDS) { console.warn('[bete] board limit reached, ephemeral board:', id); }
-    b = { content: { n: {}, c: {}, h: {} }, mt: {}, del: new Set(), readOnly: false, ownerToken: null, conns: [], lastSig: '', saveTimer: null };
+    b = { content: { n: {}, c: {}, h: {} }, mt: {}, del: new Set(), readOnly: false, ownerToken: null, name: '', conns: [], lastSig: '', saveTimer: null };
     boards.set(id, b);
   }
   return b;
@@ -133,7 +134,7 @@ function scheduleSave(id, b) {
   b.saveTimer = setTimeout(() => {
     b.saveTimer = null;
     try {
-      fs.writeFileSync(path.join(BOARDS_DIR, id + '.json'), JSON.stringify({ ...b.content, mt: b.mt, del: [...b.del], readOnly: b.readOnly, ownerToken: b.ownerToken }));
+      fs.writeFileSync(path.join(BOARDS_DIR, id + '.json'), JSON.stringify({ ...b.content, mt: b.mt, del: [...b.del], readOnly: b.readOnly, ownerToken: b.ownerToken, name: b.name }));
     } catch (e) { console.error('[bete] save failed', id, e); }
   }, 1000);
 }
@@ -142,7 +143,7 @@ function scheduleSave(id, b) {
 // `owner` is set per-connection (never broadcast): only this specific client
 // gets told whether its token was recognized.
 function buildPayload(b, conn) {
-  return { type: 'sync', from: 'host', n: b.content.n, c: b.content.c, h: b.content.h, mt: { ...b.mt }, del: [...b.del], readOnly: b.readOnly, owner: !!(conn && conn._owner) };
+  return { type: 'sync', from: 'host', n: b.content.n, c: b.content.c, h: b.content.h, mt: { ...b.mt }, del: [...b.del], readOnly: b.readOnly, owner: !!(conn && conn._owner), bn: b.name || undefined };
 }
 
 // First-claim: a fresh board (no owner yet) adopts whichever token shows up
@@ -156,6 +157,10 @@ function resolveOwner(id, b, conn, token) {
 
 function merge(b, remote) {
   let changed = false;
+  // Board name: learned once from whichever client's sync first carries one
+  // (a browser client's own local name -- see js/sync.js), then kept and
+  // relayed to everyone else, including a brand-new client that has none yet.
+  if (remote.bn && !b.name) { b.name = remote.bn; changed = true; }
   const win = (id) => {
     const rm = (remote.mt && remote.mt[id]) || 0;
     const lm = b.mt[id] || 0;
@@ -317,9 +322,10 @@ function tick() {
     }
     const delSig = b.del.size;
     const delChanged = b._lastDelSig !== delSig;
-    if (!changed && !delChanged) { b.prevSigs = sigs; continue; }
-    b.prevSigs = sigs; b._lastDelSig = delSig;
-    const payload = { type: 'sync', from: 'host', n: nn, c: cc, h: hh, mt, del: [...b.del], readOnly: b.readOnly };
+    const nameChanged = b._sentName !== b.name;
+    if (!changed && !delChanged && !nameChanged) { b.prevSigs = sigs; continue; }
+    b.prevSigs = sigs; b._lastDelSig = delSig; b._sentName = b.name;
+    const payload = { type: 'sync', from: 'host', n: nn, c: cc, h: hh, mt, del: [...b.del], readOnly: b.readOnly, bn: b.name || undefined };
     for (const c of b.conns) if (c.open) { try { c.send(payload); } catch (e) { /* */ } }
   }
 }
