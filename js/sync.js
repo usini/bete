@@ -6,18 +6,18 @@
 // (falls back to host priority if both sides are on the same build) -- an
 // out-of-date host (stale tab, permanent Pi host not yet redeployed) must not
 // keep clobbering a freshly-updated peer's edits forever.
-import { state, removeById, scheduleSave, getBoardId, getBoardName, setBoardName } from './state.js?v=mrdgsx7r';
-import { reset } from './physics.js?v=mrdgsx7r';
-import { explodeElementCascade } from './fx.js?v=mrdgsx7r';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrdgsx7r';
-import { onImageArrived } from './images.js?v=mrdgsx7r';
-import { getUserId, displayName } from './users.js?v=mrdgsx7r';
-import { shareOrigin } from './platform.js?v=mrdgsx7r';
-import { recordBoard } from './boards.js?v=mrdgsx7r';
-import { getOwnerToken, recordLiaison } from './liaisons.js?v=mrdgsx7r';
-import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrdgsx7r';
-import { fetchIcsLocal, resolveIcsPeerResponse, retryFailedIcs } from './ics.js?v=mrdgsx7r';
-import { refreshBoardNameUI } from './main.js?v=mrdgsx7r';
+import { state, removeById, scheduleSave, getBoardId, getBoardName, setBoardName } from './state.js?v=mrdx3kml';
+import { reset } from './physics.js?v=mrdx3kml';
+import { explodeElementCascade } from './fx.js?v=mrdx3kml';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrdx3kml';
+import { onImageArrived } from './images.js?v=mrdx3kml';
+import { getUserId, displayName } from './users.js?v=mrdx3kml';
+import { shareOrigin } from './platform.js?v=mrdx3kml';
+import { recordBoard } from './boards.js?v=mrdx3kml';
+import { getOwnerToken, recordLiaison } from './liaisons.js?v=mrdx3kml';
+import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrdx3kml';
+import { fetchIcsLocal, resolveIcsPeerResponse, retryFailedIcs } from './ics.js?v=mrdx3kml';
+import { refreshBoardNameUI } from './main.js?v=mrdx3kml';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host
@@ -267,7 +267,7 @@ function nodeEntry(n) {
 // For the image: the 'idb:<hash>' ref is short and changes with the content -> we
 // use it as-is; a legacy data URL (long) is reduced to its length (size proxy).
 function imgSig(img) { return img ? (img.length < 128 ? img : img.length) : 0; }
-function sigNode(e) { return e.vc ? 'V' + e.dur : e.cn ? 'C' + e.yml + '|' + e.disp + '|' + e.br + '|' + e.cf + '|' + e.sws + '|' + e.swe + '|' + e.ct : (e.ref !== undefined ? 'R' + e.ref : 'T' + e.t + '|' + imgSig(e.img) + '|' + (e.lk || '')); }
+function sigNode(e) { return e.vc ? 'V' + e.dur : e.cn ? 'C' + e.yml + '|' + e.disp + '|' + e.br + '|' + e.cf + '|' + e.sws + '|' + e.swe + '|' + e.ct + '|' + (e.col || '') : (e.ref !== undefined ? 'R' + e.ref : 'T' + e.t + '|' + imgSig(e.img) + '|' + (e.lk || '')); }
 function sigZone(e) { return 'Z' + e.col + '' + e.d; }
 
 function buildContent() {
@@ -281,7 +281,7 @@ function buildContent() {
       // must go through switchReq/switchRes (see handleData) to actuate it.
       n[node.id] = {
         cn: 1, disp: node.display || 'triangle', cf: node.clockFormat || 'HH:MM:SS', creator: node.creatorUid || null, br: !!node.bridge,
-        yml: node.bridge ? '' : (node.yaml || ''),
+        yml: node.bridge ? '' : (node.yaml || ''), col: node.color || undefined,
         // Clock display, stopwatch/countdown modes only:
         sws: node.stopwatchStart || 0, swe: node.stopwatchElapsed || 0, ct: node.countdownTarget || 0,
         x: node.x, y: node.y, w: node.w, h: node.h,
@@ -406,7 +406,7 @@ function merge(remote) {
     if (!ex) {
       let node;
       if (rd.vc) node = { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, kind: 'voice', dur: rd.dur || 0 };
-      else if (rd.cn) node = { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, kind: 'connector', yaml: rd.yml || '', display: rd.disp || 'triangle', clockFormat: rd.cf || 'HH:MM:SS', creatorUid: rd.creator || null, bridge: !!rd.br, stopwatchStart: rd.sws || null, stopwatchElapsed: rd.swe || 0, countdownTarget: rd.ct || null };
+      else if (rd.cn) node = { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, kind: 'connector', yaml: rd.yml || '', display: rd.disp || 'triangle', clockFormat: rd.cf || 'HH:MM:SS', creatorUid: rd.creator || null, bridge: !!rd.br, color: rd.col || undefined, stopwatchStart: rd.sws || null, stopwatchElapsed: rd.swe || 0, countdownTarget: rd.ct || null };
       else node = rd.ref !== undefined
         ? { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, ref: rd.ref }
         : { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, text: rd.t || '', image: rd.img || undefined };
@@ -434,6 +434,7 @@ function merge(remote) {
         if (!ex.creatorUid && rd.creator) { ex.creatorUid = rd.creator; changed = true; } // stamped once, never overwritten after
         if (!!ex.bridge !== !!rd.br) { ex.bridge = !!rd.br; changed = true; }
         if ((ex.yaml || '') !== (rd.yml || '')) { ex.yaml = rd.yml || ''; changed = true; pollConnector(ex).catch(() => {}); }
+        if ((ex.color || '') !== (rd.col || '')) { ex.color = rd.col || undefined; changed = true; }
         if ((ex.display || 'triangle') !== (rd.disp || 'triangle')) { ex.display = rd.disp || 'triangle'; changed = true; pollConnector(ex).catch(() => {}); }
         if ((ex.clockFormat || 'HH:MM:SS') !== (rd.cf || 'HH:MM:SS')) { ex.clockFormat = rd.cf || 'HH:MM:SS'; changed = true; }
         if ((ex.stopwatchStart || 0) !== (rd.sws || 0)) { ex.stopwatchStart = rd.sws || null; changed = true; }

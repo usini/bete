@@ -4,18 +4,18 @@
 // had grown into an unreadable wall of ~25 tiny buttons. The visited-boards
 // list that used to live here is gone: the built-in "boards" directory board
 // (js/main.js: loadBoardsDirectory) already is that list, one tile away.
-import { state, getBoardId, scheduleSave } from './state.js?v=mrdgsx7r';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mrdgsx7r';
-import { buildBoardUrl } from './boards.js?v=mrdgsx7r';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mrdgsx7r';
-import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mrdgsx7r';
-import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mrdgsx7r';
-import { exportBoardHtml } from './exportHtml.js?v=mrdgsx7r';
-import { getUserName, setUserName } from './users.js?v=mrdgsx7r';
-import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mrdgsx7r';
-import { t, getLang, setLang, LANGS } from './i18n.js?v=mrdgsx7r';
-import { isDesktop, getLinkMode, setLinkMode, getAppVersion } from './platform.js?v=mrdgsx7r';
-import { getIcsProxy, setIcsProxy } from './ics.js?v=mrdgsx7r';
+import { state, getBoardId, scheduleSave } from './state.js?v=mrdx3kml';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mrdx3kml';
+import { buildBoardUrl } from './boards.js?v=mrdx3kml';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mrdx3kml';
+import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mrdx3kml';
+import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mrdx3kml';
+import { exportBoardHtml } from './exportHtml.js?v=mrdx3kml';
+import { getUserName, setUserName } from './users.js?v=mrdx3kml';
+import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mrdx3kml';
+import { t, getLang, setLang, LANGS } from './i18n.js?v=mrdx3kml';
+import { isDesktop, getLinkMode, setLinkMode, getAppVersion } from './platform.js?v=mrdx3kml';
+import { getIcsProxy, setIcsProxy } from './ics.js?v=mrdx3kml';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);

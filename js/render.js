@@ -1,16 +1,16 @@
 // Board rendering: pixel grid, circles, hexagons, rectangles, neon glow, selection.
-import { state, effectiveColor, sourceOf, displayLink } from './state.js?v=mrdgsx7r';
-import { parseBoardUrl } from './boards.js?v=mrdgsx7r';
-import { view, worldToScreen } from './camera.js?v=mrdgsx7r';
-import { stretch } from './physics.js?v=mrdgsx7r';
-import { hexCorners, triCorners } from './geom.js?v=mrdgsx7r';
-import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mrdgsx7r';
-import { fmtDur } from './voice.js?v=mrdgsx7r';
-import { getCursors, getPresence } from './sync.js?v=mrdgsx7r';
-import { youTubeId, ytThumb } from './yt.js?v=mrdgsx7r';
-import { getImageEl } from './images.js?v=mrdgsx7r';
-import { t, getLang } from './i18n.js?v=mrdgsx7r';
-import { isIcsUrl, calendarWeek } from './ics.js?v=mrdgsx7r';
+import { state, effectiveColor, sourceOf, displayLink, DEFAULT_GREEN } from './state.js?v=mrdx3kml';
+import { parseBoardUrl } from './boards.js?v=mrdx3kml';
+import { view, worldToScreen } from './camera.js?v=mrdx3kml';
+import { stretch } from './physics.js?v=mrdx3kml';
+import { hexCorners, triCorners } from './geom.js?v=mrdx3kml';
+import { theme, themeId_, getTextScale, nodeStyle, toneColor } from './theme.js?v=mrdx3kml';
+import { fmtDur } from './voice.js?v=mrdx3kml';
+import { getCursors, getPresence } from './sync.js?v=mrdx3kml';
+import { youTubeId, ytThumb } from './yt.js?v=mrdx3kml';
+import { getImageEl } from './images.js?v=mrdx3kml';
+import { t, getLang } from './i18n.js?v=mrdx3kml';
+import { isIcsUrl, calendarWeek } from './ics.js?v=mrdx3kml';
 
 const FONT = () => theme().font;
 const GLOW = () => theme().glow;
@@ -391,9 +391,18 @@ function pressAnim(n) {
   return Math.sin(t * Math.PI);
 }
 
+// Darkens a hex color towards black by `amt` (0..1) -- used to derive an
+// "off" shade from a chosen button color without a second stored value.
+function darkenHex(hex, amt) {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.substring(0, 2), 16), g = parseInt(h.substring(2, 4), 16), b = parseInt(h.substring(4, 6), 16);
+  const f = 1 - amt;
+  return `rgb(${Math.round(r * f)},${Math.round(g * f)},${Math.round(b * f)})`;
+}
 // Pixel theme: a household wall light switch (beveled plastic plate, screws,
-// a rocker paddle that flips up when on, glowing green).
-function drawSwitchPixel(ctx, w, h, on, selected, zoom, press) {
+// a rocker paddle that flips up when on, glowing the chosen button color --
+// or green by default, see BUTTON_COLORS/effectiveColor).
+function drawSwitchPixel(ctx, w, h, on, selected, zoom, press, color) {
   ctx.fillStyle = '#3a3f47';
   ctx.fillRect(-w / 2, -h / 2, w, h);
   const bevel = Math.max(2, 3 * zoom);
@@ -419,22 +428,26 @@ function drawSwitchPixel(ctx, w, h, on, selected, zoom, press) {
   ctx.save();
   ctx.translate(0, paddleY);
   ctx.scale(1, 1 - press * 0.18); // squash on click
-  ctx.shadowColor = on ? '#39ff14' : 'transparent';
+  ctx.shadowColor = on ? color : 'transparent';
   ctx.shadowBlur = on ? 12 * zoom : 0;
-  ctx.fillStyle = on ? '#39ff14' : '#6b7178';
+  ctx.fillStyle = on ? color : '#6b7178';
   ctx.fillRect(-slotW / 2 + 2 * zoom, -paddleH / 2, slotW - 4 * zoom, paddleH);
   ctx.restore();
 }
 
-// Classic themes (light + dark): a flat vector pill toggle, darker than the
-// classic-dark accent so it still reads as "a switch" rather than a badge.
-function drawSwitchVector(ctx, w, h, on, selected, zoom, press) {
+// Classic themes (light + dark): a flat vector pill toggle, tinted with the
+// chosen button color (darkened for "off"); default (no color chosen, no
+// containing circle) keeps the original dark-green/gray look.
+function drawSwitchVector(ctx, w, h, on, selected, zoom, press, color) {
+  const custom = color !== DEFAULT_GREEN;
+  const onFill = custom ? color : '#1f6b28';
+  const offFill = custom ? darkenHex(color, 0.6) : '#3a3e46';
   const trackW = w * 0.7, trackH = h * 0.34, r = trackH / 2;
   ctx.save();
   ctx.beginPath();
   if (ctx.roundRect) ctx.roundRect(-trackW / 2, -trackH / 2, trackW, trackH, r);
   else ctx.rect(-trackW / 2, -trackH / 2, trackW, trackH); // older engines: square fallback
-  ctx.fillStyle = on ? '#1f6b28' : '#3a3e46';
+  ctx.fillStyle = on ? onFill : offFill;
   ctx.fill();
   if (selected) { ctx.strokeStyle = on ? '#39ff14' : '#8a8f99'; ctx.lineWidth = 2; ctx.stroke(); }
 
@@ -449,6 +462,10 @@ function drawSwitchVector(ctx, w, h, on, selected, zoom, press) {
   ctx.shadowBlur = 0;
   ctx.restore();
 
+  // The on/off word sits BELOW the pill, on the page background -- not on
+  // the colored fill itself -- so it always uses the theme's own ink color
+  // (already contrast-safe against that background) regardless of the
+  // chosen button color.
   const fs = clamp(10 * zoom * getTextScale(), 7, 16);
   ctx.font = `${fs}px ${FONT()}`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -458,7 +475,9 @@ function drawSwitchVector(ctx, w, h, on, selected, zoom, press) {
 
 // Windows XP theme: a beveled silver button with a small power-style LED,
 // pressing down (gradient inverts, shifts 2px) like a classic XP button.
-function drawSwitchWinXP(ctx, w, h, on, selected, zoom, press) {
+// The plate itself stays silver (text is always black-on-white -- no
+// contrast issue), only the LED picks up the chosen button color.
+function drawSwitchWinXP(ctx, w, h, on, selected, zoom, press, color) {
   ctx.save();
   ctx.translate(0, press * 2 * zoom);
   const grad = ctx.createLinearGradient(0, -h / 2, 0, h / 2);
@@ -473,8 +492,8 @@ function drawSwitchWinXP(ctx, w, h, on, selected, zoom, press) {
   const ledR = Math.max(4, 6 * zoom);
   ctx.beginPath();
   ctx.arc(0, -h * 0.18, ledR, 0, Math.PI * 2);
-  ctx.fillStyle = on ? '#39ff14' : '#661111';
-  ctx.shadowColor = on ? '#39ff14' : 'transparent';
+  ctx.fillStyle = on ? color : '#661111';
+  ctx.shadowColor = on ? color : 'transparent';
   ctx.shadowBlur = on ? 8 * zoom : 0;
   ctx.fill();
   ctx.shadowBlur = 0;
@@ -504,9 +523,9 @@ function drawConnector(ctx, n, selected, zoom) {
   if (n.display === 'switch') {
     const on = !!n._value;
     const press = pressAnim(n);
-    if (theme().pixel) drawSwitchPixel(ctx, w, h, on, selected, zoom, press);
-    else if (themeId_() === 'winxp') drawSwitchWinXP(ctx, w, h, on, selected, zoom, press);
-    else drawSwitchVector(ctx, w, h, on, selected, zoom, press);
+    if (theme().pixel) drawSwitchPixel(ctx, w, h, on, selected, zoom, press, color);
+    else if (themeId_() === 'winxp') drawSwitchWinXP(ctx, w, h, on, selected, zoom, press, color);
+    else drawSwitchVector(ctx, w, h, on, selected, zoom, press, color);
   } else if (n.display === 'readout') {
     drawConnectorReadout(ctx, n, color, stl, selected, zoom, w, h);
   } else if (n.display === 'clock') {

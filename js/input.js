@@ -1,29 +1,29 @@
 // Mouse + touch input, elastic drag, hexagon links, radial menu,
 // palette, text editing, image popup.
 import {
-  state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
+  state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS, BUTTON_COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mrdgsx7r';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrdgsx7r';
-import { dragTo, reset } from './physics.js?v=mrdgsx7r';
-import { pointInHex } from './geom.js?v=mrdgsx7r';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrdgsx7r';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrdgsx7r';
-import { getUserId } from './users.js?v=mrdgsx7r';
-import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrdgsx7r';
-import { getAudio, putAudio } from './audio.js?v=mrdgsx7r';
-import { toast } from './main.js?v=mrdgsx7r';
-import { explodeElementCascade } from './fx.js?v=mrdgsx7r';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel, deleteBoardData } from './boards.js?v=mrdgsx7r';
-import { listLiaisons, removeLiaison } from './liaisons.js?v=mrdgsx7r';
-import { openSettings } from './settings.js?v=mrdgsx7r';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrdgsx7r';
-import { toggleDebug } from './debug.js?v=mrdgsx7r';
-import { youTubeId } from './yt.js?v=mrdgsx7r';
-import { setActiveVideo } from './video.js?v=mrdgsx7r';
-import { t } from './i18n.js?v=mrdgsx7r';
-import { openExternal } from './platform.js?v=mrdgsx7r';
-import { isIcsUrl } from './ics.js?v=mrdgsx7r';
+} from './state.js?v=mrdx3kml';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrdx3kml';
+import { dragTo, reset } from './physics.js?v=mrdx3kml';
+import { pointInHex } from './geom.js?v=mrdx3kml';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrdx3kml';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrdx3kml';
+import { getUserId } from './users.js?v=mrdx3kml';
+import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrdx3kml';
+import { getAudio, putAudio } from './audio.js?v=mrdx3kml';
+import { toast } from './main.js?v=mrdx3kml';
+import { explodeElementCascade } from './fx.js?v=mrdx3kml';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel, deleteBoardData } from './boards.js?v=mrdx3kml';
+import { listLiaisons, removeLiaison } from './liaisons.js?v=mrdx3kml';
+import { openSettings } from './settings.js?v=mrdx3kml';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrdx3kml';
+import { toggleDebug } from './debug.js?v=mrdx3kml';
+import { youTubeId } from './yt.js?v=mrdx3kml';
+import { setActiveVideo } from './video.js?v=mrdx3kml';
+import { t } from './i18n.js?v=mrdx3kml';
+import { openExternal } from './platform.js?v=mrdx3kml';
+import { isIcsUrl } from './ics.js?v=mrdx3kml';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -1156,6 +1156,7 @@ function openContextAt(sx, sy) {
   } else if (r && r.kind === 'connector') {
     items = [{ label: t('radial.editProgram'), icon: 'edit', color: COL.cyan, fn: () => openConnectorEditor(r) }];
     if (r.display !== 'switch') items.push({ label: t('radial.makeSwitch'), icon: 'power', color: COL.wood, fn: () => { r.display = 'switch'; scheduleSave(); pollConnector(r); } });
+    else items.push({ label: t('radial.color'), icon: 'color', color: COL.purple, fn: () => openPalette(sx, sy, r, BUTTON_COLORS) });
     if (r.display !== 'readout') items.push({ label: t('radial.makeReadout'), icon: 'rect', color: COL.green, fn: () => { r.display = 'readout'; scheduleSave(); pollConnector(r); } });
     items.push(r.display === 'clock'
       ? { label: t('radial.clockFormat'), icon: 'clock', color: COL.cyan, fn: () => openClockFormatPicker(r) }
@@ -1346,13 +1347,15 @@ function selectRadialHover() {
 }
 
 // ---- Color palette ----
-function openPalette(x, y, zone) {
+// `colors` defaults to the neon zone palette (circles/hexagons); pass
+// BUTTON_COLORS for a connector switch block instead (see radial.color above).
+function openPalette(x, y, zone, colors = COLORS) {
   const pal = document.getElementById('palette');
   pal.innerHTML = '';
   pal.style.left = Math.min(x, window.innerWidth - 150) + 'px';
   pal.style.top = Math.min(y, window.innerHeight - 130) + 'px';
   pal.classList.remove('hidden');
-  COLORS.forEach((col) => {
+  colors.forEach((col) => {
     const sw = document.createElement('div');
     sw.className = 'swatch';
     sw.style.background = col;

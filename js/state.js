@@ -1,7 +1,7 @@
 // Shared data model + localStorage persistence.
-import { pointInHex } from './geom.js?v=mrdgsx7r';
-import { getUserId } from './users.js?v=mrdgsx7r';
-import { parseBoardUrl, buildBoardUrl } from './boards.js?v=mrdgsx7r';
+import { pointInHex } from './geom.js?v=mrdx3kml';
+import { getUserId } from './users.js?v=mrdx3kml';
+import { parseBoardUrl, buildBoardUrl } from './boards.js?v=mrdx3kml';
 
 export const DEFAULT_GREEN = '#39ff14';
 
@@ -15,6 +15,22 @@ export const COLORS = [
   '#9b30ff', // purple
   '#ffd400', // yellow
   '#f2f2f2', // off-white
+];
+
+// Color presets for connector "switch" (button) blocks -- plain named colors
+// rather than the neon zone palette above, since these are meant to read as
+// an actual painted button. See effectiveColor(): a containing circle/hexagon
+// still supplants this (same rule as rectangles).
+export const BUTTON_COLORS = [
+  '#ff8c00', // orange
+  '#e6342a', // red
+  '#1a1a1a', // black
+  '#8e3ee6', // purple
+  '#2266dd', // blue
+  '#2fa84f', // green
+  '#f2c200', // yellow
+  '#f2f2f2', // white
+  '#7a4a2b', // brown
 ];
 
 // Storage key per board (multi-boards). 'home' = default personal page.
@@ -110,8 +126,10 @@ export function displayLink(node) {
 }
 
 // ---- Effective color of a rectangle ----
-// Link: color of its source (hence of the source's circle). Otherwise: color of
-// the last circle/hexagon (z-order) containing its center.
+// Link: color of its source (hence of the source's circle). Otherwise: the
+// node's own chosen color if it has one (see BUTTON_COLORS -- connector
+// switch blocks), else the default; then a containing circle/hexagon
+// (z-order) always supplants either one, same as for a plain rectangle.
 export function effectiveColor(node) {
   if (node.ref) {
     const src = sourceOf(node);
@@ -119,7 +137,7 @@ export function effectiveColor(node) {
   }
   const cx = node.x + node.w / 2;
   const cy = node.y + node.h / 2;
-  let color = DEFAULT_GREEN;
+  let color = node.color || DEFAULT_GREEN;
   for (const c of state.circles) {
     const dx = cx - c.x, dy = cy - c.y;
     if (dx * dx + dy * dy <= c.r * c.r) color = c.color;
@@ -146,7 +164,7 @@ export function serialize() {
           return {
             id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, kind: 'connector', yaml: n.yaml || '',
             display: n.display || 'triangle', clockFormat: n.clockFormat || 'HH:MM:SS',
-            creatorUid: n.creatorUid || null, bridge: !!n.bridge,
+            creatorUid: n.creatorUid || null, bridge: !!n.bridge, color: n.color || undefined,
             // Clock display, stopwatch/countdown modes only:
             stopwatchStart: n.stopwatchStart || undefined, stopwatchElapsed: n.stopwatchElapsed || undefined,
             countdownTarget: n.countdownTarget || undefined,
