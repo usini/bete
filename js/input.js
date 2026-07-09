@@ -3,27 +3,27 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mrdegg38';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrdegg38';
-import { dragTo, reset } from './physics.js?v=mrdegg38';
-import { pointInHex } from './geom.js?v=mrdegg38';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrdegg38';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrdegg38';
-import { getUserId } from './users.js?v=mrdegg38';
-import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrdegg38';
-import { getAudio, putAudio } from './audio.js?v=mrdegg38';
-import { toast } from './main.js?v=mrdegg38';
-import { explodeElementCascade } from './fx.js?v=mrdegg38';
-import { genBoardId, listBoards, buildBoardUrl, buildShareBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel, deleteBoardData } from './boards.js?v=mrdegg38';
-import { listLiaisons, removeLiaison } from './liaisons.js?v=mrdegg38';
-import { openSettings } from './settings.js?v=mrdegg38';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrdegg38';
-import { toggleDebug } from './debug.js?v=mrdegg38';
-import { youTubeId } from './yt.js?v=mrdegg38';
-import { setActiveVideo } from './video.js?v=mrdegg38';
-import { t } from './i18n.js?v=mrdegg38';
-import { openExternal } from './platform.js?v=mrdegg38';
-import { isIcsUrl } from './ics.js?v=mrdegg38';
+} from './state.js?v=mrdf3ucb';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrdf3ucb';
+import { dragTo, reset } from './physics.js?v=mrdf3ucb';
+import { pointInHex } from './geom.js?v=mrdf3ucb';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrdf3ucb';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrdf3ucb';
+import { getUserId } from './users.js?v=mrdf3ucb';
+import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrdf3ucb';
+import { getAudio, putAudio } from './audio.js?v=mrdf3ucb';
+import { toast } from './main.js?v=mrdf3ucb';
+import { explodeElementCascade } from './fx.js?v=mrdf3ucb';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel, deleteBoardData } from './boards.js?v=mrdf3ucb';
+import { listLiaisons, removeLiaison } from './liaisons.js?v=mrdf3ucb';
+import { openSettings } from './settings.js?v=mrdf3ucb';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrdf3ucb';
+import { toggleDebug } from './debug.js?v=mrdf3ucb';
+import { youTubeId } from './yt.js?v=mrdf3ucb';
+import { setActiveVideo } from './video.js?v=mrdf3ucb';
+import { t } from './i18n.js?v=mrdf3ucb';
+import { openExternal } from './platform.js?v=mrdf3ucb';
+import { isIcsUrl } from './ics.js?v=mrdf3ucb';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -839,10 +839,11 @@ function clearLinkFocus() {
   document.getElementById('linkbar').classList.remove('show');
 }
 
-// Follows a link: board => same tab (+ history); external => new tab.
-// A board URL may carry the public/LAN origin (shareable links, see
-// buildShareBoardUrl) -- navigation is rebuilt on the LOCAL origin so it
-// stays inside the app (the desktop webview must never leave 127.0.0.1).
+// Follows a link: board => same tab (+ history); external => new tab. A
+// board URL may still carry a full origin (legacy links, or one pasted by
+// hand into the link editor) -- navigation is always rebuilt origin-less
+// on the LOCAL page so it stays inside the app (the desktop webview must
+// never leave 127.0.0.1).
 function followLink(url) {
   const bu = parseBoardUrl(url);
   if (bu) { recordBoard(bu.id, null, bu.peer); location.href = buildBoardUrl(bu.id, bu.peer); return; }
@@ -1461,7 +1462,7 @@ function openBoardPicker(wx, wy, target) {
 
 function createBoardLink(targetId, name, peer) {
   closeMenus();
-  const url = buildShareBoardUrl(targetId, peer); // shareable origin; followLink re-maps it to local navigation
+  const url = buildBoardUrl(targetId, peer); // origin-less; resolves against whichever page it's clicked from
   if (pendingBoardTarget) {
     // Transforms the existing block into a link to the board (keeps its text if any).
     const t = pendingBoardTarget; pendingBoardTarget = null;
@@ -1555,7 +1556,12 @@ function openLinkEditor(target) {
   setTimeout(() => { inp.focus(); inp.select(); }, 50);
   const save = () => {
     const v = inp.value.trim();
-    if (v) target.link = v; else delete target.link;
+    // A pasted full board URL (e.g. copied from the address bar) is
+    // corrected back to the origin-less form -- see boards.js: buildBoardUrl.
+    const bu = v ? parseBoardUrl(v) : null;
+    if (bu) target.link = buildBoardUrl(bu.id, bu.peer);
+    else if (v) target.link = v;
+    else delete target.link;
     growForIcs(target, v);
     scheduleSave();
     m.remove();

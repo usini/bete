@@ -1,6 +1,7 @@
 // Shared data model + localStorage persistence.
-import { pointInHex } from './geom.js?v=mrdegg38';
-import { getUserId } from './users.js?v=mrdegg38';
+import { pointInHex } from './geom.js?v=mrdf3ucb';
+import { getUserId } from './users.js?v=mrdf3ucb';
+import { parseBoardUrl, buildBoardUrl } from './boards.js?v=mrdf3ucb';
 
 export const DEFAULT_GREEN = '#39ff14';
 
@@ -172,6 +173,14 @@ export function load(obj) {
   state.hexagons = Array.isArray(obj.hexagons) ? obj.hexagons.map(h => ({ ...h })) : [];
   // Prunes orphan links (source gone).
   state.nodes = state.nodes.filter(n => !n.ref || state.nodes.some(m => m.id === n.ref && !m.ref));
+  // Corrects legacy board links that still carry a full origin (old exports,
+  // boards synced before buildBoardUrl dropped it) back to the origin-less
+  // form, so they keep working after an import/fork on a different domain.
+  for (const n of state.nodes) {
+    if (!n.link) continue;
+    const bu = parseBoardUrl(n.link);
+    if (bu) n.link = buildBoardUrl(bu.id, bu.peer);
+  }
   state.selected = null;
   state.selectedIds = [];
   // Avoids id collisions after import.

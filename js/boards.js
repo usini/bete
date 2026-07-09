@@ -1,5 +1,5 @@
 // History of visited boards + utilities (unique IDs, URLs).
-import { appOrigins, shareOrigin } from './platform.js?v=mrdegg38';
+import { appOrigins } from './platform.js?v=mrdf3ucb';
 
 const KEY = 'bete:boards';
 
@@ -56,36 +56,29 @@ export function deleteBoardData(id) {
   try { localStorage.removeItem('bete:' + id); } catch (e) { /* */ }
 }
 
-// Build the URL of a board (id + peer). Relative to location.origin: for
-// INTERNAL navigation (switching the current window to another local
-// board), which must resolve inside the desktop webview too. Links meant to
-// live in a block (copy-pasteable, shareable) use buildShareBoardUrl below
-// instead. No name param anymore -- a board/liaison's display name now
-// arrives over the wire, like the rest of the content (see sync.js: merge()
-// adopts a synced `bn` when the local one is still empty), instead of being
-// guessed from whatever the link happened to be created with.
+// Build the URL of a board (id + peer). Deliberately origin-less (just
+// "?id=...&peer=..."): a board block travels inside synced content (see
+// sync.js), so baking in *this* device's origin would break the link for a
+// peer on a different domain/fork, or for a JSON export re-opened elsewhere
+// -- a bare query string resolves against whatever page it's clicked from
+// (see platform.js's comment on why this differs from the Liaison QR link,
+// which genuinely needs an absolute, shareable address). No name param
+// either -- a board/liaison's display name now arrives over the wire, like
+// the rest of the content (see sync.js: merge() adopts a synced `bn` when
+// the local one is still empty), instead of being guessed from whatever the
+// link happened to be created with.
 export function buildBoardUrl(id, peer) {
-  return withBoardParams(location.origin + location.pathname, id, peer);
-}
-
-// Same, but on the shareable origin (public deployment or LAN address on
-// desktop, see platform.js: shareOrigin) -- used for "link to board" blocks,
-// so a link authored on desktop still means something outside this machine.
-// parseBoardUrl recognizes those as internal, so clicking one locally
-// navigates in-window instead of opening a browser.
-export function buildShareBoardUrl(id, peer) {
-  return withBoardParams(shareOrigin(), id, peer);
-}
-
-function withBoardParams(base, id, peer) {
-  let u = base + '?id=' + encodeURIComponent(id);
+  let u = '?id=' + encodeURIComponent(id);
   if (peer) u += '&peer=' + encodeURIComponent(peer);
   return u;
 }
 
-// Parse a board URL (returns null if invalid or not a board URL). A URL is a
-// board URL when it lives under any of the app's own origins (local window,
-// public deployment or LAN address on desktop -- see platform.js: appOrigins).
+// Parse a board URL (returns null if invalid or not a board URL). Accepts
+// both today's origin-less form and legacy absolute links (old exports/synced
+// boards saved before buildBoardUrl dropped the origin) -- a URL is a board
+// URL when it's either relative or lives under one of the app's own origins
+// (local window, public deployment or LAN address on desktop -- see
+// platform.js: appOrigins).
 export function parseBoardUrl(url) {
   try {
     const u = new URL(url, location.href);
