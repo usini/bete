@@ -169,6 +169,16 @@ dictionary objects (`STRINGS.fr`, `STRINGS.en`) plus a lookup function.
   of the exact same information already carried by the sync itself. The
   headless Pi host mirrors this (`server/bete-host.js`: `b.name`, learned
   once from whichever client's sync first carries a `bn` and persisted).
+  A name equal to the board's own id (or a peer's own id, for liaisons) is
+  never treated as real — it's just the "nothing chosen yet" display
+  fallback (`js/main.js`: `resolveBoardName`/`applyBoardNameUI` show the id
+  but deliberately don't `setBoardName()` it, so it's never persisted,
+  exported, or sent as `bn`; `js/liaisons.js`: `recordLiaison`'s `renamed`
+  check treats a name equal to the peer id the same way). Without this, a
+  headless host — whose own name always starts unset — could pick up some
+  client's still-unset fallback and hand it to every future client as if it
+  were genuine, and a real rename from anyone else would then never stick
+  (`bete-host.js`: `realName()`/`merge()` guard against this defensively too).
 - Host/client election (`joinOrHost`): the first to claim the peer id becomes
   the host, subsequent ones become clients. Host heartbeat (3s) + client
   watchdog (8s) to detect connection loss. **Cautious** reconnection: the

@@ -1,24 +1,24 @@
 // Bootstrap + render loop.
-import { state, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline, restore, COLORS } from './state.js?v=mrdf3ucb';
-import { setView } from './camera.js?v=mrdf3ucb';
-import { render } from './render.js?v=mrdf3ucb';
-import { step, reset } from './physics.js?v=mrdf3ucb';
-import * as minimap from './minimap.js?v=mrdf3ucb';
-import * as input from './input.js?v=mrdf3ucb';
-import * as fx from './fx.js?v=mrdf3ucb';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mrdf3ucb';
-import { recordBoard, getBoardEntry, listBoards, buildBoardUrl, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrdf3ucb';
-import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mrdf3ucb';
-import { applyTheme } from './theme.js?v=mrdf3ucb';
-import { initSettings, openSettings } from './settings.js?v=mrdf3ucb';
-import { recordLiaison, getLiaison, listLiaisons } from './liaisons.js?v=mrdf3ucb';
-import { positionVideoOverlay } from './video.js?v=mrdf3ucb';
-import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mrdf3ucb';
-import { migrateImages } from './images.js?v=mrdf3ucb';
-import { pollConnector } from './connector.js?v=mrdf3ucb';
-import { t, getLang, applyStaticI18n } from './i18n.js?v=mrdf3ucb';
-import { initDesktopLink, checkWebUpdate } from './platform.js?v=mrdf3ucb';
-import { checkForUpdate } from './update.js?v=mrdf3ucb';
+import { state, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline, restore, COLORS } from './state.js?v=mrdgsx7r';
+import { setView } from './camera.js?v=mrdgsx7r';
+import { render } from './render.js?v=mrdgsx7r';
+import { step, reset } from './physics.js?v=mrdgsx7r';
+import * as minimap from './minimap.js?v=mrdgsx7r';
+import * as input from './input.js?v=mrdgsx7r';
+import * as fx from './fx.js?v=mrdgsx7r';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mrdgsx7r';
+import { recordBoard, getBoardEntry, listBoards, buildBoardUrl, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrdgsx7r';
+import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mrdgsx7r';
+import { applyTheme } from './theme.js?v=mrdgsx7r';
+import { initSettings, openSettings } from './settings.js?v=mrdgsx7r';
+import { recordLiaison, getLiaison, listLiaisons } from './liaisons.js?v=mrdgsx7r';
+import { positionVideoOverlay } from './video.js?v=mrdgsx7r';
+import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mrdgsx7r';
+import { migrateImages } from './images.js?v=mrdgsx7r';
+import { pollConnector } from './connector.js?v=mrdgsx7r';
+import { t, getLang, applyStaticI18n } from './i18n.js?v=mrdgsx7r';
+import { initDesktopLink, checkWebUpdate } from './platform.js?v=mrdgsx7r';
+import { checkForUpdate } from './update.js?v=mrdgsx7r';
 
 applyTheme(); // apply the saved theme right at startup
 applyStaticI18n(); // translate the static HTML chrome (buttons, hint, etc.)
@@ -144,15 +144,21 @@ if (!REDIRECT) {
 // (see sync.js: a board/liaison's name is now learned from the P2P sync
 // payload itself, like the rest of the content) -- just what's already
 // saved locally, or the raw id until a sync (or a manual rename) fills it in.
+// Deliberately does NOT setBoardName(id) when nothing is actually known: the
+// id is only ever a DISPLAY fallback (below, and in applyBoardNameUI) -- if
+// it were persisted as the real name, it would get serialized/exported and
+// sent out as this board's `bn` on the very next sync, and a peer (or a
+// headless host with no name of its own yet) has no way to tell that apart
+// from a real one someone actually chose (see sync.js/bete-host.js: merge()).
 function resolveBoardName(id) {
-  const name = reservedBoardLabel(id, t) || getBoardName() || (getBoardEntry(id) && getBoardEntry(id).name) || id;
-  setBoardName(name);
-  document.title = 'Bete' + (id === 'home' ? '' : ' · ' + name);
+  const known = reservedBoardLabel(id, t) || getBoardName() || (getBoardEntry(id) && getBoardEntry(id).name);
+  if (known) setBoardName(known);
+  document.title = 'Bete' + (id === 'home' ? '' : ' · ' + (known || id));
 }
 
 function applyBoardNameUI() {
   const el = document.getElementById('boardname');
-  el.textContent = getBoardName();
+  el.textContent = getBoardName() || boardId; // display-only fallback -- see resolveBoardName
   const editable = boardId !== 'home' && boardId !== 'tutorial' && boardId !== 'boards';
   el.classList.toggle('editable', editable);
   if (editable && !el._wired) { el._wired = true; el.addEventListener('click', beginRenameBoard); }
@@ -176,13 +182,13 @@ function beginRenameBoard() {
   const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
   const onKey = (e) => {
     if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
-    else if (e.key === 'Escape') { el.textContent = getBoardName(); el.blur(); }
+    else if (e.key === 'Escape') { el.textContent = getBoardName() || boardId; el.blur(); }
   };
   const commit = () => {
     el.removeAttribute('contenteditable');
     el.removeEventListener('blur', commit);
     el.removeEventListener('keydown', onKey);
-    const nm = (el.textContent || '').replace(/\n/g, ' ').trim().slice(0, 40) || getBoardName();
+    const nm = (el.textContent || '').replace(/\n/g, ' ').trim().slice(0, 40) || getBoardName() || boardId;
     setBoardName(nm); el.textContent = nm;
     document.title = 'Bete · ' + nm;
     recordBoard(boardId, nm, peerId || null);

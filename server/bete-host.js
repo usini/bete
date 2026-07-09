@@ -142,9 +142,18 @@ function scheduleSave(id, b) {
 // --- Sync (LWW + host priority on tie), per board ---
 // `owner` is set per-connection (never broadcast): only this specific client
 // gets told whether its token was recognized.
-function buildPayload(b, conn) {
-  return { type: 'sync', from: 'host', n: b.content.n, c: b.content.c, h: b.content.h, mt: { ...b.mt }, del: [...b.del], readOnly: b.readOnly, owner: !!(conn && conn._owner), bn: b.name || undefined };
+function buildPayload(id, b, conn) {
+  return { type: 'sync', from: 'host', n: b.content.n, c: b.content.c, h: b.content.h, mt: { ...b.mt }, del: [...b.del], readOnly: b.readOnly, owner: !!(conn && conn._owner), bn: realName(id, b) };
 }
+
+// A name equal to the board/peer id is just the "nothing chosen yet"
+// fallback (see js/boards.js, js/liaisons.js), not a real name -- never
+// treat it as one, whether reading it or about to broadcast it. Without
+// this guard, a headless host (whose own name always starts unset) could
+// pick up a client's still-unset fallback and hand it on to every future
+// client as if it were the genuine name (that client's real rename would
+// then never stick, since the host thinks it already has one).
+function realName(id, b) { return (b.name && b.name !== id) ? b.name : undefined; }
 
 // First-claim: a fresh board (no owner yet) adopts whichever token shows up
 // first, same trust model as the peer id itself. Later connections are only
@@ -155,12 +164,14 @@ function resolveOwner(id, b, conn, token) {
   conn._owner = b.ownerToken === token;
 }
 
-function merge(b, remote) {
+function merge(id, b, remote) {
   let changed = false;
   // Board name: learned once from whichever client's sync first carries one
   // (a browser client's own local name -- see js/sync.js), then kept and
   // relayed to everyone else, including a brand-new client that has none yet.
-  if (remote.bn && !b.name) { b.name = remote.bn; changed = true; }
+  // remote.bn === id is that client's own not-yet-set fallback, not a real
+  // name (see realName above) -- ignored, so a genuine name can still land later.
+  if (remote.bn && remote.bn !== id && !b.name) { b.name = remote.bn; changed = true; }
   const win = (id) => {
     const rm = (remote.mt && remote.mt[id]) || 0;
     const lm = b.mt[id] || 0;
@@ -229,7 +240,7 @@ function handleData(id, b, msg, origin) {
     return;
   }
   if (msg.type === 'sync') {
-    if (merge(b, msg)) scheduleSave(id, b);
+    if (merge(id, b, msg)) scheduleSave(id, b);
     // Actively pull any brand-new voice memo's audio directly from whoever
     // just announced it, instead of passively waiting for their proactive
     // push (shareAudio) to arrive cleanly. Whoever sent this delta is the
@@ -305,7 +316,7 @@ function entrySigs(b) {
 
 // Periodic broadcast IN DELTA: only the changed entries + deletions.
 function tick() {
-  for (const [, b] of boards) {
+  for (const [id, b] of boards) {
     if (!b.conns.length) continue;
     const sigs = entrySigs(b);
     const prev = b.prevSigs || {};
@@ -325,7 +336,7 @@ function tick() {
     const nameChanged = b._sentName !== b.name;
     if (!changed && !delChanged && !nameChanged) { b.prevSigs = sigs; continue; }
     b.prevSigs = sigs; b._lastDelSig = delSig; b._sentName = b.name;
-    const payload = { type: 'sync', from: 'host', n: nn, c: cc, h: hh, mt, del: [...b.del], readOnly: b.readOnly, bn: b.name || undefined };
+    const payload = { type: 'sync', from: 'host', n: nn, c: cc, h: hh, mt, del: [...b.del], readOnly: b.readOnly, bn: realName(id, b) };
     for (const c of b.conns) if (c.open) { try { c.send(payload); } catch (e) { /* */ } }
   }
 }
@@ -375,7 +386,7 @@ function start() {
     resolveOwner(id, b, conn, conn.metadata && conn.metadata.ownerToken);
     b.conns.push(conn);
     console.log(`[bete] client connected on "${id}" (${b.conns.length})${conn._owner ? ' [owner]' : ''}`);
-    conn.on('open', () => { try { conn.send(buildPayload(b, conn)); } catch (e) { /* */ } });
+    conn.on('open', () => { try { conn.send(buildPayload(id, b, conn)); } catch (e) { /* */ } });
     conn.on('data', (msg) => { conn._lastSeen = now(); handleData(id, b, msg, conn); });
     const drop = () => { const i = b.conns.indexOf(conn); if (i >= 0) b.conns.splice(i, 1); broadcastPresence(b); console.log(`[bete] client disconnected from "${id}" (${b.conns.length})`); };
     conn.on('close', drop);

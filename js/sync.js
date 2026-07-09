@@ -6,18 +6,18 @@
 // (falls back to host priority if both sides are on the same build) -- an
 // out-of-date host (stale tab, permanent Pi host not yet redeployed) must not
 // keep clobbering a freshly-updated peer's edits forever.
-import { state, removeById, scheduleSave, getBoardId, getBoardName, setBoardName } from './state.js?v=mrdf3ucb';
-import { reset } from './physics.js?v=mrdf3ucb';
-import { explodeElementCascade } from './fx.js?v=mrdf3ucb';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrdf3ucb';
-import { onImageArrived } from './images.js?v=mrdf3ucb';
-import { getUserId, displayName } from './users.js?v=mrdf3ucb';
-import { shareOrigin } from './platform.js?v=mrdf3ucb';
-import { recordBoard } from './boards.js?v=mrdf3ucb';
-import { getOwnerToken, recordLiaison } from './liaisons.js?v=mrdf3ucb';
-import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrdf3ucb';
-import { fetchIcsLocal, resolveIcsPeerResponse, retryFailedIcs } from './ics.js?v=mrdf3ucb';
-import { refreshBoardNameUI } from './main.js?v=mrdf3ucb';
+import { state, removeById, scheduleSave, getBoardId, getBoardName, setBoardName } from './state.js?v=mrdgsx7r';
+import { reset } from './physics.js?v=mrdgsx7r';
+import { explodeElementCascade } from './fx.js?v=mrdgsx7r';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrdgsx7r';
+import { onImageArrived } from './images.js?v=mrdgsx7r';
+import { getUserId, displayName } from './users.js?v=mrdgsx7r';
+import { shareOrigin } from './platform.js?v=mrdgsx7r';
+import { recordBoard } from './boards.js?v=mrdgsx7r';
+import { getOwnerToken, recordLiaison } from './liaisons.js?v=mrdgsx7r';
+import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrdgsx7r';
+import { fetchIcsLocal, resolveIcsPeerResponse, retryFailedIcs } from './ics.js?v=mrdgsx7r';
+import { refreshBoardNameUI } from './main.js?v=mrdgsx7r';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host
@@ -368,8 +368,12 @@ function merge(remote) {
   // sync) -- replaces the old ?name=/?peer_name= URL params, which were
   // just an awkward, easy-to-desync way of carrying the exact same info.
   // Also names the liaison it arrived from (recordLiaison keeps any local
-  // rename regardless).
-  if (remote.bn && !getBoardName()) {
+  // rename regardless). remote.bn === the board id is the sender's own
+  // "nothing chosen yet" fallback (never persisted as a real name locally,
+  // see main.js: resolveBoardName -- but a headless host on an old build,
+  // or any other implementation, might still send it) -- not a real name,
+  // ignored so a genuine one can still land later.
+  if (remote.bn && remote.bn !== getBoardId() && !getBoardName()) {
     setBoardName(remote.bn);
     recordBoard(getBoardId(), remote.bn, mode === 'client' ? hostId() : null);
     if (mode === 'client') recordLiaison(hostId(), remote.bn);
