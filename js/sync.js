@@ -6,18 +6,18 @@
 // (falls back to host priority if both sides are on the same build) -- an
 // out-of-date host (stale tab, permanent Pi host not yet redeployed) must not
 // keep clobbering a freshly-updated peer's edits forever.
-import { state, removeById, scheduleSave, getBoardId, getBoardName, setBoardName } from './state.js?v=mrdx3kml';
-import { reset } from './physics.js?v=mrdx3kml';
-import { explodeElementCascade } from './fx.js?v=mrdx3kml';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrdx3kml';
-import { onImageArrived } from './images.js?v=mrdx3kml';
-import { getUserId, displayName } from './users.js?v=mrdx3kml';
-import { shareOrigin } from './platform.js?v=mrdx3kml';
-import { recordBoard } from './boards.js?v=mrdx3kml';
-import { getOwnerToken, recordLiaison } from './liaisons.js?v=mrdx3kml';
-import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrdx3kml';
-import { fetchIcsLocal, resolveIcsPeerResponse, retryFailedIcs } from './ics.js?v=mrdx3kml';
-import { refreshBoardNameUI } from './main.js?v=mrdx3kml';
+import { state, removeById, scheduleSave, getBoardId, getBoardName, setBoardName } from './state.js?v=mrdx8aeg';
+import { reset } from './physics.js?v=mrdx8aeg';
+import { explodeElementCascade } from './fx.js?v=mrdx8aeg';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrdx8aeg';
+import { onImageArrived } from './images.js?v=mrdx8aeg';
+import { getUserId, displayName } from './users.js?v=mrdx8aeg';
+import { shareOrigin } from './platform.js?v=mrdx8aeg';
+import { recordBoard } from './boards.js?v=mrdx8aeg';
+import { getOwnerToken, recordLiaison } from './liaisons.js?v=mrdx8aeg';
+import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrdx8aeg';
+import { fetchIcsLocal, resolveIcsPeerResponse, retryFailedIcs } from './ics.js?v=mrdx8aeg';
+import { refreshBoardNameUI } from './main.js?v=mrdx8aeg';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host
@@ -262,12 +262,13 @@ function nodeEntry(n) {
   const e = { t: n.text || '', img: n.image || null, x: n.x, y: n.y, w: n.w, h: n.h };
   if (n.kind === 'pancarte') e.k = 'pancarte';
   if (n.link) e.lk = n.link;
+  if (n.color) e.col = n.color;
   return e;
 }
 // For the image: the 'idb:<hash>' ref is short and changes with the content -> we
 // use it as-is; a legacy data URL (long) is reduced to its length (size proxy).
 function imgSig(img) { return img ? (img.length < 128 ? img : img.length) : 0; }
-function sigNode(e) { return e.vc ? 'V' + e.dur : e.cn ? 'C' + e.yml + '|' + e.disp + '|' + e.br + '|' + e.cf + '|' + e.sws + '|' + e.swe + '|' + e.ct + '|' + (e.col || '') : (e.ref !== undefined ? 'R' + e.ref : 'T' + e.t + '|' + imgSig(e.img) + '|' + (e.lk || '')); }
+function sigNode(e) { return e.vc ? 'V' + e.dur : e.cn ? 'C' + e.yml + '|' + e.disp + '|' + e.br + '|' + e.cf + '|' + e.sws + '|' + e.swe + '|' + e.ct + '|' + (e.col || '') : (e.ref !== undefined ? 'R' + e.ref : 'T' + e.t + '|' + imgSig(e.img) + '|' + (e.lk || '') + '|' + (e.col || '')); }
 function sigZone(e) { return 'Z' + e.col + '' + e.d; }
 
 function buildContent() {
@@ -409,7 +410,7 @@ function merge(remote) {
       else if (rd.cn) node = { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, kind: 'connector', yaml: rd.yml || '', display: rd.disp || 'triangle', clockFormat: rd.cf || 'HH:MM:SS', creatorUid: rd.creator || null, bridge: !!rd.br, color: rd.col || undefined, stopwatchStart: rd.sws || null, stopwatchElapsed: rd.swe || 0, countdownTarget: rd.ct || null };
       else node = rd.ref !== undefined
         ? { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, ref: rd.ref }
-        : { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, text: rd.t || '', image: rd.img || undefined };
+        : { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, text: rd.t || '', image: rd.img || undefined, color: rd.col || undefined };
       if (rd.k) node.kind = rd.k;
       if (rd.lk) node.link = rd.lk;
       state.nodes.push(node); reset(node);
@@ -449,6 +450,8 @@ function merge(remote) {
         if ((ex.image || undefined) !== img) { if (img) { ex.image = img; ensureImage(img); } else delete ex.image; changed = true; }
         const lk = rd.lk || undefined;
         if ((ex.link || undefined) !== lk) { if (lk) ex.link = lk; else delete ex.link; changed = true; }
+        const col = rd.col || undefined;
+        if ((ex.color || undefined) !== col) { if (col) ex.color = col; else delete ex.color; changed = true; }
       }
       mtimes[id] = remote.mt[id];
       applied.add(id);

@@ -3,27 +3,27 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS, BUTTON_COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mrdx3kml';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrdx3kml';
-import { dragTo, reset } from './physics.js?v=mrdx3kml';
-import { pointInHex } from './geom.js?v=mrdx3kml';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrdx3kml';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrdx3kml';
-import { getUserId } from './users.js?v=mrdx3kml';
-import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrdx3kml';
-import { getAudio, putAudio } from './audio.js?v=mrdx3kml';
-import { toast } from './main.js?v=mrdx3kml';
-import { explodeElementCascade } from './fx.js?v=mrdx3kml';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel, deleteBoardData } from './boards.js?v=mrdx3kml';
-import { listLiaisons, removeLiaison } from './liaisons.js?v=mrdx3kml';
-import { openSettings } from './settings.js?v=mrdx3kml';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrdx3kml';
-import { toggleDebug } from './debug.js?v=mrdx3kml';
-import { youTubeId } from './yt.js?v=mrdx3kml';
-import { setActiveVideo } from './video.js?v=mrdx3kml';
-import { t } from './i18n.js?v=mrdx3kml';
-import { openExternal } from './platform.js?v=mrdx3kml';
-import { isIcsUrl } from './ics.js?v=mrdx3kml';
+} from './state.js?v=mrdx8aeg';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrdx8aeg';
+import { dragTo, reset } from './physics.js?v=mrdx8aeg';
+import { pointInHex } from './geom.js?v=mrdx8aeg';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrdx8aeg';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrdx8aeg';
+import { getUserId } from './users.js?v=mrdx8aeg';
+import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrdx8aeg';
+import { getAudio, putAudio } from './audio.js?v=mrdx8aeg';
+import { toast } from './main.js?v=mrdx8aeg';
+import { explodeElementCascade } from './fx.js?v=mrdx8aeg';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel, deleteBoardData } from './boards.js?v=mrdx8aeg';
+import { listLiaisons, removeLiaison } from './liaisons.js?v=mrdx8aeg';
+import { openSettings } from './settings.js?v=mrdx8aeg';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrdx8aeg';
+import { toggleDebug } from './debug.js?v=mrdx8aeg';
+import { youTubeId } from './yt.js?v=mrdx8aeg';
+import { setActiveVideo } from './video.js?v=mrdx8aeg';
+import { t } from './i18n.js?v=mrdx8aeg';
+import { openExternal } from './platform.js?v=mrdx8aeg';
+import { isIcsUrl } from './ics.js?v=mrdx8aeg';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -1182,6 +1182,9 @@ function openContextAt(sx, sy) {
   } else if (r) {
     const isLink = !!r.ref;
     items = [{ label: t('radial.editText'), icon: 'edit', color: COL.cyan, fn: () => { const t = isLink ? sourceOf(r) : r; if (t) startEdit('rect', t, r); } }];
+    // A link has no color of its own -- it always mirrors its source's (see
+    // effectiveColor()), so recoloring only makes sense on a real rectangle.
+    if (!isLink) items.push({ label: t('radial.color'), icon: 'color', color: COL.purple, fn: () => openPalette(sx, sy, r, BUTTON_COLORS) });
     items.push({ label: t('radial.clickableLink'), icon: 'link', color: COL.purple, fn: () => { const t = isLink ? sourceOf(r) : r; if (t) openLinkEditor(t); } });
     const img = displayImage(r);
     if (img) items.push({ label: t('radial.viewImage'), icon: 'eye', color: COL.white, fn: () => openImagePopup(img) });

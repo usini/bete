@@ -1,7 +1,7 @@
 // Shared data model + localStorage persistence.
-import { pointInHex } from './geom.js?v=mrdx3kml';
-import { getUserId } from './users.js?v=mrdx3kml';
-import { parseBoardUrl, buildBoardUrl } from './boards.js?v=mrdx3kml';
+import { pointInHex } from './geom.js?v=mrdx8aeg';
+import { getUserId } from './users.js?v=mrdx8aeg';
+import { parseBoardUrl, buildBoardUrl } from './boards.js?v=mrdx8aeg';
 
 export const DEFAULT_GREEN = '#39ff14';
 
@@ -170,7 +170,7 @@ export function serialize() {
             countdownTarget: n.countdownTarget || undefined,
           };
         }
-        return { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, text: n.text, image: n.image || undefined, link: n.link || undefined, kind: n.kind === 'pancarte' ? 'pancarte' : undefined };
+        return { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, text: n.text, image: n.image || undefined, link: n.link || undefined, color: n.color || undefined, kind: n.kind === 'pancarte' ? 'pancarte' : undefined };
       }),
     circles: state.circles.map(c => ({
       id: c.id, x: c.x, y: c.y, r: c.r, color: c.color, description: c.description || '',
