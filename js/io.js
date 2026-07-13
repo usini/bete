@@ -1,12 +1,14 @@
 // JSON export / import.
-import { serialize, load, getBoardId, scheduleSave } from './state.js?v=mrj0mglu';
-import { reset } from './physics.js?v=mrj0mglu';
-import { state } from './state.js?v=mrj0mglu';
-import { inlineImages, migrateImages } from './images.js?v=mrj0mglu';
-import { inlineAudio, restoreAudio } from './voice.js?v=mrj0mglu';
-import { listBoards, recordBoard } from './boards.js?v=mrj0mglu';
-import { t } from './i18n.js?v=mrj0mglu';
-import { saveTextFile } from './platform.js?v=mrj0mglu';
+import { serialize, load, getBoardId, scheduleSave } from './state.js?v=mrj0vulc';
+import { reset } from './physics.js?v=mrj0vulc';
+import { state } from './state.js?v=mrj0vulc';
+import { inlineImages, migrateImages, hasImageLocally } from './images.js?v=mrj0vulc';
+import { inlineAudio, restoreAudio, hasAudioLocally } from './voice.js?v=mrj0vulc';
+import { requestImage, requestAudio, liaisonStatus } from './sync.js?v=mrj0vulc';
+import { listBoards, recordBoard } from './boards.js?v=mrj0vulc';
+import { t } from './i18n.js?v=mrj0vulc';
+import { saveTextFile } from './platform.js?v=mrj0vulc';
+import { toast } from './main.js?v=mrj0vulc';
 
 function downloadJSON(obj, filename) {
   saveTextFile(JSON.stringify(obj), filename, 'json');
@@ -19,7 +21,45 @@ function dateStamp() {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
+// Scans nodes for image/audio references not yet cached in THIS browser's
+// IndexedDB (see images.js/voice.js: hasImageLocally/hasAudioLocally) --
+// exporting one as-is would bake in a dangling reference that can't resolve
+// on another profile.
+async function findMissingMedia(nodes) {
+  const images = [], audio = [];
+  for (const n of nodes || []) {
+    if (n.image && n.image.indexOf('idb:') === 0 && !(await hasImageLocally(n.image))) images.push(n.image.slice(4));
+    if (n.kind === 'voice' && !(await hasAudioLocally(n.id))) audio.push(n.id);
+  }
+  return { images, audio };
+}
+
+// Before exporting the CURRENTLY OPEN (live) board: if a live liaison is
+// connected, actively ask for whatever's missing and give peers a few
+// seconds to answer; otherwise (or if still missing after that) just warn
+// how many blocks will be exported incomplete. Export proceeds either way --
+// this is a heads-up, not a hard block.
+async function ensureMediaCached(nodes) {
+  let missing = await findMissingMedia(nodes);
+  let total = missing.images.length + missing.audio.length;
+  if (!total) return;
+  if (liaisonStatus().role === null) { toast(t('toast.mediaMissing', { n: total }), 4000); return; }
+  toast(t('toast.fetchingMedia', { n: total }), 4000);
+  missing.images.forEach((h) => requestImage(h));
+  missing.audio.forEach((id) => requestAudio(id));
+  const deadline = performance.now() + 6000;
+  while (performance.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 500));
+    missing = await findMissingMedia(nodes);
+    total = missing.images.length + missing.audio.length;
+    if (!total) return;
+  }
+  toast(t('toast.mediaMissing', { n: total }), 4000);
+}
+
 export async function exportJSON() {
+  toast(t('toast.checkingMedia'), 1500);
+  await ensureMediaCached(state.nodes); // live nodes: a liaison (if any) can only fetch for THIS board
   const snap = serialize();          // fresh objects (safe to mutate)
   await inlineImages(snap.nodes);    // re-inline IndexedDB images -> self-contained file
   await inlineAudio(snap.nodes);     // same for voice memos (see voice.js: inlineAudio)
@@ -29,17 +69,25 @@ export async function exportJSON() {
 // Bulk backup: every board this browser knows about (see boards.js), each
 // with its images/audio re-inlined so the file is self-contained (no
 // IndexedDB refs -- see images.js: inlineImages, voice.js: inlineAudio).
+// Passive check only (no active peer fetch): a board not currently open has
+// no live connection to ask.
 export async function exportAllBoards() {
   const bundle = { version: 1, boards: {} };
+  let missingTotal = 0;
   for (const b of listBoards()) {
     let raw;
     try { raw = localStorage.getItem('bete:' + b.id); } catch (e) { raw = null; }
     if (!raw) continue; // e.g. 'tutorial': built-in, never saved to localStorage
     let data;
     try { data = JSON.parse(raw); } catch (e) { continue; }
-    if (data.nodes) { await inlineImages(data.nodes); await inlineAudio(data.nodes); }
+    if (data.nodes) {
+      const missing = await findMissingMedia(data.nodes);
+      missingTotal += missing.images.length + missing.audio.length;
+      await inlineImages(data.nodes); await inlineAudio(data.nodes);
+    }
     bundle.boards[b.id] = { name: b.name, peer: b.peer, ts: b.ts, data };
   }
+  if (missingTotal) toast(t('toast.mediaMissing', { n: missingTotal }), 4000);
   downloadJSON(bundle, 'bete-all-boards-' + dateStamp() + '.json');
 }
 

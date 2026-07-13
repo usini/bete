@@ -1,12 +1,12 @@
 // Voice memos: recording (MediaRecorder/Opus), IndexedDB storage,
 // play/pause, P2P sharing of the audio (see sync.js shareAudio/requestAudio).
-import { state, newId, scheduleSave } from './state.js?v=mrj0mglu';
-import { reset } from './physics.js?v=mrj0mglu';
-import { putAudio, getAudio, delAudio } from './audio.js?v=mrj0mglu';
-import { shareAudio, requestAudio } from './sync.js?v=mrj0mglu';
-import { t } from './i18n.js?v=mrj0mglu';
-import { acquireStream } from './voicechat.js?v=mrj0mglu';
-import { dataUrlToBlob, blobToDataUrl } from './images.js?v=mrj0mglu';
+import { state, newId, scheduleSave } from './state.js?v=mrj0vulc';
+import { reset } from './physics.js?v=mrj0vulc';
+import { putAudio, getAudio, delAudio } from './audio.js?v=mrj0vulc';
+import { shareAudio, requestAudio } from './sync.js?v=mrj0vulc';
+import { t } from './i18n.js?v=mrj0vulc';
+import { acquireStream } from './voicechat.js?v=mrj0vulc';
+import { dataUrlToBlob, blobToDataUrl } from './images.js?v=mrj0vulc';
 
 const players = {}; // id -> { audio, url }
 const MAX_MS = 60000; // max memo duration: 1 minute
@@ -122,6 +122,13 @@ export function removeVoiceAudio(id) {
   const p = players[id];
   if (p) { try { p.audio.pause(); } catch (e) { /* */ } URL.revokeObjectURL(p.url); delete players[id]; }
   delAudio(id);
+}
+
+// True if this memo's audio is already in THIS browser's IndexedDB (no peer
+// request). Used before export (see io.js: ensureMediaCached) to warn about
+// a memo whose bytes were never actually downloaded, only referenced.
+export async function hasAudioLocally(id) {
+  try { return !!(await getAudio(id)); } catch (e) { return false; }
 }
 
 // Re-inlines a voice memo's audio (IndexedDB blob -> data URL) for a

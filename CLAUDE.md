@@ -236,8 +236,15 @@ rebroadcasting base64 on every sync tick would saturate the P2P connection
   this browser already has locally cached — a block whose bytes were never
   actually downloaded from a peer (still just an unresolved `idb:` ref) is
   exported as a dangling reference and won't resolve on another profile.
-  Open/view every image and play every memo at least once (so this browser
-  fetches and caches them) before exporting if this matters.
+  `io.js`'s `exportJSON()` now checks for this automatically before
+  exporting the currently open board (`ensureMediaCached()`, using
+  `images.js`/`voice.js`: `hasImageLocally`/`hasAudioLocally`): if a live
+  liaison is connected it actively asks peers for whatever's missing and
+  waits a few seconds, then a toast reports how many blocks (if any)
+  couldn't be fetched and will export incomplete — never a hard block,
+  export always proceeds. `exportAllBoards()` only does the passive count
+  (no active fetch: a board that isn't the one currently open has no live
+  connection to ask).
 
 ## Deployment workflow (on every JS/HTML change)
 

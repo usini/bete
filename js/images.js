@@ -4,8 +4,8 @@
 // keeps a short reference 'idb:<hash>'. The bytes only transit ONCE per peer
 // (via sync.js: imgReq/imgRes), and a peer that already has the image never
 // re-downloads it.
-import { putImage, getImage } from './audio.js?v=mrj0mglu';
-import { requestImage } from './sync.js?v=mrj0mglu';
+import { putImage, getImage } from './audio.js?v=mrj0vulc';
+import { requestImage } from './sync.js?v=mrj0vulc';
 
 const els = new Map();   // ref -> HTMLImageElement (render cache, 1 per ref)
 const urls = new Map();  // hash -> objectURL (decoded blob, reused)
@@ -92,6 +92,17 @@ export async function resolveSrc(ref) {
   try { const blob = await getImage(hash); if (blob) return cacheUrl(hash, blob); } catch (e) { /* */ }
   requestOnce(hash);
   return '';
+}
+
+// True if a ref is already resolvable from THIS browser's IndexedDB (no peer
+// request) -- a legacy data/http URL is always "local" (nothing to fetch).
+// Used before export (see io.js: ensureMediaCached) to warn about a block
+// whose bytes were never actually downloaded, only referenced.
+export async function hasImageLocally(ref) {
+  const hash = hashOf(ref);
+  if (!hash) return true;
+  if (urls.has(hash)) return true;
+  try { return !!(await getImage(hash)); } catch (e) { return false; }
 }
 
 // Soft migration: converts legacy images (inline base64 data URL in the

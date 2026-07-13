@@ -33,6 +33,9 @@ const STRINGS = {
     'toast.homeLocal': 'HOME STAYS LOCAL (not connectable)',
     'toast.copied': 'COPIED {n}',
     'toast.pasted': 'PASTED {n}',
+    'toast.checkingMedia': 'CHECKING IMAGES/AUDIO...',
+    'toast.fetchingMedia': 'FETCHING {n} FILE(S) FROM PEERS...',
+    'toast.mediaMissing': '{n} FILE(S) COULD NOT BE FETCHED - EXPORTED WITHOUT THEM',
 
     'settings.tutorial': 'Tutorial',
 
@@ -255,6 +258,9 @@ const STRINGS = {
     'toast.homeLocal': 'HOME RESTE LOCAL (non connectable)',
     'toast.copied': 'COPIE {n}',
     'toast.pasted': 'COLLE {n}',
+    'toast.checkingMedia': 'VERIFICATION DES IMAGES/AUDIO...',
+    'toast.fetchingMedia': 'RECUPERATION DE {n} FICHIER(S) AUPRES DES PAIRS...',
+    'toast.mediaMissing': '{n} FICHIER(S) NON RECUPERABLE(S) - EXPORTES SANS',
 
     'settings.tutorial': 'Tutoriel',
 
