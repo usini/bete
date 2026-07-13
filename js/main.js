@@ -1,24 +1,25 @@
 // Bootstrap + render loop.
-import { state, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline, restore, COLORS } from './state.js?v=mrdx8aeg';
-import { setView } from './camera.js?v=mrdx8aeg';
-import { render } from './render.js?v=mrdx8aeg';
-import { step, reset } from './physics.js?v=mrdx8aeg';
-import * as minimap from './minimap.js?v=mrdx8aeg';
-import * as input from './input.js?v=mrdx8aeg';
-import * as fx from './fx.js?v=mrdx8aeg';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mrdx8aeg';
-import { recordBoard, getBoardEntry, listBoards, buildBoardUrl, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrdx8aeg';
-import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mrdx8aeg';
-import { applyTheme } from './theme.js?v=mrdx8aeg';
-import { initSettings, openSettings } from './settings.js?v=mrdx8aeg';
-import { recordLiaison, getLiaison, listLiaisons } from './liaisons.js?v=mrdx8aeg';
-import { positionVideoOverlay } from './video.js?v=mrdx8aeg';
-import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mrdx8aeg';
-import { migrateImages } from './images.js?v=mrdx8aeg';
-import { pollConnector } from './connector.js?v=mrdx8aeg';
-import { t, getLang, applyStaticI18n } from './i18n.js?v=mrdx8aeg';
-import { initDesktopLink, checkWebUpdate } from './platform.js?v=mrdx8aeg';
-import { checkForUpdate } from './update.js?v=mrdx8aeg';
+import { state, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline, restore, COLORS } from './state.js?v=mrj0mglu';
+import { setView } from './camera.js?v=mrj0mglu';
+import { render } from './render.js?v=mrj0mglu';
+import { step, reset } from './physics.js?v=mrj0mglu';
+import * as minimap from './minimap.js?v=mrj0mglu';
+import * as input from './input.js?v=mrj0mglu';
+import * as fx from './fx.js?v=mrj0mglu';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mrj0mglu';
+import { recordBoard, getBoardEntry, listBoards, buildBoardUrl, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrj0mglu';
+import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mrj0mglu';
+import { applyTheme } from './theme.js?v=mrj0mglu';
+import { initSettings, openSettings } from './settings.js?v=mrj0mglu';
+import { recordLiaison, getLiaison, listLiaisons } from './liaisons.js?v=mrj0mglu';
+import { positionVideoOverlay } from './video.js?v=mrj0mglu';
+import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mrj0mglu';
+import { migrateImages } from './images.js?v=mrj0mglu';
+import { restoreAudio } from './voice.js?v=mrj0mglu';
+import { pollConnector } from './connector.js?v=mrj0mglu';
+import { t, getLang, applyStaticI18n } from './i18n.js?v=mrj0mglu';
+import { initDesktopLink, checkWebUpdate } from './platform.js?v=mrj0mglu';
+import { checkForUpdate } from './update.js?v=mrj0mglu';
 
 applyTheme(); // apply the saved theme right at startup
 applyStaticI18n(); // translate the static HTML chrome (buttons, hint, etc.)
@@ -135,6 +136,12 @@ if (!REDIRECT) {
   // Soft migration of legacy images (inline base64 -> IndexedDB ref): lightens
   // localStorage AND sync. Not on the tutorial (read-only). Best-effort, in the background.
   if (boardId !== 'tutorial') migrateImages(state.nodes, scheduleSave).catch(() => {});
+  // Same for a voice memo's inlined audio (see voice.js: restoreAudio) -- needed
+  // here too (not just io.js: importJSON) because a bulk restore (importAllBoards)
+  // writes each board's raw JSON straight to localStorage without loading it, so
+  // any inlined audioData only gets pulled back into IndexedDB once that board
+  // is actually opened.
+  if (boardId !== 'tutorial') restoreAudio(state.nodes).catch(() => {});
 
   // Starts polling every connector block already on this board (each device polls independently).
   for (const n of state.nodes) if (n.kind === 'connector') pollConnector(n).catch(() => {});

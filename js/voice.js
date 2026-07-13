@@ -1,11 +1,12 @@
 // Voice memos: recording (MediaRecorder/Opus), IndexedDB storage,
 // play/pause, P2P sharing of the audio (see sync.js shareAudio/requestAudio).
-import { state, newId, scheduleSave } from './state.js?v=mrdx8aeg';
-import { reset } from './physics.js?v=mrdx8aeg';
-import { putAudio, getAudio, delAudio } from './audio.js?v=mrdx8aeg';
-import { shareAudio, requestAudio } from './sync.js?v=mrdx8aeg';
-import { t } from './i18n.js?v=mrdx8aeg';
-import { acquireStream } from './voicechat.js?v=mrdx8aeg';
+import { state, newId, scheduleSave } from './state.js?v=mrj0mglu';
+import { reset } from './physics.js?v=mrj0mglu';
+import { putAudio, getAudio, delAudio } from './audio.js?v=mrj0mglu';
+import { shareAudio, requestAudio } from './sync.js?v=mrj0mglu';
+import { t } from './i18n.js?v=mrj0mglu';
+import { acquireStream } from './voicechat.js?v=mrj0mglu';
+import { dataUrlToBlob, blobToDataUrl } from './images.js?v=mrj0mglu';
 
 const players = {}; // id -> { audio, url }
 const MAX_MS = 60000; // max memo duration: 1 minute
@@ -121,4 +122,30 @@ export function removeVoiceAudio(id) {
   const p = players[id];
   if (p) { try { p.audio.pause(); } catch (e) { /* */ } URL.revokeObjectURL(p.url); delete players[id]; }
   delAudio(id);
+}
+
+// Re-inlines a voice memo's audio (IndexedDB blob -> data URL) for a
+// self-contained JSON export, mirroring images.js: inlineImages -- without
+// this, a memo's actual sound never left this browser's IndexedDB, so an
+// exported/reimported board kept an empty 'voice' shell (duration only) on
+// another profile. Mutates the given nodes (use a disposable copy, e.g.
+// serialize()'s result, or a freshly-parsed bulk-export board).
+export async function inlineAudio(nodes) {
+  for (const node of nodes || []) {
+    if (node.kind !== 'voice') continue;
+    try { const blob = await getAudio(node.id); if (blob) node.audioData = await blobToDataUrl(blob); } catch (e) { /* */ }
+  }
+}
+
+// Reverse of inlineAudio: pulls an imported memo's inlined audio back into
+// IndexedDB (keyed by the node's own id, like a freshly recorded memo) and
+// drops the transient field -- serialize() never re-emits it anyway (voice
+// nodes are re-derived to {id,x,y,w,h,kind,dur}), this just avoids keeping a
+// stray base64 copy around in memory once it's back in IndexedDB.
+export async function restoreAudio(nodes) {
+  for (const node of nodes || []) {
+    if (node.kind !== 'voice' || !node.audioData) continue;
+    try { await putAudio(node.id, dataUrlToBlob(node.audioData)); } catch (e) { /* */ }
+    delete node.audioData;
+  }
 }

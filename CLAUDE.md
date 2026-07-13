@@ -220,6 +220,24 @@ rebroadcasting base64 on every sync tick would saturate the P2P connection
   export** (the file must stay openable without the original peers/IndexedDB).
 - Any new feature touching `node.image` must go through this module, never
   write a raw data URL to `node.image` without offloading it.
+- A voice memo's audio (`audio.js`: `putAudio`/`getAudio`, keyed by the
+  node's own id, unlike images which are keyed by content hash) follows the
+  same inline-for-export / restore-on-import pattern, in `voice.js`:
+  `inlineAudio()`/`restoreAudio()`. This was missing entirely until it was
+  added (a memo exported/imported into another browser used to keep an empty
+  `kind:'voice'` shell — duration only, no sound — since only the IndexedDB
+  ref existed, never the bytes). `io.js`'s 4 export/import paths all call
+  both the image and audio version; `main.js` also calls `restoreAudio()` at
+  boot (mirroring `migrateImages()`) since a bulk restore
+  (`importAllBoards`) writes each board's raw JSON straight to localStorage
+  without loading it, so inlined audio only gets pulled back into IndexedDB
+  once that specific board is actually opened.
+- Caveat shared by both: `inlineImages`/`inlineAudio` can only re-inline what
+  this browser already has locally cached — a block whose bytes were never
+  actually downloaded from a peer (still just an unresolved `idb:` ref) is
+  exported as a dangling reference and won't resolve on another profile.
+  Open/view every image and play every memo at least once (so this browser
+  fetches and caches them) before exporting if this matters.
 
 ## Deployment workflow (on every JS/HTML change)
 
