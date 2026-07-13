@@ -6,18 +6,18 @@
 // (falls back to host priority if both sides are on the same build) -- an
 // out-of-date host (stale tab, permanent Pi host not yet redeployed) must not
 // keep clobbering a freshly-updated peer's edits forever.
-import { state, removeById, scheduleSave, getBoardId, getBoardName, setBoardName } from './state.js?v=mrj1khta';
-import { reset } from './physics.js?v=mrj1khta';
-import { explodeElementCascade } from './fx.js?v=mrj1khta';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrj1khta';
-import { onImageArrived } from './images.js?v=mrj1khta';
-import { getUserId, displayName } from './users.js?v=mrj1khta';
-import { shareOrigin } from './platform.js?v=mrj1khta';
-import { recordBoard } from './boards.js?v=mrj1khta';
-import { getOwnerToken, recordLiaison } from './liaisons.js?v=mrj1khta';
-import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrj1khta';
-import { fetchIcsLocal, resolveIcsPeerResponse, retryFailedIcs } from './ics.js?v=mrj1khta';
-import { refreshBoardNameUI } from './main.js?v=mrj1khta';
+import { state, removeById, scheduleSave, getBoardId, getBoardName, setBoardName } from './state.js?v=mrj8crq0';
+import { reset } from './physics.js?v=mrj8crq0';
+import { explodeElementCascade } from './fx.js?v=mrj8crq0';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrj8crq0';
+import { onImageArrived } from './images.js?v=mrj8crq0';
+import { getUserId, displayName } from './users.js?v=mrj8crq0';
+import { shareOrigin } from './platform.js?v=mrj8crq0';
+import { recordBoard, parseBoardUrl, buildBoardUrl } from './boards.js?v=mrj8crq0';
+import { getOwnerToken, recordLiaison } from './liaisons.js?v=mrj8crq0';
+import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrj8crq0';
+import { fetchIcsLocal, resolveIcsPeerResponse, retryFailedIcs } from './ics.js?v=mrj8crq0';
+import { refreshBoardNameUI } from './main.js?v=mrj8crq0';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host
@@ -359,6 +359,17 @@ function findLocal(id) {
   return state.nodes.find(n => n.id === id) || state.circles.find(c => c.id === id) || state.hexagons.find(h => h.id === id);
 }
 
+// A board-link block's `link` must NEVER be an absolute URL -- see boards.js:
+// buildBoardUrl. A peer on an older build (or the desktop app, which used to
+// bake in its own http://127.0.0.1:<port> address) could still send one over
+// the wire; this re-derives the origin-less form on arrival, same as the
+// migration state.js:load() already does for a freshly loaded/imported board.
+function normalizeLink(lk) {
+  if (!lk) return lk;
+  const bu = parseBoardUrl(lk);
+  return bu ? buildBoardUrl(bu.id, bu.peer) : lk;
+}
+
 function merge(remote) {
   let changed = false;
   const applied = new Set();
@@ -412,7 +423,7 @@ function merge(remote) {
         ? { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, ref: rd.ref }
         : { id, x: rd.x, y: rd.y, w: rd.w, h: rd.h, text: rd.t || '', image: rd.img || undefined, color: rd.col || undefined };
       if (rd.k) node.kind = rd.k;
-      if (rd.lk) node.link = rd.lk;
+      if (rd.lk) node.link = normalizeLink(rd.lk);
       state.nodes.push(node); reset(node);
       if (rd.vc) ensureAudio(node); // fetches the audio from peers
       if (rd.cn) pollConnector(node).catch(() => {}); // this device polls the device independently too
@@ -448,7 +459,7 @@ function merge(remote) {
         if ((ex.text || '') !== (rd.t || '')) { ex.text = rd.t || ''; changed = true; }
         const img = rd.img || undefined;
         if ((ex.image || undefined) !== img) { if (img) { ex.image = img; ensureImage(img); } else delete ex.image; changed = true; }
-        const lk = rd.lk || undefined;
+        const lk = normalizeLink(rd.lk) || undefined;
         if ((ex.link || undefined) !== lk) { if (lk) ex.link = lk; else delete ex.link; changed = true; }
         const col = rd.col || undefined;
         if ((ex.color || undefined) !== col) { if (col) ex.color = col; else delete ex.color; changed = true; }

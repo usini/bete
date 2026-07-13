@@ -71,6 +71,13 @@ export function buildBoardUrl(id, peer) {
   return u;
 }
 
+// Every query param a board URL has ever carried, across all past formats --
+// `name`/`peer_name` are long-gone (see sync.js: a board/liaison's name now
+// arrives over the wire instead) but a link created before that change still
+// carries one, and must still be recognized as a board link, not just an
+// origin-less/id-peer one -- see parseBoardUrl.
+const LEGACY_PARAMS = new Set(['id', 'peer', 'name', 'peer_name']);
+
 // Parse a board URL (returns null if invalid or not a board URL). Deliberately
 // origin-agnostic: a legacy/foreign absolute link (an old export, a board
 // synced before buildBoardUrl dropped the origin, or one authored on the
@@ -78,15 +85,18 @@ export function buildBoardUrl(id, peer) {
 // opened on a completely different origin (e.g. imported from desktop into
 // the web build), otherwise it's stuck pointing at an address that only ever
 // meant something on the machine that created it. Recognized by SHAPE
-// instead: an `id` param, and no OTHER param besides `id`/`peer` -- narrow
-// enough that a genuinely unrelated external link (someone's own "clickable
-// link" that happens to carry an `id=` param among others) won't misfire.
+// instead: an `id` param, and no param outside LEGACY_PARAMS -- narrow enough
+// that a genuinely unrelated external link (someone's own "clickable link"
+// that happens to carry an `id=` param among others) won't misfire. Any
+// legacy param (`name`, `peer_name`) is recognized but always dropped by the
+// caller (buildBoardUrl never re-emits them) -- this function only decides
+// whether a URL IS a board link, not what to keep from it.
 export function parseBoardUrl(url) {
   try {
     const u = new URL(url, location.href);
     const id = u.searchParams.get('id');
     if (!id) return null;
-    for (const k of u.searchParams.keys()) if (k !== 'id' && k !== 'peer') return null;
+    for (const k of u.searchParams.keys()) if (!LEGACY_PARAMS.has(k)) return null;
     return { id, peer: u.searchParams.get('peer') };
   } catch (e) { return null; }
 }
