@@ -46,20 +46,6 @@ export function shareOrigin() {
   return PUBLIC_URL;
 }
 
-// Every origin+path that designates THIS app: a board URL under any of these
-// is an internal link (navigated in-window), not an external website. On the
-// web the local origin is enough; on desktop, links authored for sharing
-// carry the public or LAN address (see shareOrigin), and must still open
-// inside the app when clicked locally.
-export function appOrigins() {
-  const list = [location.origin + location.pathname];
-  if (isDesktop) {
-    list.push(PUBLIC_URL);
-    if (lanUrl) list.push(lanUrl);
-  }
-  return list;
-}
-
 // Saves a text file to disk, on web and desktop alike.
 //
 // On the web build, the classic Blob + <a download> trick works fine (every

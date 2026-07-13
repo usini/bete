@@ -1,25 +1,25 @@
 // Bootstrap + render loop.
-import { state, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline, restore, COLORS } from './state.js?v=mrj0vulc';
-import { setView } from './camera.js?v=mrj0vulc';
-import { render } from './render.js?v=mrj0vulc';
-import { step, reset } from './physics.js?v=mrj0vulc';
-import * as minimap from './minimap.js?v=mrj0vulc';
-import * as input from './input.js?v=mrj0vulc';
-import * as fx from './fx.js?v=mrj0vulc';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mrj0vulc';
-import { recordBoard, getBoardEntry, listBoards, buildBoardUrl, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrj0vulc';
-import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mrj0vulc';
-import { applyTheme } from './theme.js?v=mrj0vulc';
-import { initSettings, openSettings } from './settings.js?v=mrj0vulc';
-import { recordLiaison, getLiaison, listLiaisons } from './liaisons.js?v=mrj0vulc';
-import { positionVideoOverlay } from './video.js?v=mrj0vulc';
-import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mrj0vulc';
-import { migrateImages } from './images.js?v=mrj0vulc';
-import { restoreAudio } from './voice.js?v=mrj0vulc';
-import { pollConnector } from './connector.js?v=mrj0vulc';
-import { t, getLang, applyStaticI18n } from './i18n.js?v=mrj0vulc';
-import { initDesktopLink, checkWebUpdate } from './platform.js?v=mrj0vulc';
-import { checkForUpdate } from './update.js?v=mrj0vulc';
+import { state, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline, restore, COLORS } from './state.js?v=mrj1khta';
+import { setView } from './camera.js?v=mrj1khta';
+import { render } from './render.js?v=mrj1khta';
+import { step, reset } from './physics.js?v=mrj1khta';
+import * as minimap from './minimap.js?v=mrj1khta';
+import * as input from './input.js?v=mrj1khta';
+import * as fx from './fx.js?v=mrj1khta';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mrj1khta';
+import { recordBoard, getBoardEntry, listBoards, buildBoardUrl, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrj1khta';
+import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mrj1khta';
+import { applyTheme } from './theme.js?v=mrj1khta';
+import { initSettings, openSettings } from './settings.js?v=mrj1khta';
+import { recordLiaison, getLiaison, listLiaisons } from './liaisons.js?v=mrj1khta';
+import { positionVideoOverlay } from './video.js?v=mrj1khta';
+import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mrj1khta';
+import { migrateImages } from './images.js?v=mrj1khta';
+import { restoreAudio } from './voice.js?v=mrj1khta';
+import { pollConnector } from './connector.js?v=mrj1khta';
+import { t, getLang, applyStaticI18n } from './i18n.js?v=mrj1khta';
+import { initDesktopLink, checkWebUpdate } from './platform.js?v=mrj1khta';
+import { checkForUpdate } from './update.js?v=mrj1khta';
 
 applyTheme(); // apply the saved theme right at startup
 applyStaticI18n(); // translate the static HTML chrome (buttons, hint, etc.)

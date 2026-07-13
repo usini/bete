@@ -6,18 +6,18 @@
 // (falls back to host priority if both sides are on the same build) -- an
 // out-of-date host (stale tab, permanent Pi host not yet redeployed) must not
 // keep clobbering a freshly-updated peer's edits forever.
-import { state, removeById, scheduleSave, getBoardId, getBoardName, setBoardName } from './state.js?v=mrj0vulc';
-import { reset } from './physics.js?v=mrj0vulc';
-import { explodeElementCascade } from './fx.js?v=mrj0vulc';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrj0vulc';
-import { onImageArrived } from './images.js?v=mrj0vulc';
-import { getUserId, displayName } from './users.js?v=mrj0vulc';
-import { shareOrigin } from './platform.js?v=mrj0vulc';
-import { recordBoard } from './boards.js?v=mrj0vulc';
-import { getOwnerToken, recordLiaison } from './liaisons.js?v=mrj0vulc';
-import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrj0vulc';
-import { fetchIcsLocal, resolveIcsPeerResponse, retryFailedIcs } from './ics.js?v=mrj0vulc';
-import { refreshBoardNameUI } from './main.js?v=mrj0vulc';
+import { state, removeById, scheduleSave, getBoardId, getBoardName, setBoardName } from './state.js?v=mrj1khta';
+import { reset } from './physics.js?v=mrj1khta';
+import { explodeElementCascade } from './fx.js?v=mrj1khta';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrj1khta';
+import { onImageArrived } from './images.js?v=mrj1khta';
+import { getUserId, displayName } from './users.js?v=mrj1khta';
+import { shareOrigin } from './platform.js?v=mrj1khta';
+import { recordBoard } from './boards.js?v=mrj1khta';
+import { getOwnerToken, recordLiaison } from './liaisons.js?v=mrj1khta';
+import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrj1khta';
+import { fetchIcsLocal, resolveIcsPeerResponse, retryFailedIcs } from './ics.js?v=mrj1khta';
+import { refreshBoardNameUI } from './main.js?v=mrj1khta';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host

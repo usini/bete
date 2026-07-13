@@ -1,6 +1,4 @@
 // History of visited boards + utilities (unique IDs, URLs).
-import { appOrigins } from './platform.js?v=mrj0vulc';
-
 const KEY = 'bete:boards';
 
 // Unique board ID (anti-collision, especially on a shared server).
@@ -73,22 +71,22 @@ export function buildBoardUrl(id, peer) {
   return u;
 }
 
-// Parse a board URL (returns null if invalid or not a board URL). Accepts
-// both today's origin-less form and legacy absolute links (old exports/synced
-// boards saved before buildBoardUrl dropped the origin) -- a URL is a board
-// URL when it's either relative or lives under one of the app's own origins
-// (local window, public deployment or LAN address on desktop -- see
-// platform.js: appOrigins).
+// Parse a board URL (returns null if invalid or not a board URL). Deliberately
+// origin-agnostic: a legacy/foreign absolute link (an old export, a board
+// synced before buildBoardUrl dropped the origin, or one authored on the
+// desktop build -- http://127.0.0.1:<port>/...) must still be recognized when
+// opened on a completely different origin (e.g. imported from desktop into
+// the web build), otherwise it's stuck pointing at an address that only ever
+// meant something on the machine that created it. Recognized by SHAPE
+// instead: an `id` param, and no OTHER param besides `id`/`peer` -- narrow
+// enough that a genuinely unrelated external link (someone's own "clickable
+// link" that happens to carry an `id=` param among others) won't misfire.
 export function parseBoardUrl(url) {
   try {
     const u = new URL(url, location.href);
-    const internal = appOrigins().some((o) => {
-      try { const b = new URL(o, location.href); return u.origin === b.origin && u.pathname === b.pathname; }
-      catch (e) { return false; }
-    });
-    if (!internal) return null;
     const id = u.searchParams.get('id');
     if (!id) return null;
+    for (const k of u.searchParams.keys()) if (k !== 'id' && k !== 'peer') return null;
     return { id, peer: u.searchParams.get('peer') };
   } catch (e) { return null; }
 }

@@ -1,14 +1,14 @@
 // JSON export / import.
-import { serialize, load, getBoardId, scheduleSave } from './state.js?v=mrj0vulc';
-import { reset } from './physics.js?v=mrj0vulc';
-import { state } from './state.js?v=mrj0vulc';
-import { inlineImages, migrateImages, hasImageLocally } from './images.js?v=mrj0vulc';
-import { inlineAudio, restoreAudio, hasAudioLocally } from './voice.js?v=mrj0vulc';
-import { requestImage, requestAudio, liaisonStatus } from './sync.js?v=mrj0vulc';
-import { listBoards, recordBoard } from './boards.js?v=mrj0vulc';
-import { t } from './i18n.js?v=mrj0vulc';
-import { saveTextFile } from './platform.js?v=mrj0vulc';
-import { toast } from './main.js?v=mrj0vulc';
+import { serialize, load, getBoardId, scheduleSave } from './state.js?v=mrj1khta';
+import { reset } from './physics.js?v=mrj1khta';
+import { state } from './state.js?v=mrj1khta';
+import { inlineImages, migrateImages, hasImageLocally } from './images.js?v=mrj1khta';
+import { inlineAudio, restoreAudio, hasAudioLocally } from './voice.js?v=mrj1khta';
+import { requestImage, requestAudio, liaisonStatus } from './sync.js?v=mrj1khta';
+import { listBoards, recordBoard } from './boards.js?v=mrj1khta';
+import { t } from './i18n.js?v=mrj1khta';
+import { saveTextFile } from './platform.js?v=mrj1khta';
+import { toast } from './main.js?v=mrj1khta';
 
 function downloadJSON(obj, filename) {
   saveTextFile(JSON.stringify(obj), filename, 'json');
