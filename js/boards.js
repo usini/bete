@@ -100,3 +100,43 @@ export function parseBoardUrl(url) {
     return { id, peer: u.searchParams.get('peer') };
   } catch (e) { return null; }
 }
+
+// Updates every board-list entry's `peer` (used to group the built-in
+// "boards" directory into circles per liaison, see main.js:
+// loadBoardsDirectory) -- companion to liaisons.js: changeLiaisonPeer, for
+// when the user manually rotates a liaison's underlying peer id.
+export function renameBoardsPeer(oldPeer, newPeer) {
+  const list = listBoards();
+  let changed = false;
+  for (const b of list) if (b.peer === oldPeer) { b.peer = newPeer; changed = true; }
+  if (changed) { try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) { /* */ } }
+}
+
+// Rewrites every board-link block's `peer` query param, across every SAVED
+// board's content (localStorage['bete:'+id]) -- companion to
+// changeLiaisonPeer/renameBoardsPeer: without this, existing links keep
+// pointing at the old (now-dead, after a manual rotation) peer id forever.
+// `skipBoardId` (the currently open board, if any) is skipped here -- its
+// live js/state.js:state.nodes copy is authoritative until the next
+// autosave, so the caller patches that one directly instead. Returns how
+// many links were actually rewritten (for user feedback).
+export function rewriteLinksPeer(oldPeer, newPeer, skipBoardId) {
+  let count = 0;
+  for (const b of listBoards()) {
+    if (b.id === skipBoardId) continue;
+    const key = 'bete:' + b.id;
+    let raw;
+    try { raw = localStorage.getItem(key); } catch (e) { continue; }
+    if (!raw) continue;
+    let data;
+    try { data = JSON.parse(raw); } catch (e) { continue; }
+    let changed = false;
+    for (const n of data.nodes || []) {
+      if (!n.link) continue;
+      const bu = parseBoardUrl(n.link);
+      if (bu && bu.peer === oldPeer) { n.link = buildBoardUrl(bu.id, newPeer); changed = true; count++; }
+    }
+    if (changed) { try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) { /* */ } }
+  }
+  return count;
+}

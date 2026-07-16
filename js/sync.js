@@ -6,18 +6,18 @@
 // (falls back to host priority if both sides are on the same build) -- an
 // out-of-date host (stale tab, permanent Pi host not yet redeployed) must not
 // keep clobbering a freshly-updated peer's edits forever.
-import { state, removeById, scheduleSave, getBoardId, getBoardName, setBoardName } from './state.js?v=mrj8crq0';
-import { reset } from './physics.js?v=mrj8crq0';
-import { explodeElementCascade } from './fx.js?v=mrj8crq0';
-import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrj8crq0';
-import { onImageArrived } from './images.js?v=mrj8crq0';
-import { getUserId, displayName } from './users.js?v=mrj8crq0';
-import { shareOrigin } from './platform.js?v=mrj8crq0';
-import { recordBoard, parseBoardUrl, buildBoardUrl } from './boards.js?v=mrj8crq0';
-import { getOwnerToken, recordLiaison } from './liaisons.js?v=mrj8crq0';
-import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrj8crq0';
-import { fetchIcsLocal, resolveIcsPeerResponse, retryFailedIcs } from './ics.js?v=mrj8crq0';
-import { refreshBoardNameUI } from './main.js?v=mrj8crq0';
+import { state, removeById, scheduleSave, getBoardId, getBoardName, setBoardName } from './state.js?v=mrna29pn';
+import { reset } from './physics.js?v=mrna29pn';
+import { explodeElementCascade } from './fx.js?v=mrna29pn';
+import { putAudio, getAudio, delAudio, putImage, getImage } from './audio.js?v=mrna29pn';
+import { onImageArrived } from './images.js?v=mrna29pn';
+import { getUserId, displayName } from './users.js?v=mrna29pn';
+import { shareOrigin } from './platform.js?v=mrna29pn';
+import { recordBoard, parseBoardUrl, buildBoardUrl } from './boards.js?v=mrna29pn';
+import { getOwnerToken, recordLiaison } from './liaisons.js?v=mrna29pn';
+import { pollConnector, stopPolling, toggleSwitch } from './connector.js?v=mrna29pn';
+import { fetchIcsLocal, resolveIcsPeerResponse, retryFailedIcs } from './ics.js?v=mrna29pn';
+import { refreshBoardNameUI } from './main.js?v=mrna29pn';
 
 let clientRoster = []; // client side: list of users received from the host
 let lastHostMsg = 0;   // client side: timestamp of the last message received from the host

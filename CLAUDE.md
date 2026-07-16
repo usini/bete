@@ -179,6 +179,19 @@ dictionary objects (`STRINGS.fr`, `STRINGS.en`) plus a lookup function.
   client's still-unset fallback and hand it to every future client as if it
   were genuine, and a real rename from anyone else would then never stick
   (`bete-host.js`: `realName()`/`merge()` guard against this defensively too).
+- **Rotating a compromised peer id**: a browser-hosted liaison has a one-click
+  revoke (`sync.js`: `refreshHostId`, the liaison block's "New link" — kills
+  the old id immediately, connected guests are dropped). The headless Pi host
+  has no in-app equivalent: rotate it server-side (delete `server/data/peer-id`
+  or set `BETE_ID`, then restart the service). Either way, every local
+  reference to the OLD id (the liaison bookmark, the "boards" directory
+  grouping, every board-link block across every saved board) is stuck
+  pointing at a now-dead id until told otherwise — Settings → Liaisons has a
+  "🆔" button (`settings.js`, using `liaisons.js`: `changeLiaisonPeer` +
+  `boards.js`: `renameBoardsPeer`/`rewriteLinksPeer`) that rewrites all of
+  that in one go, in this browser. It only edits local bookkeeping, never the
+  actual peer/host — each device still needs to run this once (or get a
+  fresh link) after the real rotation.
 - Host/client election (`joinOrHost`): the first to claim the peer id becomes
   the host, subsequent ones become clients. Host heartbeat (3s) + client
   watchdog (8s) to detect connection loss. **Cautious** reconnection: the

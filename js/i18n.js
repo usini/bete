@@ -36,6 +36,8 @@ const STRINGS = {
     'toast.checkingMedia': 'CHECKING IMAGES/AUDIO...',
     'toast.fetchingMedia': 'FETCHING {n} FILE(S) FROM PEERS...',
     'toast.mediaMissing': '{n} FILE(S) COULD NOT BE FETCHED - EXPORTED WITHOUT THEM',
+    'toast.peerIdTaken': 'THAT PEER ID IS ALREADY USED BY ANOTHER LIAISON',
+    'toast.peerIdChanged': 'PEER ID UPDATED ({n} LINK(S) REWRITTEN)',
 
     'settings.tutorial': 'Tutorial',
 
@@ -196,6 +198,7 @@ const STRINGS = {
     'settings.joinThis.title': 'Join this liaison',
     'settings.rename.title': 'Rename',
     'settings.rename.prompt': 'Liaison name:',
+    'settings.changeId.title': 'Change peer id (after rotating it server-side)',
     'settings.remove.title': 'Remove',
     'settings.peerPlaceholder': 'peer id or link…',
     'settings.join': 'Join',
@@ -261,6 +264,8 @@ const STRINGS = {
     'toast.checkingMedia': 'VERIFICATION DES IMAGES/AUDIO...',
     'toast.fetchingMedia': 'RECUPERATION DE {n} FICHIER(S) AUPRES DES PAIRS...',
     'toast.mediaMissing': '{n} FICHIER(S) NON RECUPERABLE(S) - EXPORTES SANS',
+    'toast.peerIdTaken': 'CET ID DE PEER EST DEJA UTILISE PAR UNE AUTRE LIAISON',
+    'toast.peerIdChanged': 'ID DE PEER MIS A JOUR ({n} LIEN(S) CORRIGE(S))',
 
     'settings.tutorial': 'Tutoriel',
 
@@ -421,6 +426,7 @@ const STRINGS = {
     'settings.joinThis.title': 'Rejoindre cette liaison',
     'settings.rename.title': 'Renommer',
     'settings.rename.prompt': 'Nom de la liaison :',
+    'settings.changeId.title': "Changer l'id du peer (après l'avoir régénéré côté serveur)",
     'settings.remove.title': 'Retirer',
     'settings.peerPlaceholder': 'id de peer ou lien…',
     'settings.join': 'Rejoindre',

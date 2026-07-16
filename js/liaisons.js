@@ -40,6 +40,24 @@ export function removeLiaison(peer) {
   save(listLiaisons().filter((x) => x.peer !== peer));
 }
 
+// Changes a liaison's peer id in place (keeps its name/renamed flag) --
+// used when the underlying peer was rotated by hand (e.g. the Raspberry Pi's
+// id regenerated for security reasons) and every local reference should
+// follow. Refuses if the new id is already used by another liaison entry
+// (would collide). See boards.js: rewriteLinksPeer/renameBoardsPeer for the
+// companion updates to actual board-link blocks -- this only renames the
+// liaison bookmark itself.
+export function changeLiaisonPeer(oldPeer, newPeer) {
+  if (!oldPeer || !newPeer || oldPeer === newPeer) return false;
+  const list = listLiaisons();
+  if (list.some((x) => x.peer === newPeer)) return false;
+  const i = list.findIndex((x) => x.peer === oldPeer);
+  if (i < 0) return false;
+  list[i] = { ...list[i], peer: newPeer };
+  save(list);
+  return true;
+}
+
 export function getLiaison(peer) {
   return listLiaisons().find((x) => x.peer === peer) || null;
 }

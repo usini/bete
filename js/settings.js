@@ -4,18 +4,19 @@
 // had grown into an unreadable wall of ~25 tiny buttons. The visited-boards
 // list that used to live here is gone: the built-in "boards" directory board
 // (js/main.js: loadBoardsDirectory) already is that list, one tile away.
-import { state, getBoardId, scheduleSave } from './state.js?v=mrj8crq0';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mrj8crq0';
-import { buildBoardUrl } from './boards.js?v=mrj8crq0';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison } from './liaisons.js?v=mrj8crq0';
-import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mrj8crq0';
-import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mrj8crq0';
-import { exportBoardHtml } from './exportHtml.js?v=mrj8crq0';
-import { getUserName, setUserName } from './users.js?v=mrj8crq0';
-import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mrj8crq0';
-import { t, getLang, setLang, LANGS } from './i18n.js?v=mrj8crq0';
-import { isDesktop, getLinkMode, setLinkMode, getAppVersion } from './platform.js?v=mrj8crq0';
-import { getIcsProxy, setIcsProxy } from './ics.js?v=mrj8crq0';
+import { state, getBoardId, scheduleSave } from './state.js?v=mrna29pn';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mrna29pn';
+import { buildBoardUrl, parseBoardUrl, renameBoardsPeer, rewriteLinksPeer } from './boards.js?v=mrna29pn';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison, changeLiaisonPeer } from './liaisons.js?v=mrna29pn';
+import { toast } from './main.js?v=mrna29pn';
+import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mrna29pn';
+import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mrna29pn';
+import { exportBoardHtml } from './exportHtml.js?v=mrna29pn';
+import { getUserName, setUserName } from './users.js?v=mrna29pn';
+import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mrna29pn';
+import { t, getLang, setLang, LANGS } from './i18n.js?v=mrna29pn';
+import { isDesktop, getLinkMode, setLinkMode, getAppVersion } from './platform.js?v=mrna29pn';
+import { getIcsProxy, setIcsProxy } from './ics.js?v=mrna29pn';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
@@ -201,10 +202,45 @@ function buildLiaisons(panel) {
       row.appendChild(inp); row.appendChild(ok);
       inp.focus(); inp.select();
     });
+    const chg = el('button', 'set-mini', '🆔');
+    chg.title = t('settings.changeId.title');
+    // Rewrites the liaison's peer id everywhere it's referenced locally:
+    // the liaison bookmark itself, the "boards" directory grouping, and
+    // every board-link block across every saved board (+ the currently
+    // open one, still only in memory until the next autosave). Used after
+    // manually rotating the underlying peer (e.g. regenerated the Pi's id
+    // for security reasons) so existing links don't stay pointing at a
+    // now-dead id. Never touches the actual peer/host -- that's done by
+    // hand server-side; this only updates this browser's own bookkeeping.
+    chg.addEventListener('click', () => {
+      row.innerHTML = '';
+      row.className = 'set-new';
+      const inp = el('input'); inp.value = l.peer; inp.maxLength = 200;
+      const ok = el('button', null, t('settings.ok'));
+      const commit = () => {
+        const newPeer = inp.value.trim();
+        if (!newPeer || newPeer === l.peer) { build(panel); return; }
+        if (!changeLiaisonPeer(l.peer, newPeer)) { toast(t('toast.peerIdTaken')); build(panel); return; }
+        renameBoardsPeer(l.peer, newPeer);
+        let count = rewriteLinksPeer(l.peer, newPeer, getBoardId());
+        for (const n of state.nodes) {
+          if (!n.link) continue;
+          const bu = parseBoardUrl(n.link);
+          if (bu && bu.peer === l.peer) { n.link = buildBoardUrl(bu.id, newPeer); count++; }
+        }
+        scheduleSave();
+        toast(t('toast.peerIdChanged', { n: count }));
+        build(panel);
+      };
+      ok.addEventListener('click', commit);
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') commit(); else if (e.key === 'Escape') { e.stopPropagation(); build(panel); } });
+      row.appendChild(inp); row.appendChild(ok);
+      inp.focus(); inp.select();
+    });
     const del = el('button', 'set-mini', '✕');
     del.title = t('settings.remove.title');
     del.addEventListener('click', () => { removeLiaison(l.peer); build(panel); });
-    row.appendChild(name); row.appendChild(ren); row.appendChild(del);
+    row.appendChild(name); row.appendChild(ren); row.appendChild(chg); row.appendChild(del);
     panel.appendChild(row);
   });
   // Join a new liaison (peer id or pasted link).
