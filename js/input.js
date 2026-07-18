@@ -3,27 +3,27 @@
 import {
   state, addRect, addCircle, addHexagon, addConnector, removeById, scheduleSave, COLORS, BUTTON_COLORS,
   findById, newId, sourceOf, displayImage, displayLink, displayText, getBoardId, undo,
-} from './state.js?v=mrqsaefj';
-import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrqsaefj';
-import { dragTo, reset } from './physics.js?v=mrqsaefj';
-import { pointInHex } from './geom.js?v=mrqsaefj';
-import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrqsaefj';
-import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrqsaefj';
-import { getUserId } from './users.js?v=mrqsaefj';
-import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrqsaefj';
-import { getAudio, putAudio } from './audio.js?v=mrqsaefj';
-import { toast } from './main.js?v=mrqsaefj';
-import { explodeElementCascade } from './fx.js?v=mrqsaefj';
-import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel, deleteBoardData } from './boards.js?v=mrqsaefj';
-import { listLiaisons, removeLiaison } from './liaisons.js?v=mrqsaefj';
-import { openSettings } from './settings.js?v=mrqsaefj';
-import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrqsaefj';
-import { toggleDebug } from './debug.js?v=mrqsaefj';
-import { youTubeId } from './yt.js?v=mrqsaefj';
-import { setActiveVideo } from './video.js?v=mrqsaefj';
-import { t } from './i18n.js?v=mrqsaefj';
-import { openExternal } from './platform.js?v=mrqsaefj';
-import { isIcsUrl } from './ics.js?v=mrqsaefj';
+} from './state.js?v=mrqukf1e';
+import { screenToWorld, worldToScreen, zoomAt, panBy } from './camera.js?v=mrqukf1e';
+import { dragTo, reset } from './physics.js?v=mrqukf1e';
+import { pointInHex } from './geom.js?v=mrqukf1e';
+import { pollConnector, stopPolling, toggleSwitch, applyConnectorProgram, refreshConnector, toggleStopwatch, resetStopwatch, setCountdownTarget } from './connector.js?v=mrqukf1e';
+import { startHost, adoptHost, detachHost, refreshHostId, pushMove, pushDelete, isClient, isOwner, hostId, buildUrl, loadQR, reportCursor, shareImage, requestSwitchToggle } from './sync.js?v=mrqukf1e';
+import { getUserId } from './users.js?v=mrqukf1e';
+import { storeImage, resolveSrc, inlineImages, dataUrlToBlob, blobToDataUrl } from './images.js?v=mrqukf1e';
+import { getAudio, putAudio } from './audio.js?v=mrqukf1e';
+import { toast } from './main.js?v=mrqukf1e';
+import { explodeElementCascade } from './fx.js?v=mrqukf1e';
+import { genBoardId, listBoards, buildBoardUrl, recordBoard, parseBoardUrl, reservedBoardLabel, deleteBoardData } from './boards.js?v=mrqukf1e';
+import { listLiaisons, removeLiaison } from './liaisons.js?v=mrqukf1e';
+import { openSettings } from './settings.js?v=mrqukf1e';
+import { recordVoiceMemo, toggleVoice, removeVoiceAudio } from './voice.js?v=mrqukf1e';
+import { toggleDebug } from './debug.js?v=mrqukf1e';
+import { youTubeId } from './yt.js?v=mrqukf1e';
+import { setActiveVideo } from './video.js?v=mrqukf1e';
+import { t } from './i18n.js?v=mrqukf1e';
+import { openExternal } from './platform.js?v=mrqukf1e';
+import { isIcsUrl } from './ics.js?v=mrqukf1e';
 
 let canvas;
 let drag = null;        // { mode, id, offx, offy, startX, startY }
@@ -434,11 +434,16 @@ function finishDrag() {
       }
     }
   } else if (drag.mode === 'pan') {
-    // Tap on the background: in locked mode, a tap on a link focuses/follows it.
+    // Tap on the background: in locked mode (mobile default, or a read-only
+    // guest), playback still works -- only actual editing needs "Enable"
+    // first. Mirrors the same three cases already allowed unlocked in the
+    // 'rect' branch above (voice memo / video / link).
     const moved = Math.hypot((drag.px - drag.sx0), (drag.py - drag.sy0));
     if (moved < 6) {
       const w = screenToWorld(drag.px, drag.py);
       const r = hitRect(w);
+      if (r && r.kind === 'voice') { toggleVoice(r); return; }
+      if (r && !r.ref && youTubeId(r.text)) { setActiveVideo(r); return; }
       if (r && displayLink(r)) { handleLinkTap(r); return; }
       clearLinkFocus();
     }
@@ -690,6 +695,7 @@ function handleDouble(sx, sy) {
   // Double-tap/click on a link => follows it directly (allowed even when locked).
   if (r && displayLink(r)) { clearLinkFocus(); followLink(displayLink(r)); return; }
   if (r && r.kind === 'voice') { toggleVoice(r); return; } // double-click = playback
+  if (r && !r.ref && youTubeId(r.text)) { setActiveVideo(r); return; } // same for a video block
   // Connector switch: like voice playback, allowed even with mobile interaction
   // locked (that lock is only meant to prevent accidental drags/edits) -- but
   // still blocked for a real read-only P2P guest, who shouldn't flip a device.

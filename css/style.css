@@ -7,6 +7,11 @@
   --xbox: #107c10;
   --ink: #cfd8d3;
   --shadow: #000;
+  /* Android (edge-to-edge webview, see index.html's viewport-fit=cover) draws
+     under the system status bar -- every fixed, top-anchored bit of chrome
+     below adds this on top of its own offset so it clears it. 0px everywhere
+     else (desktop browsers, iOS Safari not in standalone mode, etc). */
+  --safe-top: env(safe-area-inset-top, 0px);
 }
 
 * { box-sizing: border-box; }
@@ -54,7 +59,7 @@ html, body {
 /* ---- Astuce ---- */
 #hint {
   position: fixed;
-  top: 12px;
+  top: calc(12px + var(--safe-top));
   left: 12px;
   color: var(--green-dim);
   font-size: 8px;
@@ -88,7 +93,7 @@ html, body {
 /* Edit-confirm button (mostly useful on touch) */
 #editDone {
   position: fixed;
-  top: 12px;
+  top: calc(12px + var(--safe-top));
   right: 12px;
   z-index: 46;
   display: none;
@@ -197,7 +202,7 @@ html, body {
 /* ---- Board name (top center) ---- */
 #boardname {
   position: fixed;
-  top: 12px;
+  top: calc(12px + var(--safe-top));
   left: 50%;
   transform: translateX(-50%);
   z-index: 21;
@@ -224,7 +229,7 @@ html, body {
 /* ---- Active liaison indicator (top center) ---- */
 #liaisonbadge {
   position: fixed;
-  top: 34px;
+  top: calc(34px + var(--safe-top));
   left: 50%;
   transform: translateX(-50%);
   z-index: 21;
@@ -337,7 +342,7 @@ html, body {
 /* ---- Status toast ---- */
 #toast {
   position: fixed;
-  top: 14px;
+  top: calc(14px + var(--safe-top));
   left: 50%;
   transform: translateX(-50%) translateY(-12px);
   z-index: 47;
@@ -369,7 +374,7 @@ html, body {
 /* ---- Settings button (gear) ---- */
 #settingsbtn {
   position: fixed;
-  top: 10px;
+  top: calc(10px + var(--safe-top));
   left: 10px;
   z-index: 23;
   width: 40px;
@@ -389,7 +394,7 @@ html, body {
 
 /* Mic button (voice chat), to the right of the gear. */
 #voicebtn {
-  position: fixed; top: 10px; left: 58px; z-index: 23;
+  position: fixed; top: calc(10px + var(--safe-top)); left: 58px; z-index: 23;
   width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; padding: 0;
   background: var(--node-bg); border: 3px solid var(--green); color: var(--green);
   box-shadow: 0 0 12px rgba(57, 255, 20, 0.35); cursor: pointer;
@@ -401,7 +406,7 @@ html, body {
 
 /* Speaker button (listening on/off), to the right of the mic. */
 #speakerbtn {
-  position: fixed; top: 10px; left: 106px; z-index: 23;
+  position: fixed; top: calc(10px + var(--safe-top)); left: 106px; z-index: 23;
   width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; padding: 0;
   background: var(--node-bg); border: 3px solid var(--green); color: var(--green);
   box-shadow: 0 0 12px rgba(57, 255, 20, 0.35); cursor: pointer;
@@ -416,7 +421,7 @@ html, body {
 
 /* "Who's talking" banner. */
 #speakers {
-  position: fixed; top: 56px; left: 50%; transform: translateX(-50%); z-index: 21;
+  position: fixed; top: calc(56px + var(--safe-top)); left: 50%; transform: translateX(-50%); z-index: 21;
   display: none; font-size: 9px; letter-spacing: 1px; color: #fff;
   background: #fe4365; border: 2px solid #fff; padding: 3px 9px;
   box-shadow: 0 0 10px rgba(254, 67, 101, 0.5);
@@ -425,7 +430,7 @@ html, body {
 #speakers.show { display: block; }
 
 /* Shifts the hint to the right of the buttons. */
-#hint { left: 154px; top: 22px; }
+#hint { left: 154px; top: calc(22px + var(--safe-top)); }
 
 /* ---- Selection rectangle (marquee) ---- */
 #marquee {
@@ -456,7 +461,7 @@ html, body {
 #settings {
   position: fixed; inset: 0; z-index: 46;
   background: var(--node-bg);
-  padding: 20px max(16px, calc((100vw - 560px) / 2)) 40px;
+  padding: calc(20px + var(--safe-top)) max(16px, calc((100vw - 560px) / 2)) 40px;
   overflow-y: auto;
   font-size: 14px; color: var(--ink);
 }
