@@ -4,21 +4,22 @@
 // had grown into an unreadable wall of ~25 tiny buttons. The visited-boards
 // list that used to live here is gone: the built-in "boards" directory board
 // (js/main.js: loadBoardsDirectory) already is that list, one tile away.
-import { state, getBoardId, scheduleSave, load } from './state.js?v=mrqr6178';
-import { reset } from './physics.js?v=mrqr6178';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mrqr6178';
-import { listBoardHistory, updateTodaySnapshot, todayStr } from './history.js?v=mrqr6178';
-import { buildBoardUrl, parseBoardUrl, renameBoardsPeer, rewriteLinksPeer } from './boards.js?v=mrqr6178';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison, changeLiaisonPeer } from './liaisons.js?v=mrqr6178';
-import { toast } from './main.js?v=mrqr6178';
-import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mrqr6178';
-import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mrqr6178';
-import { exportBoardHtml } from './exportHtml.js?v=mrqr6178';
-import { getUserName, setUserName } from './users.js?v=mrqr6178';
-import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mrqr6178';
-import { t, getLang, setLang, LANGS } from './i18n.js?v=mrqr6178';
-import { isDesktop, getLinkMode, setLinkMode, getAppVersion } from './platform.js?v=mrqr6178';
-import { getIcsProxy, setIcsProxy } from './ics.js?v=mrqr6178';
+import { state, getBoardId, scheduleSave, load } from './state.js?v=mrqsaefj';
+import { reset } from './physics.js?v=mrqsaefj';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mrqsaefj';
+import { listBoardHistory, updateTodaySnapshot, todayStr } from './history.js?v=mrqsaefj';
+import { buildBoardUrl, parseBoardUrl, renameBoardsPeer, rewriteLinksPeer } from './boards.js?v=mrqsaefj';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison, changeLiaisonPeer } from './liaisons.js?v=mrqsaefj';
+import { toast } from './main.js?v=mrqsaefj';
+import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mrqsaefj';
+import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mrqsaefj';
+import { exportBoardHtml } from './exportHtml.js?v=mrqsaefj';
+import { getUserName, setUserName } from './users.js?v=mrqsaefj';
+import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mrqsaefj';
+import { t, getLang, setLang, LANGS } from './i18n.js?v=mrqsaefj';
+import { isDesktop, getLinkMode, setLinkMode, getAppVersion, checkWebUpdate } from './platform.js?v=mrqsaefj';
+import { getIcsProxy, setIcsProxy } from './ics.js?v=mrqsaefj';
+import { checkForUpdate } from './update.js?v=mrqsaefj';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
@@ -279,6 +280,35 @@ function buildLiaisons(panel) {
 // ---- Data sub-panel: import/export, ICS proxy, danger zone ----
 function buildData(panel) {
   subHead(panel, 'settings.data');
+
+  // Desktop only: manual update checks. The web build is always on the
+  // latest deploy (no separate check needed); the desktop build normally
+  // checks once per launch (main.js boot -- see js/update.js/platform.js:
+  // checkForUpdate/checkWebUpdate), easy to miss if the app was just left
+  // running for a while. Two distinct checks, since they update two
+  // different things: "web" hot-swaps this static app (js/css/html) with a
+  // reload, no reinstall; "app" is the native Tauri/Rust build itself,
+  // via the OS updater popup.
+  if (isDesktop) {
+    panel.appendChild(el('div', 'set-label', t('settings.updates')));
+    const webBtn = el('button', 'set-wide', t('settings.checkWebUpdate'));
+    webBtn.addEventListener('click', async () => {
+      webBtn.disabled = true; webBtn.textContent = t('settings.checking');
+      const found = await checkWebUpdate(() => toast(t('update.webApplying'), 1500));
+      if (!found) { webBtn.disabled = false; webBtn.textContent = t('settings.checkWebUpdate'); toast(t('settings.upToDate')); }
+      // else: a reload is already scheduled, nothing more to do here.
+    });
+    panel.appendChild(webBtn);
+    const appBtn = el('button', 'set-wide', t('settings.checkAppUpdate'));
+    appBtn.addEventListener('click', async () => {
+      appBtn.disabled = true; appBtn.textContent = t('settings.checking');
+      const found = await checkForUpdate();
+      appBtn.disabled = false; appBtn.textContent = t('settings.checkAppUpdate');
+      if (!found) toast(t('settings.upToDate'));
+      // else: the native updater's own install popup is already showing.
+    });
+    panel.appendChild(appBtn);
+  }
 
   panel.appendChild(el('div', 'set-label', t('settings.data')));
   const exp = el('button', 'set-wide', t('settings.export'));

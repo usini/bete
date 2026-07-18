@@ -124,15 +124,22 @@ export async function openExternal(url) {
 // Rust side (spawn_blocking), so this await doesn't freeze the window while
 // the new assets download, but a page reload with no warning still reads as
 // "did this just crash?" without it.
+// Returns true if an update was found (a reload is already scheduled),
+// false otherwise (already up to date, offline, or an error) -- lets a
+// manual "check now" button (see settings.js) report back either way,
+// unlike the silent boot-time call in main.js which only cares about the
+// true case.
 export async function checkWebUpdate(onUpdated) {
-  if (!isDesktop) return;
+  if (!isDesktop) return false;
   try {
     const updated = await window.__TAURI__.core.invoke('check_web_update');
     if (updated) {
       if (onUpdated) onUpdated();
       setTimeout(() => location.reload(), 600); // long enough to actually see the message above
     }
+    return !!updated;
   } catch (e) {
     console.error('Bete: checkWebUpdate failed', e);
+    return false;
   }
 }
