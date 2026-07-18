@@ -4,19 +4,21 @@
 // had grown into an unreadable wall of ~25 tiny buttons. The visited-boards
 // list that used to live here is gone: the built-in "boards" directory board
 // (js/main.js: loadBoardsDirectory) already is that list, one tile away.
-import { state, getBoardId, scheduleSave } from './state.js?v=mrna29pn';
-import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mrna29pn';
-import { buildBoardUrl, parseBoardUrl, renameBoardsPeer, rewriteLinksPeer } from './boards.js?v=mrna29pn';
-import { listLiaisons, recordLiaison, renameLiaison, removeLiaison, changeLiaisonPeer } from './liaisons.js?v=mrna29pn';
-import { toast } from './main.js?v=mrna29pn';
-import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mrna29pn';
-import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mrna29pn';
-import { exportBoardHtml } from './exportHtml.js?v=mrna29pn';
-import { getUserName, setUserName } from './users.js?v=mrna29pn';
-import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mrna29pn';
-import { t, getLang, setLang, LANGS } from './i18n.js?v=mrna29pn';
-import { isDesktop, getLinkMode, setLinkMode, getAppVersion } from './platform.js?v=mrna29pn';
-import { getIcsProxy, setIcsProxy } from './ics.js?v=mrna29pn';
+import { state, getBoardId, scheduleSave, load } from './state.js?v=mrqr6178';
+import { reset } from './physics.js?v=mrqr6178';
+import { theme, themeId_, setTheme, getTextScale, setTextScale, THEME_LIST } from './theme.js?v=mrqr6178';
+import { listBoardHistory, updateTodaySnapshot, todayStr } from './history.js?v=mrqr6178';
+import { buildBoardUrl, parseBoardUrl, renameBoardsPeer, rewriteLinksPeer } from './boards.js?v=mrqr6178';
+import { listLiaisons, recordLiaison, renameLiaison, removeLiaison, changeLiaisonPeer } from './liaisons.js?v=mrqr6178';
+import { toast } from './main.js?v=mrqr6178';
+import { liaisonStatus, disconnect, getPresence, announceName, setBoardReadOnly, isOwner } from './sync.js?v=mrqr6178';
+import { exportJSON, importJSON, exportAllBoards, importAllBoards } from './io.js?v=mrqr6178';
+import { exportBoardHtml } from './exportHtml.js?v=mrqr6178';
+import { getUserName, setUserName } from './users.js?v=mrqr6178';
+import { isAlwaysOn, setAlwaysOn, listMics, getPreferredMic, setPreferredMic, isMicOn } from './voicechat.js?v=mrqr6178';
+import { t, getLang, setLang, LANGS } from './i18n.js?v=mrqr6178';
+import { isDesktop, getLinkMode, setLinkMode, getAppVersion } from './platform.js?v=mrqr6178';
+import { getIcsProxy, setIcsProxy } from './ics.js?v=mrqr6178';
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
@@ -295,6 +297,35 @@ function buildData(panel) {
   impAll.addEventListener('click', () => importAllBoards(() => { closeSettings(); location.reload(); }));
   panel.appendChild(impAll);
 
+  // Daily history (see history.js): one snapshot per calendar day this
+  // board was opened, kept for the last several days -- lets you revert a
+  // board clobbered by a bad sync or a bad edit, even days later. Not
+  // available on the tutorial/"boards" directory (nothing persisted there).
+  const histBoardId = getBoardId();
+  if (histBoardId !== 'tutorial' && histBoardId !== 'boards') {
+    panel.appendChild(el('div', 'set-label', t('settings.history')));
+    const histBox = el('div', 'set-history');
+    panel.appendChild(histBox);
+    listBoardHistory(histBoardId).then((list) => {
+      histBox.innerHTML = '';
+      if (!list.length) { histBox.appendChild(el('div', 'set-empty', t('settings.history.empty'))); return; }
+      [...list].reverse().forEach((entry) => { // most recent day first
+        const row = el('div', 'set-liaison');
+        const isToday = entry.date === todayStr();
+        row.appendChild(el('span', 'set-liaison-name', isToday ? t('settings.history.today') : entry.date));
+        const rev = el('button', 'set-mini', '⏪');
+        rev.title = t('settings.history.revert.title');
+        let armed = false;
+        rev.addEventListener('click', () => {
+          if (!armed) { armed = true; rev.textContent = '✓'; setTimeout(() => { armed = false; rev.textContent = '⏪'; }, 3000); return; }
+          revertToHistory(entry);
+        });
+        row.appendChild(rev);
+        histBox.appendChild(row);
+      });
+    });
+  }
+
   // ICS proxy (web only: on desktop the .ics fetch goes through Rust, no CORS).
   if (!isDesktop) {
     panel.appendChild(el('div', 'set-label', t('settings.icsProxy')));
@@ -321,6 +352,23 @@ function buildData(panel) {
     closeSettings();
   });
   panel.appendChild(clear);
+}
+
+// Reverts the current board to an older day's snapshot. If that day isn't
+// today, today's own slot is updated with the CURRENT state first (see
+// history.js: updateTodaySnapshot) -- the moment right before switching away
+// is never lost, so reverting the revert is always possible. Camera is kept
+// (a revert shouldn't move the view), same rule as undo().
+async function revertToHistory(entry) {
+  const boardId = getBoardId();
+  if (entry.date !== todayStr()) await updateTodaySnapshot(boardId);
+  const cam = { ...state.camera };
+  load(entry.data);
+  state.camera = cam;
+  state.nodes.forEach(reset);
+  scheduleSave();
+  toast(t('toast.historyReverted'));
+  closeSettings();
 }
 
 // ---- Audio sub-panel: Always On (mobile) + input microphone ----

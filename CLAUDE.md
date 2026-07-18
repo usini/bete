@@ -80,9 +80,10 @@ js/input.js               mouse/touch, drag, radial menu, text editing, image D&
 js/minimap.js             minimap + click to recenter
 js/io.js                  JSON export/import
 js/sync.js                P2P sync (PeerJS/WebRTC): host/client, delta, merge, presence
-js/audio.js               IndexedDB: audio blobs (voice memos) + images
+js/audio.js               IndexedDB: audio blobs (voice memos) + images + board history
 js/images.js              image offload -> IndexedDB (ref 'idb:<hash>'), migration, export
 js/voice.js               voice memos: recording, playback, P2P sharing
+js/history.js             daily board-history snapshots (revert), IndexedDB-backed
 js/voicechat.js           live voice chat (WebRTC mesh), Always On, mic choice
 js/settings.js            Settings panel (theme, language, liaisons, voice, data...)
 js/i18n.js                i18n engine: FR/EN dictionaries, t(), language detection/persistence
@@ -258,6 +259,34 @@ rebroadcasting base64 on every sync tick would saturate the P2P connection
   export always proceeds. `exportAllBoards()` only does the passive count
   (no active fetch: a board that isn't the one currently open has no live
   connection to ask).
+
+## Daily board history (`history.js`) — revert to an earlier day
+
+One snapshot per **calendar day** a board was actually opened (local time),
+kept for the last 7 days (`HISTORY_MAX` in `history.js`, easy to bump) —
+stored in IndexedDB (`bete` DB, `history` store, one record per board id
+holding its whole array of `{ date, ts, data }` entries; `data` is a full
+`serialize()` snapshot). Deliberately local to this browser only, never
+synced to peers — same trust boundary as the undo stack.
+
+- `ensureTodaySnapshot(boardId)`: called once at boot (`main.js`, right after
+  the board is loaded/restored, before `migrateImages`/`restoreAudio`) — if
+  today doesn't already have a slot, mirrors the CURRENT state into one. This
+  captures how the board looked at the start of today, before either today's
+  edits OR an incoming peer sync can touch it — the whole point being able to
+  recover from "someone/something clobbered the board today." A no-op on
+  every later open the same day. Skipped for `tutorial` (read-only) and
+  `boards` (regenerated, never persisted).
+- Settings → Data → History lists every kept day (oldest hidden at the
+  bottom, `⏪` button per row, two-tap confirm like the "clear board"
+  button). Reverting to a day OTHER than today first calls
+  `updateTodaySnapshot()` to overwrite today's own slot with the CURRENT
+  state — the moment right before switching away is never lost, so
+  reverting a revert is always possible (revert to "today" afterwards to
+  undo it). Reverting to today's own slot is a harmless no-op.
+- Same caveat as JSON export/import: a snapshot's `idb:` image/audio refs are
+  only as good as whatever's still in this browser's IndexedDB when you
+  revert — content deleted since the snapshot was taken won't resolve.
 
 ## Deployment workflow (on every JS/HTML change)
 

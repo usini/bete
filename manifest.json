@@ -1,5 +1,5 @@
 {
- "version": "mrna29pn",
+ "version": "mrqr6178",
  "files": [
   "index.html",
   "js/audio.js",
@@ -10,6 +10,7 @@
   "js/exportHtml.js",
   "js/fx.js",
   "js/geom.js",
+  "js/history.js",
   "js/i18n.js",
   "js/ics.js",
   "js/images.js",

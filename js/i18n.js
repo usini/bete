@@ -38,6 +38,7 @@ const STRINGS = {
     'toast.mediaMissing': '{n} FILE(S) COULD NOT BE FETCHED - EXPORTED WITHOUT THEM',
     'toast.peerIdTaken': 'THAT PEER ID IS ALREADY USED BY ANOTHER LIAISON',
     'toast.peerIdChanged': 'PEER ID UPDATED ({n} LINK(S) REWRITTEN)',
+    'toast.historyReverted': 'BOARD REVERTED',
 
     'settings.tutorial': 'Tutorial',
 
@@ -226,6 +227,10 @@ const STRINGS = {
     'settings.import': '⭱ Import (JSON)',
     'settings.exportAll': '⭳ Export all boards',
     'settings.importAll': '⭱ Import all boards',
+    'settings.history': 'History (one snapshot per day)',
+    'settings.history.empty': '(no snapshot yet)',
+    'settings.history.today': 'Today',
+    'settings.history.revert.title': 'Revert to this day (tap twice to confirm)',
     'settings.currentBoard': 'Current board',
     'settings.clearBoard': 'Clear this board',
     'settings.clearConfirm': 'Confirm erase?',
@@ -266,6 +271,7 @@ const STRINGS = {
     'toast.mediaMissing': '{n} FICHIER(S) NON RECUPERABLE(S) - EXPORTES SANS',
     'toast.peerIdTaken': 'CET ID DE PEER EST DEJA UTILISE PAR UNE AUTRE LIAISON',
     'toast.peerIdChanged': 'ID DE PEER MIS A JOUR ({n} LIEN(S) CORRIGE(S))',
+    'toast.historyReverted': 'BOARD RESTAURE',
 
     'settings.tutorial': 'Tutoriel',
 
@@ -454,6 +460,10 @@ const STRINGS = {
     'settings.import': '⭱ Importer (JSON)',
     'settings.exportAll': '⭳ Exporter toutes les boards',
     'settings.importAll': '⭱ Importer toutes les boards',
+    'settings.history': 'Historique (un instantané par jour)',
+    'settings.history.empty': '(aucun instantané pour le moment)',
+    'settings.history.today': "Aujourd'hui",
+    'settings.history.revert.title': 'Revenir à ce jour (appuyer deux fois pour confirmer)',
     'settings.currentBoard': 'Board courant',
     'settings.clearBoard': 'Effacer ce board',
     'settings.clearConfirm': "Confirmer l'effacement ?",

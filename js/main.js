@@ -1,25 +1,26 @@
 // Bootstrap + render loop.
-import { state, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline, restore, COLORS } from './state.js?v=mrna29pn';
-import { setView } from './camera.js?v=mrna29pn';
-import { render } from './render.js?v=mrna29pn';
-import { step, reset } from './physics.js?v=mrna29pn';
-import * as minimap from './minimap.js?v=mrna29pn';
-import * as input from './input.js?v=mrna29pn';
-import * as fx from './fx.js?v=mrna29pn';
-import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mrna29pn';
-import { recordBoard, getBoardEntry, listBoards, buildBoardUrl, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrna29pn';
-import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mrna29pn';
-import { applyTheme } from './theme.js?v=mrna29pn';
-import { initSettings, openSettings } from './settings.js?v=mrna29pn';
-import { recordLiaison, getLiaison, listLiaisons } from './liaisons.js?v=mrna29pn';
-import { positionVideoOverlay } from './video.js?v=mrna29pn';
-import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mrna29pn';
-import { migrateImages } from './images.js?v=mrna29pn';
-import { restoreAudio } from './voice.js?v=mrna29pn';
-import { pollConnector } from './connector.js?v=mrna29pn';
-import { t, getLang, applyStaticI18n } from './i18n.js?v=mrna29pn';
-import { initDesktopLink, checkWebUpdate } from './platform.js?v=mrna29pn';
-import { checkForUpdate } from './update.js?v=mrna29pn';
+import { state, addRect, addCircle, addHexagon, load, setSaveSuppressed, scheduleSave, newId, setBoardId, setBoardName, getBoardName, initUndoBaseline, restore, COLORS } from './state.js?v=mrqr6178';
+import { setView } from './camera.js?v=mrqr6178';
+import { render } from './render.js?v=mrqr6178';
+import { step, reset } from './physics.js?v=mrqr6178';
+import * as minimap from './minimap.js?v=mrqr6178';
+import * as input from './input.js?v=mrqr6178';
+import * as fx from './fx.js?v=mrqr6178';
+import { joinOrHost, getNetMode, liaisonStatus, disconnect, getUserCount, getPresence } from './sync.js?v=mrqr6178';
+import { recordBoard, getBoardEntry, listBoards, buildBoardUrl, parseBoardUrl, reservedBoardLabel } from './boards.js?v=mrqr6178';
+import { TUTORIAL_FR, TUTORIAL_EN } from './tutorial.js?v=mrqr6178';
+import { applyTheme } from './theme.js?v=mrqr6178';
+import { initSettings, openSettings } from './settings.js?v=mrqr6178';
+import { recordLiaison, getLiaison, listLiaisons } from './liaisons.js?v=mrqr6178';
+import { positionVideoOverlay } from './video.js?v=mrqr6178';
+import { toggleMic, isMicOn, toggleListen, isListenOn } from './voicechat.js?v=mrqr6178';
+import { migrateImages } from './images.js?v=mrqr6178';
+import { restoreAudio } from './voice.js?v=mrqr6178';
+import { ensureTodaySnapshot } from './history.js?v=mrqr6178';
+import { pollConnector } from './connector.js?v=mrqr6178';
+import { t, getLang, applyStaticI18n } from './i18n.js?v=mrqr6178';
+import { initDesktopLink, checkWebUpdate } from './platform.js?v=mrqr6178';
+import { checkForUpdate } from './update.js?v=mrqr6178';
 
 applyTheme(); // apply the saved theme right at startup
 applyStaticI18n(); // translate the static HTML chrome (buttons, hint, etc.)
@@ -132,6 +133,12 @@ if (!REDIRECT) {
   recordBoard(boardId, getBoardName(), (boardId !== 'home' && peerId) || null);
   applyBoardNameUI();
   initUndoBaseline(); // reference state for undo
+
+  // Daily history snapshot (see history.js): mirrors today's starting state
+  // once per calendar day, before any of today's edits (or an incoming peer
+  // sync) can touch it. Not on the tutorial (read-only) or the regenerated
+  // "boards" directory (never persisted content, nothing meaningful to keep).
+  if (boardId !== 'tutorial' && boardId !== 'boards') ensureTodaySnapshot(boardId).catch(() => {});
 
   // Soft migration of legacy images (inline base64 -> IndexedDB ref): lightens
   // localStorage AND sync. Not on the tutorial (read-only). Best-effort, in the background.

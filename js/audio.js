@@ -1,22 +1,27 @@
-// IndexedDB is used to store binary blobs (voice memos AND images) because localStorage
-// is not suitable for large binary data. Audio is indexed by block ID ; images are indexed
-// by their content hash (so an identical image is stored once and referenced by 'idb:<hash>').
+// IndexedDB is used to store binary blobs (voice memos AND images) AND the
+// daily board-history snapshots (see history.js) because localStorage isn't
+// suitable for large or fast-growing data. Audio is indexed by block ID;
+// images are indexed by their content hash (so an identical image is stored
+// once and referenced by 'idb:<hash>'); history is indexed by board id.
 // The state/board only stores a small reference, never the bytes.
 const DB_NAME = 'bete';
 const STORE = 'audio';
 const IMG_STORE = 'images';
+const HISTORY_STORE = 'history';
 let _db = null;
 
-// Open the IndexedDB database (or return the existing connection). Version 2 adds the
-// 'images' store (created on upgrade for existing users who were on version 1).
+// Open the IndexedDB database (or return the existing connection). Version 2
+// added the 'images' store, version 3 the 'history' store (both created on
+// upgrade for existing users on an older version).
 function db() {
   if (_db) return Promise.resolve(_db);
   return new Promise((res, rej) => {
-    const r = indexedDB.open(DB_NAME, 2);
+    const r = indexedDB.open(DB_NAME, 3);
     r.onupgradeneeded = () => {
       const d = r.result;
       if (!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE);
       if (!d.objectStoreNames.contains(IMG_STORE)) d.createObjectStore(IMG_STORE);
+      if (!d.objectStoreNames.contains(HISTORY_STORE)) d.createObjectStore(HISTORY_STORE);
     };
     r.onsuccess = () => { _db = r.result; res(_db); };
     r.onerror = () => rej(r.error);
@@ -74,5 +79,26 @@ export async function getImage(hash) {
     const rq = tx.objectStore(IMG_STORE).get(hash);
     rq.onsuccess = () => res(rq.result || null);
     rq.onerror = () => rej(rq.error);
+  });
+}
+
+// ---- Board history (one record per board id, value = array of daily snapshots) ----
+export async function getHistory(boardId) {
+  const d = await db();
+  return new Promise((res, rej) => {
+    const tx = d.transaction(HISTORY_STORE, 'readonly');
+    const rq = tx.objectStore(HISTORY_STORE).get(boardId);
+    rq.onsuccess = () => res(rq.result || []);
+    rq.onerror = () => rej(rq.error);
+  });
+}
+
+export async function putHistory(boardId, entries) {
+  const d = await db();
+  return new Promise((res, rej) => {
+    const tx = d.transaction(HISTORY_STORE, 'readwrite');
+    tx.objectStore(HISTORY_STORE).put(entries, boardId);
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
   });
 }
