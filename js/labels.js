@@ -1,10 +1,10 @@
 // Labels: the tab above a block. It shows the YouTube title (YouTube blocks) or the block's
 // link URL; a block with neither has no label. The layout and the hit-testing live here,
 // so the renderer and the pointer handling always agree on where the label is.
-import { state } from './state.js?v=mvzckz4s';
-import { youTubeId, youTubeTitle } from './yt.js?v=mvzckz4s';
-import { FONT_FAMILY } from './text.js?v=mvzckz4s';
-import { isAmazonUrl, isAmazonText } from './amazon.js?v=mvzckz4s';
+import { state } from './state.js?v=mvzcyshb';
+import { youTubeId, youTubeTitle } from './yt.js?v=mvzcyshb';
+import { FONT_FAMILY } from './text.js?v=mvzcyshb';
+import { isAmazonUrl, isAmazonText } from './amazon.js?v=mvzcyshb';
 
 export const LABEL_SIZE = 26;                       // font size, world units
 export const LABEL_FONT = '600 ' + LABEL_SIZE + 'px ' + FONT_FAMILY;
@@ -107,24 +107,30 @@ export function labelLayout(n) {
 
 // Action buttons, stacked just outside the right edge of a selected block, in world units:
 //   top:    📝 — opens the edit popup (text and link), on every block
-//   below:  🖼️ — change the picture. Image blocks only.
+//   below:  🎨 — change the block colour.
+//   last:   🖼️ — change the picture. Image blocks only.
 // Sizes and gaps are fixed in screen pixels, so they do not grow with the zoom.
 const ACTION_PX = 28, ACTION_GAP_PX = 8, ACTION_STEP_PX = 36;
 export function editIconBox(n, zoom) {
   const s = ACTION_PX / zoom, g = ACTION_GAP_PX / zoom;
   return { x: n.x + n.w + g, y: n.y, w: s, h: s };
 }
-export function imageIconBox(n, zoom) {
+export function colorIconBox(n, zoom) {
   const b = editIconBox(n, zoom);
   const step = ACTION_STEP_PX / zoom;
   return { x: b.x, y: b.y + step, w: b.w, h: b.h };
 }
+export function imageIconBox(n, zoom) {
+  const b = colorIconBox(n, zoom);
+  return { ...b, y: b.y + ACTION_STEP_PX / zoom };
+}
 function inBox(b, w) {
   return w.x >= b.x && w.x <= b.x + b.w && w.y >= b.y && w.y <= b.y + b.h;
 }
-// 'edit', 'image' or null: which action button is under the world point w.
+// 'edit', 'color', 'image' or null: which action button is under the world point w.
 export function actionHit(n, w, zoom) {
   if (inBox(editIconBox(n, zoom), w)) return 'edit';
+  if (inBox(colorIconBox(n, zoom), w)) return 'color';
   if (n.kind === 'image' && inBox(imageIconBox(n, zoom), w)) return 'image';
   return null;
 }

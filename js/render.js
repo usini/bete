@@ -1,14 +1,14 @@
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzckz4s';
-import { view, screenToWorld } from './camera.js?v=mvzckz4s';
-import { youTubeId, ytThumb } from './yt.js?v=mvzckz4s';
-import { imageFor } from './images.js?v=mvzckz4s';
-import { positionVideo, isVideoPlaying } from './video.js?v=mvzckz4s';
-import { guides } from './snap.js?v=mvzckz4s';
-import { renderMinimap } from './minimap.js?v=mvzckz4s';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzckz4s';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzckz4s';
-import { labelLayout, editIconBox, imageIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzckz4s';
+import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzcyshb';
+import { view, screenToWorld } from './camera.js?v=mvzcyshb';
+import { youTubeId, ytThumb } from './yt.js?v=mvzcyshb';
+import { imageFor } from './images.js?v=mvzcyshb';
+import { positionVideo, isVideoPlaying } from './video.js?v=mvzcyshb';
+import { guides } from './snap.js?v=mvzcyshb';
+import { renderMinimap } from './minimap.js?v=mvzcyshb';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzcyshb';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzcyshb';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzcyshb';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -303,6 +303,7 @@ function drawProductSegments(L, tx, cy, fg) {
 // link), 🖼️ (image blocks) picks another image. They fade in and grow slightly (iconT = progress).
 function drawEditIcon(n, zoom) {
   drawButton(editIconBox(n, zoom), '\u{1F4DD}', n.color, zoom);
+  drawButton(colorIconBox(n, zoom), '\u{1F3A8}', n.color, zoom);
 }
 
 function drawImageIcon(n, zoom) {

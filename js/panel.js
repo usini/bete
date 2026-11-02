@@ -1,8 +1,8 @@
 // Right-hand panel: draggable blocks, selection tools, file actions.
-import { state, getNode, getSelectedId, select, addNode, removeNode, emit, events, COLORS } from './state.js?v=mvzckz4s';
-import { screenToWorld, view, flyTo } from './camera.js?v=mvzckz4s';
-import { BLOCK_MIME, pickImage } from './input.js?v=mvzckz4s';
-import { exportDoc, importFile } from './storage.js?v=mvzckz4s';
+import { state, getNode, getSelectedId, select, addNode, removeNode, emit, events, COLORS } from './state.js?v=mvzcyshb';
+import { screenToWorld, view, flyTo } from './camera.js?v=mvzcyshb';
+import { BLOCK_MIME, pickImage } from './input.js?v=mvzcyshb';
+import { exportDoc, importFile } from './storage.js?v=mvzcyshb';
 
 export function initPanel() {
   const panel = document.getElementById('panel');

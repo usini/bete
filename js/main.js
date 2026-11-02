@@ -1,12 +1,12 @@
 // Bootstrap: load the saved board, wire the UI, start rendering.
-import { loadFromStorage, saveNow } from './state.js?v=mvzckz4s';
-import { resize, requestRender } from './render.js?v=mvzckz4s';
-import { initInput } from './input.js?v=mvzckz4s';
-import { initPanel } from './panel.js?v=mvzckz4s';
-import { initMinimap } from './minimap.js?v=mvzckz4s';
-import { initClock } from './clock.js?v=mvzckz4s';
-import { initDrive } from './drive.js?v=mvzckz4s';
-import { initHistory } from './history.js?v=mvzckz4s';
+import { loadFromStorage, saveNow } from './state.js?v=mvzcyshb';
+import { resize, requestRender } from './render.js?v=mvzcyshb';
+import { initInput } from './input.js?v=mvzcyshb';
+import { initPanel } from './panel.js?v=mvzcyshb';
+import { initMinimap } from './minimap.js?v=mvzcyshb';
+import { initClock } from './clock.js?v=mvzcyshb';
+import { initDrive } from './drive.js?v=mvzcyshb';
+import { initHistory } from './history.js?v=mvzcyshb';
 
 loadFromStorage();
 resize();

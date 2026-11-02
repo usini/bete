@@ -3,15 +3,15 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf } from './state.js?v=mvzckz4s';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzckz4s';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzckz4s';
-import { addImageFile } from './images.js?v=mvzckz4s';
-import { playVideo } from './video.js?v=mvzckz4s';
-import { youTubeId } from './yt.js?v=mvzckz4s';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzckz4s';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzckz4s';
-import { undo, redo } from './history.js?v=mvzckz4s';
+import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf } from './state.js?v=mvzcyshb';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzcyshb';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzcyshb';
+import { addImageFile } from './images.js?v=mvzcyshb';
+import { playVideo } from './video.js?v=mvzcyshb';
+import { youTubeId } from './yt.js?v=mvzcyshb';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzcyshb';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzcyshb';
+import { undo, redo } from './history.js?v=mvzcyshb';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 
@@ -63,6 +63,19 @@ function pinchStart() {
   return { type: 'pinch', d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
 }
 
+function pickColor(n, x, y) {
+  const input = document.getElementById('colorpick');
+  const id = n.id;
+  input.value = n.color;
+  input.style.left = Math.min(x, window.innerWidth - 2) + 'px';
+  input.style.top = Math.min(y, window.innerHeight - 2) + 'px';
+  input.oninput = () => {
+    const target = getNode(id);
+    if (target) { target.color = input.value; emit(); }
+  };
+  input.click();
+}
+
 function onPointerDown(e) {
   // Stops the browser from moving focus after this press (it would close the editors).
   e.preventDefault();
@@ -85,6 +98,7 @@ function onPointerDown(e) {
     gesture = null;
     if (once(action)) {
       if (action === 'image') pickImage(sel); // 🖼️: change the picture
+      else if (action === 'color') pickColor(sel, sx, sy);
       else startEdit(sel.id);                 // 📝: edit popup (text and link)
     }
     return;
