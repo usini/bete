@@ -188,6 +188,7 @@ let browser,server;
   assert.equal((await mobileState()).locked,true,'each mobile opening starts in read-only mode');
   await mobileContext.close();
   assert.equal(requests.filter(r=>r.host==='localhost:8092').length,0);
+  await page.setViewportSize({width:1280,height:900});
   let facebookRequests = 0;
   await page.route('https://www.facebook.com/**', route => {
     facebookRequests++;
@@ -213,6 +214,37 @@ let browser,server;
   });
   await page.waitForFunction(()=>document.querySelector('.facebook-post').style.width==='242px');
   assert.equal(facebookRequests,1,'camera movement must not recreate the embed');
+  const fbPoint = await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const s=await import('/js/state.js'+v),c=await import('/js/camera.js'+v);
+    const n=s.state.nodes[0];return {...c.worldToScreen(n.x+200,n.y+180),nodeX:n.x,nodeY:n.y};
+  });
+  assert.equal(await page.evaluate(p=>document.elementFromPoint(p.x,p.y).id,fbPoint),'canvas');
+  await page.mouse.move(fbPoint.x,fbPoint.y);await page.mouse.down();
+  await page.mouse.move(fbPoint.x+60,fbPoint.y+40,{steps:6});await page.mouse.up();
+  const movedPost = await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const s=await import('/js/state.js'+v),c=await import('/js/camera.js'+v),n=s.state.nodes[0];
+    return {x:n.x,y:n.y,w:n.w,h:n.h,handle:c.worldToScreen(n.x+n.w,n.y+n.h)};
+  });
+  assert.equal(movedPost.x-fbPoint.nodeX,120,'post must drag from its body horizontally');
+  assert.equal(movedPost.y-fbPoint.nodeY,80,'post must drag from its body vertically');
+  await page.mouse.move(movedPost.handle.x,movedPost.handle.y);await page.mouse.down();
+  await page.mouse.move(movedPost.handle.x+30,movedPost.handle.y+20,{steps:6});await page.mouse.up();
+  assert.ok(await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const n=(await import('/js/state.js'+v)).state.nodes[0];return n.w>540 && n.h>420;
+  }),'post resize handle must remain accessible');
+  await page.click('.facebook-interact');
+  assert.equal(await page.locator('.facebook-post').getAttribute('data-interactive'),'true');
+  await page.click('.facebook-interact');
+  assert.equal(await page.locator('.facebook-post').getAttribute('data-interactive'),'false');
+  await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const s=await import('/js/state.js'+v);s.state.nodes[0].link='https://www.facebook.com/groups/123/posts/456';s.emit();
+  });
+  await page.waitForFunction(()=>!document.querySelector('.facebook-post'));
+  assert.equal(facebookRequests,1,'group posts must not load Facebook');
   await page.evaluate(async()=>{
     const v=new URL(document.querySelector('script[type=module]').src).search;
     const s=await import('/js/state.js'+v);s.state.nodes=[];s.emit();

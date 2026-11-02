@@ -5,7 +5,8 @@ export function facebookPost(raw) {
     if (u.protocol !== 'https:' || u.username || u.password || u.port ||
         !['facebook.com', 'www.facebook.com', 'm.facebook.com'].includes(u.hostname)) return null;
     const path = u.pathname;
-    const post = /^\/(?:[^/]+\/posts\/[^/]+|groups\/[^/]+\/(?:posts|permalink)\/[^/]+)\/?$/.test(path);
+    if (/^\/groups(?:\/|$)/.test(path)) return null;
+    const post = /^\/[^/]+\/posts\/[^/]+\/?$/.test(path);
     const permalink = ['/permalink.php', '/story.php'].includes(path) &&
       /^[\w]+$/.test(u.searchParams.get('story_fbid') || '') && /^\d+$/.test(u.searchParams.get('id') || '');
     if (!post && !permalink) return null;

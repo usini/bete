@@ -3,13 +3,15 @@
 ### Publications Facebook
 
 Un rectangle contenant un lien direct vers un post Facebook charge automatiquement son intégration
-officielle lorsqu’il est visible. Les formats `/nom/posts/id`, `/groups/id/posts/id`,
-`/groups/id/permalink/id`, `permalink.php` et `story.php` (avec `story_fbid` et `id`) sont reconnus.
-Les liens courts `/share/`, profils et pages ne sont pas résolus. Seuls les posts publics autorisant
+officielle lorsqu’il est visible. Les formats `/nom/posts/id`, `permalink.php` et `story.php`
+(avec `story_fbid` et `id`) sont reconnus. Les liens de groupes (`/groups/`) restent de simples liens,
+sans tentative de chargement. Les liens courts `/share/`, profils et pages ne sont pas résolus. Seuls les posts publics autorisant
 l’intégration peuvent fonctionner. Une image choisie manuellement prend la priorité.
 
-Le module suit le zoom et la taille du bloc. Sa bordure et ses boutons restent disponibles pour
-déplacer, modifier ou supprimer le rectangle. Le navigateur contacte directement Meta, également
+Le module suit le zoom et la taille du bloc. Par défaut, les gestes traversent le post pour déplacer
+ou redimensionner le rectangle normalement. « Interagir avec le post » active les liens et le
+défilement Facebook ; « Manipuler le bloc », un clic en dehors ou Échap revient au tableau.
+Le navigateur contacte directement Meta, également
 pour les participants d’un groupe partagé ; le module est retiré hors écran. Aucun proxy,
 SDK Meta, jeton ou récupération de contenu côté serveur n’est ajouté.
 

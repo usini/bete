@@ -4,7 +4,8 @@ import { facebookPost, facebookPostOf, facebookEmbed } from '../js/facebook.js';
 
 test('explicit Facebook posts are normalized without tracking parameters', () => {
   assert.equal(facebookPost('https://m.facebook.com/example/posts/pfbid123?fbclid=secret#comments'), 'https://www.facebook.com/example/posts/pfbid123');
-  assert.equal(facebookPost('https://www.facebook.com/groups/123/permalink/456/'), 'https://www.facebook.com/groups/123/permalink/456/');
+  assert.equal(facebookPost('https://www.facebook.com/groups/123/permalink/456/'), null);
+  assert.equal(facebookPost('https://www.facebook.com/groups/123/posts/456/'), null);
   assert.equal(facebookPost('https://facebook.com/story.php?story_fbid=pfbid123&id=123&tracking=secret'), 'https://www.facebook.com/story.php?story_fbid=pfbid123&id=123');
   assert.match(facebookEmbed('https://www.facebook.com/example/posts/123'), /^https:\/\/www\.facebook\.com\/plugins\/post\.php\?href=https%3A/);
 });

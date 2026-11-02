@@ -1,8 +1,22 @@
-import { state } from './state.js?v=mvzijf2m';
-import { worldToScreen, view } from './camera.js?v=mvzijf2m';
-import { facebookPostOf, facebookEmbed } from './facebook.js?v=mvzijf2m';
+import { state } from './state.js?v=mvziqt1v';
+import { worldToScreen, view } from './camera.js?v=mvziqt1v';
+import { facebookPostOf, facebookEmbed } from './facebook.js?v=mvziqt1v';
 
 const frames = new Map();
+
+function setInteractive(item, active) {
+  item.wrap.dataset.interactive = String(active);
+  item.frame.inert = !active;
+  item.button.textContent = active ? 'Manipuler le bloc' : 'Interagir avec le post';
+  item.button.setAttribute('aria-pressed', String(active));
+}
+
+document.addEventListener('pointerdown', e => {
+  for (const item of frames.values()) if (!item.wrap.contains(e.target)) setInteractive(item, false);
+});
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') for (const item of frames.values()) setInteractive(item, false);
+});
 
 // Keep visible posts attached to their blocks. Offscreen posts are unloaded.
 export function positionFacebookPosts() {
@@ -25,9 +39,15 @@ export function positionFacebookPosts() {
       frame.title = 'Publication Facebook';
       frame.referrerPolicy = 'no-referrer';
       frame.src = facebookEmbed(post);
-      wrap.append(frame);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'facebook-interact';
+      wrap.append(frame, button);
       document.body.append(wrap);
-      item = { wrap, frame, post };
+      item = { wrap, frame, button, post };
+      const entry = item;
+      button.addEventListener('click', () => setInteractive(entry, entry.wrap.dataset.interactive !== 'true'));
+      setInteractive(item, false);
       frames.set(n.id, item);
     }
     Object.assign(item.wrap.style, { left: p.x + 'px', top: p.y + 'px', width: w + 'px', height: h + 'px' });
