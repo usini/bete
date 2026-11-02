@@ -1,4 +1,4 @@
-import { localStore } from './local-store.js?v=mvzmyhy0';
+import { localStore } from './local-store.js?v=mvznbsbb';
 // Optional backup of the board on Google Drive.
 //
 //  - Scope: drive.appdata only. The file (Bete.json) lives in a hidden folder reserved to this
@@ -6,12 +6,12 @@ import { localStore } from './local-store.js?v=mvzmyhy0';
 //  - Sign-in: OAuth code flow through a stateless service. Access tokens stay in memory.
 //  - Drive transfers happen only on explicit save, restore or initial connection.
 //    Local autosave remains automatic; leaving with unsaved Drive changes warns the user.
-import { state, onSaved, saveNow } from './state.js?v=mvzmyhy0';
-import { exportData, importData } from './storage.js?v=mvzmyhy0';
+import { state, onSaved, saveNow, serialize } from './state.js?v=mvznbsbb';
+import { exportData, importData } from './storage.js?v=mvznbsbb';
 
-import { notify } from './notifications.js?v=mvzmyhy0';
+import { notify } from './notifications.js?v=mvznbsbb';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mvzmyhy0';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mvznbsbb';
 
 const AUTH_URL = 'https://auth-bete.usini.eu';
 const FILE_NAME = 'Bete.json';
@@ -90,7 +90,10 @@ function driveNotice(text, type = 'progress') {
 
 // ---- change detection ----
 // The camera is not part of the signature: panning or zooming must not trigger an upload.
-const nodesJson = () => JSON.stringify(state.nodes);
+const nodesJson = () => {
+  const doc = serialize();
+  return JSON.stringify({ nodes: doc.nodes, history: doc.history });
+};
 function hash(str) { // cyrb53, 53 bits, plenty to detect a change
   let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
   for (let i = 0; i < str.length; i++) {

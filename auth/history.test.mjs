@@ -13,11 +13,11 @@ test('history round trip retains undo and redo, accepts legacy boards and saniti
     const context = vm.createContext({
     isLocked: () => false, modeEvents: {addEventListener(){}}, state, Date, Map, Set,
       document: { getElementById(id) { if(!elements.has(id)) elements.set(id, {hidden:true, addEventListener(){}}); return elements.get(id); }, addEventListener(){} },
-      onSaved(){}, sanitizeNode: n => n && typeof n.id === 'string' ? {id:n.id, text:String(n.text)} : null,
+      onSaved(){}, saveNow(){adapter.save();}, sanitizeNode: n => n && typeof n.id === 'string' ? {id:n.id, text:String(n.text)} : null,
       replaceNodes(nodes){state.nodes=nodes;},
       registerHistory(a){adapter=a; a.load(null);},
     });
-    vm.runInContext(source+'\nglobalThis.api={initHistory,undo,redo};',context);
+    vm.runInContext(source+'\nglobalThis.api={initHistory,undo,redo,clearHistory};',context);
     context.api.initHistory();
     return {state, api:context.api, save:()=>adapter.save(), load:h=>adapter.load(h)};
   }
@@ -32,4 +32,9 @@ test('history round trip retains undo and redo, accepts legacy boards and saniti
   b.load(undefined); assert.equal(b.save().states.length,1);
   b.load({states:[null,{nodes:[null,{id:'a',text:'one'}],label:'x',t:0}],pos:0});
   assert.equal(b.save().states.length,1);
+  a.api.clearHistory();
+  assert.equal(a.save().states.length,1);
+  assert.equal(a.state.nodes[0].text,'two');
+  a.api.undo();assert.equal(a.state.nodes[0].text,'two');
+  a.state.nodes[0].text='after clear';a.save();a.api.undo();assert.equal(a.state.nodes[0].text,'two');
 });

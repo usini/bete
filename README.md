@@ -59,6 +59,11 @@ python -m http.server 8000
   de l’écriture, en conservant les images déjà présentes dans la base `bete2`.
   Une erreur de stockage affiche une alerte persistante demandant un export JSON et un avertissement
   avant de quitter lorsque le navigateur le permet. IndexedDB a aussi un quota, géré par le navigateur.
+  Les exports JSON et les sauvegardes Drive utilisent un catalogue d’images unique (format 2) :
+  l’historique référence les images au lieu de recopier leur base64 dans chaque état. Les anciens
+  fichiers restent importables. « Vider l’historique » dans la liste des actions conserve le tableau
+  courant et supprime les étapes annuler/rétablir après confirmation. Les fichiers exportés et la
+  sauvegarde Drive existante ne sont mis à jour qu’au prochain export ou à la prochaine sauvegarde.
 - **Google Drive (facultatif)** : sauvegarde manuelle du tableau dans un dossier caché de ton Drive
   (droit `drive.appdata` uniquement), en cliquant sur la disquette. Aucun transfert périodique,
   au retour sur l’onglet ou à la fermeture. La connexion initiale compare les versions ; les ouvertures

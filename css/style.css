@@ -82,6 +82,7 @@ html, body {
 .history-item .time { flex: none; font-size: 12px; color: var(--muted); }
 .history-item.current { background: #17222b; border-left-color: var(--accent); }
 .history-item.future { opacity: 0.5; }
+.history-clear { color: #ff7777; }
 
 #clock {
   position: fixed;

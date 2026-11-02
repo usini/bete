@@ -1,9 +1,9 @@
 // Export / import of a board. Images are embedded as data URLs so the board is
 // self-contained: it can be a JSON file, or the file saved on Google Drive (drive.js).
-import { state, serialize, setDoc } from './state.js?v=mvzmyhy0';
-import { addDataUrl, refToDataUrl } from './images.js?v=mvzmyhy0';
+import { state, serialize, setDoc } from './state.js?v=mvznbsbb';
+import { addDataUrl, refToDataUrl } from './images.js?v=mvznbsbb';
 
-import { isLocked } from './mobile-mode.js?v=mvzmyhy0';
+import { isLocked } from './mobile-mode.js?v=mvznbsbb';
 
 function download(blob, name) {
   const url = URL.createObjectURL(blob);
@@ -18,18 +18,26 @@ function download(blob, name) {
 export async function exportData() {
   const doc = serialize();
   const images = new Map();
+  const assets = {};
+  const assetByData = new Map();
+  let count = 0;
   const embed = async (n) => {
-    if (!n.image || !n.image.startsWith('idb:')) return n;
-    if (!images.has(n.image)) images.set(n.image, refToDataUrl(n.image));
+    if (!n.image || (!n.image.startsWith('idb:') && !n.image.startsWith('data:image/'))) return n;
+    if (!images.has(n.image)) images.set(n.image, n.image.startsWith('idb:') ? refToDataUrl(n.image) : Promise.resolve(n.image));
     const data = await images.get(n.image);
     if (!data) throw new Error('Une image manque encore sur cet appareil. Attends sa réception avant la sauvegarde ou l’export.');
-    return { ...n, image: data };
+    if (!assetByData.has(data)) {
+      const id = 'image-' + (++count);
+      assetByData.set(data, id);
+      assets[id] = data;
+    }
+    return { ...n, image: 'asset:' + assetByData.get(data) };
   };
   doc.nodes = await Promise.all(doc.nodes.map(embed));
   if (doc.history) doc.history.states = await Promise.all(doc.history.states.map(async s => ({
     ...s, nodes: await Promise.all(s.nodes.map(embed)),
   })));
-  return doc;
+  return { ...doc, version: 2, assets };
 }
 
 // Replace the current board by `doc` (from a file or from Drive): the images are stored back
@@ -37,7 +45,15 @@ export async function exportData() {
 export async function importData(doc) {
   if (!doc || typeof doc !== 'object') throw new Error('Fichier invalide.');
   const images = new Map();
+  const assetData = ref => {
+    const id = ref.slice(6);
+    const data = doc.assets && Object.hasOwn(doc.assets, id) ? doc.assets[id] : null;
+    if (typeof data !== 'string' || !data.startsWith('data:image/') || data.length >= 20e6)
+      throw new Error('Une image référencée dans ce fichier est absente ou invalide.');
+    return data;
+  };
   const restore = async (nodes) => Promise.all((Array.isArray(nodes) ? nodes.slice(0, 5000) : []).map(async n => {
+    if (typeof n?.image === 'string' && n.image.startsWith('asset:')) n = { ...n, image: assetData(n.image) };
     if (n && typeof n.image === 'string' && n.image.startsWith('data:image/') && n.image.length < 20e6) {
       if (!images.has(n.image)) images.set(n.image, addDataUrl(n.image));
       return { ...n, image: await images.get(n.image) };

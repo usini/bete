@@ -45,6 +45,7 @@ test('Drive stays manual; hiding only saves locally and leaving warns only for p
     isLocked: () => false, modeEvents: {addEventListener(){}}, notify(){},
     localStore: {getItem:()=>null, removeItem(){}, setItem(){}},
     state: {nodes:[{id:'local',text:'before'}]}, AbortSignal,
+    serialize:()=>({nodes:context.state.nodes}),
     document: {visibilityState:'visible', addEventListener:(name,fn)=>documentEvents.set(name,fn),
       getElementById(id) {
         if (!elements.has(id)) elements.set(id,{dataset:{},setAttribute(){},addEventListener(){}});

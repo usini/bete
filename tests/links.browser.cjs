@@ -162,6 +162,24 @@ let browser,server;
   await page.waitForFunction(()=>document.querySelector('#notifications .toast')?.dataset.type==='success');
   assert.match(await page.locator('#notifications').textContent(),/Sauvegarde terminée/);
   assert.equal(await page.locator('#notifications .toast').count(),1);
+  const beforeClear=await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const s=await import('/js/state.js'+v);return {nodes:JSON.stringify(s.state.nodes),count:s.serialize().history.states.length};
+  });
+  assert.ok(beforeClear.count>1);
+  await page.click('#history-btn');
+  allowDelete=false;
+  await page.getByRole('button',{name:'Vider l’historique',exact:true}).click();
+  assert.equal(await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;return (await import('/js/state.js'+v)).serialize().history.states.length;
+  }),beforeClear.count,'cancelling must retain the history');
+  allowDelete=true;
+  await page.getByRole('button',{name:'Vider l’historique',exact:true}).click();
+  assert.deepEqual(await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const s=await import('/js/state.js'+v);return {nodes:JSON.stringify(s.state.nodes),count:s.serialize().history.states.length};
+  }),{nodes:beforeClear.nodes,count:1},'clearing history must preserve the current board');
+  assert.equal(await page.locator('#drive-save').getAttribute('data-state'),'pending','cleared history must be pending on Drive');
   await page.screenshot({path:join(process.env.TEMP,'bete-menu-clean.png')});
   await page.unroute('https://auth-bete.usini.eu/token');
   await page.route('https://auth-bete.usini.eu/token',route=>route.fulfill({status:503,contentType:'application/json',body:'{}'}));

@@ -72,6 +72,19 @@ async function modules(page,fn,arg){
   assert.equal(large.ok,true);assert.ok(large.length>6_000_000);
   await page.reload();await page.waitForFunction(()=>document.querySelector('#drive-status').textContent);
   assert.deepEqual(await modules(page,s=>({text:s.state.nodes[0].text.slice(0,11),history:s.serialize().history.states.length})),{text:'version-23-',history:24});
+  const imageRoundTrip=await modules(page,async(s,l,i)=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const storage=await import('/js/storage.js'+v);
+    const doc=s.serialize();
+    doc.nodes[0].image='idb:legacy-image';
+    for(const entry of doc.history.states) entry.nodes[0].image='idb:legacy-image';
+    s.setDoc(doc);
+    const exported=await storage.exportData();
+    const copies=Object.keys(exported.assets).length;
+    await storage.importData(exported);await s.saveNow();
+    return {copies,image:await(await i.imageBlob(s.state.nodes[0].image)).text(),history:s.serialize().history.states.length};
+  });
+  assert.deepEqual(imageRoundTrip,{copies:1,image:'legacy-image-bytes',history:24});
   const savedBeforeFailure=await modules(page,(s,l)=>l.localStore.getItem('bete2:doc'));
   const failure=await modules(page,async(s,l)=>{
     const original=IDBObjectStore.prototype.put;

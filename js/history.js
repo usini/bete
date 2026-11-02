@@ -4,9 +4,9 @@
 //    drag = one entry) is compared with the previous state, and a new entry is recorded when the
 //    blocks differ. The label ("Déplacement", "Suppression d'un bloc"...) comes from that diff.
 //  - Up to 60 states, persisted with the board and included in JSON exports.
-import { state, onSaved, replaceNodes, sanitizeNode, registerHistory } from './state.js?v=mvzmyhy0';
+import { state, onSaved, replaceNodes, sanitizeNode, registerHistory, saveNow } from './state.js?v=mvznbsbb';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mvzmyhy0';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mvznbsbb';
 
 const MAX = 60;
 let states = []; // { json, norm, label, t } — oldest first
@@ -91,6 +91,16 @@ function refreshUi() {
 function renderList() {
   const list = $('history-list');
   list.replaceChildren();
+  const clear = document.createElement('button');
+  clear.type = 'button';
+  clear.className = 'history-item history-clear';
+  clear.textContent = 'Vider l’historique';
+  clear.disabled = isLocked() || states.length <= 1;
+  clear.addEventListener('click', () => {
+    if (isLocked() || !confirm('Vider tout l’historique ? Le tableau actuel sera conservé, mais les anciennes actions ne pourront plus être rétablies.')) return;
+    clearHistory();
+  });
+  list.append(clear);
   for (let i = states.length - 1; i >= 0; i--) { // newest first
     const s = states[i];
     const b = document.createElement('button');
@@ -106,6 +116,14 @@ function renderList() {
     b.addEventListener('click', () => { commit(); go(i); });
     list.append(b);
   }
+}
+
+export function clearHistory() {
+  if (isLocked()) return;
+  states = [{ json: JSON.stringify(state.nodes), norm: normOf(state.nodes), label: 'Historique vidé', t: Date.now() }];
+  pos = 0;
+  refreshUi();
+  saveNow();
 }
 
 function restoreHistory(raw) {

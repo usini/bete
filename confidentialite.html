@@ -78,6 +78,11 @@
     est conservé avec le tableau dans la sauvegarde locale, les exports JSON et, si activée, la sauvegarde Drive.
     Il peut contenir d’anciens textes et images supprimés du tableau courant ; supprimer un bloc
     ne l’efface donc pas immédiatement de ces états antérieurs.
+    Tu peux vider l’historique depuis sa liste d’actions, en conservant le tableau actuel.
+    Cela ne modifie pas les fichiers JSON déjà exportés ni l’ancienne sauvegarde Drive avant
+    une nouvelle sauvegarde. Les images locales devenues inutilisées peuvent rester dans IndexedDB
+    jusqu’à l’effacement des données du site. Dans les nouveaux JSON, les images identiques sont
+    enregistrées une seule fois et référencées par les états de l’historique.
     Les métadonnées de synchronisation Drive (identifiant du fichier, date et empreinte du dernier état
     synchronisé) sont également conservées localement jusqu’à la déconnexion ou à leur effacement.
   </p>

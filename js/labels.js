@@ -1,14 +1,14 @@
 // Labels: the tab above a block. It shows the YouTube title (YouTube blocks) or the block's
 // link URL; a block with neither has no label. The layout and the hit-testing live here,
 // so the renderer and the pointer handling always agree on where the label is.
-import { state } from './state.js?v=mvzmyhy0';
-import { youTubeId, youTubeTitle } from './yt.js?v=mvzmyhy0';
-import { FONT_FAMILY } from './text.js?v=mvzmyhy0';
-import { isAmazonUrl, isAmazonText } from './amazon.js?v=mvzmyhy0';
+import { state } from './state.js?v=mvznbsbb';
+import { youTubeId, youTubeTitle } from './yt.js?v=mvznbsbb';
+import { FONT_FAMILY } from './text.js?v=mvznbsbb';
+import { isAmazonUrl, isAmazonText } from './amazon.js?v=mvznbsbb';
 
-import { genericLink } from './links.js?v=mvzmyhy0';
+import { genericLink } from './links.js?v=mvznbsbb';
 
-import { serviceForNode } from './services.js?v=mvzmyhy0';
+import { serviceForNode } from './services.js?v=mvznbsbb';
 
 export const LABEL_SIZE = 26;                       // font size, world units
 export const LABEL_FONT = '600 ' + LABEL_SIZE + 'px ' + FONT_FAMILY;
