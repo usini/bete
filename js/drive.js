@@ -7,8 +7,8 @@
 //    expires the user presses "Se reconnecter" (no new consent needed).
 //  - Sync: the board is uploaded ~30 s after the last change. When connecting, the local board
 //    and the Drive file are compared; if both changed since the last sync, the user chooses.
-import { state, onSaved } from './state.js?v=mvz9vkup';
-import { exportData, importData } from './storage.js?v=mvz9vkup';
+import { state, onSaved, saveNow } from './state.js?v=mvzaas6o';
+import { exportData, importData } from './storage.js?v=mvzaas6o';
 
 const CLIENT_ID = '1084992186623-ffj2bqhcehii9ml5cnpppc6cet23d0va.apps.googleusercontent.com';
 const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
@@ -137,10 +137,12 @@ async function findFile() {
 // Creates or updates Bete.json; returns { id, modifiedTime }.
 async function upload(doc) {
   const body = JSON.stringify(doc);
+  // keepalive lets a small request finish even if the page is being closed (browsers cap it at 64 KB).
+  const keepalive = body.length < 60000;
   if (meta.fileId) {
     try {
       const r = await api(`${UPLOAD}/files/${meta.fileId}?uploadType=media&fields=id,modifiedTime`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body,
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body, keepalive,
       });
       return await r.json();
     } catch (e) {
@@ -153,7 +155,7 @@ async function upload(doc) {
   const multipart = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}`
     + `\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${boundary}--`;
   const r = await api(`${UPLOAD}/files?uploadType=multipart&fields=id,modifiedTime`, {
-    method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + boundary }, body: multipart,
+    method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + boundary }, body: multipart, keepalive,
   });
   return r.json();
 }
@@ -354,5 +356,30 @@ export function initDrive() {
   $('drive-disconnect').addEventListener('click', disconnect);
   $('drivedialog').addEventListener('cancel', (e) => e.preventDefault()); // buttons only
   setInterval(render, 30000); // notices a token that expired
+
+  // Leaving the page with changes not yet on Drive: start the upload at once, and make the
+  // browser warn (it shows its own generic text, which a page cannot change). A page also
+  // cannot close itself, so the user answers the browser's question.
+  window.addEventListener('beforeunload', (e) => {
+    saveNow(); // flush the local save first: it also refreshes `dirty`
+    if (!meta || !(dirty || busy)) return;
+    flush();
+    e.preventDefault();
+    e.returnValue = '';
+  });
+  // Switching tab / app, or closing on a phone: the page is hidden first, which is the one
+  // reliable moment to save without waiting for the 30 s countdown.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'hidden') return;
+    saveNow();
+    flush();
+  });
   render();
+}
+
+// Uploads now, instead of waiting for the countdown, when there is something to save.
+function flush() {
+  if (!meta || !dirty || busy || conflictPending || !tokenValid()) return;
+  clearTimeout(timer);
+  run('Sauvegarde…', reconcileStep);
 }

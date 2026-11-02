@@ -3,14 +3,15 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf } from './state.js?v=mvz9vkup';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvz9vkup';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mvz9vkup';
-import { addImageFile } from './images.js?v=mvz9vkup';
-import { playVideo } from './video.js?v=mvz9vkup';
-import { youTubeId } from './yt.js?v=mvz9vkup';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mvz9vkup';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvz9vkup';
+import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf } from './state.js?v=mvzaas6o';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzaas6o';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzaas6o';
+import { addImageFile } from './images.js?v=mvzaas6o';
+import { playVideo } from './video.js?v=mvzaas6o';
+import { youTubeId } from './yt.js?v=mvzaas6o';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzaas6o';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzaas6o';
+import { undo, redo } from './history.js?v=mvzaas6o';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 
@@ -254,6 +255,14 @@ export function initInput() {
 
   window.addEventListener('keydown', (e) => {
     if (isEditing()) return;
+    // Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y redoes the board. Not inside a text field
+    // (it keeps its own undo), nor while a popup is open.
+    const inField = e.target instanceof Element && e.target.closest('input, textarea');
+    if (!inField && (e.ctrlKey || e.metaKey) && !e.altKey && !document.querySelector('dialog[open]')) {
+      const k = e.key.toLowerCase();
+      if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+      if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); return; }
+    }
     if (e.target instanceof Element && e.target.closest('input, textarea, button')) return;
     const id = getSelectedId();
     if (e.key === 'Escape') select(null);

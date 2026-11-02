@@ -1,4 +1,5 @@
 :root {
+  color-scheme: dark; /* dark scrollbars and form controls */
   --bg: #0c0e12;
   --panel: #101318;
   --block: #14171d;
@@ -30,6 +31,58 @@ html, body {
 }
 
 /* Clock, top centre (clicks go through to the canvas) */
+/* Undo / redo / history, top-left */
+#history-bar {
+  position: fixed;
+  top: 10px;
+  left: 12px;
+  z-index: 8;
+  display: flex;
+  gap: 6px;
+}
+.tool-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  color: var(--text);
+  background: rgba(16, 19, 24, 0.85);
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+.tool-btn svg { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.tool-btn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.tool-btn:disabled { opacity: 0.35; cursor: default; }
+#history-list {
+  position: absolute;
+  top: 52px;
+  left: 0;
+  width: 280px;
+  max-height: 50vh;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  margin: 0;
+  padding: 9px 12px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-left: 3px solid transparent;
+}
+.history-item .time { flex: none; font-size: 12px; color: var(--muted); }
+.history-item.current { background: #17222b; border-left-color: var(--accent); }
+.history-item.future { opacity: 0.5; }
+
 #clock {
   position: fixed;
   top: 10px;
@@ -286,6 +339,8 @@ button:hover { border-color: var(--accent); }
 }
 
 @media (max-width: 600px) {
+  #history-bar { top: 52px; left: 8px; }
+  #history-list { width: min(280px, calc(100vw - 16px)); }
   #clock { top: 6px; gap: 8px; padding: 4px 10px; }
   #clock-date { font-size: 11px; }
   #clock-time { font-size: 16px; }

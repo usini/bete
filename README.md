@@ -25,11 +25,14 @@ python -m http.server 8000
 - **Liens** : chaque bloc peut avoir un lien, affiché dans une pastille au-dessus ; un double-clic l'ouvre.
 - **Produits Amazon** : un lien Amazon est raccourci, et on peut y noter nom, prix et délai de livraison.
 - **Édition** : une popup pour modifier le texte, le lien et l'image (choix d'un fichier ou collage).
+- **Annuler / rétablir** : Ctrl+Z et Ctrl+Maj+Z (ou Ctrl+Y), boutons en haut à gauche, et une liste des
+  60 dernières actions où l'on peut revenir à n'importe quel état (historique gardé en mémoire).
 - **Navigation** : déplacement, zoom (molette ou pincement), minimap, alignement automatique des blocs.
 - **Sauvegarde** : enregistrement automatique dans le navigateur (localStorage et IndexedDB),
   export et import d'un fichier JSON.
 - **Google Drive (facultatif)** : sauvegarde automatique du tableau dans un dossier caché de ton Drive
   (droit `drive.appdata` uniquement), avec choix en cas de conflit entre deux appareils.
+  Quitter la page avant que tout soit sauvegardé déclenche l'envoi immédiat et un avertissement du navigateur.
 
 Aucune donnée n'est envoyée à un serveur de Bête. Les appels réseau sont ceux de YouTube :
 miniatures (`i.ytimg.com`), titres (oEmbed) et lecteur (`youtube-nocookie.com`) ; et, seulement si tu

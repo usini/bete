@@ -1,6 +1,6 @@
 // Data model, sanitizers and local autosave (localStorage).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mvz9vkup';
+import { explode } from './fx.js?v=mvzaas6o';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2'];
 export const DEFAULT_COLOR = COLORS[1];
@@ -130,6 +130,14 @@ export function addNode(kind, cx, cy) {
   selectedId = n.id;
   emit();
   return n;
+}
+
+// Replaces the blocks only (the camera stays): used by undo / redo. Untrusted-looking input is
+// sanitized like any other, and the selection is dropped if its block is gone.
+export function replaceNodes(list) {
+  state.nodes = list.map(sanitizeNode).filter(Boolean);
+  if (selectedId && !getNode(selectedId)) selectedId = null;
+  emit();
 }
 
 export function removeNode(id) {
