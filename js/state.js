@@ -1,7 +1,7 @@
-import { localStore } from './local-store.js?v=mvzo1n5i';
+import { localStore } from './local-store.js?v=mvzo2vgf';
 // Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mvzo1n5i';
+import { explode } from './fx.js?v=mvzo2vgf';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];

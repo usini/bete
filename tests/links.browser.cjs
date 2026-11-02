@@ -349,6 +349,24 @@ let browser,server;
   await page.screenshot({path:join(process.env.TEMP,'bete-amazon-badge.png')});
   await page.screenshot({path:join(process.env.TEMP,'bete-amazon-crop.png'),clip:{x:120,y:120,width:60,height:75}});
   assert.ok(await page.evaluate(async()=>{const v=new URL(document.querySelector('script[type=module]').src).search;return (await import('/js/services.js'+v)).serviceIcon({id:'amazon'},()=>{})?.naturalWidth;}),'Amazon SVG must be loaded');
+  const amazonCenter=await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const s=await import('/js/state.js'+v),c=await import('/js/camera.js'+v),n=s.state.nodes[0];
+    window.testOpenedLinks=[];window.open=url=>{window.testOpenedLinks.push(url);return null;};
+    return c.worldToScreen(n.x+n.w/2,n.y+n.h/2);
+  });
+  await page.mouse.dblclick(amazonCenter.x,amazonCenter.y);
+  assert.equal(await page.locator('#textdialog').evaluate(el=>el.open),true,'Amazon without an image opens the editor');
+  assert.deepEqual(await page.evaluate(()=>window.testOpenedLinks),[]);
+  await page.click('#text-ok');
+  await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const s=await import('/js/state.js'+v);s.state.nodes[0].image='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a5xQAAAAASUVORK5CYII=';s.emit();
+  });
+  await page.waitForTimeout(650);
+  await page.mouse.dblclick(amazonCenter.x,amazonCenter.y);
+  assert.equal(await page.locator('#textdialog').evaluate(el=>el.open),false);
+  assert.deepEqual(await page.evaluate(()=>window.testOpenedLinks),['https://www.amazon.fr/dp/B0D2NF8G5V']);
   assert.deepEqual(errors,[]);
   console.log('PASS: Facebook post automatic iframe, normalized URL, no referrer, zoom without reload, removal after deletion (Meta response mocked)');
   console.log('PASS: 21 local service icons without external requests, confirmed deletion, mobile default lock/unlock/relock, protected editing, pan/pinch, desktop unchanged, save animation and progress/success/error/connection notifications, clean menu, block deletion, Drive hidden/red/yellow/green/blinking status, browser URL drop at pointer location, pasted URL and editor conversion, URL label, browser-provided title, no linked-site favicon requests');

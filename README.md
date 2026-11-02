@@ -3,6 +3,8 @@
 Les blocs contenant un lien Amazon affichent une petite étiquette avec le logo à gauche de leur
 coin supérieur. Elle est accolée au bloc et sa taille suit ses dimensions. Le logo est embarqué
 localement, sans requête vers Amazon.
+Un double-clic sur un bloc Amazon sans image ouvre l’édition ; une fois l’image ajoutée, il ouvre
+le lien produit. Le mode lecture seule sur mobile continue d’interdire l’édition.
 Les étiquettes de texte au-dessus des blocs suivent également leurs dimensions : hauteur,
 typographie, icônes et espacements restent proportionnels, avec une zone cliquable adaptée.
 

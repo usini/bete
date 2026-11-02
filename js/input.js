@@ -3,24 +3,24 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzo1n5i';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzo1n5i';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzo1n5i';
-import { addImageFile } from './images.js?v=mvzo1n5i';
-import { playVideo } from './video.js?v=mvzo1n5i';
-import { youTubeId } from './yt.js?v=mvzo1n5i';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzo1n5i';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzo1n5i';
-import { undo, redo } from './history.js?v=mvzo1n5i';
+import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzo2vgf';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzo2vgf';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzo2vgf';
+import { addImageFile } from './images.js?v=mvzo2vgf';
+import { playVideo } from './video.js?v=mvzo2vgf';
+import { youTubeId } from './yt.js?v=mvzo2vgf';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzo2vgf';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzo2vgf';
+import { undo, redo } from './history.js?v=mvzo2vgf';
 
-import { setDragging } from './motion.js?v=mvzo1n5i';
+import { setDragging } from './motion.js?v=mvzo2vgf';
 
-import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mvzo1n5i';
-import { shortenAmazonText } from './amazon.js?v=mvzo1n5i';
+import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mvzo2vgf';
+import { shortenAmazonText, isAmazonUrl } from './amazon.js?v=mvzo2vgf';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mvzo1n5i';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mvzo2vgf';
 
-import { serviceForNode } from './services.js?v=mvzo1n5i';
+import { serviceForNode } from './services.js?v=mvzo2vgf';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 
@@ -190,7 +190,8 @@ function doubleAt(x, y) {
   if (selected && actionHit(selected, w, state.camera.zoom)) return;
   const n = nodeAt(w);
   if (!n) { addNode('rect', w.x, w.y); return; }
-  if (serviceForNode(n) && linkOf(n)) window.open(linkOf(n), '_blank', 'noopener');
+  if (!n.image && isAmazonUrl(linkOf(n))) startEdit(n.id);
+  else if (serviceForNode(n) && linkOf(n)) window.open(linkOf(n), '_blank', 'noopener');
   else if (n.kind === 'group') startEdit(n.id);                               // group: edit its title
   else if (youTubeId(n.text)) playVideo(n);                              // YouTube: play
   else if (linkOf(n)) window.open(linkOf(n), '_blank', 'noopener');      // has a link: open it
