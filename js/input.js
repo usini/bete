@@ -3,20 +3,20 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzfvfhr';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzfvfhr';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzfvfhr';
-import { addImageFile } from './images.js?v=mvzfvfhr';
-import { playVideo } from './video.js?v=mvzfvfhr';
-import { youTubeId } from './yt.js?v=mvzfvfhr';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzfvfhr';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzfvfhr';
-import { undo, redo } from './history.js?v=mvzfvfhr';
+import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzgiske';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzgiske';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzgiske';
+import { addImageFile } from './images.js?v=mvzgiske';
+import { playVideo } from './video.js?v=mvzgiske';
+import { youTubeId } from './yt.js?v=mvzgiske';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzgiske';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzgiske';
+import { undo, redo } from './history.js?v=mvzgiske';
 
-import { setDragging } from './motion.js?v=mvzfvfhr';
+import { setDragging } from './motion.js?v=mvzgiske';
 
-import { plainLink, genericLink } from './links.js?v=mvzfvfhr';
-import { shortenAmazonText } from './amazon.js?v=mvzfvfhr';
+import { plainLink, genericLink, droppedLink } from './links.js?v=mvzgiske';
+import { shortenAmazonText } from './amazon.js?v=mvzgiske';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 
@@ -295,7 +295,16 @@ export function initInput() {
       return;
     }
     const kind = e.dataTransfer.getData(BLOCK_MIME);
-    if (kind === 'rect' || kind === 'image' || kind === 'group') addNode(kind, w.x, w.y);
+    if (kind === 'rect' || kind === 'image' || kind === 'group') {
+      addNode(kind, w.x, w.y); return;
+    }
+    const url = droppedLink(e.dataTransfer);
+    if (url) {
+      const n = addNode('rect', w.x, w.y);
+      if (genericLink(url)) n.link = url;
+      else n.text = shortenAmazonText(url);
+      emit();
+    }
   });
 
   window.addEventListener('paste', async (e) => {

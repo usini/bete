@@ -1,18 +1,18 @@
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzfvfhr';
-import { view, screenToWorld } from './camera.js?v=mvzfvfhr';
-import { youTubeId, ytThumb } from './yt.js?v=mvzfvfhr';
-import { imageFor } from './images.js?v=mvzfvfhr';
-import { positionVideo, isVideoPlaying } from './video.js?v=mvzfvfhr';
-import { guides } from './snap.js?v=mvzfvfhr';
-import { renderMinimap } from './minimap.js?v=mvzfvfhr';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzfvfhr';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzfvfhr';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzfvfhr';
+import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzgiske';
+import { view, screenToWorld } from './camera.js?v=mvzgiske';
+import { youTubeId, ytThumb } from './yt.js?v=mvzgiske';
+import { imageFor } from './images.js?v=mvzgiske';
+import { positionVideo, isVideoPlaying } from './video.js?v=mvzgiske';
+import { guides } from './snap.js?v=mvzgiske';
+import { renderMinimap } from './minimap.js?v=mvzgiske';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzgiske';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzgiske';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzgiske';
 
-import { genericLinkOf, plainLink, faviconFor } from './links.js?v=mvzfvfhr';
-import { stepMotion } from './motion.js?v=mvzfvfhr';
-import { remoteCursors, shareEvents } from './group-share.js?v=mvzfvfhr';
+import { genericLinkOf, plainLink, faviconFor } from './links.js?v=mvzgiske';
+import { stepMotion } from './motion.js?v=mvzgiske';
+import { remoteCursors, shareEvents } from './group-share.js?v=mvzgiske';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');

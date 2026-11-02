@@ -55,8 +55,19 @@ let browser,server;
   await page.fill('#editor',link);await page.click('#text-ok');
   const edited=await page.evaluate(async()=>{const v=new URL(document.querySelector('script[type=module]').src).search;return (await import('/js/state.js'+v)).state.nodes.at(-1);});
   assert.equal(edited.link,link);assert.equal(edited.text,'');
+  const dropped=await page.evaluate(async link=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const s=await import('/js/state.js'+v),c=await import('/js/camera.js'+v);
+    const expected=c.screenToWorld(450,350),data=new DataTransfer();
+    data.setData('text/uri-list','# Browser link\r\n'+link+'\r\n');data.setData('text/plain','Le titre de la page');
+    document.getElementById('canvas').dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,clientX:450,clientY:350,dataTransfer:data}));
+    return {node:s.state.nodes.at(-1),expected,count:s.state.nodes.length};
+  },link);
+  assert.equal(dropped.count,3);assert.equal(dropped.node.link,link);assert.equal(dropped.node.text,'');
+  assert.equal(dropped.node.x+dropped.node.w/2,dropped.expected.x);
+  assert.equal(dropped.node.y+dropped.node.h/2,dropped.expected.y);
   assert.deepEqual(errors,[]);
-  console.log('PASS: pasted URL and editor conversion, URL label, direct favicon without cookies/referrer/page URL');
+  console.log('PASS: browser URL drop at pointer location, pasted URL and editor conversion, URL label, direct favicon without cookies/referrer/page URL');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{
   if(browser)await browser.close();if(server)await new Promise(r=>server.close(r));
 });
