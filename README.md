@@ -1,5 +1,16 @@
 # Bête
 
+### Publications X et Instagram
+
+Colle une URL de publication X (`x.com/nom/status/123…`, liens `twitter.com` également acceptés)
+ou Instagram (`instagram.com/p/code/`, `instagram.com/reel/code/`) dans un rectangle.
+Le module officiel apparaît automatiquement lorsque le bloc est visible, avec le bouton
+« Interagir avec le post » et la manipulation normale du bloc par défaut. Une image personnalisée
+prend la priorité ; les profils, stories et liens courts non résolus restent des liens.
+Les publications doivent être publiques et autoriser l’intégration. Le fournisseur peut afficher
+une demande de connexion ou un contenu indisponible. Aucun proxy, SDK dans la page Bête ou clé API
+n’est ajouté. Pour X, l’URL du module comprend `dnt=true`, sans garantie d’absence de suivi.
+
 ### Cartes Google Maps
 
 Colle dans un rectangle l’URL `https://www.google.com/maps/embed?pb=…`, ou le code `<iframe>`

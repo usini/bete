@@ -1,24 +1,24 @@
-import { positionEmbeds } from './embed-view.js?v=mvzq511p';
+import { positionEmbeds } from './embed-view.js?v=mvzqx4cw';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzq511p';
-import { view, screenToWorld } from './camera.js?v=mvzq511p';
-import { youTubeId, ytThumb } from './yt.js?v=mvzq511p';
-import { imageFor } from './images.js?v=mvzq511p';
-import { positionVideo, isVideoPlaying } from './video.js?v=mvzq511p';
-import { guides } from './snap.js?v=mvzq511p';
-import { renderMinimap } from './minimap.js?v=mvzq511p';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzq511p';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzq511p';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzq511p';
+import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzqx4cw';
+import { view, screenToWorld } from './camera.js?v=mvzqx4cw';
+import { youTubeId, ytThumb } from './yt.js?v=mvzqx4cw';
+import { imageFor } from './images.js?v=mvzqx4cw';
+import { positionVideo, isVideoPlaying } from './video.js?v=mvzqx4cw';
+import { guides } from './snap.js?v=mvzqx4cw';
+import { renderMinimap } from './minimap.js?v=mvzqx4cw';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzqx4cw';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzqx4cw';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzqx4cw';
 
-import { genericLinkOf, plainLink } from './links.js?v=mvzq511p';
-import { stepMotion } from './motion.js?v=mvzq511p';
-import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mvzq511p';
+import { genericLinkOf, plainLink } from './links.js?v=mvzqx4cw';
+import { stepMotion } from './motion.js?v=mvzqx4cw';
+import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mvzqx4cw';
 
-import { isLocked } from './mobile-mode.js?v=mvzq511p';
+import { isLocked } from './mobile-mode.js?v=mvzqx4cw';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mvzq511p';
-import { isAmazonUrl } from './amazon.js?v=mvzq511p';
+import { serviceForNode, serviceIcon } from './services.js?v=mvzqx4cw';
+import { isAmazonUrl } from './amazon.js?v=mvzqx4cw';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');

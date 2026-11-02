@@ -373,6 +373,47 @@ let browser,server;
     const s=await import('/js/state.js'+v);s.state.camera.x=1000000;s.emit();
   });
   await page.waitForFunction(()=>!document.querySelector('.maps-embed'));
+  let xFrames=0,instagramFrames=0;
+  await page.route('https://platform.twitter.com/embed/**',route=>{
+    xFrames++;return route.fulfill({contentType:'text/html',body:'<!doctype html><p>Publication X de test</p>'});
+  });
+  await page.route('https://www.instagram.com/**/embed/**',route=>{
+    instagramFrames++;return route.fulfill({contentType:'text/html',body:'<!doctype html><p>Publication Instagram de test</p>'});
+  });
+  for(const [url,selector,host] of [
+    ['https://x.com/example/status/1234567890123456789?s=20','.x-embed','platform.twitter.com'],
+    ['https://www.instagram.com/p/AbCd123/?igsh=tracking','.instagram-embed','www.instagram.com'],
+    ['https://www.instagram.com/reel/EfGh456/?igsh=tracking','.instagram-embed','www.instagram.com'],
+  ]) {
+    await page.evaluate(async url=>{
+      const v=new URL(document.querySelector('script[type=module]').src).search;
+      const s=await import('/js/state.js'+v);s.state.nodes=[];s.state.camera={x:0,y:0,zoom:1};
+      const n=s.addNode('rect',0,0);n.x=-250;n.y=-180;n.w=500;n.h=400;n.link=url;s.emit();
+    },url);
+    await page.waitForSelector(selector+' iframe');
+    const frame=page.locator(selector+' iframe'),src=new URL(await frame.getAttribute('src'));
+    assert.equal(src.hostname,host);assert.equal(src.searchParams.has('igsh'),false);assert.equal(src.searchParams.has('s'),false);
+    assert.equal(await frame.getAttribute('referrerpolicy'),'no-referrer');
+    await page.mouse.move(640,450);await page.mouse.down();await page.mouse.move(680,470,{steps:4});await page.mouse.up();
+    const moved=await page.evaluate(async()=>{
+      const v=new URL(document.querySelector('script[type=module]').src).search;
+      const s=await import('/js/state.js'+v),c=await import('/js/camera.js'+v),n=s.state.nodes[0];
+      return {x:n.x,y:n.y,handle:c.worldToScreen(n.x+n.w,n.y+n.h)};
+    });
+    assert.equal(moved.x,-210);assert.equal(moved.y,-160);
+    await page.mouse.move(moved.handle.x,moved.handle.y);await page.mouse.down();
+    await page.mouse.move(moved.handle.x+20,moved.handle.y+10,{steps:3});await page.mouse.up();
+    assert.deepEqual(await page.evaluate(async()=>{
+      const v=new URL(document.querySelector('script[type=module]').src).search;
+      const n=(await import('/js/state.js'+v)).state.nodes[0];return [n.w,n.h];
+    }),[520,410]);
+    await page.locator(selector+' button').click();
+    assert.equal(await page.locator(selector).getAttribute('data-interactive'),'true');
+    await page.locator(selector+' button').click();
+    await page.keyboard.press('Delete');
+    await page.waitForFunction(()=>!document.querySelector('.x-embed,.instagram-embed'));
+  }
+  assert.equal(xFrames,1);assert.equal(instagramFrames,2);
   await page.evaluate(async()=>{
     const v=new URL(document.querySelector('script[type=module]').src).search;
     const s=await import('/js/state.js'+v);s.state.nodes=[];s.emit();

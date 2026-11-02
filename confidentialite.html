@@ -89,6 +89,19 @@
 
   <h2>2. Services tiers contactés par l'application</h2>
   <p>
+    Une URL reconnue de publication X ou Instagram charge automatiquement son intégration officielle
+    lorsque le rectangle est visible, y compris après restauration ou dans un groupe partagé.
+    Le navigateur contacte directement X (notamment <code>platform.twitter.com</code> et ses services
+    de contenu) ou Instagram/Meta, en transmettant l’identifiant du post, l’adresse IP et les
+    informations techniques habituelles. Ces services peuvent utiliser leurs cookies selon les
+    réglages du navigateur. Le paramètre <code>dnt=true</code> est demandé au module X ; il ne
+    garantit pas l’absence de collecte. Bête ne récupère ni copie du contenu sur son serveur,
+    ni métadonnées via un proxy. L’intégration est retirée hors écran et la page Bête ne transmet
+    pas son adresse comme référent. Les contenus privés ou non intégrables peuvent rester indisponibles.
+    Voir les politiques de <a href="https://x.com/privacy">X</a> et
+    <a href="https://privacycenter.instagram.com/policy/">Instagram/Meta</a>.
+  </p>
+  <p>
     Un rectangle contenant une URL d’intégration Google Maps charge automatiquement la carte
     officielle lorsque le bloc est visible, y compris après restauration ou dans un groupe partagé.
     Le navigateur transmet directement à Google l’URL de la carte (qui peut contenir un lieu ou des
@@ -142,7 +155,7 @@
     partir du domaine et du chemin du lien ; leur affichage ne contacte pas ces services.
     En l’absence de titre fourni par le navigateur, Bête affiche le nom du site extrait localement
     de l’URL. Le site lié n’est ouvert que lorsque tu actives le lien. Les traitements spécifiques
-    à YouTube, Facebook et Google Maps restent décrits ci-dessus.
+    à YouTube, Facebook, Google Maps, X et Instagram restent décrits ci-dessus.
   </p>
 
   <h2>3. Sauvegarde sur Google Drive (facultative)</h2>
