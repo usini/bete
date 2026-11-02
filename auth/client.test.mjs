@@ -42,7 +42,7 @@ test('Drive stays manual; hiding only saves locally and leaving warns only for p
   const elements = new Map(), windowEvents = new Map(), documentEvents = new Map();
   let saved, localSaves = 0, networkCalls = 0, intervals = 0;
   const context = vm.createContext({
-    isLocked: () => false, modeEvents: {addEventListener(){}}, notify(){},
+    isLocked: () => false, modeEvents: {addEventListener(){}}, notify(){}, updateBackupSize(){},
     localStore: {getItem:()=>null, removeItem(){}, setItem(){}},
     state: {nodes:[{id:'local',text:'before'}]}, AbortSignal,
     serialize:()=>({nodes:context.state.nodes}),

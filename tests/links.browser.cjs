@@ -26,6 +26,7 @@ let browser,server;
   page.on('pageerror',e=>errors.push(e.message));
   await page.goto('http://127.0.0.1:8092/');
   await page.waitForFunction(()=>document.querySelector('#drive-status').textContent);
+  assert.equal(await page.locator('#drive-size').isVisible(),false,'size follows the optional Drive indicator');
   const link='http://localhost:8092/private/page?secret=never-fetch';
   await page.evaluate(async link=>{
     const v=new URL(document.querySelector('script[type=module]').src).search;
@@ -137,6 +138,8 @@ let browser,server;
   await releaseAuth();
   await page.waitForFunction(()=>document.querySelector('#drive-save').dataset.state==='pending');
   assert.equal(driveUploads,0,'opening the app must not save automatically');
+  await page.waitForFunction(()=>Number(document.querySelector('#drive-size').dataset.bytes)>0);
+  assert.match(await page.locator('#drive-size').textContent(),/\d.*(?:o|Ko|Mo|Go)$/);
   assert.equal(await page.locator('#drive-connect').isVisible(),false);
   assert.equal(await page.locator('#drive-restore').textContent(),'Restaurer');
   await page.evaluate(async()=>{const v=new URL(document.querySelector('script[type=module]').src).search;const s=await import('/js/state.js'+v);s.state.nodes[0].text='Modifié';s.emit();});
@@ -180,6 +183,11 @@ let browser,server;
     const s=await import('/js/state.js'+v);return {nodes:JSON.stringify(s.state.nodes),count:s.serialize().history.states.length};
   }),{nodes:beforeClear.nodes,count:1},'clearing history must preserve the current board');
   assert.equal(await page.locator('#drive-save').getAttribute('data-state'),'pending','cleared history must be pending on Drive');
+  const expectedBytes=await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const doc=await(await import('/js/storage.js'+v)).exportData();return new Blob([JSON.stringify(doc)]).size;
+  });
+  await page.waitForFunction(bytes=>Number(document.querySelector('#drive-size').dataset.bytes)===bytes,expectedBytes);
   await page.screenshot({path:join(process.env.TEMP,'bete-menu-clean.png')});
   await page.unroute('https://auth-bete.usini.eu/token');
   await page.route('https://auth-bete.usini.eu/token',route=>route.fulfill({status:503,contentType:'application/json',body:'{}'}));

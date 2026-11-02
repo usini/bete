@@ -1,4 +1,5 @@
-import { localStore } from './local-store.js?v=mvznbsbb';
+import { localStore } from './local-store.js?v=mvznhy77';
+import { updateBackupSize } from './backup-size.js?v=mvznhy77';
 // Optional backup of the board on Google Drive.
 //
 //  - Scope: drive.appdata only. The file (Bete.json) lives in a hidden folder reserved to this
@@ -6,12 +7,12 @@ import { localStore } from './local-store.js?v=mvznbsbb';
 //  - Sign-in: OAuth code flow through a stateless service. Access tokens stay in memory.
 //  - Drive transfers happen only on explicit save, restore or initial connection.
 //    Local autosave remains automatic; leaving with unsaved Drive changes warns the user.
-import { state, onSaved, saveNow, serialize } from './state.js?v=mvznbsbb';
-import { exportData, importData } from './storage.js?v=mvznbsbb';
+import { state, onSaved, saveNow, serialize } from './state.js?v=mvznhy77';
+import { exportData, importData } from './storage.js?v=mvznhy77';
 
-import { notify } from './notifications.js?v=mvznbsbb';
+import { notify } from './notifications.js?v=mvznhy77';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mvznbsbb';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mvznhy77';
 
 const AUTH_URL = 'https://auth-bete.usini.eu';
 const FILE_NAME = 'Bete.json';
@@ -323,6 +324,12 @@ function renderIndicator() {
   const button = $('drive-save');
   if (!button?.dataset) return;
   button.hidden = !meta;
+  const size = $('drive-size');
+  if (size) {
+    const wasHidden = size.hidden;
+    size.hidden = !meta;
+    if (meta && wasHidden) updateBackupSize();
+  }
   const mode = driveFailed ? 'error' : connecting || !tokenValid() ? 'connecting'
     : dirty || busy || conflictPending ? 'pending' : 'saved';
   button.dataset.state = mode;
@@ -408,6 +415,7 @@ export function initDrive() {
     observed = sig;
     const changed = sig !== meta.sig;
     dirty = changed;
+    updateBackupSize();
 
     render();
   });

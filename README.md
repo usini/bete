@@ -75,6 +75,8 @@ python -m http.server 8000
   La disquette s’anime pendant les opérations et au clic ; des notifications indiquent la connexion,
   la sauvegarde en cours, sa réussite ou un échec. Elles sont locales et disparaissent automatiquement.
   Le menu conserve seulement la connexion initiale, Restaurer et Déconnecter.
+  À côté de la disquette, la taille du prochain JSON Drive inclut les images dédupliquées et
+  l’historique. Elle est recalculée localement après les modifications, sans envoi réseau.
   Quitter ou recharger la page avec des modifications non sauvegardées sur Drive déclenche
   l’avertissement standard du navigateur, sans lancer d’envoi. La version locale reste enregistrée
   automatiquement. Certains navigateurs mobiles ne permettent pas cet avertissement à la fermeture.
