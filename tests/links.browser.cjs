@@ -36,8 +36,8 @@ let browser,server;
   },link);
   await page.waitForFunction(async()=>{
     const v=new URL(document.querySelector('script[type=module]').src).search;
-    const s=await import('/js/state.js'+v),l=await import('/js/links.js'+v);
-    const n=s.state.nodes[0];return !!n?.link&&!!l.faviconFor(n.link,()=>{});
+    const s=await import('/js/state.js'+v);
+    return !!s.state.nodes[0]?.link;
   });
   const result=await page.evaluate(async()=>{
     const v=new URL(document.querySelector('script[type=module]').src).search;
@@ -45,8 +45,8 @@ let browser,server;
     return {node:s.state.nodes[0],label:l.labelInfo(s.state.nodes[0])};
   });
   assert.equal(result.node.text,'');assert.equal(result.node.link,link);assert.equal(result.label.text,link);
-  assert.ok(requests.some(r=>r.host==='localhost:8092'));
-  for(const req of requests.filter(r=>r.host==='localhost:8092')){assert.equal(req.path,'/favicon.ico');assert.equal(req.cookie,undefined);assert.equal(req.referer,undefined);}
+  await page.waitForTimeout(250);
+  assert.equal(requests.filter(r=>r.host==='localhost:8092').length,0,'ordinary links must not request favicons');
   await page.evaluate(async()=>{
     const v=new URL(document.querySelector('script[type=module]').src).search;
     const s=await import('/js/state.js'+v),e=await import('/js/editor.js'+v);
@@ -63,9 +63,16 @@ let browser,server;
     document.getElementById('canvas').dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,clientX:450,clientY:350,dataTransfer:data}));
     return {node:s.state.nodes.at(-1),expected,count:s.state.nodes.length};
   },link);
-  assert.equal(dropped.count,3);assert.equal(dropped.node.link,link);assert.equal(dropped.node.text,'');
+  assert.equal(dropped.count,3);assert.equal(dropped.node.link,link);assert.equal(dropped.node.text,'Le titre de la page');
   assert.equal(dropped.node.x+dropped.node.w/2,dropped.expected.x);
   assert.equal(dropped.node.y+dropped.node.h/2,dropped.expected.y);
+  const htmlTitle=await page.evaluate(async link=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const l=await import('/js/links.js'+v);const data=new DataTransfer();
+    data.setData('text/plain',link);data.setData('text/html','<a href="'+link+'"><strong>Titre fourni par le navigateur</strong><img src="/must-not-load"></a><script>throw new Error("must-not-run")</script>');
+    return l.droppedTitle(data,link);
+  },link);
+  assert.equal(htmlTitle,'Titre fourni par le navigateur');
   assert.equal(await page.locator('#sel, #swatches, #del').count(),0);
   assert.equal(await page.locator('#drive-save').isVisible(),false);
   const target=await page.evaluate(async()=>{
@@ -96,8 +103,9 @@ let browser,server;
   await page.reload();
   await page.waitForFunction(()=>document.querySelector('#drive-save').dataset.state==='error');
   assert.equal(await page.locator('#drive-save').evaluate(el=>getComputedStyle(el).animationName),'drive-error-blink');
+  assert.equal(requests.filter(r=>r.host==='localhost:8092').length,0);
   assert.deepEqual(errors,[]);
-  console.log('PASS: clean menu, block deletion, Drive hidden/red/yellow/green/blinking status, browser URL drop at pointer location, pasted URL and editor conversion, URL label, direct favicon without cookies/referrer/page URL');
+  console.log('PASS: clean menu, block deletion, Drive hidden/red/yellow/green/blinking status, browser URL drop at pointer location, pasted URL and editor conversion, URL label, browser-provided title, no linked-site favicon requests');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{
   if(browser)await browser.close();if(server)await new Promise(r=>server.close(r));
 });

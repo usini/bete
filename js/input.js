@@ -3,20 +3,20 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzgwjl8';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzgwjl8';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzgwjl8';
-import { addImageFile } from './images.js?v=mvzgwjl8';
-import { playVideo } from './video.js?v=mvzgwjl8';
-import { youTubeId } from './yt.js?v=mvzgwjl8';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzgwjl8';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzgwjl8';
-import { undo, redo } from './history.js?v=mvzgwjl8';
+import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzh5g0m';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzh5g0m';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzh5g0m';
+import { addImageFile } from './images.js?v=mvzh5g0m';
+import { playVideo } from './video.js?v=mvzh5g0m';
+import { youTubeId } from './yt.js?v=mvzh5g0m';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzh5g0m';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzh5g0m';
+import { undo, redo } from './history.js?v=mvzh5g0m';
 
-import { setDragging } from './motion.js?v=mvzgwjl8';
+import { setDragging } from './motion.js?v=mvzh5g0m';
 
-import { plainLink, genericLink, droppedLink } from './links.js?v=mvzgwjl8';
-import { shortenAmazonText } from './amazon.js?v=mvzgwjl8';
+import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mvzh5g0m';
+import { shortenAmazonText } from './amazon.js?v=mvzh5g0m';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 
@@ -303,7 +303,7 @@ export function initInput() {
     const url = droppedLink(e.dataTransfer);
     if (url) {
       const n = addNode('rect', w.x, w.y);
-      if (genericLink(url)) n.link = url;
+      if (genericLink(url)) { n.link = url; n.text = droppedTitle(e.dataTransfer, url); }
       else n.text = shortenAmazonText(url);
       emit();
     }

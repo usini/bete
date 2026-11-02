@@ -23,8 +23,8 @@ python -m http.server 8000
   Chaque groupe a un lien dans le menu pour s'y rendre d'un clic.
 - **Vidéos YouTube** : un lien YouTube dans le texte d'un bloc affiche la miniature et le titre ;
   un double-clic lance la vidéo.
-- **Lien glissé depuis le navigateur** : crée un rectangle à l’endroit du dépôt ; YouTube et Amazon gardent leur présentation habituelle.
-- **Lien collé dans un rectangle** : hors YouTube et Amazon, l’adresse passe dans le label et le favicon apparaît dans le rectangle. Il est demandé directement au site, sans cookies ni référent et sans contacter de service d’aperçu. Si le site refuse le chargement CORS, une flèche de lien est affichée.
+- **Lien glissé depuis le navigateur** : crée un rectangle à l’endroit du dépôt. Le titre ou texte du lien fourni par le navigateur est placé dans le bloc, et l’URL dans son champ lien. Aucune récupération du titre sur le réseau ; sans titre, le nom du site est affiché. YouTube et Amazon gardent leur présentation habituelle.
+- **Lien collé dans un rectangle** : hors YouTube et Amazon, l’adresse passe dans le label et le nom du site apparaît dans le rectangle. Aucun favicon ni aperçu n’est demandé au site lié.
 - **Liens** : chaque bloc peut avoir un lien, affiché dans une pastille au-dessus ; un double-clic l'ouvre.
 - **Produits Amazon** : un lien Amazon est raccourci, et on peut y noter nom, prix et délai de livraison.
 - **Actions du bloc sélectionné** : édition, palette de couleurs et corbeille directement à côté du bloc.

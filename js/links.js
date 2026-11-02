@@ -1,5 +1,5 @@
-import { youTubeId } from './yt.js?v=mvzgwjl8';
-import { isAmazonUrl } from './amazon.js?v=mvzgwjl8';
+import { youTubeId } from './yt.js?v=mvzh5g0m';
+import { isAmazonUrl } from './amazon.js?v=mvzh5g0m';
 
 export function plainLink(raw) {
   const text = String(raw || '').trim();
@@ -24,40 +24,25 @@ export function droppedLink(data) {
   }
   return plainLink(data.getData('text/x-moz-url').split(/\r?\n/)[0]) || plainLink(data.getData('text/plain'));
 }
+export function droppedTitle(data, url) {
+  const title = value => {
+    const text = String(value || '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
+    return text && !plainLink(text) ? text.slice(0, 500) : '';
+  };
+  const html = data.getData('text/html');
+  if (html && html.length <= 65536 && typeof document !== 'undefined') {
+    // A disconnected template is inert: no page navigation, scripts or image requests.
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    template.content.querySelectorAll('script, style, noscript').forEach(n => n.remove());
+    const anchors = [...template.content.querySelectorAll('a[href]')];
+    const anchor = anchors.find(a => plainLink(a.getAttribute('href')) === url) || (anchors.length === 1 ? anchors[0] : null);
+    const text = title(anchor?.textContent) || title(anchor?.getAttribute('title'));
+    if (text) return text;
+  }
+  return title(data.getData('text/x-moz-url').split(/\r?\n/).slice(1).join(' '))
+    || title(data.getData('text/x-moz-url-desc')) || title(data.getData('text/plain'));
+}
 export function genericLinkOf(node) {
   return node.kind === 'rect' && !youTubeId(node.text) ? genericLink(node.link || node.text) : null;
-}
-
-const icons = new Map();
-export function faviconFor(url, redraw) {
-  const target = new URL('/favicon.ico', new URL(url).origin).href;
-  if (!icons.has(target)) {
-    if (icons.size >= 200) return null;
-    const entry = { image: null };
-    icons.set(target, entry);
-    // Unlike a regular cross-origin <img>, fetch explicitly omits credentials.
-    // No opaque-response workaround or third-party proxy: CORS failures use the local fallback.
-    fetch(target, { mode: 'cors', credentials: 'omit', referrerPolicy: 'no-referrer', redirect: 'error', signal: AbortSignal.timeout(8000) })
-      .then(async response => {
-        if (!response.ok || !/^(image\/|application\/octet-stream)/i.test(response.headers.get('Content-Type') || '')) return;
-        const reader = response.body.getReader();
-        const parts = []; let size = 0;
-        try {
-          while (true) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            size += value.byteLength;
-            if (size > 256 * 1024) { await reader.cancel(); return; }
-            parts.push(value);
-          }
-          const blob = new Blob(parts, { type: response.headers.get('Content-Type') });
-          // SVG is excluded: only decode small raster favicons.
-          if (/svg/i.test(blob.type)) return;
-          const objectUrl = URL.createObjectURL(blob), image = new Image();
-          try { image.src = objectUrl; await image.decode(); entry.image = image; redraw(); }
-          finally { URL.revokeObjectURL(objectUrl); }
-        } finally { reader.releaseLock(); }
-      }).catch(() => {});
-  }
-  return icons.get(target).image;
 }

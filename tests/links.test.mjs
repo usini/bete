@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { plainLink, genericLink, genericLinkOf, droppedLink } from '../js/links.js';
+import { plainLink, genericLink, genericLinkOf, droppedLink, droppedTitle } from '../js/links.js';
 
 test('ordinary single URLs become link previews, without changing YouTube or Amazon handling', () => {
   assert.equal(genericLink('example.org/path?q=hello#test'), 'https://example.org/path?q=hello#test');
@@ -13,6 +13,14 @@ test('ordinary single URLs become link previews, without changing YouTube or Ama
   assert.equal(genericLinkOf({kind:'group',text:'https://example.org'}),null);
   assert.equal(genericLinkOf({kind:'rect',text:'https://example.org'}),'https://example.org/');
   assert.equal(genericLinkOf({kind:'rect',text:'Mon site',link:'https://example.org'}),'https://example.org/');
+});
+
+test('drop titles use supplied browser text only, excluding repeated URLs', () => {
+  const data = values => ({getData: type => values[type] || ''});
+  assert.equal(droppedTitle(data({'text/plain':'Le titre de la page'}),'https://example.org/'),'Le titre de la page');
+  assert.equal(droppedTitle(data({'text/plain':'https://example.org/'}),'https://example.org/'),'');
+  assert.equal(droppedTitle(data({'text/x-moz-url':'https://example.org/\nTitre Firefox'}),'https://example.org/'),'Titre Firefox');
+  assert.equal(droppedTitle(data({}),'https://example.org/'),'');
 });
 
 test('browser drops accept URL lists, bookmarks and Firefox links without interpreting HTML', () => {

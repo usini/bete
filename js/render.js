@@ -1,18 +1,18 @@
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzgwjl8';
-import { view, screenToWorld } from './camera.js?v=mvzgwjl8';
-import { youTubeId, ytThumb } from './yt.js?v=mvzgwjl8';
-import { imageFor } from './images.js?v=mvzgwjl8';
-import { positionVideo, isVideoPlaying } from './video.js?v=mvzgwjl8';
-import { guides } from './snap.js?v=mvzgwjl8';
-import { renderMinimap } from './minimap.js?v=mvzgwjl8';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzgwjl8';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzgwjl8';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzgwjl8';
+import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzh5g0m';
+import { view, screenToWorld } from './camera.js?v=mvzh5g0m';
+import { youTubeId, ytThumb } from './yt.js?v=mvzh5g0m';
+import { imageFor } from './images.js?v=mvzh5g0m';
+import { positionVideo, isVideoPlaying } from './video.js?v=mvzh5g0m';
+import { guides } from './snap.js?v=mvzh5g0m';
+import { renderMinimap } from './minimap.js?v=mvzh5g0m';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzh5g0m';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzh5g0m';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzh5g0m';
 
-import { genericLinkOf, plainLink, faviconFor } from './links.js?v=mvzgwjl8';
-import { stepMotion } from './motion.js?v=mvzgwjl8';
-import { remoteCursors, shareEvents } from './group-share.js?v=mvzgwjl8';
+import { genericLinkOf, plainLink } from './links.js?v=mvzh5g0m';
+import { stepMotion } from './motion.js?v=mvzh5g0m';
+import { remoteCursors, shareEvents } from './group-share.js?v=mvzh5g0m';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -153,7 +153,7 @@ function drawNode(n, selected, zoom) {
   ctx.rect(n.x, n.y, n.w, n.h);
   ctx.clip();
   const link = genericLinkOf(n);
-  const icon = link && !n.image ? faviconFor(link, requestRender) : null;
+  const linkTitle = link ? ((!plainLink(n.text) && n.text.trim()) || new URL(link).hostname) : '';
   const src = yt ? thumb(yt) : n.image ? imageFor(n.image, requestRender) : null;
   // Caption strip inside image blocks (their text).
   const label = !yt && n.kind !== 'image' && src && n.text ? n.text : null;
@@ -162,17 +162,8 @@ function drawNode(n, selected, zoom) {
     if (areaH > 0) drawContained(src, n.x + PAD, n.y + PAD, n.w - 2 * PAD, areaH);
     if (yt) drawPlay(n);
     if (label) drawCaption(n, label);
-  } else if (link && !n.image) {
-    const text = plainLink(n.text) ? '' : n.text;
-    const height = n.h - 2 * PAD - (text ? CAPTION : 0);
-    const size = Math.max(8, Math.min(64, n.w - 2 * PAD, height));
-    if (icon) drawContained(icon, n.x + (n.w - size) / 2, n.y + PAD + (height - size) / 2, size, size);
-    else {
-      ctx.fillStyle = n.color; ctx.font = '40px ' + FONT_FAMILY;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('↗', n.x + n.w / 2, n.y + PAD + height / 2);
-    }
-    if (text) drawCaption(n, text);
+  } else if (linkTitle && !n.image) {
+    drawBlockText(linkTitle, n, '#e8e8e8');
   } else if (!yt && n.kind !== 'image') {
     // Image blocks show no text: they only show their picture (changed with the 🖼️ button).
     drawBlockText(n.text, n, '#e8e8e8');

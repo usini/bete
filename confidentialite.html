@@ -100,21 +100,17 @@
     Le code de Bête ne collecte pas ces journaux d’hébergement.
   </p>
 
-  <h3>Favicons des liens</h3>
   <p>
-    Un lien ordinaire dans un rectangle (hors YouTube et Amazon) peut déclencher une requête directe
-    vers <code>/favicon.ico</code> sur le site lié. Seule l’origine du lien est utilisée : le chemin,
-    les paramètres et le fragment de la page ne sont pas envoyés pour cette requête. Les cookies
-    et les identifiants de connexion sont omis et aucun référent n’est transmis. Le site peut recevoir
-    l’adresse IP, l’origine de Bête (en-tête CORS Origin) et les informations techniques habituelles
-    du navigateur. Aucun serveur de Bête ni service tiers d’aperçu n’intervient.
+    Lors du dépôt d’un lien depuis le navigateur, son titre ou son texte peut être fourni avec l’URL.
+    Bête utilise uniquement ces informations transmises localement par le glisser-déposer ; aucune
+    requête vers la page liée ni service de récupération de titre n’est utilisé. Le titre est enregistré
+    comme texte du bloc et suit les mêmes règles de sauvegarde et de partage.
   </p>
   <p>
-    Le chargement exige l’autorisation CORS du site et refuse les redirections. En cas d’échec,
-    une icône de lien locale est affichée. Le favicon et le résultat du chargement restent en mémoire
-    pendant la session ; le navigateur peut également appliquer son cache HTTP. Ils ne sont pas
-    enregistrés dans le JSON, dans l’historique ou sur Drive. Chaque appareil affichant le lien,
-    y compris après réception d’un groupe partagé, peut faire sa propre requête de favicon.
+    Les liens ordinaires ne déclenchent aucun chargement de favicon ou d’aperçu sur le site lié.
+    En l’absence de titre fourni par le navigateur, Bête affiche le nom du site extrait localement
+    de l’URL. Le site lié n’est ouvert que lorsque tu actives le lien. Les traitements spécifiques
+    à YouTube restent décrits ci-dessus.
   </p>
 
   <h2>3. Sauvegarde sur Google Drive (facultative)</h2>
