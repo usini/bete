@@ -3,10 +3,10 @@
 //  - Scope: drive.appdata only. The file (Bete.json) lives in a hidden folder reserved to this
 //    app in the user's own Drive. Board content never passes through our OAuth service.
 //  - Sign-in: OAuth code flow through a stateless service. Access tokens stay in memory.
-//  - Sync: the board is uploaded ~30 s after the last change. When connecting, the local board
+//  - Sync: check every 30 s and upload only changed content. When connecting, the local board
 //    and the Drive file are compared; if both changed since the last sync, the user chooses.
-import { state, onSaved, saveNow } from './state.js?v=mvzbmn95';
-import { exportData, importData } from './storage.js?v=mvzbmn95';
+import { state, onSaved, saveNow } from './state.js?v=mvzcifgl';
+import { exportData, importData } from './storage.js?v=mvzcifgl';
 
 const AUTH_URL = 'https://auth-bete.usini.eu';
 const FILE_NAME = 'Bete.json';
@@ -23,11 +23,12 @@ export const driveConfig = { autosaveMs: 30000, retryMs: 60000 };
 let meta = loadMeta();
 let token = null;        // access token, memory only
 let tokenExpiry = 0;
+let retryAfter = 0;
+let observed = '';
 let dirty = false;       // the board changed since the last sync
 let busy = false;
 let lastCheck = 0;       // last time we compared with Drive (to catch another device's changes)
 let conflictPending = false; // "Décider plus tard" was chosen: no autosave until the user acts
-let timer = null;
 let message = '';        // transient status line (progress, errors)
 
 class AuthNeeded extends Error {}
@@ -57,7 +58,11 @@ async function authRequest(path) {
     signal: AbortSignal.timeout(20000),
   });
   if (r.status === 401) throw new AuthNeeded();
-  if (!r.ok) throw new Error('Service de connexion indisponible. Réessaie bientôt.');
+  if (!r.ok) {
+    const error = new Error('Service de connexion indisponible. Réessaie bientôt.');
+    error.status = r.status;
+    throw error;
+  }
   return r.json();
 }
 async function ensureToken() {
@@ -175,6 +180,7 @@ async function pushStep() {
   meta.sig = sig;
   saveMeta();
   dirty = hash(nodesJson()) !== sig; // the board may have changed while uploading
+  retryAfter = 0;
 }
 
 async function pullStep(remote) {
@@ -187,10 +193,11 @@ async function pullStep(remote) {
   meta.sig = hash(nodesJson());
   saveMeta();
   dirty = false;
+  retryAfter = 0;
 }
 
 // Right after connecting: decide what to do with the local board and the Drive file.
-async function reconcileStep() {
+async function reconcileStep(interactive = true) {
   conflictPending = false;
   lastCheck = Date.now();
   const remote = await findFile();
@@ -208,8 +215,8 @@ async function reconcileStep() {
   else if (remoteChanged && localChanged) choice = 'ask';
   else if (remoteChanged) choice = 'remote';
   else if (localChanged) choice = 'local';
-  else { meta.fileId = remote.id; saveMeta(); return; }   // already in sync
-  if (choice === 'ask') choice = await askConflict(remote);
+  else { meta.fileId = remote.id; dirty = false; saveMeta(); return; } // already in sync
+  if (choice === 'ask') choice = interactive ? await askConflict(remote) : null;
   if (choice === 'remote') await pullStep(remote);
   else if (choice === 'local') await pushStep();
   else {
@@ -236,7 +243,7 @@ async function run(label, step) {
   } finally {
     busy = false;
     render();
-    if (dirty && meta && tokenValid()) schedule();
+    // The periodic timer handles subsequent changes.
   }
 }
 
@@ -247,17 +254,14 @@ function fail(e) {
   say(offline ? 'Hors ligne ou Google injoignable : nouvel essai bientôt.'
     : apiOff ? "Google Drive : l'API Drive n'est pas activée dans le projet Google Cloud."
       : 'Google Drive : ' + (e.message || 'erreur'));
-  if (offline || e.status >= 500) schedule(driveConfig.retryMs);
+  if (offline || e.status >= 500 || e.name === 'TimeoutError') {
+    retryAfter = Date.now() + driveConfig.retryMs;
+  }
 }
 
-function schedule(ms = driveConfig.autosaveMs) {
-  clearTimeout(timer);
-  if (!meta || !dirty || conflictPending) return;
-  timer = setTimeout(() => {
-    // reconcileStep, not pushStep: Drive may have changed meanwhile (another device), and an
-    // upload must never overwrite that silently.
-    run('Sauvegarde…', reconcileStep);
-  }, ms);
+function periodicSave() {
+  if (!meta || !dirty || busy || conflictPending || Date.now() < retryAfter) return;
+  run('Sauvegarde…', () => reconcileStep(false));
 }
 
 // ---- conflict popup ----
@@ -331,7 +335,7 @@ async function disconnect() {
   try {
     await authRequest('/logout');
     token = null; tokenExpiry = 0; meta = null; dirty = false;
-    clearTimeout(timer); saveMeta();
+    saveMeta();
     say('Déconnecté. La sauvegarde reste sur ton Drive.');
   } catch {
     say('Déconnexion non confirmée. Réessaie ou retire l’accès depuis ton compte Google.');
@@ -351,19 +355,24 @@ export function initDrive() {
   if (meta) {
     dirty = hash(nodesJson()) !== meta.sig;
   }
-  // Content changed (not the camera): remember it and (re)start the autosave countdown.
+  observed = hash(nodesJson());
+  // Camera-only local saves must not postpone a pending content upload.
   onSaved(() => {
     if (!meta) return;
-    const changed = hash(nodesJson()) !== meta.sig;
-    if (changed !== dirty) { dirty = changed; render(); }
-    if (dirty) schedule();
+    const sig = hash(nodesJson());
+    if (sig === observed) return;
+    observed = sig;
+    const changed = sig !== meta.sig;
+    dirty = changed;
+
+    render();
   });
   $('drive-connect').addEventListener('click', connect);
   $('drive-save').addEventListener('click', () => { run('Sauvegarde…', reconcileStep); });
   $('drive-restore').addEventListener('click', restore);
   $('drive-disconnect').addEventListener('click', disconnect);
   $('drivedialog').addEventListener('cancel', (e) => e.preventDefault()); // buttons only
-  setInterval(render, 30000); // notices a token that expired
+  setInterval(() => { render(); periodicSave(); }, driveConfig.autosaveMs);
 
   // Leaving the page with changes not yet on Drive: start the upload at once, and make the
   // browser warn (it shows its own generic text, which a page cannot change). A page also
@@ -389,12 +398,11 @@ export function initDrive() {
 function checkRemote() {
   if (!meta || busy || conflictPending) return;
   if (Date.now() - lastCheck < 20000) return;
-  run('Synchronisation…', reconcileStep);
+  run('Synchronisation…', () => reconcileStep(false));
 }
 
 // Uploads now, instead of waiting for the countdown, when there is something to save.
 function flush() {
   if (!meta || !dirty || busy || conflictPending) return;
-  clearTimeout(timer);
-  run('Sauvegarde…', reconcileStep);
+  run('Sauvegarde…', () => reconcileStep(false));
 }

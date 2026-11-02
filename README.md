@@ -31,7 +31,10 @@ python -m http.server 8000
 - **Sauvegarde** : enregistrement automatique dans le navigateur (localStorage et IndexedDB),
   export et import d'un fichier JSON.
 - **Google Drive (facultatif)** : sauvegarde automatique du tableau dans un dossier caché de ton Drive
-  (droit `drive.appdata` uniquement), avec choix en cas de conflit entre deux appareils.
+  (droit `drive.appdata` uniquement). Vérification toutes les 30 secondes et envoi uniquement si le tableau a changé,
+  si le réseau et la session le permettent.
+  Aucun envoi si le contenu est inchangé. Un conflit suspend la sauvegarde et affiche un message
+  dans le panneau ; « Sauvegarder maintenant » permet de choisir la version sans interruption automatique.
   Quitter la page avant que tout soit sauvegardé déclenche l'envoi immédiat et un avertissement du navigateur.
 
 Les tableaux ne sont pas envoyés au serveur de Bête. Les appels réseau sont ceux de YouTube :

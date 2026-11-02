@@ -33,3 +33,35 @@ test('browser restores and renews tokens without storing them or proxying Drive 
   assert.equal(renewals, 3); // expiry followed by a rejected access token
   assert.deepEqual(removed, ['bete2:driveToken']);
 });
+
+test('periodic sync skips unchanged content, busy operations, backoff and conflicts', async () => {
+  let now = 1000;
+  const source = readFileSync(new URL('../js/drive.js', import.meta.url), 'utf8')
+    .replace(/^import .*;\r?\n/gm, '').replaceAll('export ', '');
+  const context = vm.createContext({
+    localStorage: { getItem: () => null, removeItem: () => {}, setItem: () => {} },
+    document: { getElementById: () => ({}) }, state: { nodes: [{id: 'local'}] }, AbortSignal, URLSearchParams,
+    Date: class extends Date { static now() { return now; } },
+    fetch: async () => Response.json({ files: [{id: 'remote', modifiedTime: 'new'}] }),
+  });
+  vm.runInContext(source + `
+    meta = { linked:true, remoteModified:'old', sig:'old' };
+    token = 'valid'; tokenExpiry = Date.now()+3600000;
+    globalThis.calls = 0;
+    run = () => { globalThis.calls++; };
+    globalThis.client = { periodicSave, reconcileStep, pending: () => conflictPending };
+  `, context);
+  context.client.periodicSave(); assert.equal(context.calls, 0);
+  vm.runInContext('dirty = true', context);
+  context.client.periodicSave(); assert.equal(context.calls, 1);
+  context.client.periodicSave(); assert.equal(context.calls, 2);
+  vm.runInContext('busy = true', context);
+  context.client.periodicSave(); assert.equal(context.calls, 2);
+  vm.runInContext('busy = false; retryAfter = Date.now()+60000', context);
+  context.client.periodicSave(); assert.equal(context.calls, 2);
+  now += 60000;
+  context.client.periodicSave(); assert.equal(context.calls, 3);
+  await context.client.reconcileStep(false);
+  assert.equal(context.client.pending(), true);
+  context.client.periodicSave(); assert.equal(context.calls, 3);
+});

@@ -3,15 +3,15 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf } from './state.js?v=mvzbmn95';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzbmn95';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzbmn95';
-import { addImageFile } from './images.js?v=mvzbmn95';
-import { playVideo } from './video.js?v=mvzbmn95';
-import { youTubeId } from './yt.js?v=mvzbmn95';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzbmn95';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzbmn95';
-import { undo, redo } from './history.js?v=mvzbmn95';
+import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf } from './state.js?v=mvzcifgl';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzcifgl';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzcifgl';
+import { addImageFile } from './images.js?v=mvzcifgl';
+import { playVideo } from './video.js?v=mvzcifgl';
+import { youTubeId } from './yt.js?v=mvzcifgl';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzcifgl';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzcifgl';
+import { undo, redo } from './history.js?v=mvzcifgl';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 
