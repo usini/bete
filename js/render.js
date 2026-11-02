@@ -1,14 +1,14 @@
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzcyshb';
-import { view, screenToWorld } from './camera.js?v=mvzcyshb';
-import { youTubeId, ytThumb } from './yt.js?v=mvzcyshb';
-import { imageFor } from './images.js?v=mvzcyshb';
-import { positionVideo, isVideoPlaying } from './video.js?v=mvzcyshb';
-import { guides } from './snap.js?v=mvzcyshb';
-import { renderMinimap } from './minimap.js?v=mvzcyshb';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzcyshb';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzcyshb';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzcyshb';
+import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzd10l4';
+import { view, screenToWorld } from './camera.js?v=mvzd10l4';
+import { youTubeId, ytThumb } from './yt.js?v=mvzd10l4';
+import { imageFor } from './images.js?v=mvzd10l4';
+import { positionVideo, isVideoPlaying } from './video.js?v=mvzd10l4';
+import { guides } from './snap.js?v=mvzd10l4';
+import { renderMinimap } from './minimap.js?v=mvzd10l4';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzd10l4';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzd10l4';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzd10l4';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');

@@ -3,15 +3,15 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf } from './state.js?v=mvzcyshb';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzcyshb';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzcyshb';
-import { addImageFile } from './images.js?v=mvzcyshb';
-import { playVideo } from './video.js?v=mvzcyshb';
-import { youTubeId } from './yt.js?v=mvzcyshb';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzcyshb';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzcyshb';
-import { undo, redo } from './history.js?v=mvzcyshb';
+import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzd10l4';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzd10l4';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzd10l4';
+import { addImageFile } from './images.js?v=mvzd10l4';
+import { playVideo } from './video.js?v=mvzd10l4';
+import { youTubeId } from './yt.js?v=mvzd10l4';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzd10l4';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzd10l4';
+import { undo, redo } from './history.js?v=mvzd10l4';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 
@@ -64,16 +64,27 @@ function pinchStart() {
 }
 
 function pickColor(n, x, y) {
-  const input = document.getElementById('colorpick');
+  const palette = document.getElementById('color-palette');
   const id = n.id;
-  input.value = n.color;
-  input.style.left = Math.min(x, window.innerWidth - 2) + 'px';
-  input.style.top = Math.min(y, window.innerHeight - 2) + 'px';
-  input.oninput = () => {
-    const target = getNode(id);
-    if (target) { target.color = input.value; emit(); }
-  };
-  input.click();
+  const names = ['Vert', 'Bleu', 'Rose', 'Orange', 'Violet', 'Jaune', 'Blanc'];
+  palette.replaceChildren(...COLORS.map((color, i) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.style.background = color;
+    button.title = names[i];
+    button.setAttribute('aria-label', names[i]);
+    button.setAttribute('aria-pressed', String(n.color.toLowerCase() === color.toLowerCase()));
+    button.addEventListener('click', () => {
+      const target = getNode(id);
+      if (target) { target.color = color; emit(); }
+      palette.hidePopover();
+    });
+    return button;
+  }));
+  palette.showPopover();
+  const box = palette.getBoundingClientRect();
+  palette.style.left = Math.max(8, Math.min(x + 8, window.innerWidth - box.width - 8)) + 'px';
+  palette.style.top = Math.max(8, Math.min(y + 8, window.innerHeight - box.height - 8)) + 'px';
 }
 
 function onPointerDown(e) {

@@ -4,7 +4,7 @@
 //    drag = one entry) is compared with the previous state, and a new entry is recorded when the
 //    blocks differ. The label ("Déplacement", "Suppression d'un bloc"...) comes from that diff.
 //  - Kept in memory only (60 states): it starts afresh at every page load.
-import { state, onSaved, replaceNodes } from './state.js?v=mvzcyshb';
+import { state, onSaved, replaceNodes } from './state.js?v=mvzd10l4';
 
 const MAX = 60;
 let states = []; // { json, norm, label, t } — oldest first
