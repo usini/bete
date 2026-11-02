@@ -1,6 +1,7 @@
-// Data model, sanitizers and local autosave (localStorage).
+import { localStore } from './local-store.js?v=mvzmyhy0';
+// Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mvzmqqm3';
+import { explode } from './fx.js?v=mvzmyhy0';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];
@@ -14,14 +15,14 @@ const sizeOk = (v) => v && Number.isFinite(v.w) && Number.isFinite(v.h)
 const LIMITS_SIZE = 1e5;
 const lastSize = (() => {
   try {
-    const o = JSON.parse(localStorage.getItem(SIZE_KEY) || '{}');
+    const o = JSON.parse(localStore.getItem(SIZE_KEY) || '{}');
     return { rect: sizeOk(o.rect), image: sizeOk(o.image), group: sizeOk(o.group) };
   } catch { return {}; }
 })();
 
 export function rememberSize(kind, w, h) {
   lastSize[kind] = sizeOk({ w, h });
-  try { localStorage.setItem(SIZE_KEY, JSON.stringify(lastSize)); }
+  try { localStore.setItem(SIZE_KEY, JSON.stringify(lastSize)); }
   catch { /* storage blocked: the size is only kept for this session */ }
 }
 
@@ -107,14 +108,17 @@ const savedListeners = [];
 export function onSaved(fn) { savedListeners.push(fn); }
 
 export function saveNow() {
-  try { localStorage.setItem(KEY, JSON.stringify(serialize())); }
+  clearTimeout(saveTimer);
+  let saved;
+  try { saved = localStore.setItem(KEY, JSON.stringify(serialize())); }
   catch (err) { console.warn('bete2: save failed', err); }
   for (const fn of savedListeners) fn();
+  return saved;
 }
 
 export function loadFromStorage() {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStore.getItem(KEY);
     if (raw) setDoc(JSON.parse(raw));
   } catch (err) { console.warn('bete2: load failed', err); }
 }

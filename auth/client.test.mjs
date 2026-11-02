@@ -11,7 +11,7 @@ test('browser restores and renews tokens without storing them or proxying Drive 
   const context = vm.createContext({
     isLocked: () => false, modeEvents: {addEventListener(){}},
     notify: () => {},
-    localStorage: { getItem: () => null, removeItem: k => removed.push(k) },
+    localStore: { getItem: () => null, removeItem: k => removed.push(k) },
     document: {}, state: { nodes: [] }, AbortSignal,
     Date: class extends Date { static now() { return now; } },
     fetch: async (url, opts) => {
@@ -43,7 +43,7 @@ test('Drive stays manual; hiding only saves locally and leaving warns only for p
   let saved, localSaves = 0, networkCalls = 0, intervals = 0;
   const context = vm.createContext({
     isLocked: () => false, modeEvents: {addEventListener(){}}, notify(){},
-    localStorage: {getItem:()=>null, removeItem(){}, setItem(){}},
+    localStore: {getItem:()=>null, removeItem(){}, setItem(){}},
     state: {nodes:[{id:'local',text:'before'}]}, AbortSignal,
     document: {visibilityState:'visible', addEventListener:(name,fn)=>documentEvents.set(name,fn),
       getElementById(id) {

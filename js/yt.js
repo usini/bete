@@ -1,16 +1,12 @@
+import { localStore } from './local-store.js?v=mvzmyhy0';
 // YouTube helpers: URL detection, thumbnail / embed URLs, and video titles.
 // A rectangle whose text contains a YouTube URL is rendered as a video.
-export function youTubeId(text) {
-  if (!text) return null;
-  // Any host works (www., m., music., none): only the part after "youtube.com/" matters.
-  const m = String(text).match(/(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|watch\/|embed\/|shorts\/|live\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
-  return m ? m[1] : null;
-}
+export { youTubeId } from './youtube-url.js?v=mvzmyhy0';
 export function ytThumb(id) { return 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg'; }
 export function ytEmbed(id) { return 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0&playsinline=1'; }
 
 // ---- Titles (YouTube oEmbed, no API key) ----
-// Cached in localStorage so titles survive offline. A missing title (deleted/private
+// Cached in IndexedDB so titles survive offline. A missing title (deleted/private
 // video) is cached as null; a network error is retried after RETRY_MS.
 const TITLE_KEY = 'bete2:ytTitles';
 const RETRY_MS = 60000;
@@ -19,12 +15,12 @@ const pending = new Set();
 const failedAt = new Map(); // id -> timestamp of last network failure
 
 try {
-  const saved = JSON.parse(localStorage.getItem(TITLE_KEY) || '{}');
+  const saved = JSON.parse(localStore.getItem(TITLE_KEY) || '{}');
   for (const id of Object.keys(saved)) titles.set(id, saved[id]);
 } catch { /* no cache available */ }
 
 function saveTitles() {
-  try { localStorage.setItem(TITLE_KEY, JSON.stringify(Object.fromEntries(titles))); }
+  try { localStore.setItem(TITLE_KEY, JSON.stringify(Object.fromEntries(titles))); }
   catch { /* storage full or blocked: titles just won't persist */ }
 }
 

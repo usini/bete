@@ -62,8 +62,11 @@
     l'application, sur ton appareil :
   </p>
   <ul>
-    <li><code>localStorage</code> : le tableau, la dernière taille de bloc utilisée et les titres de vidéos YouTube déjà récupérés ;</li>
-    <li><code>IndexedDB</code> : les images que tu ajoutes.</li>
+    <li><code>IndexedDB</code> : le tableau et son historique, les images, la dernière taille de bloc
+      utilisée, les titres YouTube déjà récupérés, les métadonnées Drive et les paramètres de partage.</li>
+    <li>Les anciennes données de <code>localStorage</code> sont migrées automatiquement dans
+      IndexedDB ; elles ne sont retirées qu’après validation de l’écriture. Aucun service externe
+      n’est contacté pour cette migration.</li>
   </ul>
   <p>
     Ces données restent locales, sauf si tu actives la sauvegarde Drive, partages un groupe ou utilises un service

@@ -1,3 +1,4 @@
+import { localStore } from './local-store.js?v=mvzmyhy0';
 // Optional backup of the board on Google Drive.
 //
 //  - Scope: drive.appdata only. The file (Bete.json) lives in a hidden folder reserved to this
@@ -5,12 +6,12 @@
 //  - Sign-in: OAuth code flow through a stateless service. Access tokens stay in memory.
 //  - Drive transfers happen only on explicit save, restore or initial connection.
 //    Local autosave remains automatic; leaving with unsaved Drive changes warns the user.
-import { state, onSaved, saveNow } from './state.js?v=mvzmqqm3';
-import { exportData, importData } from './storage.js?v=mvzmqqm3';
+import { state, onSaved, saveNow } from './state.js?v=mvzmyhy0';
+import { exportData, importData } from './storage.js?v=mvzmyhy0';
 
-import { notify } from './notifications.js?v=mvzmqqm3';
+import { notify } from './notifications.js?v=mvzmyhy0';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mvzmqqm3';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mvzmyhy0';
 
 const AUTH_URL = 'https://auth-bete.usini.eu';
 const FILE_NAME = 'Bete.json';
@@ -39,19 +40,19 @@ const tokenValid = () => !!token && Date.now() < tokenExpiry;
 
 function loadMeta() {
   try {
-    const m = JSON.parse(localStorage.getItem(META_KEY));
+    const m = JSON.parse(localStore.getItem(META_KEY));
     return m && m.linked ? m : null;
   } catch { return null; }
 }
 function saveMeta() {
   try {
-    if (meta) localStorage.setItem(META_KEY, JSON.stringify(meta));
-    else localStorage.removeItem(META_KEY);
+    if (meta) localStore.setItem(META_KEY, JSON.stringify(meta));
+    else localStore.removeItem(META_KEY);
   } catch { /* storage blocked: the link is only kept for this visit */ }
 }
 
 // Remove access tokens left by the previous browser-only flow.
-try { localStorage.removeItem(TOKEN_KEY); } catch { /* storage blocked */ }
+try { localStore.removeItem(TOKEN_KEY); } catch { /* storage blocked */ }
 let refreshing = null;
 let connecting = false;
 let driveFailed = false;

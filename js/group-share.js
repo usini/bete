@@ -1,7 +1,8 @@
-import { state, events, onSaved, newId, sanitizeNode, emit, select, getNode, setGroupMemberFilter } from './state.js?v=mvzmqqm3';
-import { imageBlob, storeSharedImage } from './images.js?v=mvzmqqm3';
-import { flyTo, view, screenToWorld } from './camera.js?v=mvzmqqm3';
-import { MAX_MEMBERS, MAX_RECORDS, ROOT, validId, validImage, cleanValue, cleanRecord, mergeRecord, groupMembers, emptyPlacement, intersects } from './group-model.js?v=mvzmqqm3';
+import { localStore } from './local-store.js?v=mvzmyhy0';
+import { state, events, onSaved, newId, sanitizeNode, emit, select, getNode, setGroupMemberFilter } from './state.js?v=mvzmyhy0';
+import { imageBlob, storeSharedImage } from './images.js?v=mvzmyhy0';
+import { flyTo, view, screenToWorld } from './camera.js?v=mvzmyhy0';
+import { MAX_MEMBERS, MAX_RECORDS, ROOT, validId, validImage, cleanValue, cleanRecord, mergeRecord, groupMembers, emptyPlacement, intersects } from './group-model.js?v=mvzmyhy0';
 
 // Explicit ICE config is essential: PeerJS's defaults include public TURN relays.
 export const peerConfig = {
@@ -93,7 +94,7 @@ function persist() {
   clearTimeout(persistTimer);
   persistTimer = setTimeout(() => {
     try {
-      localStorage.setItem(KEY, JSON.stringify([...shares.values()].map(s => ({
+      localStore.setItem(KEY, JSON.stringify([...shares.values()].map(s => ({
         groupId: s.groupId, peerId: s.peerId, cap: s.cap, role: s.role, enabled: s.enabled,
         aliases: [...s.aliases], ignored: [...s.ignored], records: [...s.records.values()],
       }))));
@@ -568,7 +569,7 @@ export function initGroupSharing() {
     }
   });
   try {
-    const saved = JSON.parse(localStorage.getItem(KEY) || '[]');
+    const saved = JSON.parse(localStore.getItem(KEY) || '[]');
     for (const item of (Array.isArray(saved) ? saved.slice(0, 5000) : [])) {
       if (!validId(item.groupId) || !validId(item.peerId) || !/^[a-f0-9]{64}$/.test(item.cap || '') || !['host', 'guest'].includes(item.role)) continue;
       const aliases = Array.isArray(item.aliases) ? item.aliases.filter(a => Array.isArray(a) && validId(a[0]) && validId(a[1])).slice(0, MAX_MEMBERS) : [];

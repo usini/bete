@@ -53,8 +53,12 @@ python -m http.server 8000
 - **Double-clic dans le vide** : crée un rectangle à cet endroit.
 - **Animation** : déplacement élastique des blocs, avec un léger étirement ; désactivé si le système demande moins d’animations.
 - **Navigation** : déplacement, zoom (molette ou pincement), minimap, alignement automatique des blocs.
-- **Sauvegarde** : enregistrement automatique dans le navigateur (localStorage et IndexedDB),
-  export et import d'un fichier JSON.
+- **Sauvegarde** : enregistrement automatique dans IndexedDB pour toutes les données locales
+  (tableau, historique, images, réglages, Drive et partages), export et import d'un fichier JSON.
+  Les anciennes données `localStorage` sont migrées automatiquement puis retirées après validation
+  de l’écriture, en conservant les images déjà présentes dans la base `bete2`.
+  Une erreur de stockage affiche une alerte persistante demandant un export JSON et un avertissement
+  avant de quitter lorsque le navigateur le permet. IndexedDB a aussi un quota, géré par le navigateur.
 - **Google Drive (facultatif)** : sauvegarde manuelle du tableau dans un dossier caché de ton Drive
   (droit `drive.appdata` uniquement), en cliquant sur la disquette. Aucun transfert périodique,
   au retour sur l’onglet ou à la fermeture. La connexion initiale compare les versions ; les ouvertures

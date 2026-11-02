@@ -1,24 +1,11 @@
 // Image blobs live in IndexedDB; nodes only keep a reference 'idb:<id>'.
-import { newId } from './state.js?v=mvzmqqm3';
+import { newId } from './state.js?v=mvzmyhy0';
 
-const DB_NAME = 'bete2';
+import { openDatabase } from './database.js?v=mvzmyhy0';
 const STORE = 'images';
-let dbPromise = null;
-
-function openDb() {
-  if (!dbPromise) {
-    dbPromise = new Promise((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, 1);
-      req.onupgradeneeded = () => req.result.createObjectStore(STORE);
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-  }
-  return dbPromise;
-}
 
 async function run(mode, op) {
-  const db = await openDb();
+  const db = await openDatabase();
   return new Promise((resolve, reject) => {
     const t = db.transaction(STORE, mode);
     const req = op(t.objectStore(STORE));

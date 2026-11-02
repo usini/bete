@@ -86,7 +86,7 @@ Test in the production browser:
 
 1. Connect Google Drive. Confirm the only requested Drive permission is the app data folder.
 2. Save a board, reload and verify that no new Google prompt is needed.
-3. Check storage: no `bete2:driveToken` in localStorage; refresh cookie is HttpOnly/Secure on auth host.
+3. Check storage: no access token in browser persistence; Drive metadata is in IndexedDB and the refresh cookie is HttpOnly/Secure on auth host.
 4. Leave the app for more than an hour; edit and save again without reconnecting.
 5. Connect a second device and verify remote restore and conflict choices without losing local data.
 6. Disconnect: cookie is deleted, Google revocation requested, Drive backup remains.
