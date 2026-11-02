@@ -3,8 +3,8 @@
 //  - Nothing is instrumented: every local save (debounced 300 ms after the last change, so one
 //    drag = one entry) is compared with the previous state, and a new entry is recorded when the
 //    blocks differ. The label ("Déplacement", "Suppression d'un bloc"...) comes from that diff.
-//  - Kept in memory only (60 states): it starts afresh at every page load.
-import { state, onSaved, replaceNodes } from './state.js?v=mvzd6zeq';
+//  - Up to 60 states, persisted with the board and included in JSON exports.
+import { state, onSaved, replaceNodes, sanitizeNode, registerHistory } from './state.js?v=mvzd9bsl';
 
 const MAX = 60;
 let states = []; // { json, norm, label, t } — oldest first
@@ -17,6 +17,7 @@ const normOf = (nodes) => JSON.stringify([...nodes].sort(byId));
 
 // Records the board as a new history entry if its blocks differ from the current entry.
 function commit() {
+  if (!states.length) return;
   const cur = states[pos];
   const json = JSON.stringify(state.nodes);
   const norm = normOf(state.nodes);
@@ -104,9 +105,29 @@ function renderList() {
   }
 }
 
+function restoreHistory(raw) {
+  const entries = Array.isArray(raw?.states) ? raw.states.slice(0, MAX) : [];
+  states = entries.filter(s => s && Array.isArray(s.nodes)).map(s => {
+    const nodes = s.nodes.slice(0, 5000).map(sanitizeNode).filter(Boolean);
+    return { json: JSON.stringify(nodes), norm: normOf(nodes),
+      label: typeof s.label === 'string' ? s.label.slice(0, 200) : 'Modification',
+      t: Number.isFinite(s.t) ? s.t : Date.now() };
+  });
+  pos = Number.isInteger(raw?.pos) ? Math.max(0, Math.min(states.length - 1, raw.pos)) : states.length - 1;
+  if (!states.length || states[pos].norm !== normOf(state.nodes)) {
+    states = [{ json: JSON.stringify(state.nodes), norm: normOf(state.nodes), label: 'État initial', t: Date.now() }];
+    pos = 0;
+  }
+  refreshUi();
+}
+
+function serializeHistory() {
+  commit();
+  return { pos, states: states.map(s => ({ nodes: JSON.parse(s.json), label: s.label, t: s.t })) };
+}
+
 export function initHistory() {
-  states = [{ json: JSON.stringify(state.nodes), norm: normOf(state.nodes), label: 'État initial', t: Date.now() }];
-  pos = 0;
+  registerHistory({ load: restoreHistory, save: serializeHistory });
   onSaved(commit);
 
   $('undo-btn').addEventListener('click', undo);

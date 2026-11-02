@@ -1,6 +1,6 @@
 // Data model, sanitizers and local autosave (localStorage).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mvzd6zeq';
+import { explode } from './fx.js?v=mvzd9bsl';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2'];
 export const DEFAULT_COLOR = COLORS[1];
@@ -71,6 +71,14 @@ export function sanitizeNode(raw) {
   return n;
 }
 
+let historyAdapter = null;
+let pendingHistory = null;
+export function registerHistory(adapter) {
+  historyAdapter = adapter;
+  adapter.load(pendingHistory);
+  pendingHistory = null;
+}
+
 export function setDoc(raw) {
   const o = raw && typeof raw === 'object' ? raw : {};
   const c = o.camera && typeof o.camera === 'object' ? o.camera : {};
@@ -83,11 +91,14 @@ export function setDoc(raw) {
     .map(sanitizeNode)
     .filter(Boolean);
   selectedId = null;
+  if (historyAdapter) historyAdapter.load(o.history);
+  else pendingHistory = o.history;
   emit();
 }
 
 export function serialize() {
-  return { app: 'bete2', version: 1, camera: state.camera, nodes: state.nodes };
+  return { app: 'bete2', version: 1, camera: state.camera, nodes: state.nodes,
+    ...(historyAdapter ? { history: historyAdapter.save() } : {}) };
 }
 
 // Called after every local save: lets drive.js notice that the board's content changed.
