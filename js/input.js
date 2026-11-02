@@ -3,15 +3,15 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzd10l4';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzd10l4';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzd10l4';
-import { addImageFile } from './images.js?v=mvzd10l4';
-import { playVideo } from './video.js?v=mvzd10l4';
-import { youTubeId } from './yt.js?v=mvzd10l4';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzd10l4';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzd10l4';
-import { undo, redo } from './history.js?v=mvzd10l4';
+import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzd5hxv';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzd5hxv';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzd5hxv';
+import { addImageFile } from './images.js?v=mvzd5hxv';
+import { playVideo } from './video.js?v=mvzd5hxv';
+import { youTubeId } from './yt.js?v=mvzd5hxv';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzd5hxv';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzd5hxv';
+import { undo, redo } from './history.js?v=mvzd5hxv';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 
@@ -241,6 +241,20 @@ async function imageToNode(file, n) {
 }
 
 export function initInput() {
+  const palette = document.getElementById('color-palette');
+  // Opening on canvas pointerdown must survive the same pointer's release outside the popup.
+  // Capture dismisses an old palette before the canvas can open a new one.
+  document.addEventListener('pointerdown', (e) => {
+    if (palette.matches(':popover-open') && !palette.contains(e.target)) palette.hidePopover();
+  }, true);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && palette.matches(':popover-open')) {
+      palette.hidePopover();
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  }, true);
+
   canvas.addEventListener('pointerdown', onPointerDown);
   canvas.addEventListener('pointermove', onPointerMove);
   canvas.addEventListener('pointerup', onPointerEnd);
