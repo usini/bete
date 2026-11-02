@@ -48,6 +48,16 @@ let browser,server;
   assert.equal(result.node.text,'');assert.equal(result.node.link,link);assert.equal(result.label.text,link);
   await page.waitForTimeout(250);
   assert.equal(requests.filter(r=>r.host==='localhost:8092').length,0,'ordinary links must not request favicons');
+  const pastedText=await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const s=await import('/js/state.js'+v),before=s.state.nodes.length;
+    const data=new DataTransfer();data.setData('text/plain','Bonjour\nDeuxième ligne');
+    document.getElementById('canvas').dispatchEvent(new ClipboardEvent('paste',{bubbles:true,cancelable:true,clipboardData:data}));
+    const n=s.state.nodes.at(-1);
+    const result={added:s.state.nodes.length-before,text:n.text,kind:n.kind,centered:n.x+n.w/2===s.state.camera.x&&n.y+n.h/2===s.state.camera.y,original:s.state.nodes[0].link};
+    s.removeNode(n.id);return result;
+  });
+  assert.deepEqual(pastedText,{added:1,text:'Bonjour\nDeuxième ligne',kind:'rect',centered:true,original:link});
   await page.evaluate(async()=>{
     const v=new URL(document.querySelector('script[type=module]').src).search;
     const s=await import('/js/state.js'+v),e=await import('/js/editor.js'+v);
