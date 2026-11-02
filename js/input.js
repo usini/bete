@@ -3,24 +3,24 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzj279c';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzj279c';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzj279c';
-import { addImageFile } from './images.js?v=mvzj279c';
-import { playVideo } from './video.js?v=mvzj279c';
-import { youTubeId } from './yt.js?v=mvzj279c';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzj279c';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzj279c';
-import { undo, redo } from './history.js?v=mvzj279c';
+import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzmnbc5';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzmnbc5';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzmnbc5';
+import { addImageFile } from './images.js?v=mvzmnbc5';
+import { playVideo } from './video.js?v=mvzmnbc5';
+import { youTubeId } from './yt.js?v=mvzmnbc5';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzmnbc5';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzmnbc5';
+import { undo, redo } from './history.js?v=mvzmnbc5';
 
-import { setDragging } from './motion.js?v=mvzj279c';
+import { setDragging } from './motion.js?v=mvzmnbc5';
 
-import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mvzj279c';
-import { shortenAmazonText } from './amazon.js?v=mvzj279c';
+import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mvzmnbc5';
+import { shortenAmazonText } from './amazon.js?v=mvzmnbc5';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mvzj279c';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mvzmnbc5';
 
-import { serviceForNode } from './services.js?v=mvzj279c';
+import { serviceForNode } from './services.js?v=mvzmnbc5';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 
@@ -388,7 +388,7 @@ export function initInput() {
     if (e.target instanceof Element && e.target.closest('input, textarea, button')) return;
     const id = getSelectedId();
     if (e.key === 'Escape') select(null);
-    else if (id && (e.key === 'Delete' || e.key === 'Backspace')) { e.preventDefault(); confirmDelete(id); }
+    else if (id && (e.key === 'Delete' || e.key === 'Backspace')) { e.preventDefault(); removeNode(id); }
     else if (id && e.key === 'Enter') startEdit(id);
   });
 

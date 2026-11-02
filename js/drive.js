@@ -5,12 +5,12 @@
 //  - Sign-in: OAuth code flow through a stateless service. Access tokens stay in memory.
 //  - Drive transfers happen only on explicit save, restore or initial connection.
 //    Local autosave remains automatic; leaving with unsaved Drive changes warns the user.
-import { state, onSaved, saveNow } from './state.js?v=mvzj279c';
-import { exportData, importData } from './storage.js?v=mvzj279c';
+import { state, onSaved, saveNow } from './state.js?v=mvzmnbc5';
+import { exportData, importData } from './storage.js?v=mvzmnbc5';
 
-import { notify } from './notifications.js?v=mvzj279c';
+import { notify } from './notifications.js?v=mvzmnbc5';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mvzj279c';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mvzmnbc5';
 
 const AUTH_URL = 'https://auth-bete.usini.eu';
 const FILE_NAME = 'Bete.json';

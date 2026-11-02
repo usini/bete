@@ -101,13 +101,26 @@ let browser,server;
     const n=s.state.nodes[0];s.select(n.id);const b=l.deleteIconBox(n,s.state.camera.zoom);
     return {id:n.id,...c.worldToScreen(b.x+b.w/2,b.y+b.h/2)};
   });
-  let allowDelete=false;
-  page.on('dialog',dialog=>allowDelete?dialog.accept():dialog.dismiss());
+  let allowDelete=false,deleteDialogs=0;
+  page.on('dialog',dialog=>{deleteDialogs++;return allowDelete?dialog.accept():dialog.dismiss();});
   await page.mouse.click(target.x,target.y);
   assert.equal(await page.evaluate(async id=>{const v=new URL(document.querySelector('script[type=module]').src).search;return !!(await import('/js/state.js'+v)).getNode(id);},target.id),true,'cancelled trash must preserve the block');
   await page.waitForTimeout(650);allowDelete=true;
   await page.mouse.click(target.x,target.y);
   assert.equal(await page.evaluate(async id=>{const v=new URL(document.querySelector('script[type=module]').src).search;return !!(await import('/js/state.js'+v)).getNode(id);},target.id),false);
+  const dialogCount=deleteDialogs;
+  for(const key of ['Delete','Backspace']) {
+    const id=await page.evaluate(async()=>{
+      const v=new URL(document.querySelector('script[type=module]').src).search;
+      return (await import('/js/state.js'+v)).addNode('rect',0,0).id;
+    });
+    await page.keyboard.press(key);
+    assert.equal(await page.evaluate(async id=>{
+      const v=new URL(document.querySelector('script[type=module]').src).search;
+      return !!(await import('/js/state.js'+v)).getNode(id);
+    },id),false,'keyboard deletion must be immediate');
+  }
+  assert.equal(deleteDialogs,dialogCount,'only the trash icon must ask for confirmation');
   let releaseAuth;
   await page.route('https://auth-bete.usini.eu/token',route=>new Promise(resolve=>{releaseAuth=async()=>{await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({access_token:'fake',expires_in:3600})});resolve();};}));
   let holdUpload=false,releaseUpload,driveUploads=0;

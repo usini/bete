@@ -1,7 +1,7 @@
-import { state, events, onSaved, newId, sanitizeNode, emit, select, getNode, setGroupMemberFilter } from './state.js?v=mvzj279c';
-import { imageBlob, storeSharedImage } from './images.js?v=mvzj279c';
-import { flyTo, view, screenToWorld } from './camera.js?v=mvzj279c';
-import { MAX_MEMBERS, MAX_RECORDS, ROOT, validId, validImage, cleanValue, cleanRecord, mergeRecord, groupMembers, emptyPlacement, intersects } from './group-model.js?v=mvzj279c';
+import { state, events, onSaved, newId, sanitizeNode, emit, select, getNode, setGroupMemberFilter } from './state.js?v=mvzmnbc5';
+import { imageBlob, storeSharedImage } from './images.js?v=mvzmnbc5';
+import { flyTo, view, screenToWorld } from './camera.js?v=mvzmnbc5';
+import { MAX_MEMBERS, MAX_RECORDS, ROOT, validId, validImage, cleanValue, cleanRecord, mergeRecord, groupMembers, emptyPlacement, intersects } from './group-model.js?v=mvzmnbc5';
 
 // Explicit ICE config is essential: PeerJS's defaults include public TURN relays.
 export const peerConfig = {
