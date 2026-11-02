@@ -3,17 +3,20 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzf2hn7';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzf2hn7';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzf2hn7';
-import { addImageFile } from './images.js?v=mvzf2hn7';
-import { playVideo } from './video.js?v=mvzf2hn7';
-import { youTubeId } from './yt.js?v=mvzf2hn7';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzf2hn7';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzf2hn7';
-import { undo, redo } from './history.js?v=mvzf2hn7';
+import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzfvfhr';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzfvfhr';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzfvfhr';
+import { addImageFile } from './images.js?v=mvzfvfhr';
+import { playVideo } from './video.js?v=mvzfvfhr';
+import { youTubeId } from './yt.js?v=mvzfvfhr';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzfvfhr';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzfvfhr';
+import { undo, redo } from './history.js?v=mvzfvfhr';
 
-import { setDragging } from './motion.js?v=mvzf2hn7';
+import { setDragging } from './motion.js?v=mvzfvfhr';
+
+import { plainLink, genericLink } from './links.js?v=mvzfvfhr';
+import { shortenAmazonText } from './amazon.js?v=mvzfvfhr';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 
@@ -297,6 +300,21 @@ export function initInput() {
 
   window.addEventListener('paste', async (e) => {
     if (isEditing()) return;
+    if (e.target instanceof Element && e.target.closest('input, textarea, [contenteditable], dialog')) return;
+    const selected = getNode(getSelectedId());
+    const pasted = e.clipboardData?.getData('text/plain');
+    const url = plainLink(pasted);
+    if (selected?.kind === 'rect' && url) {
+      e.preventDefault();
+      if (genericLink(url)) {
+        if (plainLink(selected.text)) selected.text = '';
+        selected.link = url;
+      } else {
+        selected.text = shortenAmazonText(url);
+        delete selected.link;
+      }
+      emit(); return;
+    }
     const file = [...(e.clipboardData ? e.clipboardData.files : [])].find((f) => f.type.startsWith('image/'));
     if (!file) return;
     const c = screenToWorld(view.w / 2, view.h / 2);

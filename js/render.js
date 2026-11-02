@@ -1,17 +1,18 @@
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzf2hn7';
-import { view, screenToWorld } from './camera.js?v=mvzf2hn7';
-import { youTubeId, ytThumb } from './yt.js?v=mvzf2hn7';
-import { imageFor } from './images.js?v=mvzf2hn7';
-import { positionVideo, isVideoPlaying } from './video.js?v=mvzf2hn7';
-import { guides } from './snap.js?v=mvzf2hn7';
-import { renderMinimap } from './minimap.js?v=mvzf2hn7';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzf2hn7';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzf2hn7';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzf2hn7';
+import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzfvfhr';
+import { view, screenToWorld } from './camera.js?v=mvzfvfhr';
+import { youTubeId, ytThumb } from './yt.js?v=mvzfvfhr';
+import { imageFor } from './images.js?v=mvzfvfhr';
+import { positionVideo, isVideoPlaying } from './video.js?v=mvzfvfhr';
+import { guides } from './snap.js?v=mvzfvfhr';
+import { renderMinimap } from './minimap.js?v=mvzfvfhr';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzfvfhr';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzfvfhr';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzfvfhr';
 
-import { stepMotion } from './motion.js?v=mvzf2hn7';
-import { remoteCursors, shareEvents } from './group-share.js?v=mvzf2hn7';
+import { genericLinkOf, plainLink, faviconFor } from './links.js?v=mvzfvfhr';
+import { stepMotion } from './motion.js?v=mvzfvfhr';
+import { remoteCursors, shareEvents } from './group-share.js?v=mvzfvfhr';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -151,6 +152,8 @@ function drawNode(n, selected, zoom) {
   ctx.beginPath();
   ctx.rect(n.x, n.y, n.w, n.h);
   ctx.clip();
+  const link = genericLinkOf(n);
+  const icon = link && !n.image ? faviconFor(link, requestRender) : null;
   const src = yt ? thumb(yt) : n.image ? imageFor(n.image, requestRender) : null;
   // Caption strip inside image blocks (their text).
   const label = !yt && n.kind !== 'image' && src && n.text ? n.text : null;
@@ -159,6 +162,17 @@ function drawNode(n, selected, zoom) {
     if (areaH > 0) drawContained(src, n.x + PAD, n.y + PAD, n.w - 2 * PAD, areaH);
     if (yt) drawPlay(n);
     if (label) drawCaption(n, label);
+  } else if (link && !n.image) {
+    const text = plainLink(n.text) ? '' : n.text;
+    const height = n.h - 2 * PAD - (text ? CAPTION : 0);
+    const size = Math.max(8, Math.min(64, n.w - 2 * PAD, height));
+    if (icon) drawContained(icon, n.x + (n.w - size) / 2, n.y + PAD + (height - size) / 2, size, size);
+    else {
+      ctx.fillStyle = n.color; ctx.font = '40px ' + FONT_FAMILY;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('↗', n.x + n.w / 2, n.y + PAD + height / 2);
+    }
+    if (text) drawCaption(n, text);
   } else if (!yt && n.kind !== 'image') {
     // Image blocks show no text: they only show their picture (changed with the 🖼️ button).
     drawBlockText(n.text, n, '#e8e8e8');

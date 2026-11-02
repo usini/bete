@@ -1,6 +1,6 @@
 // Data model, sanitizers and local autosave (localStorage).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mvzf2hn7';
+import { explode } from './fx.js?v=mvzfvfhr';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2'];
 export const DEFAULT_COLOR = COLORS[1];

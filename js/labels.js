@@ -1,10 +1,12 @@
 // Labels: the tab above a block. It shows the YouTube title (YouTube blocks) or the block's
 // link URL; a block with neither has no label. The layout and the hit-testing live here,
 // so the renderer and the pointer handling always agree on where the label is.
-import { state } from './state.js?v=mvzf2hn7';
-import { youTubeId, youTubeTitle } from './yt.js?v=mvzf2hn7';
-import { FONT_FAMILY } from './text.js?v=mvzf2hn7';
-import { isAmazonUrl, isAmazonText } from './amazon.js?v=mvzf2hn7';
+import { state } from './state.js?v=mvzfvfhr';
+import { youTubeId, youTubeTitle } from './yt.js?v=mvzfvfhr';
+import { FONT_FAMILY } from './text.js?v=mvzfvfhr';
+import { isAmazonUrl, isAmazonText } from './amazon.js?v=mvzfvfhr';
+
+import { genericLink } from './links.js?v=mvzfvfhr';
 
 export const LABEL_SIZE = 26;                       // font size, world units
 export const LABEL_FONT = '600 ' + LABEL_SIZE + 'px ' + FONT_FAMILY;
@@ -36,7 +38,7 @@ export function labelInfo(n) {
     const parts = isAmazonUrl(link) ? [n.name, n.price, n.delivery].filter(Boolean) : [];
     // When the link is only the block's own text (an Amazon URL), the URL is already visible
     // in the block: the label appears once there are product details to show.
-    if (!n.link && !parts.length) return null;
+    if (!n.link && !parts.length && !genericLink(n.text)) return null;
     return {
       kind: 'link',
       text: parts.length ? parts.join(' · ') : link,
@@ -51,7 +53,7 @@ export function labelInfo(n) {
 export function linkOf(n) {
   if (n.kind === 'group') return null;
   if (n.link) return n.link;
-  return isAmazonText(n.text) ? n.text.trim() : null;
+  return isAmazonText(n.text) ? n.text.trim() : genericLink(n.text);
 }
 
 function fitLabel(text, maxW) {

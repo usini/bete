@@ -5,10 +5,12 @@
 //  - when the link is an Amazon address the popup becomes "Produit Amazon": name, price and
 //    delivery time fields appear (typed by hand, shown in the block's label)
 // It closes only with the Annuler / Valider buttons (Ctrl+Enter, or Enter in a one-line field, also validate).
-import { getNode, emit } from './state.js?v=mvzf2hn7';
-import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mvzf2hn7';
-import { youTubeId } from './yt.js?v=mvzf2hn7';
-import { addImageFile, imageFor } from './images.js?v=mvzf2hn7';
+import { getNode, emit } from './state.js?v=mvzfvfhr';
+import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mvzfvfhr';
+import { youTubeId } from './yt.js?v=mvzfvfhr';
+import { addImageFile, imageFor } from './images.js?v=mvzfvfhr';
+
+import { genericLink } from './links.js?v=mvzfvfhr';
 
 const dlg = document.getElementById('textdialog');
 const title = document.getElementById('dialog-title');
@@ -159,6 +161,10 @@ export function stopEdit(commit) {
     if (link) n.link = link;
     else delete n.link;
     changed = true;
+  }
+  const pastedLink = !isGroup && n.kind === 'rect' && genericLink(n.text);
+  if (pastedLink) {
+    n.link = pastedLink; n.text = ''; text = ''; link = pastedLink; changed = true;
   }
   // Product details only make sense on an Amazon address (text or link): cleared otherwise.
   const amazon = (!isGroup && isAmazonText(text)) || (!!link && isAmazonUrl(link));
