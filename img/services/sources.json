@@ -162,5 +162,12 @@
     "slug": "microsoftoutlook",
     "version": "11.0.0",
     "source": "https://github.com/simple-icons/simple-icons/blob/11.0.0/icons/microsoftoutlook.svg"
+  },
+  {
+    "version": "13.0.0",
+    "title": "Amazon",
+    "slug": "amazon",
+    "hex": "FF9900",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/13.0.0/icons/amazon.svg"
   }
 ]

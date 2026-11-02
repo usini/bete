@@ -15,7 +15,7 @@ let browser,server;
     }
     const file=resolve(root,'.'+(url.pathname==='/'?'/index.html':url.pathname));
     if(!file.startsWith(root)||!existsSync(file)){res.writeHead(404);return res.end();}
-    res.setHeader('Content-Type',({'.js':'text/javascript','.html':'text/html','.css':'text/css'})[extname(file)]||'application/octet-stream');
+    res.setHeader('Content-Type',({'.js':'text/javascript','.html':'text/html','.css':'text/css','.svg':'image/svg+xml'})[extname(file)]||'application/octet-stream');
     res.end(readFileSync(file));
   });
   await new Promise(r=>server.listen(8092,'0.0.0.0',r));
@@ -331,6 +331,24 @@ let browser,server;
     const n=s.state.nodes[0];return [n.color,s.sanitizeNode(n).color,g.cleanValue(n).color];
   }),['transparent','transparent','transparent']);
   await page.screenshot({path:join(process.env.TEMP,'bete-transparent.png')});
+  const amazonRequests=[];
+  page.on('request',request=>{if(new URL(request.url()).hostname.endsWith('amazon.fr'))amazonRequests.push(request.url());});
+  await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const s=await import('/js/state.js'+v),r=await import('/js/render.js'+v);
+    const n=s.state.nodes[0];n.link='https://www.amazon.fr/dp/B0D2NF8G5V';n.text='Produit Amazon';n.color='#00b7eb';
+    s.emit();r.requestRender();
+  });
+  await page.waitForFunction(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const redraw=(await import('/js/render.js'+v)).requestRender;
+    return !!(await import('/js/services.js'+v)).serviceIcon({id:'amazon'},redraw)?.naturalWidth;
+  });
+  await page.waitForTimeout(100);
+  assert.deepEqual(amazonRequests,[],'Amazon badge must load only a local asset');
+  await page.screenshot({path:join(process.env.TEMP,'bete-amazon-badge.png')});
+  await page.screenshot({path:join(process.env.TEMP,'bete-amazon-crop.png'),clip:{x:120,y:120,width:60,height:75}});
+  assert.ok(await page.evaluate(async()=>{const v=new URL(document.querySelector('script[type=module]').src).search;return (await import('/js/services.js'+v)).serviceIcon({id:'amazon'},()=>{})?.naturalWidth;}),'Amazon SVG must be loaded');
   assert.deepEqual(errors,[]);
   console.log('PASS: Facebook post automatic iframe, normalized URL, no referrer, zoom without reload, removal after deletion (Meta response mocked)');
   console.log('PASS: 21 local service icons without external requests, confirmed deletion, mobile default lock/unlock/relock, protected editing, pan/pinch, desktop unchanged, save animation and progress/success/error/connection notifications, clean menu, block deletion, Drive hidden/red/yellow/green/blinking status, browser URL drop at pointer location, pasted URL and editor conversion, URL label, browser-provided title, no linked-site favicon requests');

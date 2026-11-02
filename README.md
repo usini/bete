@@ -1,5 +1,8 @@
 # Bête
 
+Les blocs contenant un lien Amazon affichent une petite étiquette avec le logo à gauche de leur
+coin supérieur. Le logo est embarqué localement, sans requête vers Amazon.
+
 ### Publications Facebook
 
 Un rectangle contenant un lien direct vers un post Facebook charge automatiquement son intégration
