@@ -41,14 +41,15 @@
     Bête est une application web libre (licence MIT) éditée par Rémi Sarrailh (usini).
     Son code source est public : <a href="https://github.com/usini/bete">github.com/usini/bete</a>.
     Cette page explique quelles données l'application manipule, où elles sont stockées et
-    comment les supprimer.
+    comment les supprimer. Le responsable des traitements réalisés par Bête est Rémi Sarrailh,
+    joignable à <a href="mailto:remi@usini.eu">remi@usini.eu</a>.
   </p>
 
   <div class="summary">
     <p><strong>En résumé</strong></p>
     <ul>
-      <li>Pas de compte, pas de publicité, pas de suivi, pas de cookies déposés par Bête.</li>
-      <li>Tes tableaux restent sur ton appareil. Bête n'a pas de serveur et ne reçoit aucune de tes données.</li>
+      <li>Pas de compte Bête, pas de publicité ni de suivi publicitaire. La connexion Drive utilise deux cookies techniques sécurisés.</li>
+      <li>Tes tableaux restent sur ton appareil, avec une sauvegarde Drive facultative. Le service de connexion Bête traite les autorisations Google, pas les tableaux.</li>
       <li>La sauvegarde sur Google Drive est facultative : le fichier est enregistré dans ton propre Drive, dans un dossier caché réservé à Bête.</li>
     </ul>
   </div>
@@ -64,9 +65,14 @@
     <li><code>IndexedDB</code> : les images que tu ajoutes.</li>
   </ul>
   <p>
-    Ces données ne sont envoyées à personne par Bête. Tu peux les exporter dans un fichier JSON
+    Ces données restent locales, sauf si tu actives la sauvegarde Drive ou utilises un service
+    tiers décrit ci-dessous. Tu peux les exporter dans un fichier JSON
     (bouton « Exporter JSON ») et les supprimer en effaçant les données du site dans les réglages
-    de ton navigateur.
+    de ton navigateur. Elles restent présentes jusqu’à leur suppression, l’effacement des données du site
+    ou une suppression automatique par le navigateur. L’historique annuler/rétablir (60 états maximum)
+    reste uniquement en mémoire et disparaît à la fermeture ou au rechargement de la page.
+    Les métadonnées de synchronisation Drive (identifiant du fichier, date et empreinte du dernier état
+    synchronisé) sont également conservées localement jusqu’à la déconnexion ou à leur effacement.
   </p>
 
   <h2>2. Services tiers contactés par l'application</h2>
@@ -87,7 +93,7 @@
     Le site est hébergé par GitHub Pages. GitHub peut enregistrer des données techniques de
     connexion (comme l'adresse IP) selon sa propre
     <a href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement">déclaration de confidentialité</a>.
-    Bête n'y a pas accès.
+    Le code de Bête ne collecte pas ces journaux d’hébergement.
   </p>
 
   <h2>3. Sauvegarde sur Google Drive (facultative)</h2>
@@ -96,29 +102,45 @@
     <li>
       <strong>Droit demandé</strong> : uniquement l'accès au dossier de données propre à
       l'application (<code>https://www.googleapis.com/auth/drive.appdata</code>). Bête ne peut
-      ni voir, ni lire, ni modifier tes autres fichiers Drive.
+      ni voir, ni lire, ni modifier tes autres fichiers Drive. Aucun droit sur Gmail, les contacts ou
+      ton profil n’est demandé par ce flux. Le mot de passe Google est saisi chez Google et n’est
+      jamais transmis au service Bête.
     </li>
     <li>
       <strong>Ce qui est enregistré</strong> : un seul fichier contenant ton tableau (blocs, textes,
-      liens, images), dans ce dossier caché. Il n'apparaît pas dans ton Drive habituel.
+      liens, images et cadrage du tableau), dans ce dossier caché. Il n'apparaît pas dans ton Drive habituel.
+      L’application lit ce fichier, son identifiant et sa date de modification pour comparer les versions,
+      le télécharger, le créer ou le remplacer à ta demande ou lors des sauvegardes automatiques.
+      En cas de conflit détecté, elle te demande quelle version conserver.
+      Le fichier reste sur Drive jusqu’à sa suppression ; déconnecter Bête ne le supprime pas.
     </li>
     <li>
       <strong>Où vont les données</strong> : directement de ton navigateur vers ton Drive. Elles ne
-      passent par aucun serveur de Bête, et personne d'autre que toi n'y a accès par ce biais.
+      passent par aucun serveur de Bête.
     </li>
     <li>
-      <strong>Jeton de connexion</strong> : l'autorisation fournie par Google est conservée sur ton
-      appareil uniquement, le temps nécessaire à la sauvegarde. Elle n'est jamais transmise à un tiers.
+      <strong>Connexion durable</strong> : le jeton d’accès reste en mémoire dans le navigateur.
+      Le jeton de renouvellement est conservé chiffré dans un cookie HttpOnly et Secure sur
+      <code>auth-bete.usini.eu</code>. Le service OAuth du VPS le reçoit temporairement pour
+      renouveler l’accès auprès de Google, sans base de données de jetons ni journalisation
+      des autorisations ou des tableaux. Ce service peut techniquement utiliser cette autorisation :
+      les sauvegardes ne sont pas chiffrées de bout en bout. Le chiffrement du cookie protège son
+      stockage ; le serveur dispose de la clé de déchiffrement. Il n’empêche donc pas techniquement
+      l’administrateur du service d’utiliser l’autorisation, limitée au dossier de Bête.
     </li>
     <li>
-      <strong>Appels réseau</strong> : uniquement quand tu utilises cette sauvegarde, ton navigateur
-      charge le script de connexion de Google (<code>accounts.google.com</code>) et appelle l'API
-      Google Drive (<code>www.googleapis.com</code>).
+      <strong>Appels réseau</strong> : Google pour la connexion et le stockage Drive, ainsi que
+      <code>auth-bete.usini.eu</code> pour l’authentification et le renouvellement. Ce service est
+      exposé via Cloudflare Tunnel : Cloudflare termine la connexion HTTPS et traite les requêtes
+      d’authentification. Le cookie expire au plus tard après un an (les navigateurs ou Google
+      peuvent imposer une durée plus courte) et est supprimé à la déconnexion. La déconnexion
+      demande aussi la révocation auprès de Google.
     </li>
     <li>
       <strong>Utilisation</strong> : les données de ton Drive servent exclusivement à sauvegarder et
-      restaurer ton tableau. Elles ne sont ni vendues, ni partagées, ni utilisées pour de la
-      publicité ou pour entraîner des modèles.
+      restaurer ton tableau. Elles ne sont ni vendues, ni partagées à des fins commerciales, ni utilisées pour de la
+      publicité ou pour entraîner des modèles par Bête. Les prestataires techniques nécessaires
+      au fonctionnement sont précisés ci-dessous.
     </li>
   </ul>
   <p>
@@ -127,8 +149,63 @@
     y compris les exigences d'utilisation limitée.
   </p>
 
+  <h3>Cookies et conservation des autorisations</h3>
+  <ul>
+    <li><code>__Host-bete-flow</code> : état de connexion et vérificateur OAuth chiffrés ;
+      durée maximale de 10 minutes, supprimé lors du retour de connexion. Il protège la connexion
+      contre les requêtes falsifiées.</li>
+    <li><code>__Host-bete-refresh</code> : autorisation de renouvellement chiffrée ;
+      durée maximale d’un an après la connexion, ou moins selon Google et le navigateur.
+      Il permet de renouveler la session sans te redemander régulièrement de te connecter.</li>
+  </ul>
+  <p>
+    Ces cookies sont propres à <code>auth-bete.usini.eu</code>, marqués HttpOnly, Secure et SameSite=Lax.
+    Ils servent uniquement à la connexion Drive que tu demandes, pas au suivi publicitaire.
+    Le jeton d’accès de courte durée reste en mémoire dans la page et n’est pas enregistré dans
+    le stockage local. Une ancienne copie issue de la version précédente est supprimée à l’ouverture.
+    Les autorisations sont traitées temporairement par le service OAuth et Google, sans base de
+    données utilisateur côté Bête. Le code du service ne journalise ni jetons, ni cookies, ni tableaux.
+  </p>
+
+  <h3>Hébergement, destinataires et données techniques</h3>
+  <p>
+    Le service OAuth est hébergé sur un VPS chez <strong>OVHcloud</strong> et accessible via
+    <strong>Cloudflare Tunnel</strong>. Le site statique est hébergé par <strong>GitHub Pages</strong>.
+    Google assure la connexion et le stockage Drive ; YouTube intervient pour les vidéos.
+    Ces prestataires peuvent traiter les données techniques de connexion nécessaires au service
+    (adresse IP, date, navigateur, URL et informations de sécurité) selon leurs propres politiques.
+    Cloudflare termine la connexion HTTPS et traite donc les requêtes OAuth, y compris les
+    autorisations qui y transitent ; les tableaux ne transitent pas par ce service OAuth.
+  </p>
+  <p>
+    Bête ne constitue pas de fichier de suivi des visites. Les journaux techniques éventuels des
+    infrastructures sont distincts des tableaux et suivent les durées et paramètres des prestataires.
+    Le pays précis du VPS et les durées des journaux d’infrastructure ne sont pas indiqués ici car
+    ils n’ont pas été vérifiés. Leurs services peuvent impliquer des traitements hors de l’Espace
+    économique européen ; cette application ne garantit pas une localisation exclusivement européenne.
+    Pour connaître leurs modalités de conservation, transferts et garanties :
+    <a href="https://www.ovhcloud.com/fr/personal-data-protection/">OVHcloud</a>,
+    <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare</a>,
+    <a href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement">GitHub</a>
+    et <a href="https://policies.google.com/privacy">Google</a>.
+  </p>
+
+  <h3>Finalités et bases légales</h3>
+  <p>
+    L’enregistrement local, l’import et l’export permettent de fournir le tableau demandé.
+    La sauvegarde et le renouvellement OAuth servent uniquement à fournir la synchronisation Drive
+    que tu actives volontairement, sur la base de ton consentement ; tu peux le retirer à tout moment.
+    Refuser Drive n’empêche pas l’usage local de Bête. Les traitements techniques nécessaires à la
+    sécurité et à la disponibilité reposent sur l’intérêt légitime à protéger et faire fonctionner le service.
+    Aucune décision automatisée produisant des effets juridiques ni aucun profilage n’est réalisé par Bête.
+  </p>
+
   <h2>4. Retirer l'accès et supprimer tes données</h2>
   <ul>
+    <li><strong>Déconnecter cet appareil</strong> : le bouton « Déconnecter » supprime les cookies
+      d’authentification et demande à Google la révocation de l’autorisation. Cette révocation peut
+      aussi affecter les autres appareils connectés à la même application. En cas d’échec réseau,
+      retire également l’accès dans ton compte Google.</li>
     <li>
       <strong>Retirer l'accès de Bête à ton Drive</strong> : rends-toi sur
       <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>,
@@ -140,7 +217,9 @@
       « Gérer les applications », puis « Supprimer les données masquées de l'application » pour Bête.
     </li>
     <li>
-      <strong>Supprimer les données locales</strong> : efface les données du site dans ton navigateur.
+      <strong>Supprimer les données locales</strong> : efface les données de <code>bete.usini.eu</code> et de
+      <code>auth-bete.usini.eu</code> dans ton navigateur. Les exports JSON déjà téléchargés doivent
+      être supprimés séparément. Effacer les données locales ne supprime pas la sauvegarde Drive.
     </li>
   </ul>
 
@@ -151,15 +230,33 @@
     <li>Aucune vente ni cession de données.</li>
   </ul>
 
-  <h2>6. Modifications</h2>
+  <h2>6. Tes droits</h2>
+  <p>
+    Selon les traitements et les conditions prévues par la réglementation, tu peux demander l’accès,
+    la rectification, l’effacement, la limitation, la portabilité de tes données et t’opposer aux
+    traitements fondés sur l’intérêt légitime. Tu peux retirer ton consentement pour l’avenir sans
+    remettre en cause les traitements antérieurs. L’export JSON permet de récupérer ton tableau.
+    Bête n’a pas de copie centrale de tes tableaux permettant de les retrouver à partir d’un nom.
+  </p>
+  <p>
+    Pour exercer tes droits ou poser une question, écris à
+    <a href="mailto:remi@usini.eu">remi@usini.eu</a>. N’envoie pas de mot de passe, de jeton OAuth
+    ni de tableau contenant des informations sensibles. Une demande de droits reçoit en principe
+    une réponse sous un mois, avec prolongation possible dans les cas prévus par la réglementation.
+    Tu peux aussi déposer une réclamation auprès de la
+    <a href="https://www.cnil.fr/fr/plaintes">CNIL</a>.
+  </p>
+
+  <h2>7. Modifications</h2>
   <p>
     Cette politique peut évoluer avec l'application. La date de dernière mise à jour figure en haut
     de la page, et l'historique des modifications est public dans le dépôt GitHub.
   </p>
 
-  <h2>7. Contact</h2>
+  <h2>8. Contact</h2>
   <p>
-    Pour toute question, ouvre un ticket sur
+    Contact confidentialité : <a href="mailto:remi@usini.eu">remi@usini.eu</a>.
+    Pour un problème technique sans données personnelles, tu peux aussi ouvrir un ticket public sur
     <a href="https://github.com/usini/bete/issues">github.com/usini/bete/issues</a>.
   </p>
 </main>

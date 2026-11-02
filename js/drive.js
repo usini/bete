@@ -1,19 +1,17 @@
 // Optional backup of the board on Google Drive.
 //
 //  - Scope: drive.appdata only. The file (Bete.json) lives in a hidden folder reserved to this
-//    app in the user's own Drive. Nothing goes through a server of ours.
-//  - Sign-in: Google Identity Services "token" flow, entirely in the browser. The access token
-//    lasts about an hour and is kept in memory only (never written to storage); when it
-//    expires the user presses "Se reconnecter" (no new consent needed).
+//    app in the user's own Drive. Board content never passes through our OAuth service.
+//  - Sign-in: OAuth code flow through a stateless service. Access tokens stay in memory.
 //  - Sync: the board is uploaded ~30 s after the last change. When connecting, the local board
 //    and the Drive file are compared; if both changed since the last sync, the user chooses.
-import { state, onSaved, saveNow } from './state.js?v=mvzaas6o';
-import { exportData, importData } from './storage.js?v=mvzaas6o';
+import { state, onSaved, saveNow } from './state.js?v=mvzbmn95';
+import { exportData, importData } from './storage.js?v=mvzbmn95';
 
-const CLIENT_ID = '1084992186623-ffj2bqhcehii9ml5cnpppc6cet23d0va.apps.googleusercontent.com';
-const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+const AUTH_URL = 'https://auth-bete.usini.eu';
 const FILE_NAME = 'Bete.json';
 const META_KEY = 'bete2:drive';
+const TOKEN_KEY = 'bete2:driveToken';
 const API = 'https://www.googleapis.com/drive/v3';
 const UPLOAD = 'https://www.googleapis.com/upload/drive/v3';
 
@@ -27,6 +25,7 @@ let token = null;        // access token, memory only
 let tokenExpiry = 0;
 let dirty = false;       // the board changed since the last sync
 let busy = false;
+let lastCheck = 0;       // last time we compared with Drive (to catch another device's changes)
 let conflictPending = false; // "Décider plus tard" was chosen: no autosave until the user acts
 let timer = null;
 let message = '';        // transient status line (progress, errors)
@@ -49,6 +48,27 @@ function saveMeta() {
   } catch { /* storage blocked: the link is only kept for this visit */ }
 }
 
+// Remove access tokens left by the previous browser-only flow.
+try { localStorage.removeItem(TOKEN_KEY); } catch { /* storage blocked */ }
+let refreshing = null;
+async function authRequest(path) {
+  const r = await fetch(AUTH_URL + path, {
+    method: 'POST', credentials: 'include', headers: { 'X-Bete-Request': '1' },
+    signal: AbortSignal.timeout(20000),
+  });
+  if (r.status === 401) throw new AuthNeeded();
+  if (!r.ok) throw new Error('Service de connexion indisponible. Réessaie bientôt.');
+  return r.json();
+}
+async function ensureToken() {
+  if (tokenValid()) return;
+  if (!refreshing) refreshing = authRequest('/token').then(r => {
+    token = r.access_token;
+    tokenExpiry = Date.now() + (Number(r.expires_in) - 60) * 1000;
+  }).finally(() => { refreshing = null; });
+  return refreshing;
+}
+
 // ---- change detection ----
 // The camera is not part of the signature: panning or zooming must not trigger an upload.
 const nodesJson = () => JSON.stringify(state.nodes);
@@ -64,54 +84,39 @@ function hash(str) { // cyrb53, 53 bits, plenty to detect a change
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
 }
 
-// ---- Google sign-in ----
-let gisLoading = null;
-function loadGis() {
-  if (window.google && window.google.accounts && window.google.accounts.oauth2) return Promise.resolve();
-  if (!gisLoading) {
-    gisLoading = new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = 'https://accounts.google.com/gsi/client';
-      s.async = true;
-      s.onload = () => resolve();
-      s.onerror = () => { gisLoading = null; reject(new Error('Impossible de joindre Google (hors ligne ?).')); };
-      document.head.append(s);
-    });
-  }
-  return gisLoading;
-}
-
-// Opens Google's sign-in popup. Must be called from a click.
+// Opens synchronously from the click, so popup blockers can allow it.
 async function requestToken() {
-  await loadGis();
+  const popup = window.open(AUTH_URL + '/login', 'bete-google', 'popup,width=520,height=700');
+  if (!popup) throw new Error('Le navigateur a bloqué la fenêtre de connexion.');
   await new Promise((resolve, reject) => {
-    const client = window.google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPE,
-      callback: (r) => {
-        if (r.error) { reject(new Error('Connexion refusée.')); return; }
-        if (!window.google.accounts.oauth2.hasGrantedAllScopes(r, SCOPE)) {
-          reject(new Error("L'autorisation d'accès au dossier de l'appli est nécessaire."));
-          return;
-        }
-        token = r.access_token;
-        tokenExpiry = Date.now() + (Number(r.expires_in) - 60) * 1000;
-        resolve();
-      },
-      error_callback: (e) => reject(new Error(
-        e && e.type === 'popup_failed_to_open' ? 'Le navigateur a bloqué la fenêtre de connexion.'
-          : e && e.type === 'popup_closed' ? 'Connexion annulée.'
-            : 'Connexion impossible.')),
-    });
-    client.requestAccessToken();
+    let poll, timeout;
+    const finish = (error) => {
+      window.removeEventListener('message', receive);
+      clearInterval(poll); clearTimeout(timeout);
+      if (!popup.closed) popup.close();
+      error ? reject(error) : resolve();
+    };
+    const receive = e => {
+      if (e.origin !== AUTH_URL || e.source !== popup || e.data?.type !== 'bete-oauth') return;
+      finish(e.data.ok ? null : new Error('Connexion annulée.'));
+    };
+    window.addEventListener('message', receive);
+    poll = setInterval(() => { if (popup.closed) finish(new Error('Connexion annulée.')); }, 500);
+    timeout = setTimeout(() => finish(new Error('Connexion trop longue. Réessaie.')), 600000);
   });
+  token = null;
+  await ensureToken();
 }
 
 // ---- Drive API ----
 async function api(url, opts = {}) {
-  if (!tokenValid()) throw new AuthNeeded();
-  const r = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + token } });
-  if (r.status === 401) { token = null; throw new AuthNeeded(); }
+  await ensureToken();
+  let r = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + token } });
+  if (r.status === 401) {
+    token = null; await ensureToken();
+    r = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + token } });
+    if (r.status === 401) { token = null; throw new AuthNeeded(); }
+  }
   if (!r.ok) {
     let detail = '';
     try { detail = (await r.json()).error.message; } catch { /* no JSON body */ }
@@ -187,6 +192,7 @@ async function pullStep(remote) {
 // Right after connecting: decide what to do with the local board and the Drive file.
 async function reconcileStep() {
   conflictPending = false;
+  lastCheck = Date.now();
   const remote = await findFile();
   const sig = hash(nodesJson());
   if (!remote) { // nothing on Drive yet
@@ -220,6 +226,7 @@ async function run(label, step) {
   busy = true;
   say(label);
   try {
+    await ensureToken();
     await step();
     if (message === label) say('');
     return true;
@@ -247,7 +254,6 @@ function schedule(ms = driveConfig.autosaveMs) {
   clearTimeout(timer);
   if (!meta || !dirty || conflictPending) return;
   timer = setTimeout(() => {
-    if (!tokenValid()) { render(); return; } // the user must reconnect first
     // reconcileStep, not pushStep: Drive may have changed meanwhile (another device), and an
     // upload must never overwrite that silently.
     run('Sauvegarde…', reconcileStep);
@@ -318,14 +324,18 @@ async function connect() {
   await run('Synchronisation…', reconcileStep);
 }
 
-function disconnect() {
+async function disconnect() {
   if (!confirm('Déconnecter Google Drive ? La sauvegarde déjà présente reste sur ton Drive.')) return;
-  const t = token;
-  token = null; tokenExpiry = 0; meta = null; dirty = false;
-  clearTimeout(timer);
-  saveMeta();
-  if (t && window.google && window.google.accounts) window.google.accounts.oauth2.revoke(t, () => {});
-  say('Déconnecté. La sauvegarde reste sur ton Drive.');
+  if (busy) return;
+  busy = true; render();
+  try {
+    await authRequest('/logout');
+    token = null; tokenExpiry = 0; meta = null; dirty = false;
+    clearTimeout(timer); saveMeta();
+    say('Déconnecté. La sauvegarde reste sur ton Drive.');
+  } catch {
+    say('Déconnexion non confirmée. Réessaie ou retire l’accès depuis ton compte Google.');
+  } finally { busy = false; render(); }
 }
 
 function restore() {
@@ -340,7 +350,6 @@ function restore() {
 export function initDrive() {
   if (meta) {
     dirty = hash(nodesJson()) !== meta.sig;
-    loadGis().catch(() => {}); // already linked: have Google's script ready for "Se reconnecter"
   }
   // Content changed (not the camera): remember it and (re)start the autosave countdown.
   onSaved(() => {
@@ -350,7 +359,6 @@ export function initDrive() {
     if (dirty) schedule();
   });
   $('drive-connect').addEventListener('click', connect);
-  $('drive-connect').addEventListener('pointerenter', () => { loadGis().catch(() => {}); }, { once: true });
   $('drive-save').addEventListener('click', () => { run('Sauvegarde…', reconcileStep); });
   $('drive-restore').addEventListener('click', restore);
   $('drive-disconnect').addEventListener('click', disconnect);
@@ -370,16 +378,23 @@ export function initDrive() {
   // Switching tab / app, or closing on a phone: the page is hidden first, which is the one
   // reliable moment to save without waiting for the 30 s countdown.
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'hidden') return;
-    saveNow();
-    flush();
+    if (document.visibilityState === 'hidden') { saveNow(); flush(); return; }
+    checkRemote(); // back on the page: catch what another device saved meanwhile
   });
   render();
+  checkRemote(); // after a reload: same check
+}
+
+// Compares with Drive, renewing authorization if necessary, at most once every 20 s.
+function checkRemote() {
+  if (!meta || busy || conflictPending) return;
+  if (Date.now() - lastCheck < 20000) return;
+  run('Synchronisation…', reconcileStep);
 }
 
 // Uploads now, instead of waiting for the countdown, when there is something to save.
 function flush() {
-  if (!meta || !dirty || busy || conflictPending || !tokenValid()) return;
+  if (!meta || !dirty || busy || conflictPending) return;
   clearTimeout(timer);
   run('Sauvegarde…', reconcileStep);
 }

@@ -34,9 +34,14 @@ python -m http.server 8000
   (droit `drive.appdata` uniquement), avec choix en cas de conflit entre deux appareils.
   Quitter la page avant que tout soit sauvegardé déclenche l'envoi immédiat et un avertissement du navigateur.
 
-Aucune donnée n'est envoyée à un serveur de Bête. Les appels réseau sont ceux de YouTube :
+Les tableaux ne sont pas envoyés au serveur de Bête. Les appels réseau sont ceux de YouTube :
 miniatures (`i.ytimg.com`), titres (oEmbed) et lecteur (`youtube-nocookie.com`) ; et, seulement si tu
-actives la sauvegarde, ceux de Google (connexion `accounts.google.com`, API Drive `www.googleapis.com`).
+actives la sauvegarde, ceux de Google et du service OAuth `auth-bete.usini.eu`. Ce service renouvelle
+les autorisations sans stocker les tableaux. Le jeton de renouvellement reste chiffré dans un cookie
+HttpOnly du navigateur ; le service le traite temporairement.
+
+Déploiement VPS / Portainer / Cloudflare Tunnel : voir [auth/README.md](auth/README.md)
+et le Compose autonome [auth/compose.portainer.yml](auth/compose.portainer.yml).
 
 ## Confidentialité
 
