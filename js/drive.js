@@ -5,8 +5,8 @@
 //  - Sign-in: OAuth code flow through a stateless service. Access tokens stay in memory.
 //  - Sync: check every 30 s and upload only changed content. When connecting, the local board
 //    and the Drive file are compared; if both changed since the last sync, the user chooses.
-import { state, onSaved, saveNow } from './state.js?v=mvzcifgl';
-import { exportData, importData } from './storage.js?v=mvzcifgl';
+import { state, onSaved, saveNow } from './state.js?v=mvzckz4s';
+import { exportData, importData } from './storage.js?v=mvzckz4s';
 
 const AUTH_URL = 'https://auth-bete.usini.eu';
 const FILE_NAME = 'Bete.json';
@@ -305,7 +305,7 @@ function statusText(linked, ok) {
 function render() {
   const linked = !!meta, ok = linked && tokenValid();
   $('drive-connect').hidden = ok;
-  $('drive-connect').textContent = linked ? 'Se reconnecter' : 'Connecter Google Drive';
+  $('drive-connect-label').textContent = linked ? 'Se reconnecter' : 'Connecter Google Drive';
   $('drive-save').hidden = !ok;
   $('drive-restore').hidden = !ok;
   $('drive-disconnect').hidden = !linked;

@@ -348,3 +348,31 @@ button:hover { border-color: var(--accent); }
   #panel { width: 170px; }
   #panel-toggle { right: 170px; }
 }
+
+/* Match the existing toolbar's outline icons without external fonts or requests. */
+.menu-icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+#panel h2 { display: flex; align-items: center; gap: 8px; }
+#panel h2 .menu-icon { width: 16px; height: 16px; color: var(--accent); }
+#panel .block,
+#panel button:has(> .menu-icon) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+#panel .block .menu-icon { color: var(--accent); }
+#panel button > span { min-width: 0; }
+#del .menu-icon { color: #ff8686; }
+#drive-connect .menu-icon, #drive-save .menu-icon { color: #7ed6a5; }
+#export .menu-icon, #import .menu-icon { color: #a5b9ff; }
+#panel [hidden] { display: none !important; }
