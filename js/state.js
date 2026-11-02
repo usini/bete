@@ -1,8 +1,8 @@
 // Data model, sanitizers and local autosave (localStorage).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mvzmnbc5';
+import { explode } from './fx.js?v=mvzmqqm3';
 
-export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2'];
+export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];
 export const SIZES = { rect: { w: 180, h: 110 }, image: { w: 220, h: 170 }, group: { w: 420, h: 300 } };
 
@@ -55,7 +55,7 @@ export function sanitizeNode(raw) {
     w: num(raw.w, LIMITS.minSize, LIMITS.size, size.w),
     h: num(raw.h, LIMITS.minSize, LIMITS.size, size.h),
     text: typeof raw.text === 'string' ? raw.text.slice(0, LIMITS.text) : '',
-    color: /^#[0-9a-f]{6}$/i.test(raw.color) ? raw.color : DEFAULT_COLOR,
+    color: raw.color === 'transparent' ? 'transparent' : /^#[0-9a-f]{6}$/i.test(raw.color) ? raw.color : DEFAULT_COLOR,
   };
   if (kind === 'group' && typeof raw.shareId === 'string' && /^[a-zA-Z0-9_-]{8,80}$/.test(raw.shareId)) n.shareId = raw.shareId;
   if (typeof raw.image === 'string' && raw.image.length < LIMITS.dataUrl

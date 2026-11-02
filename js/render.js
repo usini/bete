@@ -1,23 +1,23 @@
-import { positionFacebookPosts } from './facebook-view.js?v=mvzmnbc5';
+import { positionFacebookPosts } from './facebook-view.js?v=mvzmqqm3';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzmnbc5';
-import { view, screenToWorld } from './camera.js?v=mvzmnbc5';
-import { youTubeId, ytThumb } from './yt.js?v=mvzmnbc5';
-import { imageFor } from './images.js?v=mvzmnbc5';
-import { positionVideo, isVideoPlaying } from './video.js?v=mvzmnbc5';
-import { guides } from './snap.js?v=mvzmnbc5';
-import { renderMinimap } from './minimap.js?v=mvzmnbc5';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzmnbc5';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzmnbc5';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzmnbc5';
+import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzmqqm3';
+import { view, screenToWorld } from './camera.js?v=mvzmqqm3';
+import { youTubeId, ytThumb } from './yt.js?v=mvzmqqm3';
+import { imageFor } from './images.js?v=mvzmqqm3';
+import { positionVideo, isVideoPlaying } from './video.js?v=mvzmqqm3';
+import { guides } from './snap.js?v=mvzmqqm3';
+import { renderMinimap } from './minimap.js?v=mvzmqqm3';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzmqqm3';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzmqqm3';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzmqqm3';
 
-import { genericLinkOf, plainLink } from './links.js?v=mvzmnbc5';
-import { stepMotion } from './motion.js?v=mvzmnbc5';
-import { remoteCursors, shareEvents } from './group-share.js?v=mvzmnbc5';
+import { genericLinkOf, plainLink } from './links.js?v=mvzmqqm3';
+import { stepMotion } from './motion.js?v=mvzmqqm3';
+import { remoteCursors, shareEvents } from './group-share.js?v=mvzmqqm3';
 
-import { isLocked } from './mobile-mode.js?v=mvzmnbc5';
+import { isLocked } from './mobile-mode.js?v=mvzmqqm3';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mvzmnbc5';
+import { serviceForNode, serviceIcon } from './services.js?v=mvzmqqm3';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -152,8 +152,10 @@ function drawNode(n, selected, zoom) {
   }
   const service = serviceForNode(n);
   const yt = service ? null : youTubeId(n.text);
-  ctx.fillStyle = '#14171d';
-  ctx.fillRect(n.x, n.y, n.w, n.h);
+  if (n.color !== 'transparent') {
+    ctx.fillStyle = '#14171d';
+    ctx.fillRect(n.x, n.y, n.w, n.h);
+  }
 
   ctx.save();
   ctx.beginPath();
@@ -183,9 +185,11 @@ function drawNode(n, selected, zoom) {
   }
   ctx.restore();
 
-  ctx.lineWidth = 4;
-  ctx.strokeStyle = n.color;
-  ctx.strokeRect(n.x + 2, n.y + 2, n.w - 4, n.h - 4);
+  if (n.color !== 'transparent') {
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = n.color;
+    ctx.strokeRect(n.x + 2, n.y + 2, n.w - 4, n.h - 4);
+  }
 
   drawSelection(n, selected, zoom);
   drawLabel(n, zoom);
@@ -215,14 +219,16 @@ function drawSelection(n, selected, zoom) {
 // big as fits on one line: a big group stays readable when zoomed out.
 const GROUP_HEADER_MIN = 64, GROUP_HEADER_MAX = 220;
 function drawGroup(n) {
-  ctx.fillStyle = hexAlpha(n.color, 0.16);
+  ctx.fillStyle = n.color === 'transparent' ? 'transparent' : hexAlpha(n.color, 0.16);
   ctx.fillRect(n.x, n.y, n.w, n.h);
   const hh = Math.min(n.h, Math.min(GROUP_HEADER_MAX, Math.max(GROUP_HEADER_MIN, n.h * 0.22)));
-  ctx.fillStyle = n.color;
+  ctx.fillStyle = n.color === 'transparent' ? '#ffffff' : n.color;
   ctx.fillRect(n.x, n.y, n.w, hh);
-  ctx.lineWidth = 4;
-  ctx.strokeStyle = n.color;
-  ctx.strokeRect(n.x + 2, n.y + 2, n.w - 4, n.h - 4);
+  if (n.color !== 'transparent') {
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = n.color;
+    ctx.strokeRect(n.x + 2, n.y + 2, n.w - 4, n.h - 4);
+  }
 
   const title = firstLine(n.text).trim();
   ctx.save();
@@ -231,7 +237,7 @@ function drawGroup(n) {
   ctx.clip();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = textOn(n.color);
+  ctx.fillStyle = textOn(n.color === 'transparent' ? '#ffffff' : n.color);
   if (!title) ctx.globalAlpha = 0.45; // placeholder
   const text = title || 'Groupe';
   const size = fitLine(text, n.w - 4 * PAD, hh * 0.62);
@@ -303,7 +309,7 @@ function drawLabel(n, zoom) {
   ctx.shadowColor = 'rgba(0,0,0,0.35)';
   ctx.shadowBlur = 10 * dpr;
   ctx.shadowOffsetY = 2 * dpr;
-  ctx.fillStyle = n.color;
+  ctx.fillStyle = n.color === 'transparent' ? '#ffffff' : n.color;
   pillPath(L.x, L.y, L.w, L.h, r);
   ctx.fill();
   ctx.restore();
@@ -313,7 +319,7 @@ function drawLabel(n, zoom) {
   ctx.strokeStyle = 'rgba(0,0,0,0.25)';
   ctx.stroke();
 
-  const fg = textOn(n.color);
+  const fg = textOn(n.color === 'transparent' ? '#ffffff' : n.color);
   const cy = L.y + L.h / 2;
   let tx = L.x + LABEL_PAD;
   if (L.segments) { drawProductSegments(L, tx, cy, fg); return; }
@@ -379,7 +385,7 @@ function drawButton(b, emoji, color, zoom) {
   ctx.beginPath();
   ctx.arc(0, 0, 14, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = color;
+  ctx.strokeStyle = color === 'transparent' ? '#ffffff' : color;
   ctx.lineWidth = 2;
   ctx.stroke();
   ctx.font = '16px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';

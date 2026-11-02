@@ -1,7 +1,7 @@
 // Minimap (bottom-left): all the blocks in their colour + the current view as a white frame.
 // Click or drag on it to move the view there.
-import { state, emit, groupsBySize } from './state.js?v=mvzmnbc5';
-import { view } from './camera.js?v=mvzmnbc5';
+import { state, emit, groupsBySize } from './state.js?v=mvzmqqm3';
+import { view } from './camera.js?v=mvzmqqm3';
 
 const canvas = document.getElementById('minimap');
 const ctx = canvas.getContext('2d');
@@ -42,7 +42,7 @@ export function renderMinimap() {
   ctx.clearRect(0, 0, W, H);
   const t = frozen || fit(W, H);
   const rect = (n) => {
-    ctx.fillStyle = n.color;
+    ctx.fillStyle = n.color === 'transparent' ? '#ffffff' : n.color;
     ctx.fillRect(n.x * t.s + t.ox, n.y * t.s + t.oy, Math.max(2, n.w * t.s), Math.max(2, n.h * t.s));
   };
   // Groups first and translucent (the biggest underneath), then the other blocks on top.

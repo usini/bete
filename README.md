@@ -44,6 +44,9 @@ python -m http.server 8000
 - **Liens** : chaque bloc peut avoir un lien, affiché dans une pastille au-dessus ; un double-clic l'ouvre.
 - **Produits Amazon** : un lien Amazon est raccourci, et on peut y noter nom, prix et délai de livraison.
 - **Actions du bloc sélectionné** : édition, palette de couleurs et corbeille directement à côté du bloc. La corbeille demande une confirmation ; les touches Suppr et Retour arrière suppriment immédiatement (annulable dans l’historique).
+  La palette inclut le rouge et le transparent : fond et bordure du bloc transparents, label blanc
+  avec texte noir. Le titre d’un groupe transparent reste sur fond blanc. Ces couleurs sont conservées
+  dans les sauvegardes et les groupes partagés.
 - **Édition** : une popup pour modifier le texte, le lien et l'image (choix d'un fichier ou collage).
 - **Annuler / rétablir** : Ctrl+Z et Ctrl+Maj+Z (ou Ctrl+Y), boutons en haut à gauche, et une liste des
   60 dernières actions où l'on peut revenir à n'importe quel état (historique conservé dans la sauvegarde locale et les fichiers JSON, y compris sur Drive).

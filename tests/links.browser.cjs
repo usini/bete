@@ -283,6 +283,28 @@ let browser,server;
     const s=await import('/js/state.js'+v);s.state.nodes=[];s.emit();
   });
   await page.waitForFunction(()=>!document.querySelector('.facebook-post'));
+  const palettePoint=await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const s=await import('/js/state.js'+v),c=await import('/js/camera.js'+v),l=await import('/js/labels.js'+v);
+    s.state.camera={x:0,y:0,zoom:1};
+    const n=s.addNode('rect',-180,-100);n.link='https://example.test';s.emit();
+    const b=l.colorIconBox(n,1);return c.worldToScreen(b.x+b.w/2,b.y+b.h/2);
+  });
+  await page.mouse.click(palettePoint.x,palettePoint.y);
+  await page.getByRole('button',{name:'Rouge',exact:true}).click();
+  assert.equal(await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    return (await import('/js/state.js'+v)).state.nodes[0].color;
+  }),'#ff3030');
+  await page.waitForTimeout(650);
+  await page.mouse.click(palettePoint.x,palettePoint.y);
+  await page.getByRole('button',{name:'Transparent',exact:true}).click();
+  assert.deepEqual(await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const s=await import('/js/state.js'+v),g=await import('/js/group-model.js'+v);
+    const n=s.state.nodes[0];return [n.color,s.sanitizeNode(n).color,g.cleanValue(n).color];
+  }),['transparent','transparent','transparent']);
+  await page.screenshot({path:join(process.env.TEMP,'bete-transparent.png')});
   assert.deepEqual(errors,[]);
   console.log('PASS: Facebook post automatic iframe, normalized URL, no referrer, zoom without reload, removal after deletion (Meta response mocked)');
   console.log('PASS: 21 local service icons without external requests, confirmed deletion, mobile default lock/unlock/relock, protected editing, pan/pinch, desktop unchanged, save animation and progress/success/error/connection notifications, clean menu, block deletion, Drive hidden/red/yellow/green/blinking status, browser URL drop at pointer location, pasted URL and editor conversion, URL label, browser-provided title, no linked-site favicon requests');

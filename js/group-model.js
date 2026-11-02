@@ -15,7 +15,7 @@ export function cleanValue(raw, root = false) {
     y: root ? 0 : clamp(raw.y, -1e6, 1e6, 0),
     w: clamp(raw.w, 20, 1e5, 180), h: clamp(raw.h, 20, 1e5, 110),
     text: typeof raw.text === 'string' ? raw.text.slice(0, 20000) : '',
-    color: /^#[a-f0-9]{6}$/i.test(raw.color) ? raw.color.toLowerCase() : '#00b7eb',
+    color: raw.color === 'transparent' ? 'transparent' : /^#[a-f0-9]{6}$/i.test(raw.color) ? raw.color.toLowerCase() : '#00b7eb',
   };
   if (validImage(raw.image)) n.image = raw.image;
   if (typeof raw.link === 'string' && /^https?:\/\//i.test(raw.link) && raw.link.length <= 2000) n.link = raw.link;

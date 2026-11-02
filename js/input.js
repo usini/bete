@@ -3,24 +3,24 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzmnbc5';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzmnbc5';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzmnbc5';
-import { addImageFile } from './images.js?v=mvzmnbc5';
-import { playVideo } from './video.js?v=mvzmnbc5';
-import { youTubeId } from './yt.js?v=mvzmnbc5';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzmnbc5';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzmnbc5';
-import { undo, redo } from './history.js?v=mvzmnbc5';
+import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzmqqm3';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzmqqm3';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzmqqm3';
+import { addImageFile } from './images.js?v=mvzmqqm3';
+import { playVideo } from './video.js?v=mvzmqqm3';
+import { youTubeId } from './yt.js?v=mvzmqqm3';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzmqqm3';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzmqqm3';
+import { undo, redo } from './history.js?v=mvzmqqm3';
 
-import { setDragging } from './motion.js?v=mvzmnbc5';
+import { setDragging } from './motion.js?v=mvzmqqm3';
 
-import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mvzmnbc5';
-import { shortenAmazonText } from './amazon.js?v=mvzmnbc5';
+import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mvzmqqm3';
+import { shortenAmazonText } from './amazon.js?v=mvzmqqm3';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mvzmnbc5';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mvzmqqm3';
 
-import { serviceForNode } from './services.js?v=mvzmnbc5';
+import { serviceForNode } from './services.js?v=mvzmqqm3';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 
@@ -77,11 +77,12 @@ function pickColor(n, x, y) {
   if (isLocked()) return;
   const palette = document.getElementById('color-palette');
   const id = n.id;
-  const names = ['Vert', 'Bleu', 'Rose', 'Orange', 'Violet', 'Jaune', 'Blanc'];
+  const names = ['Vert', 'Bleu', 'Rose', 'Orange', 'Violet', 'Jaune', 'Blanc', 'Rouge', 'Transparent'];
   palette.replaceChildren(...COLORS.map((color, i) => {
     const button = document.createElement('button');
     button.type = 'button';
     button.style.background = color;
+    if (color === 'transparent') button.classList.add('transparent-swatch');
     button.title = names[i];
     button.setAttribute('aria-label', names[i]);
     button.setAttribute('aria-pressed', String(n.color.toLowerCase() === color.toLowerCase()));
