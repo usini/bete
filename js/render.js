@@ -1,24 +1,24 @@
-import { positionFacebookPosts } from './facebook-view.js?v=mvznreia';
+import { positionFacebookPosts } from './facebook-view.js?v=mvznvqfr';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvznreia';
-import { view, screenToWorld } from './camera.js?v=mvznreia';
-import { youTubeId, ytThumb } from './yt.js?v=mvznreia';
-import { imageFor } from './images.js?v=mvznreia';
-import { positionVideo, isVideoPlaying } from './video.js?v=mvznreia';
-import { guides } from './snap.js?v=mvznreia';
-import { renderMinimap } from './minimap.js?v=mvznreia';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mvznreia';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvznreia';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvznreia';
+import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvznvqfr';
+import { view, screenToWorld } from './camera.js?v=mvznvqfr';
+import { youTubeId, ytThumb } from './yt.js?v=mvznvqfr';
+import { imageFor } from './images.js?v=mvznvqfr';
+import { positionVideo, isVideoPlaying } from './video.js?v=mvznvqfr';
+import { guides } from './snap.js?v=mvznvqfr';
+import { renderMinimap } from './minimap.js?v=mvznvqfr';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mvznvqfr';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvznvqfr';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvznvqfr';
 
-import { genericLinkOf, plainLink } from './links.js?v=mvznreia';
-import { stepMotion } from './motion.js?v=mvznreia';
-import { remoteCursors, shareEvents } from './group-share.js?v=mvznreia';
+import { genericLinkOf, plainLink } from './links.js?v=mvznvqfr';
+import { stepMotion } from './motion.js?v=mvznvqfr';
+import { remoteCursors, shareEvents } from './group-share.js?v=mvznvqfr';
 
-import { isLocked } from './mobile-mode.js?v=mvznreia';
+import { isLocked } from './mobile-mode.js?v=mvznvqfr';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mvznreia';
-import { isAmazonUrl } from './amazon.js?v=mvznreia';
+import { serviceForNode, serviceIcon } from './services.js?v=mvznvqfr';
+import { isAmazonUrl } from './amazon.js?v=mvznvqfr';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -200,8 +200,8 @@ function drawNode(n, selected, zoom) {
 // A local brand tag outside the product image, aligned with the block's top-left edge.
 function drawAmazonBadge(n) {
   if (!isAmazonUrl(n.link || String(n.text || '').trim())) return;
-  const w = Math.max(20, Math.min(44, n.w * 0.16)), h = w * 1.25;
-  const x = n.x - w - 8, y = n.y;
+  const w = Math.min(n.w, n.h) * 0.16, h = w * 1.25;
+  const x = n.x - w * 1.18, y = n.y;
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(x, y, w, h);
   const icon = serviceIcon({ id: 'amazon' }, requestRender);

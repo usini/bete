@@ -1,7 +1,8 @@
 # Bête
 
 Les blocs contenant un lien Amazon affichent une petite étiquette avec le logo à gauche de leur
-coin supérieur. Le logo est embarqué localement, sans requête vers Amazon.
+coin supérieur. Sa taille et son espacement suivent les dimensions du bloc. Le logo est embarqué
+localement, sans requête vers Amazon.
 
 ### Publications Facebook
 
