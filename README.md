@@ -27,6 +27,7 @@ python -m http.server 8000
 - **Édition** : une popup pour modifier le texte, le lien et l'image (choix d'un fichier ou collage).
 - **Annuler / rétablir** : Ctrl+Z et Ctrl+Maj+Z (ou Ctrl+Y), boutons en haut à gauche, et une liste des
   60 dernières actions où l'on peut revenir à n'importe quel état (historique gardé en mémoire).
+- **Double-clic dans le vide** : crée un rectangle à cet endroit.
 - **Navigation** : déplacement, zoom (molette ou pincement), minimap, alignement automatique des blocs.
 - **Sauvegarde** : enregistrement automatique dans le navigateur (localStorage et IndexedDB),
   export et import d'un fichier JSON.
