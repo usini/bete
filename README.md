@@ -3,6 +3,8 @@
 Les blocs contenant un lien Amazon affichent une petite étiquette avec le logo à gauche de leur
 coin supérieur. Sa taille et son espacement suivent les dimensions du bloc. Le logo est embarqué
 localement, sans requête vers Amazon.
+Les étiquettes de texte au-dessus des blocs suivent également leurs dimensions : hauteur,
+typographie, icônes et espacements restent proportionnels, avec une zone cliquable adaptée.
 
 ### Publications Facebook
 

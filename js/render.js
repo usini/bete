@@ -1,24 +1,24 @@
-import { positionFacebookPosts } from './facebook-view.js?v=mvznvqfr';
+import { positionFacebookPosts } from './facebook-view.js?v=mvznzo9z';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvznvqfr';
-import { view, screenToWorld } from './camera.js?v=mvznvqfr';
-import { youTubeId, ytThumb } from './yt.js?v=mvznvqfr';
-import { imageFor } from './images.js?v=mvznvqfr';
-import { positionVideo, isVideoPlaying } from './video.js?v=mvznvqfr';
-import { guides } from './snap.js?v=mvznvqfr';
-import { renderMinimap } from './minimap.js?v=mvznvqfr';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mvznvqfr';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvznvqfr';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvznvqfr';
+import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvznzo9z';
+import { view, screenToWorld } from './camera.js?v=mvznzo9z';
+import { youTubeId, ytThumb } from './yt.js?v=mvznzo9z';
+import { imageFor } from './images.js?v=mvznzo9z';
+import { positionVideo, isVideoPlaying } from './video.js?v=mvznzo9z';
+import { guides } from './snap.js?v=mvznzo9z';
+import { renderMinimap } from './minimap.js?v=mvznzo9z';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mvznzo9z';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvznzo9z';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvznzo9z';
 
-import { genericLinkOf, plainLink } from './links.js?v=mvznvqfr';
-import { stepMotion } from './motion.js?v=mvznvqfr';
-import { remoteCursors, shareEvents } from './group-share.js?v=mvznvqfr';
+import { genericLinkOf, plainLink } from './links.js?v=mvznzo9z';
+import { stepMotion } from './motion.js?v=mvznzo9z';
+import { remoteCursors, shareEvents } from './group-share.js?v=mvznzo9z';
 
-import { isLocked } from './mobile-mode.js?v=mvznvqfr';
+import { isLocked } from './mobile-mode.js?v=mvznzo9z';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mvznvqfr';
-import { isAmazonUrl } from './amazon.js?v=mvznvqfr';
+import { serviceForNode, serviceIcon } from './services.js?v=mvznzo9z';
+import { isAmazonUrl } from './amazon.js?v=mvznzo9z';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -315,6 +315,14 @@ function drawCaption(n, label) {
 function drawLabel(n, zoom) {
   const L = labelLayout(n);
   if (!L) return; // no link and not a video: no label
+  ctx.save();
+  ctx.translate(L.x, L.y);
+  ctx.scale(L.scale, L.scale);
+  drawScaledLabel(n, { ...L, x: 0, y: 0, w: L.w / L.scale, h: L.h / L.scale }, zoom * L.scale);
+  ctx.restore();
+}
+
+function drawScaledLabel(n, L, zoom) {
   const r = L.h / 2;
 
   ctx.save();
