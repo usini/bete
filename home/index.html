@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c0e12">
+  <meta name="description" content="Bête, un tableau infini pour tes idées, tes images et tes liens. Organise librement et partage un groupe pour travailler à plusieurs.">
+  <title>Bête — Un endroit pour tout ton bazar.</title>
+  <link rel="canonical" href="https://bete.usini.eu/home/">
+  <link rel="icon" href="../img/logo.png">
+  <link rel="stylesheet" href="style.css?v=mvzrb4x0">
+  <script src="home.js?v=mvzrb4x0" defer></script>
+</head>
+<body>
+  <a class="skip" href="#contenu">Aller au contenu</a>
+  <header class="header shell">
+    <a class="brand" href="./" aria-label="Bête, accueil"><img src="../img/logo.png" width="42" height="36" alt=""><span>bête<span class="brand-dot">.</span></span></a>
+    <nav aria-label="Navigation principale"><a href="#apercu">Le tableau</a><a href="#partage">À plusieurs</a><a href="#donnees">Tes données</a></nav>
+    <a class="button button-small" href="../">Ouvrir Bête <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <main id="contenu">
+    <section class="hero shell" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="status-dot"></span> UN TABLEAU LIBRE. VRAIMENT.</p>
+        <h1 id="hero-title">Un endroit<br>pour <span>tout<br> ton bazar.</span></h1>
+        <p class="intro">Des idées, des images, des liens. Pose tout sur un même espace et organise-le à ta façon.</p>
+        <div class="hero-actions"><a class="button button-primary" href="../">Ouvrir mon tableau <span aria-hidden="true">↗</span></a><a class="text-link" href="#apercu">Jette un œil <span aria-hidden="true">↓</span></a></div>
+        <p class="small-note">Sans compte pour commencer. <br>Sauvegarde locale automatique.</p>
+      </div>
+
+      <div class="preview-wrap" id="apercu">
+        <div class="preview-caption"><span>ÇA RESSEMBLE À ÇA</span><span class="preview-caption-right">Déplace les blocs <span aria-hidden="true">↙</span></span></div>
+        <div class="preview" aria-label="Aperçu interactif : déplace les blocs avec la souris ou le doigt">
+          <div class="preview-top"><span class="preview-dots" aria-hidden="true"><i></i><i></i><i></i></span><span>Un petit bout de ton prochain projet</span><button id="reset-preview" type="button" title="Réinitialiser l’aperçu" aria-label="Réinitialiser l’aperçu">↺</button></div>
+          <div class="board" id="demo-board">
+            <div class="demo-group"><div class="group-heading">Prochain projet <span aria-hidden="true">↗</span></div><div class="group-sharing"><span class="status-dot"></span> Un groupe à partager</div></div>
+            <div class="demo-block note-block" data-draggable tabindex="0" role="group" aria-label="Bloc idée, déplaçable avec les flèches du clavier"><span class="block-label yellow-label">L’idée de départ</span><p>Faire simple.<br>Garder<br>l’essentiel.</p><span class="note-star" aria-hidden="true">✳</span></div>
+            <div class="demo-block picture-block" data-draggable tabindex="0" role="group" aria-label="Bloc inspiration, déplaçable avec les flèches du clavier"><span class="block-label pink-label">Un peu d’inspiration</span>
+              <svg viewBox="0 0 240 200" role="img" aria-label="Illustration de formes géométriques colorées"><rect width="240" height="200" fill="#f2ebe0"/><path d="M0 160 130 122 240 150V200H0Z" fill="#ded4c5"/><ellipse cx="133" cy="171" rx="70" ry="11" fill="#c9bcaa"/><path d="M37 156V79a45 45 0 0 1 90 0v77h-26V79a19 19 0 0 0-38 0v77Z" fill="#f36840"/><path d="M127 156V79a45 45 0 0 0-45-45l22-9a45 45 0 0 1 45 45v77Z" fill="#b83c26"/><path d="m150 107 34-20 34 20v49l-34 20-34-20Z" fill="#8d9dca"/><path d="m150 107 34 20 34-20-34-20Z" fill="#bcc9f0"/><path d="M184 127v49l34-20v-49Z" fill="#6575a5"/><circle cx="49" cy="171" r="16" fill="#b0d33c"/></svg>
+            </div>
+            <div class="demo-block video-block" data-draggable tabindex="0" role="group" aria-label="Bloc vidéo, déplaçable avec les flèches du clavier"><img src="../img/services/youtube.svg" width="34" height="26" alt="YouTube"><span>Le tuto<br>à garder sous la main</span><span class="video-play" aria-hidden="true">↗</span></div>
+            <div class="demo-cursor" aria-hidden="true"><svg viewBox="0 0 24 28"><path d="m2 2 18 14-9 1-4 8Z"/></svg><span>Camille</span></div>
+            <span class="board-coordinate" aria-hidden="true">Un espace, aucune page à tourner.</span>
+          </div>
+        </div>
+        <p class="preview-footnote">Un aperçu de démonstration. Rien ici n’est enregistré.</p>
+      </div>
+    </section>
+
+    <section class="features shell" aria-labelledby="features-title">
+      <div class="section-heading"><p class="eyebrow">MOINS DE RANGEMENT. PLUS D’IDÉES.</p><h2 id="features-title">Ton espace.<br>Tes règles.</h2><p>Un projet à préparer, des trouvailles à garder,<br>des idées à poser avant de les oublier.</p></div>
+      <div class="feature-grid">
+        <article class="feature"><span class="feature-number">01 / POSE</span><svg class="feature-icon" viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="9" width="25" height="20"/><path d="M18 35h23V19M12 16h12M12 22h7"/></svg><h3>Tout au même endroit.</h3><p>Texte, images, vidéos, cartes et liens : garde ce qui compte sur un tableau infini. Colle, déplace, redimensionne.</p><span class="feature-detail">Pas de mise en page imposée.</span></article>
+        <article class="feature" id="partage"><span class="feature-number">02 / PARTAGE</span><svg class="feature-icon blue" viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="6" width="36" height="36" stroke-dasharray="4 4"/><circle cx="19" cy="20" r="4"/><circle cx="31" cy="26" r="4"/><path d="M12 33c0-6 14-6 14 0M25 38c0-6 13-6 13 0"/></svg><h3>Juste ce que tu choisis.</h3><p>Rassemble des blocs dans un groupe, partage son lien ou son QR code. Les personnes connectées peuvent le modifier avec toi.</p><span class="feature-detail">Un groupe partagé, le reste pour toi.</span></article>
+        <article class="feature" id="donnees"><span class="feature-number">03 / GARDE</span><svg class="feature-icon pink" viewBox="0 0 48 48" aria-hidden="true"><path d="M9 6h25l7 7v29H7V6ZM14 6v12h19V6M14 42V26h20v16"/><path d="M27 8v6"/></svg><h3>Tes données, à ta main.</h3><p>Ton tableau s’enregistre sur ton appareil. Exporte-le en JSON ou sauvegarde-le sur Google Drive quand tu le souhaites.</p><a class="feature-detail" href="../confidentialite.html">Comprendre la confidentialité <span aria-hidden="true">↗</span></a></article>
+      </div>
+      <p class="privacy-note">Les contenus intégrés (YouTube, cartes, réseaux sociaux…) contactent leurs plateformes à l’affichage. Le partage utilise une connexion entre navigateurs et un serveur de liaison.</p>
+    </section>
+
+    <section class="closing shell" aria-labelledby="closing-title"><div><p class="eyebrow">TU AS UNE IDÉE ?</p><h2 id="closing-title">Pose-la là.</h2></div><a class="button button-primary" href="../">Ouvrir Bête <span aria-hidden="true">↗</span></a><span class="closing-star" aria-hidden="true">✳</span></section>
+  </main>
+  <footer class="footer shell"><a class="brand" href="./">bête<span class="brand-dot">.</span></a><span>Un peu d’ordre dans le bazar.</span><div><a href="../confidentialite.html">Confidentialité</a><a href="https://github.com/usini/bete">Code source <span aria-hidden="true">↗</span></a></div></footer>
+</body>
+</html>

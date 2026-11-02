@@ -16,11 +16,13 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(fileURLToPath(import.meta.url));
 const V = process.argv[2] || Date.now().toString(36);
 
-const files = ['index.html', ...readdirSync(join(root, 'js')).filter((f) => f.endsWith('.js')).map((f) => 'js/' + f)];
+const files = ['index.html', 'home/index.html', ...readdirSync(join(root, 'js')).filter((f) => f.endsWith('.js')).map((f) => 'js/' + f)];
 
 // import/export ... from './x.js'   |   import('./x.js')   |   <script src="js/main.js">
 // | <link href="css/style.css">
 const patterns = [
+  /(src=["']home\.js)(\?v=[^"']*)?(["'])/g,
+  /(href=["']style\.css)(\?v=[^"']*)?(["'])/g,
   /(from\s+['"]\.\/[\w./-]+\.js)(\?v=[^'"]*)?(['"])/g,
   /(import\(\s*['"]\.\/[\w./-]+\.js)(\?v=[^'"]*)?(['"])/g,
   /(src=["']js\/main\.js)(\?v=[^"']*)?(["'])/g,

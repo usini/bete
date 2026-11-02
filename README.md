@@ -1,5 +1,13 @@
 # Bête
 
+## Page de présentation
+
+La landing page est accessible sur [bete.usini.eu/home](https://bete.usini.eu/home/), via
+`home/index.html`. L’application reste à la racine `/`. La page utilise uniquement des fichiers
+locaux, sans police distante, contenu social chargé, analyse d’audience ou accès aux données du
+tableau. Les blocs de l’aperçu se déplacent à la souris, au toucher ou avec les flèches du clavier ;
+ces déplacements ne sont pas enregistrés. GitHub Pages redirige `/home` vers `/home/`.
+
 ### Publications X et Instagram
 
 Colle une URL de publication X (`x.com/nom/status/123…`, liens `twitter.com` également acceptés)
