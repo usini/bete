@@ -1,23 +1,23 @@
-import { positionFacebookPosts } from './facebook-view.js?v=mvziqt1v';
+import { positionFacebookPosts } from './facebook-view.js?v=mvzitqch';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvziqt1v';
-import { view, screenToWorld } from './camera.js?v=mvziqt1v';
-import { youTubeId, ytThumb } from './yt.js?v=mvziqt1v';
-import { imageFor } from './images.js?v=mvziqt1v';
-import { positionVideo, isVideoPlaying } from './video.js?v=mvziqt1v';
-import { guides } from './snap.js?v=mvziqt1v';
-import { renderMinimap } from './minimap.js?v=mvziqt1v';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mvziqt1v';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvziqt1v';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvziqt1v';
+import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzitqch';
+import { view, screenToWorld } from './camera.js?v=mvzitqch';
+import { youTubeId, ytThumb } from './yt.js?v=mvzitqch';
+import { imageFor } from './images.js?v=mvzitqch';
+import { positionVideo, isVideoPlaying } from './video.js?v=mvzitqch';
+import { guides } from './snap.js?v=mvzitqch';
+import { renderMinimap } from './minimap.js?v=mvzitqch';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzitqch';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzitqch';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzitqch';
 
-import { genericLinkOf, plainLink } from './links.js?v=mvziqt1v';
-import { stepMotion } from './motion.js?v=mvziqt1v';
-import { remoteCursors, shareEvents } from './group-share.js?v=mvziqt1v';
+import { genericLinkOf, plainLink } from './links.js?v=mvzitqch';
+import { stepMotion } from './motion.js?v=mvzitqch';
+import { remoteCursors, shareEvents } from './group-share.js?v=mvzitqch';
 
-import { isLocked } from './mobile-mode.js?v=mvziqt1v';
+import { isLocked } from './mobile-mode.js?v=mvzitqch';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mvziqt1v';
+import { serviceForNode, serviceIcon } from './services.js?v=mvzitqch';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');

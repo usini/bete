@@ -1,7 +1,7 @@
 // Minimap (bottom-left): all the blocks in their colour + the current view as a white frame.
 // Click or drag on it to move the view there.
-import { state, emit, groupsBySize } from './state.js?v=mvziqt1v';
-import { view } from './camera.js?v=mvziqt1v';
+import { state, emit, groupsBySize } from './state.js?v=mvzitqch';
+import { view } from './camera.js?v=mvzitqch';
 
 const canvas = document.getElementById('minimap');
 const ctx = canvas.getContext('2d');

@@ -7,9 +7,10 @@ export function facebookPost(raw) {
     const path = u.pathname;
     if (/^\/groups(?:\/|$)/.test(path)) return null;
     const post = /^\/[^/]+\/posts\/[^/]+\/?$/.test(path);
+    const reel = /^\/reel\/\d+\/?$/.test(path);
     const permalink = ['/permalink.php', '/story.php'].includes(path) &&
       /^[\w]+$/.test(u.searchParams.get('story_fbid') || '') && /^\d+$/.test(u.searchParams.get('id') || '');
-    if (!post && !permalink) return null;
+    if (!post && !permalink && !reel) return null;
     const clean = new URL(path, 'https://www.facebook.com');
     if (permalink) {
       clean.searchParams.set('story_fbid', u.searchParams.get('story_fbid'));
@@ -24,5 +25,7 @@ export function facebookPostOf(node) {
 }
 
 export function facebookEmbed(post) {
-  return 'https://www.facebook.com/plugins/post.php?href=' + encodeURIComponent(post) + '&show_text=true&width=500';
+  const reel = /^\/reel\/\d+\/?$/.test(new URL(post).pathname);
+  return 'https://www.facebook.com/plugins/' + (reel ? 'video.php' : 'post.php') + '?href=' + encodeURIComponent(post)
+    + '&show_text=true&width=500' + (reel ? '&autoplay=false' : '');
 }

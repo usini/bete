@@ -5,12 +5,12 @@
 //  - Sign-in: OAuth code flow through a stateless service. Access tokens stay in memory.
 //  - Sync: check every 30 s and upload only changed content. When connecting, the local board
 //    and the Drive file are compared; if both changed since the last sync, the user chooses.
-import { state, onSaved, saveNow } from './state.js?v=mvziqt1v';
-import { exportData, importData } from './storage.js?v=mvziqt1v';
+import { state, onSaved, saveNow } from './state.js?v=mvzitqch';
+import { exportData, importData } from './storage.js?v=mvzitqch';
 
-import { notify } from './notifications.js?v=mvziqt1v';
+import { notify } from './notifications.js?v=mvzitqch';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mvziqt1v';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mvzitqch';
 
 const AUTH_URL = 'https://auth-bete.usini.eu';
 const FILE_NAME = 'Bete.json';

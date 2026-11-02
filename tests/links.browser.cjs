@@ -241,10 +241,20 @@ let browser,server;
   assert.equal(await page.locator('.facebook-post').getAttribute('data-interactive'),'false');
   await page.evaluate(async()=>{
     const v=new URL(document.querySelector('script[type=module]').src).search;
+    const s=await import('/js/state.js'+v);s.state.nodes[0].link='https://www.facebook.com/reel/123456?fbclid=secret';s.emit();
+  });
+  await page.waitForFunction(()=>document.querySelector('.facebook-post iframe')?.src.includes('/plugins/video.php'));
+  const reelFrame = page.locator('.facebook-post iframe');
+  assert.equal(new URL(await reelFrame.getAttribute('src')).searchParams.get('href'),'https://www.facebook.com/reel/123456');
+  assert.equal(new URL(await reelFrame.getAttribute('src')).searchParams.get('autoplay'),'false');
+  await page.waitForTimeout(200);
+  assert.equal(facebookRequests,2);
+  await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
     const s=await import('/js/state.js'+v);s.state.nodes[0].link='https://www.facebook.com/groups/123/posts/456';s.emit();
   });
   await page.waitForFunction(()=>!document.querySelector('.facebook-post'));
-  assert.equal(facebookRequests,1,'group posts must not load Facebook');
+  assert.equal(facebookRequests,2,'group posts must not load Facebook');
   await page.evaluate(async()=>{
     const v=new URL(document.querySelector('script[type=module]').src).search;
     const s=await import('/js/state.js'+v);s.state.nodes=[];s.emit();

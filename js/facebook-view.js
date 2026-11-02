@@ -1,6 +1,6 @@
-import { state } from './state.js?v=mvziqt1v';
-import { worldToScreen, view } from './camera.js?v=mvziqt1v';
-import { facebookPostOf, facebookEmbed } from './facebook.js?v=mvziqt1v';
+import { state } from './state.js?v=mvzitqch';
+import { worldToScreen, view } from './camera.js?v=mvzitqch';
+import { facebookPostOf, facebookEmbed } from './facebook.js?v=mvzitqch';
 
 const frames = new Map();
 
@@ -38,6 +38,8 @@ export function positionFacebookPosts() {
       const frame = document.createElement('iframe');
       frame.title = 'Publication Facebook';
       frame.referrerPolicy = 'no-referrer';
+      frame.allow = 'encrypted-media; picture-in-picture; fullscreen';
+      frame.allowFullscreen = true;
       frame.src = facebookEmbed(post);
       const button = document.createElement('button');
       button.type = 'button';

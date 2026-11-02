@@ -3,24 +3,24 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvziqt1v';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvziqt1v';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mvziqt1v';
-import { addImageFile } from './images.js?v=mvziqt1v';
-import { playVideo } from './video.js?v=mvziqt1v';
-import { youTubeId } from './yt.js?v=mvziqt1v';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mvziqt1v';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvziqt1v';
-import { undo, redo } from './history.js?v=mvziqt1v';
+import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzitqch';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzitqch';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzitqch';
+import { addImageFile } from './images.js?v=mvzitqch';
+import { playVideo } from './video.js?v=mvzitqch';
+import { youTubeId } from './yt.js?v=mvzitqch';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzitqch';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzitqch';
+import { undo, redo } from './history.js?v=mvzitqch';
 
-import { setDragging } from './motion.js?v=mvziqt1v';
+import { setDragging } from './motion.js?v=mvzitqch';
 
-import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mvziqt1v';
-import { shortenAmazonText } from './amazon.js?v=mvziqt1v';
+import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mvzitqch';
+import { shortenAmazonText } from './amazon.js?v=mvzitqch';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mvziqt1v';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mvzitqch';
 
-import { serviceForNode } from './services.js?v=mvziqt1v';
+import { serviceForNode } from './services.js?v=mvzitqch';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 

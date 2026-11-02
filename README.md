@@ -4,7 +4,8 @@
 
 Un rectangle contenant un lien direct vers un post Facebook charge automatiquement son intégration
 officielle lorsqu’il est visible. Les formats `/nom/posts/id`, `permalink.php` et `story.php`
-(avec `story_fbid` et `id`) sont reconnus. Les liens de groupes (`/groups/`) restent de simples liens,
+(avec `story_fbid` et `id`) et les reels `/reel/123456789/` sont reconnus. Les reels utilisent le
+lecteur vidéo officiel, sans lecture automatique. Les liens de groupes (`/groups/`) restent de simples liens,
 sans tentative de chargement. Les liens courts `/share/`, profils et pages ne sont pas résolus. Seuls les posts publics autorisant
 l’intégration peuvent fonctionner. Une image choisie manuellement prend la priorité.
 
