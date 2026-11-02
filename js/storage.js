@@ -1,9 +1,9 @@
 // Export / import of a board. Images are embedded as data URLs so the board is
 // self-contained: it can be a JSON file, or the file saved on Google Drive (drive.js).
-import { state, serialize, setDoc } from './state.js?v=mvznzo9z';
-import { addDataUrl, refToDataUrl } from './images.js?v=mvznzo9z';
+import { state, serialize, setDoc } from './state.js?v=mvzo1n5i';
+import { addDataUrl, refToDataUrl } from './images.js?v=mvzo1n5i';
 
-import { isLocked } from './mobile-mode.js?v=mvznzo9z';
+import { isLocked } from './mobile-mode.js?v=mvzo1n5i';
 
 function download(blob, name) {
   const url = URL.createObjectURL(blob);

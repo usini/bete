@@ -1,5 +1,5 @@
-import { localStore } from './local-store.js?v=mvznzo9z';
-import { updateBackupSize } from './backup-size.js?v=mvznzo9z';
+import { localStore } from './local-store.js?v=mvzo1n5i';
+import { updateBackupSize } from './backup-size.js?v=mvzo1n5i';
 // Optional backup of the board on Google Drive.
 //
 //  - Scope: drive.appdata only. The file (Bete.json) lives in a hidden folder reserved to this
@@ -7,12 +7,12 @@ import { updateBackupSize } from './backup-size.js?v=mvznzo9z';
 //  - Sign-in: OAuth code flow through a stateless service. Access tokens stay in memory.
 //  - Drive transfers happen only on explicit save, restore or initial connection.
 //    Local autosave remains automatic; leaving with unsaved Drive changes warns the user.
-import { state, onSaved, saveNow, serialize } from './state.js?v=mvznzo9z';
-import { exportData, importData } from './storage.js?v=mvznzo9z';
+import { state, onSaved, saveNow, serialize } from './state.js?v=mvzo1n5i';
+import { exportData, importData } from './storage.js?v=mvzo1n5i';
 
-import { notify } from './notifications.js?v=mvznzo9z';
+import { notify } from './notifications.js?v=mvzo1n5i';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mvznzo9z';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mvzo1n5i';
 
 const AUTH_URL = 'https://auth-bete.usini.eu';
 const FILE_NAME = 'Bete.json';
