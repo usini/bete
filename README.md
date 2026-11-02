@@ -16,7 +16,7 @@ python -m http.server 8000
 
 ## Fonctions
 
-- **Blocs** : rectangle (texte, couleur, image facultative), image, groupe.
+- **Blocs** : rectangle (texte, couleur, image facultative) et groupe.
   Le texte se redimensionne automatiquement pour remplir le bloc.
 - **Groupe** : une zone colorée avec un titre ; déplacer le groupe déplace les blocs qu'il contient.
   Chaque groupe a un lien dans le menu pour s'y rendre d'un clic.
