@@ -415,3 +415,11 @@ button:hover { border-color: var(--accent); }
 #clock-sharing { grid-column: 1 / -1; text-align: center; color: #7ed6a5; font-size: 11px; }
 #clock-sharing[hidden] { display: none; }
 #clock-sharing::before { content: '●'; font-size: 8px; margin-right: 6px; }
+
+#drive-save[data-state="connecting"] { color: #ff6868; }
+#drive-save[data-state="pending"] { color: #ffd400; }
+#drive-save[data-state="saved"] { color: #7ed6a5; }
+#drive-save[data-state="error"] { color: #ff6868; animation: drive-error-blink 1s ease-in-out infinite; }
+#drive-save:disabled { opacity: 1; }
+@keyframes drive-error-blink { 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { #drive-save[data-state="error"] { animation: none; } }

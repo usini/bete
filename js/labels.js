@@ -1,12 +1,12 @@
 // Labels: the tab above a block. It shows the YouTube title (YouTube blocks) or the block's
 // link URL; a block with neither has no label. The layout and the hit-testing live here,
 // so the renderer and the pointer handling always agree on where the label is.
-import { state } from './state.js?v=mvzgiske';
-import { youTubeId, youTubeTitle } from './yt.js?v=mvzgiske';
-import { FONT_FAMILY } from './text.js?v=mvzgiske';
-import { isAmazonUrl, isAmazonText } from './amazon.js?v=mvzgiske';
+import { state } from './state.js?v=mvzgwjl8';
+import { youTubeId, youTubeTitle } from './yt.js?v=mvzgwjl8';
+import { FONT_FAMILY } from './text.js?v=mvzgwjl8';
+import { isAmazonUrl, isAmazonText } from './amazon.js?v=mvzgwjl8';
 
-import { genericLink } from './links.js?v=mvzgiske';
+import { genericLink } from './links.js?v=mvzgwjl8';
 
 export const LABEL_SIZE = 26;                       // font size, world units
 export const LABEL_FONT = '600 ' + LABEL_SIZE + 'px ' + FONT_FAMILY;
@@ -127,11 +127,16 @@ export function imageIconBox(n, zoom) {
   return { ...b, y: b.y + ACTION_STEP_PX / zoom };
 }
 export const shareIconBox = imageIconBox;
+export function deleteIconBox(n, zoom) {
+  const b = imageIconBox(n, zoom);
+  return { ...b, y: b.y + (n.kind === 'rect' ? 0 : ACTION_STEP_PX / zoom) };
+}
 function inBox(b, w) {
   return w.x >= b.x && w.x <= b.x + b.w && w.y >= b.y && w.y <= b.y + b.h;
 }
 // 'edit', 'color', 'image' or null: which action button is under the world point w.
 export function actionHit(n, w, zoom) {
+  if (inBox(deleteIconBox(n, zoom), w)) return 'delete';
   if (inBox(editIconBox(n, zoom), w)) return 'edit';
   if (inBox(colorIconBox(n, zoom), w)) return 'color';
   if (n.kind === 'group' && inBox(shareIconBox(n, zoom), w)) return 'share';

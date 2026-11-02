@@ -27,6 +27,7 @@ python -m http.server 8000
 - **Lien collé dans un rectangle** : hors YouTube et Amazon, l’adresse passe dans le label et le favicon apparaît dans le rectangle. Il est demandé directement au site, sans cookies ni référent et sans contacter de service d’aperçu. Si le site refuse le chargement CORS, une flèche de lien est affichée.
 - **Liens** : chaque bloc peut avoir un lien, affiché dans une pastille au-dessus ; un double-clic l'ouvre.
 - **Produits Amazon** : un lien Amazon est raccourci, et on peut y noter nom, prix et délai de livraison.
+- **Actions du bloc sélectionné** : édition, palette de couleurs et corbeille directement à côté du bloc.
 - **Édition** : une popup pour modifier le texte, le lien et l'image (choix d'un fichier ou collage).
 - **Annuler / rétablir** : Ctrl+Z et Ctrl+Maj+Z (ou Ctrl+Y), boutons en haut à gauche, et une liste des
   60 dernières actions où l'on peut revenir à n'importe quel état (historique conservé dans la sauvegarde locale et les fichiers JSON, y compris sur Drive).
@@ -39,7 +40,11 @@ python -m http.server 8000
   (droit `drive.appdata` uniquement). Vérification toutes les 30 secondes et envoi uniquement si le tableau a changé,
   si le réseau et la session le permettent.
   Aucun envoi si le contenu est inchangé. Un conflit suspend la sauvegarde et affiche un message
-  dans le panneau ; « Sauvegarder maintenant » permet de choisir la version sans interruption automatique.
+  dans le panneau ; un clic sur la disquette permet de choisir la version sans interruption automatique.
+  La disquette à côté de l’historique apparaît uniquement si Drive est configuré : rouge pendant la
+  reconnexion, jaune pour les modifications en attente, verte quand tout est sauvegardé et rouge
+  clignotante en cas d’échec. Un clic permet de sauvegarder, résoudre un conflit ou se reconnecter.
+  Le menu conserve seulement la connexion initiale, Restaurer et Déconnecter.
   Quitter la page avant que tout soit sauvegardé déclenche l'envoi immédiat et un avertissement du navigateur.
 
 Les tableaux ne sont pas envoyés au serveur de Bête. Les appels réseau sont ceux de YouTube :

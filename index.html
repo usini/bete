@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Bête</title>
-  <link rel="stylesheet" href="css/style.css?v=mvzgiske">
+  <link rel="stylesheet" href="css/style.css?v=mvzgwjl8">
 </head>
 <body>
   <canvas id="canvas"></canvas>
@@ -19,6 +19,9 @@
     </button>
     <button type="button" id="history-btn" class="tool-btn" title="Historique des actions" aria-label="Historique des actions">
       <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+    </button>
+    <button type="button" id="drive-save" class="tool-btn" hidden title="Sauvegarde Google Drive" aria-label="Sauvegarde Google Drive">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 3h13l4 4v14H3V3h1ZM7 3v6h10V3M7 21v-8h10v8"/><path d="M14 4v3"/></svg>
     </button>
     <div id="history-list" hidden></div>
   </div>
@@ -109,22 +112,11 @@
         <div id="group-list"></div>
       </section>
 
-      <section id="sel" hidden>
-        <h2><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>Sélection</h2>
-        <div id="swatches"></div>
-        <button id="del"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg><span>Supprimer</span></button>
-        <p class="hint">Double-clic sur un bloc : lire la vidéo YouTube, ouvrir le lien s'il y en a un, choisir l'image (bloc image), sinon modifier le bloc. Clic sur le label ou sur 📝 : modifier le texte et le lien. 🖼️ : changer l'image.</p>
-      </section>
-
       <section id="drive">
         <h2><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 3 6 0 7 12-3 6H5l-3-6L9 3Zm0 0 7 12M15 3 5 21M2 15h20"/></svg>Google Drive</h2>
         <p class="hint" id="drive-status"></p>
-        <p class="hint">La connexion utilise des cookies techniques et un service OAuth chez OVHcloud,
-          via Cloudflare. Le tableau est envoyé directement à Google Drive.
-          <a href="confidentialite.html" target="_blank" rel="noopener">Confidentialité et durées de conservation</a>.</p>
         <button id="drive-connect"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 3 6 0 7 12-3 6H5l-3-6L9 3Zm0 0 7 12M15 3 5 21M2 15h20"/></svg><span id="drive-connect-label">Connecter Google Drive</span></button>
-        <button id="drive-save" hidden><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg><span>Sauvegarder maintenant</span></button>
-        <button id="drive-restore" hidden><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 10a9 9 0 1 1 1 8M3 4v6h6M12 7v5l3 2"/></svg><span>Restaurer depuis Drive</span></button>
+        <button id="drive-restore" hidden><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 10a9 9 0 1 1 1 8M3 4v6h6M12 7v5l3 2"/></svg><span>Restaurer</span></button>
         <button id="drive-disconnect" hidden><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 4H4v16h5M10 12h11m-4-4 4 4-4 4"/></svg><span>Déconnecter</span></button>
       </section>
 
@@ -148,6 +140,6 @@
   <input type="file" id="image-file" accept="image/*" hidden>
   <input type="file" id="fileimport" accept="application/json,.json" hidden>
 
-  <script type="module" src="js/main.js?v=mvzgiske"></script>
+  <script type="module" src="js/main.js?v=mvzgwjl8"></script>
 </body>
 </html>

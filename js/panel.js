@@ -1,8 +1,8 @@
 // Right-hand panel: draggable blocks, selection tools, file actions.
-import { state, getNode, getSelectedId, select, addNode, removeNode, emit, events, COLORS } from './state.js?v=mvzgiske';
-import { screenToWorld, view, flyTo } from './camera.js?v=mvzgiske';
-import { BLOCK_MIME, pickImage } from './input.js?v=mvzgiske';
-import { exportDoc, importFile } from './storage.js?v=mvzgiske';
+import { state, getNode, getSelectedId, select, addNode, events } from './state.js?v=mvzgwjl8';
+import { screenToWorld, view, flyTo } from './camera.js?v=mvzgwjl8';
+import { BLOCK_MIME, pickImage } from './input.js?v=mvzgwjl8';
+import { exportDoc, importFile } from './storage.js?v=mvzgwjl8';
 
 export function initPanel() {
   const panel = document.getElementById('panel');
@@ -82,29 +82,6 @@ export function initPanel() {
   };
   events.addEventListener('change', refreshGroups);
   refreshGroups();
-
-  // Selection tools.
-  const selBox = document.getElementById('sel');
-  const swatches = document.getElementById('swatches');
-  for (const c of COLORS) {
-    const b = document.createElement('button');
-    b.className = 'swatch';
-    b.style.background = c;
-    b.title = c;
-    b.setAttribute('aria-label', 'Couleur ' + c);
-    b.addEventListener('click', () => {
-      const n = getNode(getSelectedId());
-      if (n) { n.color = c; emit(); }
-    });
-    swatches.append(b);
-  }
-  document.getElementById('del').addEventListener('click', () => {
-    const id = getSelectedId();
-    if (id) removeNode(id);
-  });
-  const refresh = () => { selBox.hidden = !getNode(getSelectedId()); };
-  events.addEventListener('change', refresh);
-  refresh();
 
   // File actions.
   document.getElementById('export').addEventListener('click', () => { exportDoc(); });

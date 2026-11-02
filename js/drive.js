@@ -5,8 +5,8 @@
 //  - Sign-in: OAuth code flow through a stateless service. Access tokens stay in memory.
 //  - Sync: check every 30 s and upload only changed content. When connecting, the local board
 //    and the Drive file are compared; if both changed since the last sync, the user chooses.
-import { state, onSaved, saveNow } from './state.js?v=mvzgiske';
-import { exportData, importData } from './storage.js?v=mvzgiske';
+import { state, onSaved, saveNow } from './state.js?v=mvzgwjl8';
+import { exportData, importData } from './storage.js?v=mvzgwjl8';
 
 const AUTH_URL = 'https://auth-bete.usini.eu';
 const FILE_NAME = 'Bete.json';
@@ -52,6 +52,8 @@ function saveMeta() {
 // Remove access tokens left by the previous browser-only flow.
 try { localStorage.removeItem(TOKEN_KEY); } catch { /* storage blocked */ }
 let refreshing = null;
+let connecting = false;
+let driveFailed = false;
 async function authRequest(path) {
   const r = await fetch(AUTH_URL + path, {
     method: 'POST', credentials: 'include', headers: { 'X-Bete-Request': '1' },
@@ -67,10 +69,14 @@ async function authRequest(path) {
 }
 async function ensureToken() {
   if (tokenValid()) return;
-  if (!refreshing) refreshing = authRequest('/token').then(r => {
-    token = r.access_token;
-    tokenExpiry = Date.now() + (Number(r.expires_in) - 60) * 1000;
-  }).finally(() => { refreshing = null; });
+  if (!refreshing) {
+    connecting = true; driveFailed = false; renderIndicator();
+    refreshing = authRequest('/token').then(r => {
+      token = r.access_token;
+      tokenExpiry = Date.now() + (Number(r.expires_in) - 60) * 1000;
+    }).catch(error => { driveFailed = true; throw error; })
+      .finally(() => { refreshing = null; connecting = false; renderIndicator(); });
+  }
   return refreshing;
 }
 
@@ -223,14 +229,14 @@ async function reconcileStep(interactive = true) {
     meta.fileId = remote.id;
     saveMeta();
     conflictPending = true; // stop the autosave: it would ask again every 30 s
-    say('Conflit non résolu : « Sauvegarder maintenant » te redemandera lequel garder, « Restaurer depuis Drive » prend celui de Drive.');
+    say('Conflit non résolu : clique sur la disquette pour choisir la version, ou sur « Restaurer » pour prendre celle de Drive.');
   }
 }
 
 // Runs one sync operation: one at a time, with status messages and error handling.
 async function run(label, step) {
   if (busy) return false;
-  busy = true;
+  busy = true; driveFailed = false;
   say(label);
   try {
     await ensureToken();
@@ -248,6 +254,7 @@ async function run(label, step) {
 }
 
 function fail(e) {
+  driveFailed = true;
   if (e instanceof AuthNeeded) { say('Session expirée : reconnecte-toi pour continuer.'); return; }
   const offline = e instanceof TypeError;
   const apiOff = e.status === 403 && /not been used|disabled/i.test(e.message || '');
@@ -260,7 +267,9 @@ function fail(e) {
 }
 
 function periodicSave() {
-  if (!meta || !dirty || busy || conflictPending || Date.now() < retryAfter) return;
+  if (!meta || busy || Date.now() < retryAfter) return;
+  if (!tokenValid()) { run('Reconnexion…', async () => { if (dirty && !conflictPending) await reconcileStep(false); }); return; }
+  if (!dirty || conflictPending) return;
   run('Sauvegarde…', () => reconcileStep(false));
 }
 
@@ -302,25 +311,46 @@ function statusText(linked, ok) {
   return meta.lastSyncedAt ? 'Sauvegardé à ' + stamp(meta.lastSyncedAt) : 'Connecté à Google Drive.';
 }
 
+function renderIndicator() {
+  if (typeof document.getElementById !== 'function') return;
+  const button = $('drive-save');
+  if (!button?.dataset) return;
+  button.hidden = !meta;
+  const mode = driveFailed ? 'error' : connecting || !tokenValid() ? 'connecting'
+    : dirty || busy || conflictPending ? 'pending' : 'saved';
+  button.dataset.state = mode;
+  const descriptions = {
+    error: 'Échec de connexion ou de sauvegarde Google Drive. Cliquer pour réessayer.',
+    connecting: 'Connexion ou reconnexion à Google Drive en cours.',
+    pending: conflictPending ? 'Conflit Drive : cliquer pour choisir la version.' : 'Modifications non sauvegardées sur Drive. Cliquer pour sauvegarder.',
+    saved: 'Sauvegardé sur Google Drive, aucune modification en attente.',
+  };
+  button.title = message || descriptions[mode];
+  button.setAttribute('aria-label', descriptions[mode]);
+  button.disabled = busy || connecting;
+}
+
 function render() {
-  const linked = !!meta, ok = linked && tokenValid();
-  $('drive-connect').hidden = ok;
-  $('drive-connect-label').textContent = linked ? 'Se reconnecter' : 'Connecter Google Drive';
-  $('drive-save').hidden = !ok;
-  $('drive-restore').hidden = !ok;
+  const linked = !!meta;
+  $('drive-connect').hidden = linked;
+  $('drive-connect-label').textContent = 'Connecter Google Drive';
+  $('drive-restore').hidden = !linked;
   $('drive-disconnect').hidden = !linked;
-  for (const id of ['drive-connect', 'drive-save', 'drive-restore', 'drive-disconnect']) $(id).disabled = busy;
-  $('drive-status').textContent = statusText(linked, ok);
+  for (const id of ['drive-connect', 'drive-restore', 'drive-disconnect']) $(id).disabled = busy || connecting;
+  $('drive-status').textContent = statusText(linked, linked && tokenValid());
+  $('drive-status').hidden = linked || !message;
+  renderIndicator();
 }
 
 async function connect() {
-  say('Connexion à Google…');
+  connecting = true; driveFailed = false; say('Connexion à Google…');
   try {
     await requestToken();
   } catch (e) {
-    say(e.message || 'Connexion annulée.');
+    connecting = false; driveFailed = true; say(e.message || 'Connexion annulée.');
     return;
   }
+  connecting = false;
   if (!meta) {
     meta = { linked: true, fileId: '', remoteModified: '', lastSyncedAt: 0, sig: '' };
     saveMeta();
@@ -338,6 +368,7 @@ async function disconnect() {
     saveMeta();
     say('Déconnecté. La sauvegarde reste sur ton Drive.');
   } catch {
+    driveFailed = true;
     say('Déconnexion non confirmée. Réessaie ou retire l’accès depuis ton compte Google.');
   } finally { busy = false; render(); }
 }
@@ -368,7 +399,10 @@ export function initDrive() {
     render();
   });
   $('drive-connect').addEventListener('click', connect);
-  $('drive-save').addEventListener('click', () => { run('Sauvegarde…', reconcileStep); });
+  $('drive-save').addEventListener('click', () => {
+    if (!tokenValid() && driveFailed) connect();
+    else run('Sauvegarde…', reconcileStep);
+  });
   $('drive-restore').addEventListener('click', restore);
   $('drive-disconnect').addEventListener('click', disconnect);
   $('drivedialog').addEventListener('cancel', (e) => e.preventDefault()); // buttons only

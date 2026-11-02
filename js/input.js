@@ -3,20 +3,20 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzgiske';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzgiske';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzgiske';
-import { addImageFile } from './images.js?v=mvzgiske';
-import { playVideo } from './video.js?v=mvzgiske';
-import { youTubeId } from './yt.js?v=mvzgiske';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzgiske';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzgiske';
-import { undo, redo } from './history.js?v=mvzgiske';
+import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzgwjl8';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzgwjl8';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzgwjl8';
+import { addImageFile } from './images.js?v=mvzgwjl8';
+import { playVideo } from './video.js?v=mvzgwjl8';
+import { youTubeId } from './yt.js?v=mvzgwjl8';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzgwjl8';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzgwjl8';
+import { undo, redo } from './history.js?v=mvzgwjl8';
 
-import { setDragging } from './motion.js?v=mvzgiske';
+import { setDragging } from './motion.js?v=mvzgwjl8';
 
-import { plainLink, genericLink, droppedLink } from './links.js?v=mvzgiske';
-import { shortenAmazonText } from './amazon.js?v=mvzgiske';
+import { plainLink, genericLink, droppedLink } from './links.js?v=mvzgwjl8';
+import { shortenAmazonText } from './amazon.js?v=mvzgwjl8';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 
@@ -114,7 +114,8 @@ function onPointerDown(e) {
   if (action) {
     gesture = null;
     if (once(action)) {
-      if (action === 'image') pickImage(sel); // 🖼️: change the picture
+      if (action === 'delete') removeNode(sel.id);
+      else if (action === 'image') pickImage(sel); // 🖼️: change the picture
       else if (action === 'color') pickColor(sel, sx, sy);
       else if (action === 'share') document.dispatchEvent(new CustomEvent('bete-share-group', { detail: sel.id }));
       else startEdit(sel.id);                 // 📝: edit popup (text and link)
@@ -159,6 +160,7 @@ function onDoubleClick(e) { doubleAt(e.clientX, e.clientY); }
 // Shared by the mouse 'dblclick' event and the touch double-tap (see onPointerEnd). A browser
 // may fire both for one double-tap: once() lets only the first one through.
 function doubleAt(x, y) {
+  if (lastAct.key === 'delete' && performance.now() - lastAct.t < 600) return;
   if (!once('dbl')) return;
   const w = screenToWorld(x, y);
   if (labelHit(w)) return;

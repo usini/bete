@@ -1,18 +1,18 @@
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzgiske';
-import { view, screenToWorld } from './camera.js?v=mvzgiske';
-import { youTubeId, ytThumb } from './yt.js?v=mvzgiske';
-import { imageFor } from './images.js?v=mvzgiske';
-import { positionVideo, isVideoPlaying } from './video.js?v=mvzgiske';
-import { guides } from './snap.js?v=mvzgiske';
-import { renderMinimap } from './minimap.js?v=mvzgiske';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzgiske';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzgiske';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzgiske';
+import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzgwjl8';
+import { view, screenToWorld } from './camera.js?v=mvzgwjl8';
+import { youTubeId, ytThumb } from './yt.js?v=mvzgwjl8';
+import { imageFor } from './images.js?v=mvzgwjl8';
+import { positionVideo, isVideoPlaying } from './video.js?v=mvzgwjl8';
+import { guides } from './snap.js?v=mvzgwjl8';
+import { renderMinimap } from './minimap.js?v=mvzgwjl8';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzgwjl8';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzgwjl8';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzgwjl8';
 
-import { genericLinkOf, plainLink, faviconFor } from './links.js?v=mvzgiske';
-import { stepMotion } from './motion.js?v=mvzgiske';
-import { remoteCursors, shareEvents } from './group-share.js?v=mvzgiske';
+import { genericLinkOf, plainLink, faviconFor } from './links.js?v=mvzgwjl8';
+import { stepMotion } from './motion.js?v=mvzgwjl8';
+import { remoteCursors, shareEvents } from './group-share.js?v=mvzgwjl8';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -199,6 +199,7 @@ function drawSelection(n, selected, zoom) {
   const hs = 10 / zoom; // resize handle, bottom-right corner
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(n.x + n.w - hs / 2, n.y + n.h - hs / 2, hs, hs);
+  drawButton(deleteIconBox(n, zoom), '\u{1F5D1}️', '#ff7777', zoom);
   drawEditIcon(n, zoom);
   if (n.kind === 'image') drawImageIcon(n, zoom);
   if (n.kind === 'group') drawButton(shareIconBox(n, zoom), 'qr', n.color, zoom);
