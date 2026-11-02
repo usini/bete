@@ -1,9 +1,9 @@
-import { localStore } from './local-store.js?v=mvzpt511';
-import { state, events, onSaved, newId, sanitizeNode, emit, select, getNode, setGroupMemberFilter } from './state.js?v=mvzpt511';
-import { imageBlob, storeSharedImage } from './images.js?v=mvzpt511';
-import { flyTo, view, screenToWorld } from './camera.js?v=mvzpt511';
-import { MAX_MEMBERS, MAX_RECORDS, ROOT, validId, validImage, cleanValue, cleanRecord, mergeRecord, groupMembers, emptyPlacement, intersects } from './group-model.js?v=mvzpt511';
-import { smoothPointer } from './motion.js?v=mvzpt511';
+import { localStore } from './local-store.js?v=mvzq511p';
+import { state, events, onSaved, newId, sanitizeNode, emit, select, getNode, setGroupMemberFilter } from './state.js?v=mvzq511p';
+import { imageBlob, storeSharedImage } from './images.js?v=mvzq511p';
+import { flyTo, view, screenToWorld } from './camera.js?v=mvzq511p';
+import { MAX_MEMBERS, MAX_RECORDS, ROOT, validId, validImage, cleanValue, cleanRecord, mergeRecord, groupMembers, emptyPlacement, intersects, imageChunkBytes } from './group-model.js?v=mvzq511p';
+import { smoothPointer } from './motion.js?v=mvzq511p';
 
 // Explicit ICE config is essential: PeerJS's defaults include public TURN relays.
 export const peerConfig = {
@@ -11,7 +11,7 @@ export const peerConfig = {
   config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] },
 };
 const KEY = 'bete2:groupShares';
-const MAX_IMAGE = 10 * 1024 * 1024, CHUNK = 32768, MAX_PEERS = 8;
+const MAX_IMAGE = 10 * 1024 * 1024, CHUNK = 12288, MAX_PEERS = 8;
 const shares = new Map();
 const actor = newId();
 export const shareEvents = new EventTarget();
@@ -209,6 +209,7 @@ export async function joinSharedGroup(config) {
 
 function stop(s, broadcast = false) {
   s.generation++;
+  s.requested.clear();
   removeCursors(s);
   if (broadcast && s.role === 'host') for (const c of s.channels) send(c, { type: 'stopped' });
   for (const c of s.channels) c.conn.close();
@@ -516,8 +517,10 @@ async function receive(s, c, p) {
     if (!Number.isInteger(p.size) || p.size < 1 || p.size > MAX_IMAGE || c.incoming || typeof p.mime !== 'string' || !/^image\/(png|jpeg|webp|gif|avif|bmp)$/.test(p.mime)) return;
     c.incoming = { hash: p.hash, size: p.size, mime: p.mime, parts: [], received: 0 };
   } else if (p.type === 'image-chunk' && c.incoming) {
-    const data = p.data;
-    if (!(data instanceof ArrayBuffer) || data.byteLength > CHUNK || c.incoming.received + data.byteLength > c.incoming.size) { c.conn.close(); return; }
+    // PeerJS returns typed-array views after reassembling its own fragmented messages.
+    // Copy only the view's bytes, never unrelated bytes from its backing buffer.
+    const data = imageChunkBytes(p.data);
+    if (!data || c.incoming.received + data.byteLength > c.incoming.size) { c.conn.close(); return; }
     c.incoming.parts.push(data); c.incoming.received += data.byteLength;
   } else if (p.type === 'image-end' && c.incoming) {
     const image = c.incoming; c.incoming = null;

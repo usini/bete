@@ -175,6 +175,9 @@ Les curseurs en mouvement sont transmis au plus toutes les 150 ms (environ 7 foi
 puis lissés localement entre les positions reçues. Un curseur immobile n’envoie qu’un maintien
 de présence toutes les 2 secondes. Les positions sont abandonnées si le canal est encombré ;
 elles ne s’accumulent pas derrière les images. Aucun état d’animation n’est sauvegardé.
+Les images sont envoyées par morceaux de 12 Kio pour rester sous le seuil de fragmentation
+PeerJS ; les morceaux de 32 Kio des anciennes versions et les vues binaires réassemblées sont
+également acceptés. Une reconnexion permet de redemander immédiatement les images manquantes.
 
 Sélectionne un groupe puis clique sur l’icône **QR code**, sous 🎨. La fenêtre propose le QR,
 le lien, **Activer / Désactiver le partage** et **Régénérer le lien** (sur l’appareil source).

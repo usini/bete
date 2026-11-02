@@ -5,6 +5,12 @@ export const MAX_RECORDS = 4000;
 export const ROOT = 'root';
 export const validId = v => typeof v === 'string' && /^[a-zA-Z0-9_-]{8,80}$/.test(v);
 export const validImage = v => typeof v === 'string' && /^idb:shared-[a-f0-9]{64}$/.test(v);
+// Accept old 32 KiB chunks and typed views produced by PeerJS's message reassembly.
+export function imageChunkBytes(value) {
+  if (value instanceof ArrayBuffer) return value.byteLength <= 32768 ? value : null;
+  if (!ArrayBuffer.isView(value) || value.byteLength > 32768) return null;
+  return new Uint8Array(value.buffer, value.byteOffset, value.byteLength).slice().buffer;
+}
 const clamp = (v, lo, hi, fallback) => Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : fallback;
 
 export function cleanValue(raw, root = false) {

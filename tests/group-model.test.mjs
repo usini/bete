@@ -1,6 +1,18 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanRecord, mergeRecord, cleanValue, emptyPlacement, intersects, groupMembers } from '../js/group-model.js';
+import { cleanRecord, mergeRecord, cleanValue, emptyPlacement, intersects, groupMembers, imageChunkBytes } from '../js/group-model.js';
+
+test('fragmented peer image data accepts typed views without leaking backing-buffer bytes', () => {
+  const source=new Uint8Array([90,1,2,3,91]);
+  const part=imageChunkBytes(source.subarray(1,4));
+  assert.ok(part instanceof ArrayBuffer);
+  assert.deepEqual([...new Uint8Array(part)],[1,2,3]);
+  assert.deepEqual([...new Uint8Array(imageChunkBytes(new DataView(source.buffer,2,2)))],[2,3]);
+  assert.equal(imageChunkBytes(new ArrayBuffer(32768)).byteLength,32768,'legacy chunks remain accepted');
+  assert.equal(imageChunkBytes(new Uint8Array(32769)),null);
+  assert.equal(imageChunkBytes({byteLength:3}),null);
+  assert.equal(imageChunkBytes(null),null);
+});
 
 const value = text => cleanValue({ text, w: 100, h: 80, color: '#FF0000' });
 const record = (clock, actor, text) => ({ id: 'block-0001', clock, actor, value: value(text) });

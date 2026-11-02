@@ -55,6 +55,9 @@ async function waitText(page, id, text) {
   browser = await chromium.launch({ executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless:true });
   const hostContext = await browser.newContext({viewport:{width:1280,height:900}});
   const guestContext = await browser.newContext({viewport:{width:1280,height:900}});
+  // Keep the old sender chunk size in this host to exercise real PeerJS fragmentation.
+  await hostContext.route('**/js/group-share.js*',route=>route.fulfill({contentType:'text/javascript',
+    body:readFileSync(join(root,'js','group-share.js'),'utf8').replace('CHUNK = 12288','CHUNK = 32768')}));
   const host = await setup(hostContext, [group,block,hidden,adjacent]);
   const guestPrivate = { ...hidden, id:'block-test-0001', x:0,y:0,w:900,h:900 };
   const guest = await setup(guestContext,[guestPrivate]);
@@ -130,14 +133,24 @@ async function waitText(page, id, text) {
   assert.equal(await moduleOn(host,m=>m.state.getNode('group-test-0001').x),group.x);
   assert.deepEqual(await moduleOn(host,m=>({...m.state.state.camera})),hostCamera);
   const image='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a5xQAAAAASUVORK5CYII=';
-  await moduleOn(host,async(m,image)=>{m.state.getNode('block-test-0001').image=await m.images.addDataUrl(image);m.state.emit();},image);
+  await moduleOn(host,async(m,image)=>{
+    const blob=await(await fetch(image)).blob();
+    const n=m.state.getNode('block-test-0001');
+    n.image=await m.images.addImageFile(new Blob([blob,new Uint8Array(2*1024*1024)],{type:'image/png'}));
+    n.link='https://www.amazon.fr/dp/B07HG51ZYK';n.name='Manette';m.state.emit();
+  },image);
   let imageReceived=false;
   for(let i=0;i<120;i++) {
-    imageReceived=await moduleOn(guest,async m=>!!(await m.images.imageBlob(m.state.state.nodes.find(n=>n.text==='Depuis source')?.image)));
+    imageReceived=await moduleOn(guest,async m=>{
+      const n=m.state.state.nodes.find(n=>n.text==='Depuis source');
+      const blob=await m.images.imageBlob(n?.image);
+      return !!blob && blob.size>2*1024*1024 && !!m.images.imageFor(n.image,()=>{})?.naturalWidth;
+    });
     if(imageReceived)break;
     await guest.waitForTimeout(100);
   }
   assert.ok(imageReceived,'shared image bytes must arrive');
+  assert.equal(await moduleOn(guest,m=>m['group-share'].shareInfo(m.state.state.nodes.find(n=>n.shareId==='group-test-0001')).peers),1,'image transfer must not disconnect the client');
   await guest.evaluate(link=>{location.hash=new URL(link).hash;},link);
   await guest.click('#share-join');
   await guest.waitForTimeout(700);
