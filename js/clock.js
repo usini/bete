@@ -1,4 +1,5 @@
 // Clock at the top of the page: the date and the time as HH:MM:SS, updated every second.
+import { sharingSummary, shareEvents } from './group-share.js?v=mvzf2hn7';
 const dateEl = document.getElementById('clock-date');
 const timeEl = document.getElementById('clock-time');
 
@@ -11,4 +12,16 @@ function tick() {
   setTimeout(tick, 1000 - now.getMilliseconds());
 }
 
-export function initClock() { tick(); }
+function updateSharing() {
+  const badge = document.getElementById('clock-sharing');
+  const summary = sharingSummary();
+  badge.hidden = !summary.enabled;
+  badge.textContent = summary.groups
+    ? `Partage actif · ${summary.participants} participant${summary.participants > 1 ? 's' : ''}`
+    : 'Partage en connexion…';
+  badge.title = summary.groups ? `${summary.groups} groupe${summary.groups > 1 ? 's' : ''} partagé${summary.groups > 1 ? 's' : ''} · toi inclus` : 'En attente de connexion';
+}
+export function initClock() {
+  tick(); updateSharing();
+  shareEvents.addEventListener('change', updateSharing);
+}

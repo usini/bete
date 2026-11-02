@@ -1,7 +1,7 @@
-import { state, events, onSaved, newId, sanitizeNode, emit, select, getNode, setGroupMemberFilter } from './state.js?v=mvzexlfc';
-import { imageBlob, storeSharedImage } from './images.js?v=mvzexlfc';
-import { flyTo, view, screenToWorld } from './camera.js?v=mvzexlfc';
-import { MAX_MEMBERS, MAX_RECORDS, ROOT, validId, validImage, cleanValue, cleanRecord, mergeRecord, groupMembers, emptyPlacement, intersects } from './group-model.js?v=mvzexlfc';
+import { state, events, onSaved, newId, sanitizeNode, emit, select, getNode, setGroupMemberFilter } from './state.js?v=mvzf2hn7';
+import { imageBlob, storeSharedImage } from './images.js?v=mvzf2hn7';
+import { flyTo, view, screenToWorld } from './camera.js?v=mvzf2hn7';
+import { MAX_MEMBERS, MAX_RECORDS, ROOT, validId, validImage, cleanValue, cleanRecord, mergeRecord, groupMembers, emptyPlacement, intersects } from './group-model.js?v=mvzf2hn7';
 
 // Explicit ICE config is essential: PeerJS's defaults include public TURN relays.
 export const peerConfig = {
@@ -67,6 +67,26 @@ export function loadShareScript(name) {
 function notify(s, text) {
   if (text !== undefined) s.status = text;
   shareEvents.dispatchEvent(new Event('change'));
+}
+function sendParticipants(s) {
+  const participants = [actor, ...[...s.channels].filter(c => c.ready).map(c => c.participant).filter(Boolean)];
+  for (const c of s.channels) if (c.ready) send(c, { type: 'participants', participants });
+}
+export function sharingSummary() {
+  const active = [...shares.values()].filter(s => s.enabled);
+  const participants = new Set();
+  let groups = 0;
+  for (const s of active) {
+    const connections = [...s.channels].filter(c => c.ready && c.conn.open);
+    if (s.role === 'host' && (s.peer?.open || connections.length)) {
+      groups++; participants.add(actor);
+      for (const c of connections) if (c.participant) participants.add(c.participant);
+    } else if (s.role === 'guest' && connections.length) {
+      groups++; participants.add(actor);
+      for (const id of s.participants || []) participants.add(id);
+    }
+  }
+  return { enabled: active.length > 0, groups, participants: participants.size };
 }
 function rootOf(s) { return state.nodes.find(n => n.kind === 'group' && (n.id === s.groupId || n.shareId === s.groupId)); }
 function persist() {
@@ -366,7 +386,7 @@ function attach(s, conn, host) {
   const c = { conn, host, ready: false, seeded: host, incoming: null, lastSeen: Date.now(), challenge: secret(), nonce: null, imageQueue: Promise.resolve(), wantedImages: new Set(), queued: 0, handshakes: 0 };
   s.channels.add(c);
   const timeout = setTimeout(() => { if (!c.ready) { notify(s, 'Connexion directe impossible : réseau incompatible ou lien invalide.'); conn.close(); } }, 20000);
-  conn.on('open', () => { if (!host) send(c, { type: 'hello', v: 1, group: s.groupId, challenge: c.challenge }); });
+  conn.on('open', () => { if (!host) send(c, { type: 'hello', v: 1, group: s.groupId, actor, challenge: c.challenge }); });
   conn.on('data', packet => {
     if (++c.queued > 2048) { conn.close(); return; }
     c.lastSeen = Date.now();
@@ -375,6 +395,8 @@ function attach(s, conn, host) {
   const closed = () => {
     clearTimeout(timeout);
     if (!s.channels.delete(c)) return;
+    if (host) sendParticipants(s);
+    else s.participants = [];
     if (host && c.cursorActor) {
       removeCursors(s, c.cursorActor);
       for (const other of s.channels) if (other.ready) send(other, { type: 'cursor', actor: c.cursorActor, x: null, y: null });
@@ -392,6 +414,7 @@ async function receive(s, c, p) {
   if (!c.ready) {
     if (++c.handshakes > 6) { c.conn.close(); return; }
     if (p.type === 'hello' && c.host && p.v === 1 && p.group === s.groupId && /^[a-f0-9]{64}$/.test(p.challenge || '')) {
+      c.participant = validId(p.actor) ? p.actor : c.conn.peer;
       c.challenge = p.challenge; c.nonce = secret();
       send(c, { type: 'challenge', nonce: c.nonce, proof: await proof(s, c, 'host', c.challenge, c.nonce) });
     } else if (p.type === 'challenge' && !c.host && /^[a-f0-9]{64}$/.test(p.nonce || '')) {
@@ -407,6 +430,7 @@ async function receive(s, c, p) {
       await capture(s);
       c.ready = true;
       send(c, { type: 'ready' });
+      sendParticipants(s);
       sendRecords(c, [...s.records.values()]);
       send(c, { type: 'seed-end' });
       notify(s, 'Partage actif. ' + [...s.channels].filter(c => c.ready).length + ' participant(s).');
@@ -416,6 +440,11 @@ async function receive(s, c, p) {
   }
   if (p.type === 'ping') { send(c, { type: 'pong' }); return; }
   if (p.type === 'pong') return;
+  if (p.type === 'participants' && !c.host && Array.isArray(p.participants) && p.participants.length <= MAX_PEERS + 1 && p.participants.every(validId)) {
+    s.participants = [...new Set(p.participants)];
+    notify(s);
+    return;
+  }
   if (p.type === 'cursor') {
     if (!validId(p.actor) || p.actor === actor) return;
     if (c.host) {

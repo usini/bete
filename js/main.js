@@ -1,14 +1,14 @@
 // Bootstrap: load the saved board, wire the UI, start rendering.
-import { loadFromStorage, saveNow } from './state.js?v=mvzexlfc';
-import { resize, requestRender } from './render.js?v=mvzexlfc';
-import { initInput } from './input.js?v=mvzexlfc';
-import { initPanel } from './panel.js?v=mvzexlfc';
-import { initMinimap } from './minimap.js?v=mvzexlfc';
-import { initClock } from './clock.js?v=mvzexlfc';
-import { initDrive } from './drive.js?v=mvzexlfc';
-import { initHistory } from './history.js?v=mvzexlfc';
-import { initGroupSharing } from './group-share.js?v=mvzexlfc';
-import { initGroupShareUI } from './group-share-ui.js?v=mvzexlfc';
+import { loadFromStorage, saveNow } from './state.js?v=mvzf2hn7';
+import { resize, requestRender } from './render.js?v=mvzf2hn7';
+import { initInput } from './input.js?v=mvzf2hn7';
+import { initPanel } from './panel.js?v=mvzf2hn7';
+import { initMinimap } from './minimap.js?v=mvzf2hn7';
+import { initClock } from './clock.js?v=mvzf2hn7';
+import { initDrive } from './drive.js?v=mvzf2hn7';
+import { initHistory } from './history.js?v=mvzf2hn7';
+import { initGroupSharing } from './group-share.js?v=mvzf2hn7';
+import { initGroupShareUI } from './group-share-ui.js?v=mvzf2hn7';
 
 loadFromStorage();
 resize();

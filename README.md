@@ -57,6 +57,8 @@ le lien, **Activer / Désactiver le partage** et **Régénérer le lien** (sur l
 Tous les participants peuvent modifier. Le lien ajoute ce groupe à leur tableau infini, dans
 un espace libre, ou retrouve sa copie par ID ; les autres blocs et l’historique ne sont pas envoyés.
 La position du groupe et la caméra restent propres à chaque appareil ; la disposition interne est partagée.
+Sous la date, un indicateur affiche le partage actif et le nombre de participants connectés, toi inclus
+(sans compter deux fois une personne présente dans plusieurs groupes).
 Les curseurs des participants sont visibles uniquement à l’intérieur du groupe partagé, avec une couleur
 et un identifiant temporaire. Ils ne sont pas enregistrés dans les sauvegardes.
 

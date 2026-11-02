@@ -410,3 +410,8 @@ button:hover { border-color: var(--accent); }
 #share-link { font-size: 12px; }
 .share-actions { display: grid; gap: 6px; margin-top: 16px; }
 .share-actions button { margin: 0; }
+
+#clock { display: grid; grid-template-columns: auto auto; column-gap: 14px; row-gap: 3px; }
+#clock-sharing { grid-column: 1 / -1; text-align: center; color: #7ed6a5; font-size: 11px; }
+#clock-sharing[hidden] { display: none; }
+#clock-sharing::before { content: '●'; font-size: 8px; margin-right: 6px; }

@@ -70,11 +70,14 @@ async function waitText(page, id, text) {
   await host.click('#share-activate');
   await host.waitForFunction(() => document.querySelector('#share-status').textContent.includes('attente'));
   await host.screenshot({path:join(root,'tests','share-dialog.png')});
+  assert.match(await host.locator('#clock-sharing').textContent(),/1 participant/);
   const link = await host.locator('#share-link').inputValue();
   assert.ok(link.includes('#group='));
   await guest.evaluate(link => { location.hash = new URL(link).hash; },link);
   await guest.click('#share-join');
   await waitText(guest,block.id,block.text);
+  await guest.waitForFunction(()=>document.querySelector('#clock-sharing').textContent.includes('2 participants'));
+  assert.match(await host.locator('#clock-sharing').textContent(),/2 participants/);
   let received = await moduleOn(guest,m=>m.state.state.nodes);
   assert.equal(received.some(n=>n.text==='PRIVÉ' && n.id===hidden.id),false);
   assert.deepEqual(received.find(n=>n.id===guestPrivate.id),guestPrivate);
@@ -147,6 +150,8 @@ async function waitText(page, id, text) {
   await third.evaluate(link=>{location.hash=new URL(link).hash;},newLink);
   await third.click('#share-join');
   await waitText(third,block.id,'Depuis source');
+  await third.waitForFunction(()=>document.querySelector('#clock-sharing').textContent.includes('3 participants'));
+  assert.match(await guest.locator('#clock-sharing').textContent(),/3 participants/);
   await third.screenshot({path:join(root,'tests','share-mobile.png')});
   await moduleOn(guest,m=>{m.state.state.nodes.find(n=>n.text==='Depuis source').text='Trois participants';m.state.emit();});
   await waitText(host,block.id,'Trois participants');

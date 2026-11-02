@@ -226,7 +226,9 @@
     Les blocs du groupe, son titre, ses dimensions, ses couleurs, ses liens et ses images sont
     transmis par un canal WebRTC chiffré aux appareils autorisés. Les positions internes sont
     relatives au groupe ; la caméra et l’emplacement du groupe dans ton tableau restent locaux.
-    Les autres blocs et l’historique global ne sont pas partagés. Les positions des curseurs sont
+    Les autres blocs et l’historique global ne sont pas partagés. Des identifiants aléatoires de
+    participants sont échangés dans chaque groupe pour afficher le nombre de connexions et éviter
+    les doublons ; ils ne sont pas sauvegardés. Les positions des curseurs sont
     transmises uniquement à l’intérieur des groupes partagés, au maximum environ vingt fois par seconde,
     avec un identifiant de participant aléatoire propre à la page. Elles restent en mémoire temporaire
     (expiration après environ six secondes sans mise à jour) et ne figurent ni dans l’historique, ni dans
