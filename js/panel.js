@@ -1,10 +1,10 @@
 // Right-hand panel: draggable blocks, selection tools, file actions.
-import { state, getNode, getSelectedId, select, addNode, events } from './state.js?v=mvzitqch';
-import { screenToWorld, view, flyTo } from './camera.js?v=mvzitqch';
-import { BLOCK_MIME, pickImage } from './input.js?v=mvzitqch';
-import { exportDoc, importFile } from './storage.js?v=mvzitqch';
+import { state, getNode, getSelectedId, select, addNode, events } from './state.js?v=mvzj279c';
+import { screenToWorld, view, flyTo } from './camera.js?v=mvzj279c';
+import { BLOCK_MIME, pickImage } from './input.js?v=mvzj279c';
+import { exportDoc, importFile } from './storage.js?v=mvzj279c';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mvzitqch';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mvzj279c';
 
 export function initPanel() {
   const panel = document.getElementById('panel');

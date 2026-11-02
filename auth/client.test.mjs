@@ -36,36 +36,41 @@ test('browser restores and renews tokens without storing them or proxying Drive 
   assert.deepEqual(removed, ['bete2:driveToken']);
 });
 
-test('periodic sync skips unchanged content, busy operations, backoff and conflicts', async () => {
-  let now = 1000;
+test('Drive stays manual; hiding only saves locally and leaving warns only for pending changes', async () => {
   const source = readFileSync(new URL('../js/drive.js', import.meta.url), 'utf8')
     .replace(/^import .*;\r?\n/gm, '').replaceAll('export ', '');
+  const elements = new Map(), windowEvents = new Map(), documentEvents = new Map();
+  let saved, localSaves = 0, networkCalls = 0, intervals = 0;
   const context = vm.createContext({
-    isLocked: () => false, modeEvents: {addEventListener(){}},
-    notify: () => {},
-    localStorage: { getItem: () => null, removeItem: () => {}, setItem: () => {} },
-    document: { getElementById: () => ({}) }, state: { nodes: [{id: 'local'}] }, AbortSignal, URLSearchParams,
-    Date: class extends Date { static now() { return now; } },
-    fetch: async () => Response.json({ files: [{id: 'remote', modifiedTime: 'new'}] }),
+    isLocked: () => false, modeEvents: {addEventListener(){}}, notify(){},
+    localStorage: {getItem:()=>null, removeItem(){}, setItem(){}},
+    state: {nodes:[{id:'local',text:'before'}]}, AbortSignal,
+    document: {visibilityState:'visible', addEventListener:(name,fn)=>documentEvents.set(name,fn),
+      getElementById(id) {
+        if (!elements.has(id)) elements.set(id,{dataset:{},setAttribute(){},addEventListener(){}});
+        return elements.get(id);
+      }},
+    window: {addEventListener:(name,fn)=>windowEvents.set(name,fn)},
+    onSaved: fn => {saved=fn;}, saveNow:()=>{localSaves++;saved();},
+    setInterval:()=>{intervals++;},
+    fetch:async()=>{networkCalls++;throw new Error('Unexpected background request');},
   });
-  vm.runInContext(source + `
-    meta = { linked:true, remoteModified:'old', sig:'old' };
-    token = 'valid'; tokenExpiry = Date.now()+3600000;
-    globalThis.calls = 0;
-    run = () => { globalThis.calls++; };
-    globalThis.client = { periodicSave, reconcileStep, pending: () => conflictPending };
-  `, context);
-  context.client.periodicSave(); assert.equal(context.calls, 0);
-  vm.runInContext('dirty = true', context);
-  context.client.periodicSave(); assert.equal(context.calls, 1);
-  context.client.periodicSave(); assert.equal(context.calls, 2);
-  vm.runInContext('busy = true', context);
-  context.client.periodicSave(); assert.equal(context.calls, 2);
-  vm.runInContext('busy = false; retryAfter = Date.now()+60000', context);
-  context.client.periodicSave(); assert.equal(context.calls, 2);
-  now += 60000;
-  context.client.periodicSave(); assert.equal(context.calls, 3);
-  await context.client.reconcileStep(false);
-  assert.equal(context.client.pending(), true);
-  context.client.periodicSave(); assert.equal(context.calls, 3);
+  vm.runInContext(source+`
+    meta={linked:true,sig:hash(nodesJson())};token='valid';tokenExpiry=Date.now()+3600000;
+    globalThis.client={initDrive,change(){state.nodes[0].text='after';},unlink(){meta=null;},
+      markSaved(){meta.sig=hash(nodesJson());dirty=false;}};
+  `,context);
+  context.client.initDrive();
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(intervals,0);
+  const leave=()=>{const e={prevented:false,preventDefault(){this.prevented=true;}};windowEvents.get('beforeunload')(e);return e;};
+  assert.equal(leave().prevented,false);
+  context.client.change();
+  context.document.visibilityState='hidden';documentEvents.get('visibilitychange')();
+  context.document.visibilityState='visible';documentEvents.get('visibilitychange')();
+  assert.equal(leave().prevented,true);
+  assert.equal(networkCalls,0);
+  assert.ok(localSaves>=3);
+  context.client.markSaved();assert.equal(leave().prevented,false);
+  context.client.change();context.client.unlink();assert.equal(leave().prevented,false);
 });

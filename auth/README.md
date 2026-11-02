@@ -92,8 +92,10 @@ Test in the production browser:
 6. Disconnect: cookie is deleted, Google revocation requested, Drive backup remains.
 7. Revoke Bete manually from Google account permissions; the app should request reconnection.
 
-Closing a page cannot guarantee completion of a large Drive upload; local autosave and the existing
-unsaved-change warning remain in place. Google/browser policies, revoked access, cleared cookies
+Drive saves are manual. Closing or hiding the page only flushes local storage; unsaved Drive changes
+trigger the browser's standard leave-page warning where supported, without starting an upload.
+Reloading restores authorization but does not upload or replace the local board.
+Google/browser policies, revoked access, cleared cookies
 and cookie lifetime limits can still require reconnection. Cookie Max-Age is one year at most,
 not a promise of a permanent Google session.
 

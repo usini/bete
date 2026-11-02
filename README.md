@@ -52,18 +52,20 @@ python -m http.server 8000
 - **Navigation** : déplacement, zoom (molette ou pincement), minimap, alignement automatique des blocs.
 - **Sauvegarde** : enregistrement automatique dans le navigateur (localStorage et IndexedDB),
   export et import d'un fichier JSON.
-- **Google Drive (facultatif)** : sauvegarde automatique du tableau dans un dossier caché de ton Drive
-  (droit `drive.appdata` uniquement). Vérification toutes les 30 secondes et envoi uniquement si le tableau a changé,
-  si le réseau et la session le permettent.
-  Aucun envoi si le contenu est inchangé. Un conflit suspend la sauvegarde et affiche un message
-  dans le panneau ; un clic sur la disquette permet de choisir la version sans interruption automatique.
+- **Google Drive (facultatif)** : sauvegarde manuelle du tableau dans un dossier caché de ton Drive
+  (droit `drive.appdata` uniquement), en cliquant sur la disquette. Aucun transfert périodique,
+  au retour sur l’onglet ou à la fermeture. La connexion initiale compare les versions ; les ouvertures
+  suivantes conservent le tableau local, et « Restaurer » permet de récupérer la version Drive.
+  En cas de conflit lors d’une sauvegarde, tu choisis la version à conserver.
   La disquette à côté de l’historique apparaît uniquement si Drive est configuré : rouge pendant la
   reconnexion, jaune pour les modifications en attente, verte quand tout est sauvegardé et rouge
   clignotante en cas d’échec. Un clic permet de sauvegarder, résoudre un conflit ou se reconnecter.
   La disquette s’anime pendant les opérations et au clic ; des notifications indiquent la connexion,
   la sauvegarde en cours, sa réussite ou un échec. Elles sont locales et disparaissent automatiquement.
   Le menu conserve seulement la connexion initiale, Restaurer et Déconnecter.
-  Quitter la page avant que tout soit sauvegardé déclenche l'envoi immédiat et un avertissement du navigateur.
+  Quitter ou recharger la page avec des modifications non sauvegardées sur Drive déclenche
+  l’avertissement standard du navigateur, sans lancer d’envoi. La version locale reste enregistrée
+  automatiquement. Certains navigateurs mobiles ne permettent pas cet avertissement à la fermeture.
 
 Les tableaux ne sont pas envoyés au serveur de Bête. Les appels réseau sont ceux de YouTube :
 miniatures (`i.ytimg.com`), titres (oEmbed) et lecteur (`youtube-nocookie.com`) ; et, seulement si tu

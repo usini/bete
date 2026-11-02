@@ -3,14 +3,14 @@
 //  - Scope: drive.appdata only. The file (Bete.json) lives in a hidden folder reserved to this
 //    app in the user's own Drive. Board content never passes through our OAuth service.
 //  - Sign-in: OAuth code flow through a stateless service. Access tokens stay in memory.
-//  - Sync: check every 30 s and upload only changed content. When connecting, the local board
-//    and the Drive file are compared; if both changed since the last sync, the user chooses.
-import { state, onSaved, saveNow } from './state.js?v=mvzitqch';
-import { exportData, importData } from './storage.js?v=mvzitqch';
+//  - Drive transfers happen only on explicit save, restore or initial connection.
+//    Local autosave remains automatic; leaving with unsaved Drive changes warns the user.
+import { state, onSaved, saveNow } from './state.js?v=mvzj279c';
+import { exportData, importData } from './storage.js?v=mvzj279c';
 
-import { notify } from './notifications.js?v=mvzitqch';
+import { notify } from './notifications.js?v=mvzj279c';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mvzitqch';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mvzj279c';
 
 const AUTH_URL = 'https://auth-bete.usini.eu';
 const FILE_NAME = 'Bete.json';
@@ -19,20 +19,16 @@ const TOKEN_KEY = 'bete2:driveToken';
 const API = 'https://www.googleapis.com/drive/v3';
 const UPLOAD = 'https://www.googleapis.com/upload/drive/v3';
 
-export const driveConfig = { autosaveMs: 30000, retryMs: 60000 };
-
 // What we remember between visits: { linked, fileId, remoteModified, lastSyncedAt, sig }
 //  remoteModified = Drive's modifiedTime of the file as of our last sync
 //  sig            = hash of the board's blocks as of our last sync
 let meta = loadMeta();
 let token = null;        // access token, memory only
 let tokenExpiry = 0;
-let retryAfter = 0;
 let observed = '';
 let dirty = false;       // the board changed since the last sync
 let busy = false;
-let lastCheck = 0;       // last time we compared with Drive (to catch another device's changes)
-let conflictPending = false; // "Décider plus tard" was chosen: no autosave until the user acts
+let conflictPending = false; // "Décider plus tard" was chosen: wait for the next explicit action
 let transferResult = '';
 let message = '';        // transient status line (progress, errors)
 
@@ -198,7 +194,6 @@ async function pushStep() {
   meta.sig = sig;
   saveMeta();
   dirty = hash(nodesJson()) !== sig; // the board may have changed while uploading
-  retryAfter = 0;
   transferResult = 'saved';
 }
 
@@ -213,14 +208,12 @@ async function pullStep(remote) {
   meta.sig = hash(nodesJson());
   saveMeta();
   dirty = false;
-  retryAfter = 0;
   transferResult = 'restored';
 }
 
 // Right after connecting: decide what to do with the local board and the Drive file.
 async function reconcileStep(interactive = true) {
   conflictPending = false;
-  lastCheck = Date.now();
   const remote = await findFile();
   const sig = hash(nodesJson());
   if (!remote) { // nothing on Drive yet
@@ -243,7 +236,7 @@ async function reconcileStep(interactive = true) {
   else {
     meta.fileId = remote.id;
     saveMeta();
-    conflictPending = true; // stop the autosave: it would ask again every 30 s
+    conflictPending = true; // leave the choice pending until the user acts
     say('Conflit non résolu : clique sur la disquette pour choisir la version, ou sur « Restaurer » pour prendre celle de Drive.');
   }
 }
@@ -269,7 +262,6 @@ async function run(label, step, announce = false) {
   } finally {
     busy = false;
     render();
-    // The periodic timer handles subsequent changes.
   }
 }
 
@@ -278,20 +270,10 @@ function fail(e) {
   if (e instanceof AuthNeeded) { say('Session expirée : reconnecte-toi pour continuer.'); driveNotice('Connexion Google Drive échouée. Clique sur la disquette pour te reconnecter.', 'error'); return; }
   const offline = e instanceof TypeError;
   const apiOff = e.status === 403 && /not been used|disabled/i.test(e.message || '');
-  say(offline ? 'Hors ligne ou Google injoignable : nouvel essai bientôt.'
+  say(offline ? 'Hors ligne ou Google injoignable : clique sur la disquette pour réessayer.'
     : apiOff ? "Google Drive : l'API Drive n'est pas activée dans le projet Google Cloud."
       : 'Google Drive : ' + (e.message || 'erreur'));
   driveNotice(message, 'error');
-  if (offline || e.status >= 500 || e.name === 'TimeoutError') {
-    retryAfter = Date.now() + driveConfig.retryMs;
-  }
-}
-
-function periodicSave() {
-  if (!meta || busy || Date.now() < retryAfter) return;
-  if (!tokenValid()) { run('Reconnexion…', async () => { if (dirty && !conflictPending) await reconcileStep(false); }); return; }
-  if (!dirty || conflictPending) return;
-  run('Sauvegarde…', () => reconcileStep(false));
 }
 
 // ---- conflict popup ----
@@ -325,7 +307,7 @@ function stamp(ms) {
 
 function statusText(linked, ok) {
   if (message) return message;
-  if (!linked) return 'Sauvegarde automatique du tableau dans un dossier caché de ton Drive.';
+  if (!linked) return 'Sauvegarde manuelle du tableau dans un dossier caché de ton Drive.';
   if (!ok) return dirty ? 'Session expirée : des modifications ne sont pas sauvegardées. Reconnecte-toi.'
     : 'Session expirée : reconnecte-toi pour reprendre la sauvegarde.';
   if (dirty) return 'Modifications en attente de sauvegarde…';
@@ -414,7 +396,7 @@ export function initDrive() {
     dirty = hash(nodesJson()) !== meta.sig;
   }
   observed = hash(nodesJson());
-  // Camera-only local saves must not postpone a pending content upload.
+  // Local saves update the Drive indicator without starting a transfer.
   onSaved(() => {
     if (!meta) return;
     const sig = hash(nodesJson());
@@ -438,37 +420,17 @@ export function initDrive() {
   $('drive-restore').addEventListener('click', restore);
   $('drive-disconnect').addEventListener('click', disconnect);
   $('drivedialog').addEventListener('cancel', (e) => e.preventDefault()); // buttons only
-  setInterval(() => { render(); periodicSave(); }, driveConfig.autosaveMs);
-
-  // Leaving the page with changes not yet on Drive: start the upload at once, and make the
-  // browser warn (it shows its own generic text, which a page cannot change). A page also
-  // cannot close itself, so the user answers the browser's question.
+  // Flush local storage before the browser asks whether to leave. No Drive upload here.
   window.addEventListener('beforeunload', (e) => {
-    saveNow(); // flush the local save first: it also refreshes `dirty`
-    if (!meta || !(dirty || busy)) return;
-    flush();
+    saveNow();
+    if (!meta || !dirty) return;
     e.preventDefault();
     e.returnValue = '';
   });
-  // Switching tab / app, or closing on a phone: the page is hidden first, which is the one
-  // reliable moment to save without waiting for the 30 s countdown.
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') { saveNow(); flush(); return; }
-    checkRemote(); // back on the page: catch what another device saved meanwhile
+    if (document.visibilityState === 'hidden') saveNow();
   });
   render();
-  checkRemote(); // after a reload: same check
-}
-
-// Compares with Drive, renewing authorization if necessary, at most once every 20 s.
-function checkRemote() {
-  if (!meta || busy || conflictPending) return;
-  if (Date.now() - lastCheck < 20000) return;
-  run('Synchronisation…', () => reconcileStep(false));
-}
-
-// Uploads now, instead of waiting for the countdown, when there is something to save.
-function flush() {
-  if (!meta || !dirty || busy || conflictPending) return;
-  run('Sauvegarde…', () => reconcileStep(false));
+  // Restore authorization only: the local board is never silently uploaded or replaced.
+  if (meta) run('Connexion à Google Drive…', async () => {});
 }
