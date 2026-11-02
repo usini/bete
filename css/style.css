@@ -459,10 +459,10 @@ button:hover { border-color: var(--accent); }
 
 .mobile-locked #import, .mobile-locked #drive-restore { opacity: 0.35; cursor: not-allowed; }
 
-/* Facebook embeds leave the block border and action buttons accessible. */
-.facebook-post { position: fixed; z-index: 4; overflow: hidden; background: white; pointer-events: none; }
-.facebook-post iframe { display: block; border: 0; transform-origin: top left; pointer-events: none; }
-.facebook-post[data-interactive="true"] iframe { pointer-events: auto; }
+/* External embeds leave the block border and action buttons accessible. */
+.embedded-block { position: fixed; z-index: 4; overflow: hidden; background: white; pointer-events: none; }
+.embedded-block iframe { display: block; border: 0; transform-origin: top left; pointer-events: none; }
+.embedded-block[data-interactive="true"] iframe { pointer-events: auto; }
 .facebook-interact {
   position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
   pointer-events: auto; width: max-content; max-width: calc(100% - 16px);

@@ -304,6 +304,48 @@ let browser,server;
   });
   await page.waitForFunction(()=>!document.querySelector('.facebook-post'));
   assert.equal(facebookRequests,2,'group posts must not load Facebook');
+  let mapRequests=0;
+  await page.route('https://www.google.com/maps/embed**',route=>{
+    mapRequests++;return route.fulfill({contentType:'text/html',body:'<!doctype html><p>Carte de test</p>'});
+  });
+  const mapCenter=await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const s=await import('/js/state.js'+v),c=await import('/js/camera.js'+v);
+    s.state.nodes=[];s.state.camera={x:0,y:0,zoom:1};
+    const n=s.addNode('rect',0,0);n.x=-250;n.y=-180;n.w=500;n.h=400;
+    const data=new DataTransfer();data.setData('text/plain','<iframe src="https://www.google.com/maps/embed?pb=!1m18!2m3!1d123&amp;hl=fr" onload="window.untrustedHtmlRan=true"></iframe>');
+    document.querySelector('#canvas').dispatchEvent(new ClipboardEvent('paste',{bubbles:true,cancelable:true,clipboardData:data}));
+    return c.worldToScreen(n.x+n.w/2,n.y+n.h/2);
+  });
+  await page.waitForSelector('.maps-embed iframe');
+  const mapFrame=page.locator('.maps-embed iframe');
+  assert.equal(new URL(await mapFrame.getAttribute('src')).searchParams.get('pb'),'!1m18!2m3!1d123');
+  assert.equal(await mapFrame.getAttribute('referrerpolicy'),'no-referrer');
+  assert.equal(await page.evaluate(()=>!!window.untrustedHtmlRan),false);
+  await page.mouse.move(mapCenter.x,mapCenter.y);await page.mouse.down();
+  await page.mouse.move(mapCenter.x+50,mapCenter.y+30,{steps:5});await page.mouse.up();
+  const movedMap=await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const s=await import('/js/state.js'+v),c=await import('/js/camera.js'+v),n=s.state.nodes[0];
+    return {x:n.x,y:n.y,handle:c.worldToScreen(n.x+n.w,n.y+n.h)};
+  });
+  assert.equal(movedMap.x,-200);assert.equal(movedMap.y,-150);
+  await page.mouse.move(movedMap.handle.x,movedMap.handle.y);await page.mouse.down();
+  await page.mouse.move(movedMap.handle.x+40,movedMap.handle.y+20,{steps:5});await page.mouse.up();
+  assert.deepEqual(await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const n=(await import('/js/state.js'+v)).state.nodes[0];return [n.w,n.h];
+  }),[540,420]);
+  await page.getByRole('button',{name:'Interagir avec la carte',exact:true}).click();
+  assert.equal(await page.locator('.maps-embed').getAttribute('data-interactive'),'true');
+  await page.getByRole('button',{name:'Manipuler le bloc',exact:true}).click();
+  assert.equal(await page.locator('.maps-embed').getAttribute('data-interactive'),'false');
+  assert.equal(mapRequests,1,'moving or resizing must not reload the map');
+  await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const s=await import('/js/state.js'+v);s.state.camera.x=1000000;s.emit();
+  });
+  await page.waitForFunction(()=>!document.querySelector('.maps-embed'));
   await page.evaluate(async()=>{
     const v=new URL(document.querySelector('script[type=module]').src).search;
     const s=await import('/js/state.js'+v);s.state.nodes=[];s.emit();

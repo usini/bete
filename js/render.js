@@ -1,24 +1,24 @@
-import { positionFacebookPosts } from './facebook-view.js?v=mvzoawg5';
+import { positionEmbeds } from './embed-view.js?v=mvzojnnt';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzoawg5';
-import { view, screenToWorld } from './camera.js?v=mvzoawg5';
-import { youTubeId, ytThumb } from './yt.js?v=mvzoawg5';
-import { imageFor } from './images.js?v=mvzoawg5';
-import { positionVideo, isVideoPlaying } from './video.js?v=mvzoawg5';
-import { guides } from './snap.js?v=mvzoawg5';
-import { renderMinimap } from './minimap.js?v=mvzoawg5';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzoawg5';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzoawg5';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzoawg5';
+import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzojnnt';
+import { view, screenToWorld } from './camera.js?v=mvzojnnt';
+import { youTubeId, ytThumb } from './yt.js?v=mvzojnnt';
+import { imageFor } from './images.js?v=mvzojnnt';
+import { positionVideo, isVideoPlaying } from './video.js?v=mvzojnnt';
+import { guides } from './snap.js?v=mvzojnnt';
+import { renderMinimap } from './minimap.js?v=mvzojnnt';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzojnnt';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzojnnt';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzojnnt';
 
-import { genericLinkOf, plainLink } from './links.js?v=mvzoawg5';
-import { stepMotion } from './motion.js?v=mvzoawg5';
-import { remoteCursors, shareEvents } from './group-share.js?v=mvzoawg5';
+import { genericLinkOf, plainLink } from './links.js?v=mvzojnnt';
+import { stepMotion } from './motion.js?v=mvzojnnt';
+import { remoteCursors, shareEvents } from './group-share.js?v=mvzojnnt';
 
-import { isLocked } from './mobile-mode.js?v=mvzoawg5';
+import { isLocked } from './mobile-mode.js?v=mvzojnnt';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mvzoawg5';
-import { isAmazonUrl } from './amazon.js?v=mvzoawg5';
+import { serviceForNode, serviceIcon } from './services.js?v=mvzojnnt';
+import { isAmazonUrl } from './amazon.js?v=mvzojnnt';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -97,7 +97,7 @@ function draw() {
   renderFx(ctx); // deletion animation, above the blocks
   drawGuides(zoom);
   positionVideo();
-  positionFacebookPosts();
+  positionEmbeds();
   renderMinimap();
   // Keep animating until the 📝 button is fully shown and the deletion pieces are gone.
   if (iconT < 1 || hasParticles() || (moving && !reducedMotion.matches)) requestRender();

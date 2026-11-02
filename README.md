@@ -1,5 +1,17 @@
 # Bête
 
+### Cartes Google Maps
+
+Colle dans un rectangle l’URL `https://www.google.com/maps/embed?pb=…`, ou le code `<iframe>`
+copié depuis Google Maps → Partager → Intégrer une carte. Seule l’URL Maps reconnue est conservée,
+jamais le HTML ni ses scripts ou attributs. Aucun compte développeur ni clé API Bête n’est ajouté.
+Les liens Maps ordinaires et raccourcis restent des liens.
+
+La carte visible se charge directement depuis Google. Les gestes déplacent et redimensionnent
+le bloc par défaut ; « Interagir avec la carte » active ses commandes, puis « Manipuler le bloc »
+ou un clic en dehors revient au tableau. Une image personnalisée prend la priorité. Les cartes
+hors écran sont déchargées et leur URL suit les sauvegardes et le partage du groupe.
+
 Les blocs contenant un lien Amazon affichent une petite étiquette avec le logo à gauche de leur
 coin supérieur. Elle est accolée au bloc et sa taille suit ses dimensions. Le logo est embarqué
 localement, sans requête vers Amazon.

@@ -5,17 +5,18 @@
 //  - when the link is an Amazon address the popup becomes "Produit Amazon": name, price and
 //    delivery time fields appear (typed by hand, shown in the block's label)
 // It closes only with the Annuler / Valider buttons (Ctrl+Enter, or Enter in a one-line field, also validate).
-import { getNode, emit } from './state.js?v=mvzoawg5';
-import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mvzoawg5';
-import { youTubeId } from './yt.js?v=mvzoawg5';
-import { addImageFile, imageFor } from './images.js?v=mvzoawg5';
+import { getNode, emit } from './state.js?v=mvzojnnt';
+import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mvzojnnt';
+import { youTubeId } from './yt.js?v=mvzojnnt';
+import { addImageFile, imageFor } from './images.js?v=mvzojnnt';
 
-import { genericLink } from './links.js?v=mvzoawg5';
+import { genericLink } from './links.js?v=mvzojnnt';
 
-import { isLocked } from './mobile-mode.js?v=mvzoawg5';
+import { isLocked } from './mobile-mode.js?v=mvzojnnt';
 
-import { serviceForNode } from './services.js?v=mvzoawg5';
-import { deliveryDelay } from './delivery.js?v=mvzoawg5';
+import { serviceForNode } from './services.js?v=mvzojnnt';
+import { deliveryDelay } from './delivery.js?v=mvzojnnt';
+import { googleMapsEmbed } from './google-maps.js?v=mvzojnnt';
 
 const dlg = document.getElementById('textdialog');
 const title = document.getElementById('dialog-title');
@@ -120,6 +121,8 @@ export function startEdit(id, focus = 'text') {
 // '' (no link), a valid http(s) URL, or undefined (invalid). "example.com" gets https://.
 // Amazon product links are shortened.
 export function normalizeLink(raw) {
+  const map = googleMapsEmbed(raw);
+  if (map) return map;
   const s = String(raw).trim();
   if (!s) return '';
   const full = /^https?:\/\//i.test(s) ? s : /^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(s) ? 'https://' + s : null;

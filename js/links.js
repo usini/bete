@@ -1,9 +1,12 @@
-import { youTubeId } from './youtube-url.js?v=mvzoawg5';
-import { isAmazonUrl } from './amazon.js?v=mvzoawg5';
+import { youTubeId } from './youtube-url.js?v=mvzojnnt';
+import { isAmazonUrl } from './amazon.js?v=mvzojnnt';
 
-import { serviceForUrl } from './services.js?v=mvzoawg5';
+import { serviceForUrl } from './services.js?v=mvzojnnt';
+import { googleMapsEmbed } from './google-maps.js?v=mvzojnnt';
 
 export function plainLink(raw) {
+  const map = googleMapsEmbed(raw);
+  if (map) return map;
   const text = String(raw || '').trim();
   if (!text || /\s/.test(text) || text.length > 2000) return null;
   const full = /^https?:\/\//i.test(text) ? text : /^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(text) ? 'https://' + text : null;

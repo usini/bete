@@ -89,6 +89,16 @@
 
   <h2>2. Services tiers contactés par l'application</h2>
   <p>
+    Un rectangle contenant une URL d’intégration Google Maps charge automatiquement la carte
+    officielle lorsque le bloc est visible, y compris après restauration ou dans un groupe partagé.
+    Le navigateur transmet directement à Google l’URL de la carte (qui peut contenir un lieu ou des
+    coordonnées), l’adresse IP et les informations techniques de connexion. Google peut utiliser
+    ses cookies selon les réglages du navigateur et sa
+    <a href="https://policies.google.com/privacy">politique de confidentialité</a>.
+    Bête n’utilise aucun proxy ni récupération de carte sur son serveur et retire l’intégration hors écran.
+    Si tu colles le code HTML fourni par Google, seule l’URL Maps reconnue est conservée dans le bloc.
+  </p>
+  <p>
     Un lien reconnu vers une publication ou un reel Facebook dans un rectangle charge automatiquement
     l’intégration officielle Facebook quand le bloc est visible, y compris dans un groupe partagé
     ou un tableau restauré. Le navigateur contacte directement Meta, qui reçoit l’URL du post,
@@ -132,7 +142,7 @@
     partir du domaine et du chemin du lien ; leur affichage ne contacte pas ces services.
     En l’absence de titre fourni par le navigateur, Bête affiche le nom du site extrait localement
     de l’URL. Le site lié n’est ouvert que lorsque tu actives le lien. Les traitements spécifiques
-    à YouTube et Facebook restent décrits ci-dessus.
+    à YouTube, Facebook et Google Maps restent décrits ci-dessus.
   </p>
 
   <h2>3. Sauvegarde sur Google Drive (facultative)</h2>

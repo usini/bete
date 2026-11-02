@@ -1,13 +1,14 @@
-import { state } from './state.js?v=mvzoawg5';
-import { worldToScreen, view } from './camera.js?v=mvzoawg5';
-import { facebookPostOf, facebookEmbed } from './facebook.js?v=mvzoawg5';
+import { state } from './state.js?v=mvzojnnt';
+import { worldToScreen, view } from './camera.js?v=mvzojnnt';
+import { facebookPostOf, facebookEmbed } from './facebook.js?v=mvzojnnt';
+import { googleMapsEmbedOf } from './google-maps.js?v=mvzojnnt';
 
 const frames = new Map();
 
 function setInteractive(item, active) {
   item.wrap.dataset.interactive = String(active);
   item.frame.inert = !active;
-  item.button.textContent = active ? 'Manipuler le bloc' : 'Interagir avec le post';
+  item.button.textContent = active ? 'Manipuler le bloc' : item.action;
   item.button.setAttribute('aria-pressed', String(active));
 }
 
@@ -18,11 +19,12 @@ window.addEventListener('keydown', e => {
   if (e.key === 'Escape') for (const item of frames.values()) setInteractive(item, false);
 });
 
-// Keep visible posts attached to their blocks. Offscreen posts are unloaded.
-export function positionFacebookPosts() {
+// Keep visible embeds attached to their blocks. Offscreen content is unloaded.
+export function positionEmbeds() {
   const visible = new Set();
   for (const n of state.nodes) {
-    const post = facebookPostOf(n);
+    const map = googleMapsEmbedOf(n);
+    const post = map || facebookPostOf(n);
     if (!post) continue;
     const p = worldToScreen(n.x + 8, n.y + 8);
     const w = Math.max(1, n.w - 16) * state.camera.zoom;
@@ -33,20 +35,20 @@ export function positionFacebookPosts() {
     if (item && item.post !== post) { item.wrap.remove(); frames.delete(n.id); item = null; }
     if (!item) {
       const wrap = document.createElement('div');
-      wrap.className = 'facebook-post';
+      wrap.className = 'embedded-block ' + (map ? 'maps-embed' : 'facebook-post');
       wrap.dataset.nodeId = n.id;
       const frame = document.createElement('iframe');
-      frame.title = 'Publication Facebook';
+      frame.title = map ? 'Carte Google Maps' : 'Publication Facebook';
       frame.referrerPolicy = 'no-referrer';
       frame.allow = 'encrypted-media; picture-in-picture; fullscreen';
       frame.allowFullscreen = true;
-      frame.src = facebookEmbed(post);
+      frame.src = map || facebookEmbed(post);
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'facebook-interact';
       wrap.append(frame, button);
       document.body.append(wrap);
-      item = { wrap, frame, button, post };
+      item = { wrap, frame, button, post, action: map ? 'Interagir avec la carte' : 'Interagir avec le post' };
       const entry = item;
       button.addEventListener('click', () => setInteractive(entry, entry.wrap.dataset.interactive !== 'true'));
       setInteractive(item, false);
@@ -54,7 +56,7 @@ export function positionFacebookPosts() {
     }
     Object.assign(item.wrap.style, { left: p.x + 'px', top: p.y + 'px', width: w + 'px', height: h + 'px' });
     const scale = w / 500;
-    Object.assign(item.frame.style, { width: '500px', height: Math.max(100, h / scale) + 'px', transform: `scale(${scale})` });
+    Object.assign(item.frame.style, { width: '500px', height: Math.max(map ? 200 : 100, h / scale) + 'px', transform: `scale(${scale})` });
   }
   for (const [id, item] of frames) if (!visible.has(id)) {
     item.wrap.remove(); frames.delete(id);
