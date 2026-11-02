@@ -1,18 +1,22 @@
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzh5g0m';
-import { view, screenToWorld } from './camera.js?v=mvzh5g0m';
-import { youTubeId, ytThumb } from './yt.js?v=mvzh5g0m';
-import { imageFor } from './images.js?v=mvzh5g0m';
-import { positionVideo, isVideoPlaying } from './video.js?v=mvzh5g0m';
-import { guides } from './snap.js?v=mvzh5g0m';
-import { renderMinimap } from './minimap.js?v=mvzh5g0m';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzh5g0m';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzh5g0m';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzh5g0m';
+import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzi1ris';
+import { view, screenToWorld } from './camera.js?v=mvzi1ris';
+import { youTubeId, ytThumb } from './yt.js?v=mvzi1ris';
+import { imageFor } from './images.js?v=mvzi1ris';
+import { positionVideo, isVideoPlaying } from './video.js?v=mvzi1ris';
+import { guides } from './snap.js?v=mvzi1ris';
+import { renderMinimap } from './minimap.js?v=mvzi1ris';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzi1ris';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzi1ris';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzi1ris';
 
-import { genericLinkOf, plainLink } from './links.js?v=mvzh5g0m';
-import { stepMotion } from './motion.js?v=mvzh5g0m';
-import { remoteCursors, shareEvents } from './group-share.js?v=mvzh5g0m';
+import { genericLinkOf, plainLink } from './links.js?v=mvzi1ris';
+import { stepMotion } from './motion.js?v=mvzi1ris';
+import { remoteCursors, shareEvents } from './group-share.js?v=mvzi1ris';
+
+import { isLocked } from './mobile-mode.js?v=mvzi1ris';
+
+import { serviceForNode, serviceIcon } from './services.js?v=mvzi1ris';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -144,7 +148,8 @@ function drawNode(n, selected, zoom) {
     drawSelection(n, selected, zoom);
     return;
   }
-  const yt = youTubeId(n.text);
+  const service = serviceForNode(n);
+  const yt = service ? null : youTubeId(n.text);
   ctx.fillStyle = '#14171d';
   ctx.fillRect(n.x, n.y, n.w, n.h);
 
@@ -152,6 +157,7 @@ function drawNode(n, selected, zoom) {
   ctx.beginPath();
   ctx.rect(n.x, n.y, n.w, n.h);
   ctx.clip();
+  const appIcon = service && !n.image ? serviceIcon(service, requestRender) : null;
   const link = genericLinkOf(n);
   const linkTitle = link ? ((!plainLink(n.text) && n.text.trim()) || new URL(link).hostname) : '';
   const src = yt ? thumb(yt) : n.image ? imageFor(n.image, requestRender) : null;
@@ -162,6 +168,11 @@ function drawNode(n, selected, zoom) {
     if (areaH > 0) drawContained(src, n.x + PAD, n.y + PAD, n.w - 2 * PAD, areaH);
     if (yt) drawPlay(n);
     if (label) drawCaption(n, label);
+  } else if (service && !n.image) {
+    if (appIcon) {
+      const size = Math.max(8, Math.min(n.w - 2 * PAD, n.h - 2 * PAD, 96));
+      drawContained(appIcon, n.x + (n.w - size) / 2, n.y + (n.h - size) / 2, size, size);
+    } else drawBlockText(service.name, n, '#e8e8e8');
   } else if (linkTitle && !n.image) {
     drawBlockText(linkTitle, n, '#e8e8e8');
   } else if (!yt && n.kind !== 'image') {
@@ -180,7 +191,7 @@ function drawNode(n, selected, zoom) {
 
 // Selection outline, resize handle and action buttons of the selected block.
 function drawSelection(n, selected, zoom) {
-  if (!selected) return;
+  if (!selected || isLocked()) return;
   ctx.save();
   ctx.setLineDash([6 / zoom, 4 / zoom]);
   ctx.strokeStyle = '#ffffff';

@@ -27,7 +27,7 @@ python -m http.server 8000
 - **Lien collé dans un rectangle** : hors YouTube et Amazon, l’adresse passe dans le label et le nom du site apparaît dans le rectangle. Aucun favicon ni aperçu n’est demandé au site lié.
 - **Liens** : chaque bloc peut avoir un lien, affiché dans une pastille au-dessus ; un double-clic l'ouvre.
 - **Produits Amazon** : un lien Amazon est raccourci, et on peut y noter nom, prix et délai de livraison.
-- **Actions du bloc sélectionné** : édition, palette de couleurs et corbeille directement à côté du bloc.
+- **Actions du bloc sélectionné** : édition, palette de couleurs et corbeille directement à côté du bloc. La suppression demande une confirmation.
 - **Édition** : une popup pour modifier le texte, le lien et l'image (choix d'un fichier ou collage).
 - **Annuler / rétablir** : Ctrl+Z et Ctrl+Maj+Z (ou Ctrl+Y), boutons en haut à gauche, et une liste des
   60 dernières actions où l'on peut revenir à n'importe quel état (historique conservé dans la sauvegarde locale et les fichiers JSON, y compris sur Drive).
@@ -44,6 +44,8 @@ python -m http.server 8000
   La disquette à côté de l’historique apparaît uniquement si Drive est configuré : rouge pendant la
   reconnexion, jaune pour les modifications en attente, verte quand tout est sauvegardé et rouge
   clignotante en cas d’échec. Un clic permet de sauvegarder, résoudre un conflit ou se reconnecter.
+  La disquette s’anime pendant les opérations et au clic ; des notifications indiquent la connexion,
+  la sauvegarde en cours, sa réussite ou un échec. Elles sont locales et disparaissent automatiquement.
   Le menu conserve seulement la connexion initiale, Restaurer et Déconnecter.
   Quitter la page avant que tout soit sauvegardé déclenche l'envoi immédiat et un avertissement du navigateur.
 
@@ -56,6 +58,48 @@ HttpOnly du navigateur ; le service le traite temporairement.
 
 Déploiement VPS / Portainer / Cloudflare Tunnel : voir [auth/README.md](auth/README.md)
 et le Compose autonome [auth/compose.portainer.yml](auth/compose.portainer.yml).
+
+## Icônes des services connus
+
+Certains liens affichent une icône intégrée au lieu du texte dans le rectangle. L’URL reste dans
+le champ lien et le label. Le texte existant est conservé dans les données ; une image choisie
+manuellement reste prioritaire. Aucun favicon, téléchargement d’icône tiers ou appel vers le service.
+
+| Service | URL reconnue |
+| --- | --- |
+| Gmail | `mail.google.com` et `gmail.com`, tous chemins, paramètres et fragments |
+| YouTube | `youtube.com` / `www.youtube.com`, accueil `/` uniquement |
+| Facebook | `facebook.com` / `www.facebook.com`, accueil `/` uniquement |
+| X | `x.com/home` uniquement (avec ou sans `www`) |
+| Google | accueil `google.com` ou `google.fr` |
+| Drive | accueil et `/drive[/u/N][/home ou /my-drive]` |
+| Agenda | accueil et `/calendar[/u/N][/r]` |
+| Maps | `maps.google.com` à l’accueil ou `google.com/maps` (aussi `.fr`) |
+| Docs / Sheets / Slides | accueil du service sur `docs.google.com`, y compris `/u/N/` ; pas les fichiers `/d/…` |
+| Outlook | accueil et `/mail[/N][/inbox]` sur `outlook.live.com`, `outlook.office.com` ou `outlook.office365.com` |
+| Instagram | accueil uniquement |
+| LinkedIn | accueil ou `/feed` |
+| WhatsApp | accueil de `web.whatsapp.com` ou `whatsapp.com` |
+| Discord | accueil, `/app` ou `/channels/@me` |
+| GitHub | accueil ou `/dashboard` |
+| Spotify | accueil ou `/home` |
+| Reddit / Twitch | accueil uniquement |
+| Telegram | accueil de `web.telegram.org`, `/a` ou `/k` |
+
+Hors Gmail, la reconnaissance est volontairement limitée aux entrées de l’application **sans
+paramètres ni fragment**, en HTTPS, sur les domaines exacts. Les vidéos, profils, publications,
+recherches et fichiers précis conservent leur traitement habituel. Les liens ordinaires restent du texte.
+Les icônes et leurs sources se trouvent dans [img/services](img/services/README.md).
+
+## Mobile : lecture seule par défaut
+
+À chaque ouverture sur un appareil tactile sans pointeur précis, le tableau est verrouillé.
+Déplacement de la vue, pincement pour zoomer, lecture des liens/vidéos et réception des changements
+partagés restent disponibles. Le bouton **Déverrouiller** du menu autorise les modifications ;
+**Verrouiller** remet la lecture seule. Le verrouillage bloque création, déplacement, taille,
+édition, couleurs, suppression, annuler/rétablir, collage, dépôt, import et restauration manuelle.
+Il est local à cet appareil, non sauvegardé, et ne change pas les droits des autres participants.
+Les fenêtres desktop étroites restent éditables normalement.
 
 ## Partager un groupe
 

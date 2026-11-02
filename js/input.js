@@ -3,20 +3,24 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzh5g0m';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzh5g0m';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzh5g0m';
-import { addImageFile } from './images.js?v=mvzh5g0m';
-import { playVideo } from './video.js?v=mvzh5g0m';
-import { youTubeId } from './yt.js?v=mvzh5g0m';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzh5g0m';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzh5g0m';
-import { undo, redo } from './history.js?v=mvzh5g0m';
+import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzi1ris';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzi1ris';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzi1ris';
+import { addImageFile } from './images.js?v=mvzi1ris';
+import { playVideo } from './video.js?v=mvzi1ris';
+import { youTubeId } from './yt.js?v=mvzi1ris';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzi1ris';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzi1ris';
+import { undo, redo } from './history.js?v=mvzi1ris';
 
-import { setDragging } from './motion.js?v=mvzh5g0m';
+import { setDragging } from './motion.js?v=mvzi1ris';
 
-import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mvzh5g0m';
-import { shortenAmazonText } from './amazon.js?v=mvzh5g0m';
+import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mvzi1ris';
+import { shortenAmazonText } from './amazon.js?v=mvzi1ris';
+
+import { isLocked, modeEvents } from './mobile-mode.js?v=mvzi1ris';
+
+import { serviceForNode } from './services.js?v=mvzi1ris';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 
@@ -70,6 +74,7 @@ function pinchStart() {
 }
 
 function pickColor(n, x, y) {
+  if (isLocked()) return;
   const palette = document.getElementById('color-palette');
   const id = n.id;
   const names = ['Vert', 'Bleu', 'Rose', 'Orange', 'Violet', 'Jaune', 'Blanc'];
@@ -82,7 +87,7 @@ function pickColor(n, x, y) {
     button.setAttribute('aria-pressed', String(n.color.toLowerCase() === color.toLowerCase()));
     button.addEventListener('click', () => {
       const target = getNode(id);
-      if (target) { target.color = color; emit(); }
+      if (target && !isLocked()) { target.color = color; emit(); }
       palette.hidePopover();
     });
     return button;
@@ -105,6 +110,10 @@ function onPointerDown(e) {
 
   const sx = e.clientX, sy = e.clientY;
   const sel = getNode(getSelectedId());
+  if (isLocked()) {
+    gesture = { type: 'pan', sx, sy, moved: false, readNode: true };
+    return;
+  }
   if (sel && onHandle(sel, sx, sy)) {
     gesture = { type: 'resize', n: sel, ox: sel.w, oy: sel.h, sx, sy };
     return;
@@ -114,7 +123,12 @@ function onPointerDown(e) {
   if (action) {
     gesture = null;
     if (once(action)) {
-      if (action === 'delete') removeNode(sel.id);
+      if (action === 'delete') {
+        pointers.delete(e.pointerId);
+        if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+        confirmDelete(sel.id);
+        lastAct.t = performance.now();
+      }
       else if (action === 'image') pickImage(sel); // 🖼️: change the picture
       else if (action === 'color') pickColor(sel, sx, sy);
       else if (action === 'share') document.dispatchEvent(new CustomEvent('bete-share-group', { detail: sel.id }));
@@ -163,12 +177,20 @@ function doubleAt(x, y) {
   if (lastAct.key === 'delete' && performance.now() - lastAct.t < 600) return;
   if (!once('dbl')) return;
   const w = screenToWorld(x, y);
+  if (isLocked()) {
+    const readable = labelHit(w) || nodeAt(w);
+    if (readable && serviceForNode(readable) && linkOf(readable)) window.open(linkOf(readable), '_blank', 'noopener');
+    else if (readable && youTubeId(readable.text)) playVideo(readable);
+    else if (readable && linkOf(readable)) window.open(linkOf(readable), '_blank', 'noopener');
+    return;
+  }
   if (labelHit(w)) return;
   const selected = getNode(getSelectedId());
   if (selected && actionHit(selected, w, state.camera.zoom)) return;
   const n = nodeAt(w);
   if (!n) { addNode('rect', w.x, w.y); return; }
-  if (n.kind === 'group') startEdit(n.id);                               // group: edit its title
+  if (serviceForNode(n) && linkOf(n)) window.open(linkOf(n), '_blank', 'noopener');
+  else if (n.kind === 'group') startEdit(n.id);                               // group: edit its title
   else if (youTubeId(n.text)) playVideo(n);                              // YouTube: play
   else if (linkOf(n)) window.open(linkOf(n), '_blank', 'noopener');      // has a link: open it
   else if (n.kind === 'image') { if (once('pick')) pickImage(n); }       // image: (re)upload
@@ -193,6 +215,7 @@ function onPointerMove(e) {
     panBy(mx - g.mx, my - g.my);
     g.d = d; g.mx = mx; g.my = my;
   } else if (g.type === 'pan') {
+    if (g.readNode && Math.hypot(e.clientX - g.sx, e.clientY - g.sy) > MOVE_PX) g.moved = true;
     panBy(dx, dy);
   } else if (g.type === 'move') {
     const z = state.camera.zoom;
@@ -228,7 +251,7 @@ function onPointerEnd(e) {
   }
   // Touch: a phone does not reliably send 'dblclick', so a double-tap on a block (two taps,
   // 400 ms and 30 px apart, without dragging) is detected here.
-  if (e.pointerType === 'touch' && g && g.type === 'move' && !g.moved) {
+  if (e.pointerType === 'touch' && g && (g.type === 'move' || (g.type === 'pan' && g.readNode)) && !g.moved) {
     const now = performance.now();
     if (now - lastTap.t < 400 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30) {
       lastTap = { t: 0, x: 0, y: 0 };
@@ -246,17 +269,36 @@ function onPointerEnd(e) {
 }
 
 export function pickImage(n) {
+  if (isLocked()) return;
   pickTarget = n.id;
   picker.value = '';
   picker.click();
 }
 
 async function imageToNode(file, n) {
-  n.image = await addImageFile(file);
+  const ref = await addImageFile(file);
+  if (isLocked()) return;
+  n.image = ref;
   emit();
 }
 
+function confirmDelete(id) {
+  if (isLocked()) return;
+  const n = getNode(id);
+  if (!n) return;
+  const message = n.kind === 'group' ? 'Supprimer ce groupe ? Les blocs qu’il contient seront conservés.' : 'Supprimer ce bloc ?';
+  if (confirm(message)) removeNode(id);
+}
+
 export function initInput() {
+  modeEvents.addEventListener('change', () => {
+    if (gesture?.type === 'move') setDragging(gesture.n, false);
+    pointers.clear(); gesture = null; clearGuides();
+    const palette = document.getElementById('color-palette');
+    if (palette.matches(':popover-open')) palette.hidePopover();
+    if (isLocked() && isEditing()) stopEdit(false);
+    emit();
+  });
   const palette = document.getElementById('color-palette');
   // Opening on canvas pointerdown must survive the same pointer's release outside the popup.
   // Capture dismisses an old palette before the canvas can open a new one.
@@ -286,10 +328,11 @@ export function initInput() {
 
   canvas.addEventListener('dragover', (e) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
+    e.dataTransfer.dropEffect = isLocked() ? 'none' : 'copy';
   });
   canvas.addEventListener('drop', async (e) => {
     e.preventDefault();
+    if (isLocked()) return;
     const w = screenToWorld(e.clientX, e.clientY);
     const file = [...e.dataTransfer.files].find((f) => f.type.startsWith('image/'));
     if (file) {
@@ -310,7 +353,7 @@ export function initInput() {
   });
 
   window.addEventListener('paste', async (e) => {
-    if (isEditing()) return;
+    if (isLocked() || isEditing()) return;
     if (e.target instanceof Element && e.target.closest('input, textarea, [contenteditable], dialog')) return;
     const selected = getNode(getSelectedId());
     const pasted = e.clipboardData?.getData('text/plain');
@@ -333,7 +376,7 @@ export function initInput() {
   });
 
   window.addEventListener('keydown', (e) => {
-    if (isEditing()) return;
+    if (isLocked() || isEditing()) return;
     // Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y redoes the board. Not inside a text field
     // (it keeps its own undo), nor while a popup is open.
     const inField = e.target instanceof Element && e.target.closest('input, textarea');
@@ -345,7 +388,7 @@ export function initInput() {
     if (e.target instanceof Element && e.target.closest('input, textarea, button')) return;
     const id = getSelectedId();
     if (e.key === 'Escape') select(null);
-    else if (id && (e.key === 'Delete' || e.key === 'Backspace')) { e.preventDefault(); removeNode(id); }
+    else if (id && (e.key === 'Delete' || e.key === 'Backspace')) { e.preventDefault(); confirmDelete(id); }
     else if (id && e.key === 'Enter') startEdit(id);
   });
 

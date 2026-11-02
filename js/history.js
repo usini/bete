@@ -4,7 +4,9 @@
 //    drag = one entry) is compared with the previous state, and a new entry is recorded when the
 //    blocks differ. The label ("Déplacement", "Suppression d'un bloc"...) comes from that diff.
 //  - Up to 60 states, persisted with the board and included in JSON exports.
-import { state, onSaved, replaceNodes, sanitizeNode, registerHistory } from './state.js?v=mvzh5g0m';
+import { state, onSaved, replaceNodes, sanitizeNode, registerHistory } from './state.js?v=mvzi1ris';
+
+import { isLocked, modeEvents } from './mobile-mode.js?v=mvzi1ris';
 
 const MAX = 60;
 let states = []; // { json, norm, label, t } — oldest first
@@ -31,7 +33,7 @@ function commit() {
 
 // Shows entry i. Only called right after commit(), so nothing is lost.
 function go(i) {
-  if (i < 0 || i >= states.length || i === pos) return;
+  if (isLocked() || i < 0 || i >= states.length || i === pos) return;
   pos = i;
   replaceNodes(JSON.parse(states[pos].json));
   refreshUi();
@@ -81,8 +83,8 @@ function describe(prevJson, nextJson) {
 
 // ---- toolbar (top-left) ----
 function refreshUi() {
-  $('undo-btn').disabled = pos === 0;
-  $('redo-btn').disabled = pos === states.length - 1;
+  $('undo-btn').disabled = isLocked() || pos === 0;
+  $('redo-btn').disabled = isLocked() || pos === states.length - 1;
   if (!$('history-list').hidden) renderList();
 }
 
@@ -93,6 +95,7 @@ function renderList() {
     const s = states[i];
     const b = document.createElement('button');
     b.type = 'button';
+    b.disabled = isLocked();
     b.className = 'history-item' + (i === pos ? ' current' : i > pos ? ' future' : '');
     const label = document.createElement('span');
     label.textContent = s.label;
@@ -127,6 +130,7 @@ function serializeHistory() {
 }
 
 export function initHistory() {
+  modeEvents.addEventListener('change', refreshUi);
   registerHistory({ load: restoreHistory, save: serializeHistory });
   onSaved(commit);
 

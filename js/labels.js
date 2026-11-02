@@ -1,12 +1,14 @@
 // Labels: the tab above a block. It shows the YouTube title (YouTube blocks) or the block's
 // link URL; a block with neither has no label. The layout and the hit-testing live here,
 // so the renderer and the pointer handling always agree on where the label is.
-import { state } from './state.js?v=mvzh5g0m';
-import { youTubeId, youTubeTitle } from './yt.js?v=mvzh5g0m';
-import { FONT_FAMILY } from './text.js?v=mvzh5g0m';
-import { isAmazonUrl, isAmazonText } from './amazon.js?v=mvzh5g0m';
+import { state } from './state.js?v=mvzi1ris';
+import { youTubeId, youTubeTitle } from './yt.js?v=mvzi1ris';
+import { FONT_FAMILY } from './text.js?v=mvzi1ris';
+import { isAmazonUrl, isAmazonText } from './amazon.js?v=mvzi1ris';
 
-import { genericLink } from './links.js?v=mvzh5g0m';
+import { genericLink } from './links.js?v=mvzi1ris';
+
+import { serviceForNode } from './services.js?v=mvzi1ris';
 
 export const LABEL_SIZE = 26;                       // font size, world units
 export const LABEL_FONT = '600 ' + LABEL_SIZE + 'px ' + FONT_FAMILY;
@@ -24,7 +26,7 @@ export function setLabelRedraw(fn) { redraw = fn; }
 // What the label of a block shows, or null when it has none.
 export function labelInfo(n) {
   if (n.kind === 'group') return null; // a group's text is its title, not a link or a video
-  const yt = youTubeId(n.text);
+  const yt = serviceForNode(n) ? null : youTubeId(n.text);
   if (yt) {
     return {
       kind: 'yt',

@@ -5,8 +5,12 @@
 //  - Sign-in: OAuth code flow through a stateless service. Access tokens stay in memory.
 //  - Sync: check every 30 s and upload only changed content. When connecting, the local board
 //    and the Drive file are compared; if both changed since the last sync, the user chooses.
-import { state, onSaved, saveNow } from './state.js?v=mvzh5g0m';
-import { exportData, importData } from './storage.js?v=mvzh5g0m';
+import { state, onSaved, saveNow } from './state.js?v=mvzi1ris';
+import { exportData, importData } from './storage.js?v=mvzi1ris';
+
+import { notify } from './notifications.js?v=mvzi1ris';
+
+import { isLocked, modeEvents } from './mobile-mode.js?v=mvzi1ris';
 
 const AUTH_URL = 'https://auth-bete.usini.eu';
 const FILE_NAME = 'Bete.json';
@@ -29,6 +33,7 @@ let dirty = false;       // the board changed since the last sync
 let busy = false;
 let lastCheck = 0;       // last time we compared with Drive (to catch another device's changes)
 let conflictPending = false; // "Décider plus tard" was chosen: no autosave until the user acts
+let transferResult = '';
 let message = '';        // transient status line (progress, errors)
 
 class AuthNeeded extends Error {}
@@ -71,13 +76,19 @@ async function ensureToken() {
   if (tokenValid()) return;
   if (!refreshing) {
     connecting = true; driveFailed = false; renderIndicator();
+    driveNotice('Connexion à Google Drive en cours…');
     refreshing = authRequest('/token').then(r => {
       token = r.access_token;
       tokenExpiry = Date.now() + (Number(r.expires_in) - 60) * 1000;
+      driveNotice('Connexion à Google Drive établie.', 'success');
     }).catch(error => { driveFailed = true; throw error; })
       .finally(() => { refreshing = null; connecting = false; renderIndicator(); });
   }
   return refreshing;
+}
+
+function driveNotice(text, type = 'progress') {
+  notify(text, { id: 'drive', type, duration: type === 'progress' ? 0 : 4500 });
 }
 
 // ---- change detection ----
@@ -178,6 +189,7 @@ async function upload(doc) {
 
 // ---- sync steps (always run through run()) ----
 async function pushStep() {
+  driveNotice('Sauvegarde Google Drive en cours…');
   const sig = hash(nodesJson());
   const saved = await upload(await exportData());
   meta.fileId = saved.id;
@@ -187,9 +199,11 @@ async function pushStep() {
   saveMeta();
   dirty = hash(nodesJson()) !== sig; // the board may have changed while uploading
   retryAfter = 0;
+  transferResult = 'saved';
 }
 
 async function pullStep(remote) {
+  driveNotice('Restauration depuis Google Drive en cours…');
   conflictPending = false;
   const doc = await (await api(`${API}/files/${remote.id}?alt=media`)).json();
   await importData(doc);
@@ -200,6 +214,7 @@ async function pullStep(remote) {
   saveMeta();
   dirty = false;
   retryAfter = 0;
+  transferResult = 'restored';
 }
 
 // Right after connecting: decide what to do with the local board and the Drive file.
@@ -234,14 +249,19 @@ async function reconcileStep(interactive = true) {
 }
 
 // Runs one sync operation: one at a time, with status messages and error handling.
-async function run(label, step) {
+async function run(label, step, announce = false) {
   if (busy) return false;
-  busy = true; driveFailed = false;
+  busy = true; driveFailed = false; transferResult = '';
   say(label);
+  if (announce) driveNotice(label);
   try {
     await ensureToken();
     await step();
     if (message === label) say('');
+    if (conflictPending) driveNotice('Conflit Google Drive : clique sur la disquette pour choisir la version.', 'info');
+    else if (transferResult === 'restored') driveNotice('Restauration terminée.', 'success');
+    else if (transferResult === 'saved') driveNotice(dirty ? 'Sauvegarde terminée. De nouvelles modifications restent en attente.' : 'Sauvegarde terminée sur Google Drive.', dirty ? 'info' : 'success');
+    else if (announce) driveNotice('Synchronisation terminée. Aucune modification en attente.', 'success');
     return true;
   } catch (e) {
     fail(e);
@@ -255,12 +275,13 @@ async function run(label, step) {
 
 function fail(e) {
   driveFailed = true;
-  if (e instanceof AuthNeeded) { say('Session expirée : reconnecte-toi pour continuer.'); return; }
+  if (e instanceof AuthNeeded) { say('Session expirée : reconnecte-toi pour continuer.'); driveNotice('Connexion Google Drive échouée. Clique sur la disquette pour te reconnecter.', 'error'); return; }
   const offline = e instanceof TypeError;
   const apiOff = e.status === 403 && /not been used|disabled/i.test(e.message || '');
   say(offline ? 'Hors ligne ou Google injoignable : nouvel essai bientôt.'
     : apiOff ? "Google Drive : l'API Drive n'est pas activée dans le projet Google Cloud."
       : 'Google Drive : ' + (e.message || 'erreur'));
+  driveNotice(message, 'error');
   if (offline || e.status >= 500 || e.name === 'TimeoutError') {
     retryAfter = Date.now() + driveConfig.retryMs;
   }
@@ -319,6 +340,7 @@ function renderIndicator() {
   const mode = driveFailed ? 'error' : connecting || !tokenValid() ? 'connecting'
     : dirty || busy || conflictPending ? 'pending' : 'saved';
   button.dataset.state = mode;
+  button.dataset.working = String(busy || connecting);
   const descriptions = {
     error: 'Échec de connexion ou de sauvegarde Google Drive. Cliquer pour réessayer.',
     connecting: 'Connexion ou reconnexion à Google Drive en cours.',
@@ -337,6 +359,7 @@ function render() {
   $('drive-restore').hidden = !linked;
   $('drive-disconnect').hidden = !linked;
   for (const id of ['drive-connect', 'drive-restore', 'drive-disconnect']) $(id).disabled = busy || connecting;
+  $('drive-restore').disabled = busy || connecting || isLocked();
   $('drive-status').textContent = statusText(linked, linked && tokenValid());
   $('drive-status').hidden = linked || !message;
   renderIndicator();
@@ -344,10 +367,12 @@ function render() {
 
 async function connect() {
   connecting = true; driveFailed = false; say('Connexion à Google…');
+  driveNotice('Connexion à Google Drive en cours…');
   try {
     await requestToken();
   } catch (e) {
     connecting = false; driveFailed = true; say(e.message || 'Connexion annulée.');
+    driveNotice(message, 'error');
     return;
   }
   connecting = false;
@@ -355,7 +380,7 @@ async function connect() {
     meta = { linked: true, fileId: '', remoteModified: '', lastSyncedAt: 0, sig: '' };
     saveMeta();
   }
-  await run('Synchronisation…', reconcileStep);
+  await run('Synchronisation…', reconcileStep, true);
 }
 
 async function disconnect() {
@@ -374,6 +399,7 @@ async function disconnect() {
 }
 
 function restore() {
+  if (isLocked()) return;
   if (!confirm('Remplacer le tableau actuel par la sauvegarde de Google Drive ?')) return;
   run('Restauration…', async () => {
     const remote = await findFile();
@@ -383,6 +409,7 @@ function restore() {
 }
 
 export function initDrive() {
+  modeEvents.addEventListener('change', render);
   if (meta) {
     dirty = hash(nodesJson()) !== meta.sig;
   }
@@ -400,8 +427,13 @@ export function initDrive() {
   });
   $('drive-connect').addEventListener('click', connect);
   $('drive-save').addEventListener('click', () => {
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      $('drive-save').querySelector('svg')?.animate([
+        { transform: 'scale(1)' }, { transform: 'scale(0.75) rotate(-12deg)' }, { transform: 'scale(1)' },
+      ], { duration: 500, easing: 'ease-out' });
+    }
     if (!tokenValid() && driveFailed) connect();
-    else run('Sauvegarde…', reconcileStep);
+    else run('Sauvegarde…', reconcileStep, true);
   });
   $('drive-restore').addEventListener('click', restore);
   $('drive-disconnect').addEventListener('click', disconnect);

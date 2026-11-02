@@ -1,5 +1,7 @@
-import { youTubeId } from './yt.js?v=mvzh5g0m';
-import { isAmazonUrl } from './amazon.js?v=mvzh5g0m';
+import { youTubeId } from './yt.js?v=mvzi1ris';
+import { isAmazonUrl } from './amazon.js?v=mvzi1ris';
+
+import { serviceForUrl } from './services.js?v=mvzi1ris';
 
 export function plainLink(raw) {
   const text = String(raw || '').trim();
@@ -13,7 +15,7 @@ export function plainLink(raw) {
 }
 export function genericLink(raw) {
   const url = plainLink(raw);
-  return url && !youTubeId(url) && !isAmazonUrl(url) ? url : null;
+  return url && (serviceForUrl(url) || (!youTubeId(url) && !isAmazonUrl(url))) ? url : null;
 }
 export function droppedLink(data) {
   // Native browser links/bookmarks use URI lists; Firefox can also include a title below the URL.
@@ -44,5 +46,5 @@ export function droppedTitle(data, url) {
     || title(data.getData('text/x-moz-url-desc')) || title(data.getData('text/plain'));
 }
 export function genericLinkOf(node) {
-  return node.kind === 'rect' && !youTubeId(node.text) ? genericLink(node.link || node.text) : null;
+  return node.kind === 'rect' && (serviceForUrl(node.link || node.text) || !youTubeId(node.text)) ? genericLink(node.link || node.text) : null;
 }

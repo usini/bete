@@ -9,6 +9,8 @@ test('browser restores and renews tokens without storing them or proxying Drive 
   const source = readFileSync(new URL('../js/drive.js', import.meta.url), 'utf8')
     .replace(/^import .*;\r?\n/gm, '').replaceAll('export ', '');
   const context = vm.createContext({
+    isLocked: () => false, modeEvents: {addEventListener(){}},
+    notify: () => {},
     localStorage: { getItem: () => null, removeItem: k => removed.push(k) },
     document: {}, state: { nodes: [] }, AbortSignal,
     Date: class extends Date { static now() { return now; } },
@@ -39,6 +41,8 @@ test('periodic sync skips unchanged content, busy operations, backoff and confli
   const source = readFileSync(new URL('../js/drive.js', import.meta.url), 'utf8')
     .replace(/^import .*;\r?\n/gm, '').replaceAll('export ', '');
   const context = vm.createContext({
+    isLocked: () => false, modeEvents: {addEventListener(){}},
+    notify: () => {},
     localStorage: { getItem: () => null, removeItem: () => {}, setItem: () => {} },
     document: { getElementById: () => ({}) }, state: { nodes: [{id: 'local'}] }, AbortSignal, URLSearchParams,
     Date: class extends Date { static now() { return now; } },

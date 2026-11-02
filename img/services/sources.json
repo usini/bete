@@ -1,0 +1,166 @@
+[
+  {
+    "version": "16.36.0",
+    "title": "Gmail",
+    "slug": "gmail",
+    "hex": "EA4335",
+    "source": "https://fonts.gstatic.com/s/i/productlogos/gmail_2020q4/v8/192px.svg"
+  },
+  {
+    "version": "16.36.0",
+    "title": "YouTube",
+    "slug": "youtube",
+    "hex": "FF0000",
+    "source": "https://www.youtube.com/howyoutubeworks/resources/brand-resources/#logos-icons-and-colors",
+    "guidelines": "https://www.youtube.com/howyoutubeworks/resources/brand-resources/#logos-icons-and-colors"
+  },
+  {
+    "version": "16.36.0",
+    "title": "Facebook",
+    "slug": "facebook",
+    "hex": "0866FF",
+    "source": "https://about.meta.com/brand/resources/facebook/logo",
+    "guidelines": "https://about.meta.com/brand/resources/facebook/logo"
+  },
+  {
+    "version": "16.36.0",
+    "title": "X",
+    "slug": "x",
+    "hex": "000000",
+    "source": "https://x.com",
+    "guidelines": "https://about.x.com/en/who-we-are/brand-toolkit",
+    "aliases": {
+      "aka": [
+        "Twitter"
+      ]
+    }
+  },
+  {
+    "version": "16.36.0",
+    "title": "Google",
+    "slug": "google",
+    "hex": "4285F4",
+    "source": "https://partnermarketinghub.withgoogle.com",
+    "guidelines": "https://about.google/brand-resource-center/brand-elements/",
+    "aliases": {
+      "loc": {
+        "ko-KR": "구글"
+      }
+    }
+  },
+  {
+    "version": "16.36.0",
+    "title": "Google Drive",
+    "slug": "googledrive",
+    "hex": "4285F4",
+    "source": "https://developers.google.com/drive/web/branding"
+  },
+  {
+    "version": "16.36.0",
+    "title": "Google Calendar",
+    "slug": "googlecalendar",
+    "hex": "4285F4",
+    "source": "https://fonts.gstatic.com/s/i/productlogos/calendar_2020q4/v8/192px.svg"
+  },
+  {
+    "version": "16.36.0",
+    "title": "Google Maps",
+    "slug": "googlemaps",
+    "hex": "4285F4",
+    "source": "https://commons.wikimedia.org/wiki/File:Google_Maps_icon.svg"
+  },
+  {
+    "version": "16.36.0",
+    "title": "Google Docs",
+    "slug": "googledocs",
+    "hex": "4285F4",
+    "source": "https://www.google.com/docs/about"
+  },
+  {
+    "version": "16.36.0",
+    "title": "Google Sheets",
+    "slug": "googlesheets",
+    "hex": "34A853",
+    "source": "https://sheets.google.com"
+  },
+  {
+    "version": "16.36.0",
+    "title": "Google Slides",
+    "slug": "googleslides",
+    "hex": "FBBC04",
+    "source": "https://slides.google.com"
+  },
+  {
+    "version": "16.36.0",
+    "title": "Instagram",
+    "slug": "instagram",
+    "hex": "FF0069",
+    "source": "https://about.meta.com/brand/resources/instagram",
+    "guidelines": "https://about.meta.com/brand/resources/instagram"
+  },
+  {
+    "version": "16.36.0",
+    "title": "WhatsApp",
+    "slug": "whatsapp",
+    "hex": "25D366",
+    "source": "https://about.meta.com/brand/resources/whatsapp/whatsapp-brand",
+    "guidelines": "https://about.meta.com/brand/resources/whatsapp/whatsapp-brand"
+  },
+  {
+    "version": "16.36.0",
+    "title": "Discord",
+    "slug": "discord",
+    "hex": "5865F2",
+    "source": "https://discord.com/branding",
+    "guidelines": "https://discord.com/branding"
+  },
+  {
+    "version": "16.36.0",
+    "title": "GitHub",
+    "slug": "github",
+    "hex": "181717",
+    "source": "https://github.com/logos",
+    "guidelines": "https://github.com/logos"
+  },
+  {
+    "version": "16.36.0",
+    "title": "Spotify",
+    "slug": "spotify",
+    "hex": "1ED760",
+    "source": "https://developer.spotify.com/documentation/general/design-and-branding/#using-our-logo",
+    "guidelines": "https://developer.spotify.com/documentation/general/design-and-branding/#using-our-logo"
+  },
+  {
+    "version": "16.36.0",
+    "title": "Reddit",
+    "slug": "reddit",
+    "hex": "FF4500",
+    "source": "https://www.redditinc.com/brand",
+    "guidelines": "https://www.redditinc.com/brand"
+  },
+  {
+    "version": "16.36.0",
+    "title": "Twitch",
+    "slug": "twitch",
+    "hex": "9146FF",
+    "source": "https://brand.twitch.tv",
+    "guidelines": "https://brand.twitch.tv"
+  },
+  {
+    "version": "16.36.0",
+    "title": "Telegram",
+    "slug": "telegram",
+    "hex": "26A5E4",
+    "source": "https://telegram.org/tour/screenshots"
+  },
+  {
+    "slug": "linkedin",
+    "version": "13.0.0",
+    "source": "https://github.com/simple-icons/simple-icons/blob/13.0.0/icons/linkedin.svg"
+  },
+  {
+    "slug": "microsoftoutlook",
+    "version": "11.0.0",
+    "source": "https://github.com/simple-icons/simple-icons/blob/11.0.0/icons/microsoftoutlook.svg"
+  }
+]

@@ -10,7 +10,8 @@ test('history round trip retains undo and redo, accepts legacy boards and saniti
     let adapter;
     const elements = new Map();
     const state = { nodes: [{ id: 'a', text: 'one' }] };
-    const context = vm.createContext({ state, Date, Map, Set,
+    const context = vm.createContext({
+    isLocked: () => false, modeEvents: {addEventListener(){}}, state, Date, Map, Set,
       document: { getElementById(id) { if(!elements.has(id)) elements.set(id, {hidden:true, addEventListener(){}}); return elements.get(id); }, addEventListener(){} },
       onSaved(){}, sanitizeNode: n => n && typeof n.id === 'string' ? {id:n.id, text:String(n.text)} : null,
       replaceNodes(nodes){state.nodes=nodes;},

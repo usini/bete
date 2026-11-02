@@ -5,12 +5,16 @@
 //  - when the link is an Amazon address the popup becomes "Produit Amazon": name, price and
 //    delivery time fields appear (typed by hand, shown in the block's label)
 // It closes only with the Annuler / Valider buttons (Ctrl+Enter, or Enter in a one-line field, also validate).
-import { getNode, emit } from './state.js?v=mvzh5g0m';
-import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mvzh5g0m';
-import { youTubeId } from './yt.js?v=mvzh5g0m';
-import { addImageFile, imageFor } from './images.js?v=mvzh5g0m';
+import { getNode, emit } from './state.js?v=mvzi1ris';
+import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mvzi1ris';
+import { youTubeId } from './yt.js?v=mvzi1ris';
+import { addImageFile, imageFor } from './images.js?v=mvzi1ris';
 
-import { genericLink } from './links.js?v=mvzh5g0m';
+import { genericLink } from './links.js?v=mvzi1ris';
+
+import { isLocked } from './mobile-mode.js?v=mvzi1ris';
+
+import { serviceForNode } from './services.js?v=mvzi1ris';
 
 const dlg = document.getElementById('textdialog');
 const title = document.getElementById('dialog-title');
@@ -90,11 +94,11 @@ function refreshAmazon() {
 // focus: 'text' or 'link' — which field gets the cursor (when both are shown).
 export function startEdit(id, focus = 'text') {
   const n = getNode(id);
-  if (!n || dlg.open) return;
+  if (isLocked() || !n || dlg.open) return;
   editingId = id;
   textField.hidden = n.kind === 'image';
   isGroup = n.kind === 'group';
-  ytBlock = isGroup || !!youTubeId(n.text);
+  ytBlock = isGroup || (!serviceForNode(n) && !!youTubeId(n.text));
   textField.querySelector('span').textContent = isGroup ? 'Titre' : 'Texte';
   el.value = n.text;
   linkEl.value = n.link || '';
@@ -132,6 +136,7 @@ function setField(n, key, raw) {
 }
 
 export function stopEdit(commit) {
+  if (isLocked()) commit = false;
   if (editingId === null) return;
   const n = getNode(editingId);
   if (!commit || !n) {
@@ -175,7 +180,7 @@ export function stopEdit(commit) {
     if (pendingFile) {
       // Stored asynchronously (IndexedDB): the block is updated once the image is saved.
       addImageFile(pendingFile).then((ref) => {
-        if (getNode(n.id)) { n.image = ref; emit(); }
+        if (!isLocked() && getNode(n.id)) { n.image = ref; emit(); }
       });
     } else if (removeImage && n.image) {
       delete n.image;
