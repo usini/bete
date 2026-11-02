@@ -28,9 +28,12 @@ python -m http.server 8000
 - **Navigation** : déplacement, zoom (molette ou pincement), minimap, alignement automatique des blocs.
 - **Sauvegarde** : enregistrement automatique dans le navigateur (localStorage et IndexedDB),
   export et import d'un fichier JSON.
+- **Google Drive (facultatif)** : sauvegarde automatique du tableau dans un dossier caché de ton Drive
+  (droit `drive.appdata` uniquement), avec choix en cas de conflit entre deux appareils.
 
-Aucune donnée n'est envoyée à un serveur. Les seuls appels réseau sont ceux de YouTube :
-miniatures (`i.ytimg.com`), titres (oEmbed) et lecteur (`youtube-nocookie.com`).
+Aucune donnée n'est envoyée à un serveur de Bête. Les appels réseau sont ceux de YouTube :
+miniatures (`i.ytimg.com`), titres (oEmbed) et lecteur (`youtube-nocookie.com`) ; et, seulement si tu
+actives la sauvegarde, ceux de Google (connexion `accounts.google.com`, API Drive `www.googleapis.com`).
 
 ## Confidentialité
 

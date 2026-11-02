@@ -1,6 +1,6 @@
 // Data model, sanitizers and local autosave (localStorage).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mvz95lma';
+import { explode } from './fx.js?v=mvz9vkup';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2'];
 export const DEFAULT_COLOR = COLORS[1];
@@ -90,9 +90,14 @@ export function serialize() {
   return { app: 'bete2', version: 1, camera: state.camera, nodes: state.nodes };
 }
 
+// Called after every local save: lets drive.js notice that the board's content changed.
+const savedListeners = [];
+export function onSaved(fn) { savedListeners.push(fn); }
+
 export function saveNow() {
   try { localStorage.setItem(KEY, JSON.stringify(serialize())); }
   catch (err) { console.warn('bete2: save failed', err); }
+  for (const fn of savedListeners) fn();
 }
 
 export function loadFromStorage() {

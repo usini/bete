@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Bête</title>
-  <link rel="stylesheet" href="css/style.css?v=mvz95lma">
+  <link rel="stylesheet" href="css/style.css?v=mvz9vkup">
 </head>
 <body>
   <canvas id="canvas"></canvas>
@@ -54,6 +54,16 @@
     </div>
   </dialog>
 
+  <dialog id="drivedialog">
+    <h3>Sauvegarde Google Drive</h3>
+    <p id="drive-dialog-text"></p>
+    <div class="dialog-actions">
+      <button type="button" id="drive-keep-remote">Prendre celui de Drive</button>
+      <button type="button" id="drive-keep-local" class="primary">Garder ce tableau</button>
+    </div>
+    <p class="hint"><button type="button" id="drive-later" class="linklike">Décider plus tard</button></p>
+  </dialog>
+
   <aside id="panel">
     <div class="panel-body">
       <h2>Blocs</h2>
@@ -74,11 +84,22 @@
         <p class="hint">Double-clic sur un bloc : lire la vidéo YouTube, ouvrir le lien s'il y en a un, choisir l'image (bloc image), sinon modifier le bloc. Clic sur le label ou sur 📝 : modifier le texte et le lien. 🖼️ : changer l'image.</p>
       </section>
 
+      <section id="drive">
+        <h2>Google Drive</h2>
+        <p class="hint" id="drive-status"></p>
+        <button id="drive-connect">Connecter Google Drive</button>
+        <button id="drive-save" hidden>Sauvegarder maintenant</button>
+        <button id="drive-restore" hidden>Restaurer depuis Drive</button>
+        <button id="drive-disconnect" hidden>Déconnecter</button>
+      </section>
+
       <h2>Fichier</h2>
       <button id="export">Exporter JSON</button>
       <button id="import">Importer JSON</button>
-      <p class="hint"><a href="confidentialite.html" target="_blank" rel="noopener">Politique de confidentialité</a></p>
     </div>
+    <footer class="panel-footer">
+      <a href="confidentialite.html" target="_blank" rel="noopener">Politique de confidentialité</a>
+    </footer>
   </aside>
   <button id="panel-toggle" title="Ouvrir / fermer le menu" aria-label="Ouvrir / fermer le menu">
     <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
@@ -91,6 +112,6 @@
   <input type="file" id="image-file" accept="image/*" hidden>
   <input type="file" id="fileimport" accept="application/json,.json" hidden>
 
-  <script type="module" src="js/main.js?v=mvz95lma"></script>
+  <script type="module" src="js/main.js?v=mvz9vkup"></script>
 </body>
 </html>
