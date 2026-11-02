@@ -5,16 +5,16 @@
 //  - when the link is an Amazon address the popup becomes "Produit Amazon": name, price and
 //    delivery time fields appear (typed by hand, shown in the block's label)
 // It closes only with the Annuler / Valider buttons (Ctrl+Enter, or Enter in a one-line field, also validate).
-import { getNode, emit } from './state.js?v=mvzi1ris';
-import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mvzi1ris';
-import { youTubeId } from './yt.js?v=mvzi1ris';
-import { addImageFile, imageFor } from './images.js?v=mvzi1ris';
+import { getNode, emit } from './state.js?v=mvzijf2m';
+import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mvzijf2m';
+import { youTubeId } from './yt.js?v=mvzijf2m';
+import { addImageFile, imageFor } from './images.js?v=mvzijf2m';
 
-import { genericLink } from './links.js?v=mvzi1ris';
+import { genericLink } from './links.js?v=mvzijf2m';
 
-import { isLocked } from './mobile-mode.js?v=mvzi1ris';
+import { isLocked } from './mobile-mode.js?v=mvzijf2m';
 
-import { serviceForNode } from './services.js?v=mvzi1ris';
+import { serviceForNode } from './services.js?v=mvzijf2m';
 
 const dlg = document.getElementById('textdialog');
 const title = document.getElementById('dialog-title');

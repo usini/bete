@@ -188,7 +188,38 @@ let browser,server;
   assert.equal((await mobileState()).locked,true,'each mobile opening starts in read-only mode');
   await mobileContext.close();
   assert.equal(requests.filter(r=>r.host==='localhost:8092').length,0);
+  let facebookRequests = 0;
+  await page.route('https://www.facebook.com/**', route => {
+    facebookRequests++;
+    return route.fulfill({contentType:'text/html',body:'<!doctype html><p>Publication Facebook de test</p>'});
+  });
+  await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const s=await import('/js/state.js'+v);
+    s.state.nodes=[];s.state.camera={x:0,y:0,zoom:1};
+    const n=s.addNode('rect',0,0);n.w=500;n.h=400;
+    n.link='https://www.facebook.com/example/posts/123?fbclid=secret';s.emit();
+  });
+  await page.waitForSelector('.facebook-post iframe');
+  await page.waitForFunction(()=>document.querySelector('.facebook-post iframe').contentWindow!==null);
+  const fb = page.locator('.facebook-post iframe');
+  assert.equal(await fb.getAttribute('referrerpolicy'),'no-referrer');
+  assert.equal(new URL(await fb.getAttribute('src')).searchParams.get('href'),'https://www.facebook.com/example/posts/123');
+  await page.waitForTimeout(200);
+  assert.equal(facebookRequests,1);
+  await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const s=await import('/js/state.js'+v);s.state.camera.zoom=0.5;s.emit();
+  });
+  await page.waitForFunction(()=>document.querySelector('.facebook-post').style.width==='242px');
+  assert.equal(facebookRequests,1,'camera movement must not recreate the embed');
+  await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const s=await import('/js/state.js'+v);s.state.nodes=[];s.emit();
+  });
+  await page.waitForFunction(()=>!document.querySelector('.facebook-post'));
   assert.deepEqual(errors,[]);
+  console.log('PASS: Facebook post automatic iframe, normalized URL, no referrer, zoom without reload, removal after deletion (Meta response mocked)');
   console.log('PASS: 21 local service icons without external requests, confirmed deletion, mobile default lock/unlock/relock, protected editing, pan/pinch, desktop unchanged, save animation and progress/success/error/connection notifications, clean menu, block deletion, Drive hidden/red/yellow/green/blinking status, browser URL drop at pointer location, pasted URL and editor conversion, URL label, browser-provided title, no linked-site favicon requests');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{
   if(browser)await browser.close();if(server)await new Promise(r=>server.close(r));

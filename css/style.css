@@ -455,3 +455,7 @@ button:hover { border-color: var(--accent); }
 #mobile-lock { margin-bottom: 16px; border-color: var(--accent); }
 
 .mobile-locked #import, .mobile-locked #drive-restore { opacity: 0.35; cursor: not-allowed; }
+
+/* Facebook embeds leave the block border and action buttons accessible. */
+.facebook-post { position: fixed; z-index: 4; overflow: hidden; background: white; }
+.facebook-post iframe { display: block; border: 0; transform-origin: top left; }
