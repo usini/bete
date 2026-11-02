@@ -1,7 +1,7 @@
 // Image blobs live in IndexedDB; nodes only keep a reference 'idb:<id>'.
-import { newId } from './state.js?v=mvzpna3r';
+import { newId } from './state.js?v=mvzpt511';
 
-import { openDatabase } from './database.js?v=mvzpna3r';
+import { openDatabase } from './database.js?v=mvzpt511';
 const STORE = 'images';
 
 async function run(mode, op) {

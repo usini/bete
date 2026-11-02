@@ -1,24 +1,24 @@
-import { positionEmbeds } from './embed-view.js?v=mvzpna3r';
+import { positionEmbeds } from './embed-view.js?v=mvzpt511';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzpna3r';
-import { view, screenToWorld } from './camera.js?v=mvzpna3r';
-import { youTubeId, ytThumb } from './yt.js?v=mvzpna3r';
-import { imageFor } from './images.js?v=mvzpna3r';
-import { positionVideo, isVideoPlaying } from './video.js?v=mvzpna3r';
-import { guides } from './snap.js?v=mvzpna3r';
-import { renderMinimap } from './minimap.js?v=mvzpna3r';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzpna3r';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzpna3r';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzpna3r';
+import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzpt511';
+import { view, screenToWorld } from './camera.js?v=mvzpt511';
+import { youTubeId, ytThumb } from './yt.js?v=mvzpt511';
+import { imageFor } from './images.js?v=mvzpt511';
+import { positionVideo, isVideoPlaying } from './video.js?v=mvzpt511';
+import { guides } from './snap.js?v=mvzpt511';
+import { renderMinimap } from './minimap.js?v=mvzpt511';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzpt511';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzpt511';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzpt511';
 
-import { genericLinkOf, plainLink } from './links.js?v=mvzpna3r';
-import { stepMotion } from './motion.js?v=mvzpna3r';
-import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mvzpna3r';
+import { genericLinkOf, plainLink } from './links.js?v=mvzpt511';
+import { stepMotion } from './motion.js?v=mvzpt511';
+import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mvzpt511';
 
-import { isLocked } from './mobile-mode.js?v=mvzpna3r';
+import { isLocked } from './mobile-mode.js?v=mvzpt511';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mvzpna3r';
-import { isAmazonUrl } from './amazon.js?v=mvzpna3r';
+import { serviceForNode, serviceIcon } from './services.js?v=mvzpt511';
+import { isAmazonUrl } from './amazon.js?v=mvzpt511';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -98,18 +98,20 @@ function draw() {
     drawNode(n, n.id === selId, zoom);
     ctx.restore();
   }
-  drawRemoteCursors(zoom);
+  const cursorMoving = drawRemoteCursors(zoom);
   renderFx(ctx); // deletion animation, above the blocks
   drawGuides(zoom);
   positionVideo();
   positionEmbeds();
   renderMinimap();
   // Keep animating until the 📝 button is fully shown and the deletion pieces are gone.
-  if (iconT < 1 || hasParticles() || sharedGlowVisible || (moving && !reducedMotion.matches)) requestRender();
+  if (iconT < 1 || hasParticles() || sharedGlowVisible || ((moving || cursorMoving) && !reducedMotion.matches)) requestRender();
 }
 
 function drawRemoteCursors(zoom) {
-  for (const cursor of remoteCursors()) {
+  let moving = false;
+  for (const cursor of remoteCursors(!reducedMotion.matches)) {
+    moving ||= cursor.moving;
     ctx.save();
     ctx.translate(cursor.x, cursor.y); ctx.scale(1 / zoom, 1 / zoom);
     ctx.fillStyle = cursor.color; ctx.strokeStyle = '#0c0e12'; ctx.lineWidth = 2;
@@ -121,6 +123,7 @@ function drawRemoteCursors(zoom) {
     ctx.fillStyle = cursor.color; ctx.fillText(cursor.label, 19, 29);
     ctx.restore();
   }
+  return moving;
 }
 
 // Snap guide lines (shown only while a block is being moved or resized).
@@ -280,9 +283,9 @@ function drawSharedGlow(n) {
   glow.addColorStop(1, 'rgba(25,118,237,0)');
   ctx.save();
   ctx.strokeStyle = glow;
-  ctx.lineWidth = 4 / z;
+  ctx.lineWidth = 10 / z;
   ctx.shadowColor = '#1976ed';
-  ctx.shadowBlur = 20 * dpr;
+  ctx.shadowBlur = 32 * dpr;
   ctx.strokeRect(n.x + 2, n.y + 2, n.w - 4, n.h - 4);
   ctx.restore();
   if (!reducedMotion.matches) sharedGlowVisible = true;

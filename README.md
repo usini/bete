@@ -170,6 +170,11 @@ inspirée de [CSS Glow Border Animation de liyrofx](https://codepen.io/liyrofx/p
 L’effet est dessiné localement dans le canvas, sans requête CodePen, sans modifier les sauvegardes
 ni envoyer de messages de présence. Il reste fixe si la réduction des animations est activée,
 et cesse d’animer lorsque les groupes sont hors écran ou le partage désactivé.
+La bordure fait 10 pixels à l’écran, avec un halo de 32 pixels.
+Les curseurs en mouvement sont transmis au plus toutes les 150 ms (environ 7 fois par seconde),
+puis lissés localement entre les positions reçues. Un curseur immobile n’envoie qu’un maintien
+de présence toutes les 2 secondes. Les positions sont abandonnées si le canal est encombré ;
+elles ne s’accumulent pas derrière les images. Aucun état d’animation n’est sauvegardé.
 
 Sélectionne un groupe puis clique sur l’icône **QR code**, sous 🎨. La fenêtre propose le QR,
 le lien, **Activer / Désactiver le partage** et **Régénérer le lien** (sur l’appareil source).

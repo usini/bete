@@ -1,6 +1,18 @@
 // Transient visual state: never written to board JSON, history or the network.
 const motion = new WeakMap();
 const dragging = new WeakSet();
+// Smooth transient peer-pointer targets without sending animation frames over the network.
+export function smoothPointer(cursor, now, animate = true) {
+  if (!animate || cursor.drawX === undefined) { cursor.drawX = cursor.x; cursor.drawY = cursor.y; }
+  const elapsed = Math.max(0, now - (cursor.drawTime ?? now));
+  const factor = 1 - Math.exp(-elapsed / 65);
+  cursor.drawX += (cursor.x - cursor.drawX) * factor;
+  cursor.drawY += (cursor.y - cursor.drawY) * factor;
+  cursor.drawTime = now;
+  const moving = Math.hypot(cursor.x - cursor.drawX, cursor.y - cursor.drawY) > 0.15;
+  if (!moving) { cursor.drawX = cursor.x; cursor.drawY = cursor.y; }
+  return { x: cursor.drawX, y: cursor.drawY, moving };
+}
 export function setDragging(node, active) {
   if (active) dragging.add(node);
   else dragging.delete(node);
