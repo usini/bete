@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Bête</title>
+  <link rel="stylesheet" href="css/style.css?v=mvz7o991">
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <canvas id="minimap" title="Minimap : cliquer ou glisser pour déplacer la vue"></canvas>
+  <div id="clock"><span id="clock-date"></span><span id="clock-time"></span></div>
+  <dialog id="textdialog">
+    <h3 id="dialog-title">Modifier le bloc</h3>
+    <label id="text-field" class="field">
+      <span>Texte</span>
+      <textarea id="editor" maxlength="20000" spellcheck="false"></textarea>
+    </label>
+    <div id="image-field" class="field">
+      <span>Image</span>
+      <div class="image-row">
+        <img id="image-preview" alt="" hidden>
+        <div class="image-actions">
+          <button type="button" id="image-pick">Choisir un fichier…</button>
+          <button type="button" id="image-remove" hidden>Retirer l'image</button>
+          <small>ou colle une image (Ctrl+V)</small>
+        </div>
+      </div>
+    </div>
+    <label id="link-field" class="field">
+      <span>Lien</span>
+      <input type="text" id="linkinput" spellcheck="false" autocomplete="off" placeholder="https://…">
+      <small id="link-error" hidden>Adresse invalide : utilise https://… ou un nom de site comme exemple.com</small>
+    </label>
+    <div id="amazon-fields" hidden>
+      <label class="field">
+        <span>Nom du produit</span>
+        <input type="text" id="am-name" maxlength="100" spellcheck="false" autocomplete="off" placeholder="Casque Bluetooth">
+      </label>
+      <div class="field-row">
+        <label class="field">
+          <span>Prix</span>
+          <input type="text" id="am-price" maxlength="100" spellcheck="false" autocomplete="off" placeholder="49,99 €">
+        </label>
+        <label class="field">
+          <span>Livraison</span>
+          <input type="text" id="am-delivery" maxlength="100" spellcheck="false" autocomplete="off" placeholder="2-3 jours">
+        </label>
+      </div>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" id="text-cancel">Annuler</button>
+      <button type="button" id="text-ok" class="primary">Valider</button>
+    </div>
+  </dialog>
+
+  <aside id="panel">
+    <div class="panel-body">
+      <h2>Blocs</h2>
+      <div class="block" draggable="true" data-block="rect">Rectangle</div>
+      <div class="block" draggable="true" data-block="image">Image</div>
+      <div class="block" draggable="true" data-block="group">Groupe</div>
+      <p class="hint">Glisse un bloc sur la zone, ou tape dessus pour l'ajouter au centre. Un groupe emporte les blocs qu'il contient.</p>
+
+      <section id="groups" hidden>
+        <h2>Groupes</h2>
+        <div id="group-list"></div>
+      </section>
+
+      <section id="sel" hidden>
+        <h2>Sélection</h2>
+        <div id="swatches"></div>
+        <button id="del">Supprimer</button>
+        <p class="hint">Double-clic sur un bloc : lire la vidéo YouTube, ouvrir le lien s'il y en a un, choisir l'image (bloc image), sinon modifier le bloc. Clic sur le label ou sur 📝 : modifier le texte et le lien. 🖼️ : changer l'image.</p>
+      </section>
+
+      <h2>Fichier</h2>
+      <button id="export">Exporter JSON</button>
+      <button id="import">Importer JSON</button>
+    </div>
+  </aside>
+  <button id="panel-toggle" title="Ouvrir / fermer le menu" aria-label="Ouvrir / fermer le menu">
+    <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+      <path class="ic-menu" d="M4 6h16M4 12h16M4 18h16"/>
+      <path class="ic-close" d="M6 6l12 12M18 6L6 18"/>
+    </svg>
+  </button>
+
+  <input type="file" id="filepick" accept="image/*" hidden>
+  <input type="file" id="image-file" accept="image/*" hidden>
+  <input type="file" id="fileimport" accept="application/json,.json" hidden>
+
+  <script type="module" src="js/main.js?v=mvz7o991"></script>
+</body>
+</html>
