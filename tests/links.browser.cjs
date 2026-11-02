@@ -341,6 +341,11 @@ let browser,server;
   await page.getByRole('button',{name:'Manipuler le bloc',exact:true}).click();
   assert.equal(await page.locator('.maps-embed').getAttribute('data-interactive'),'false');
   assert.equal(mapRequests,1,'moving or resizing must not reload the map');
+  await page.keyboard.press('Delete');
+  assert.equal(await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    return (await import('/js/state.js'+v)).state.nodes.length;
+  }),0,'Delete must work after using the embed interaction button');
   await page.evaluate(async()=>{
     const v=new URL(document.querySelector('script[type=module]').src).search;
     const s=await import('/js/state.js'+v);s.state.camera.x=1000000;s.emit();

@@ -1,7 +1,7 @@
-import { state } from './state.js?v=mvzojnnt';
-import { worldToScreen, view } from './camera.js?v=mvzojnnt';
-import { facebookPostOf, facebookEmbed } from './facebook.js?v=mvzojnnt';
-import { googleMapsEmbedOf } from './google-maps.js?v=mvzojnnt';
+import { state, select } from './state.js?v=mvzpbq8z';
+import { worldToScreen, view } from './camera.js?v=mvzpbq8z';
+import { facebookPostOf, facebookEmbed } from './facebook.js?v=mvzpbq8z';
+import { googleMapsEmbedOf } from './google-maps.js?v=mvzpbq8z';
 
 const frames = new Map();
 
@@ -50,7 +50,10 @@ export function positionEmbeds() {
       document.body.append(wrap);
       item = { wrap, frame, button, post, action: map ? 'Interagir avec la carte' : 'Interagir avec le post' };
       const entry = item;
-      button.addEventListener('click', () => setInteractive(entry, entry.wrap.dataset.interactive !== 'true'));
+      button.addEventListener('click', () => {
+        select(entry.wrap.dataset.nodeId);
+        setInteractive(entry, entry.wrap.dataset.interactive !== 'true');
+      });
       setInteractive(item, false);
       frames.set(n.id, item);
     }

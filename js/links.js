@@ -1,8 +1,8 @@
-import { youTubeId } from './youtube-url.js?v=mvzojnnt';
-import { isAmazonUrl } from './amazon.js?v=mvzojnnt';
+import { youTubeId } from './youtube-url.js?v=mvzpbq8z';
+import { isAmazonUrl } from './amazon.js?v=mvzpbq8z';
 
-import { serviceForUrl } from './services.js?v=mvzojnnt';
-import { googleMapsEmbed } from './google-maps.js?v=mvzojnnt';
+import { serviceForUrl } from './services.js?v=mvzpbq8z';
+import { googleMapsEmbed } from './google-maps.js?v=mvzpbq8z';
 
 export function plainLink(raw) {
   const map = googleMapsEmbed(raw);

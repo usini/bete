@@ -3,24 +3,24 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzojnnt';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzojnnt';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzojnnt';
-import { addImageFile } from './images.js?v=mvzojnnt';
-import { playVideo } from './video.js?v=mvzojnnt';
-import { youTubeId } from './yt.js?v=mvzojnnt';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzojnnt';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzojnnt';
-import { undo, redo } from './history.js?v=mvzojnnt';
+import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzpbq8z';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzpbq8z';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzpbq8z';
+import { addImageFile } from './images.js?v=mvzpbq8z';
+import { playVideo } from './video.js?v=mvzpbq8z';
+import { youTubeId } from './yt.js?v=mvzpbq8z';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzpbq8z';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzpbq8z';
+import { undo, redo } from './history.js?v=mvzpbq8z';
 
-import { setDragging } from './motion.js?v=mvzojnnt';
+import { setDragging } from './motion.js?v=mvzpbq8z';
 
-import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mvzojnnt';
-import { shortenAmazonText, isAmazonUrl } from './amazon.js?v=mvzojnnt';
+import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mvzpbq8z';
+import { shortenAmazonText, isAmazonUrl } from './amazon.js?v=mvzpbq8z';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mvzojnnt';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mvzpbq8z';
 
-import { serviceForNode } from './services.js?v=mvzojnnt';
+import { serviceForNode } from './services.js?v=mvzpbq8z';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 
@@ -378,19 +378,23 @@ export function initInput() {
   });
 
   window.addEventListener('keydown', (e) => {
-    if (isLocked() || isEditing()) return;
+    if (isLocked() || isEditing() || document.querySelector('dialog[open]')) return;
     // Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y redoes the board. Not inside a text field
     // (it keeps its own undo), nor while a popup is open.
-    const inField = e.target instanceof Element && e.target.closest('input, textarea');
+    const inField = e.target instanceof Element && (e.target.closest('input, textarea, select') || e.target.isContentEditable);
     if (!inField && (e.ctrlKey || e.metaKey) && !e.altKey && !document.querySelector('dialog[open]')) {
       const k = e.key.toLowerCase();
       if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
       if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); return; }
     }
-    if (e.target instanceof Element && e.target.closest('input, textarea, button')) return;
+    if (inField) return;
     const id = getSelectedId();
+    // Toolbar buttons can retain focus after a pointer click on the canvas.
+    if (id && (e.key === 'Delete' || e.key === 'Backspace')) {
+      e.preventDefault(); removeNode(id); return;
+    }
+    if (e.target instanceof Element && e.target.closest('button')) return;
     if (e.key === 'Escape') select(null);
-    else if (id && (e.key === 'Delete' || e.key === 'Backspace')) { e.preventDefault(); removeNode(id); }
     else if (id && e.key === 'Enter') startEdit(id);
   });
 
