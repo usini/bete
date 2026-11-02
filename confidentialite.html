@@ -226,7 +226,11 @@
     Les blocs du groupe, son titre, ses dimensions, ses couleurs, ses liens et ses images sont
     transmis par un canal WebRTC chiffré aux appareils autorisés. Les positions internes sont
     relatives au groupe ; la caméra et l’emplacement du groupe dans ton tableau restent locaux.
-    Les autres blocs et l’historique global ne sont pas partagés. L’appareil source retransmet
+    Les autres blocs et l’historique global ne sont pas partagés. Les positions des curseurs sont
+    transmises uniquement à l’intérieur des groupes partagés, au maximum environ vingt fois par seconde,
+    avec un identifiant de participant aléatoire propre à la page. Elles restent en mémoire temporaire
+    (expiration après environ six secondes sans mise à jour) et ne figurent ni dans l’historique, ni dans
+    les exports ou sauvegardes. Les déplacements dans les zones privées ne sont pas transmis. L’appareil source retransmet
     les modifications entre les invités. Les participants peuvent connaître leurs adresses IP
     publiques respectives, notamment celle de la source et celles des invités connectés à elle.
   </p>

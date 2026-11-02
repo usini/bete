@@ -29,6 +29,7 @@ python -m http.server 8000
 - **Annuler / rétablir** : Ctrl+Z et Ctrl+Maj+Z (ou Ctrl+Y), boutons en haut à gauche, et une liste des
   60 dernières actions où l'on peut revenir à n'importe quel état (historique conservé dans la sauvegarde locale et les fichiers JSON, y compris sur Drive).
 - **Double-clic dans le vide** : crée un rectangle à cet endroit.
+- **Animation** : déplacement élastique des blocs, avec un léger étirement ; désactivé si le système demande moins d’animations.
 - **Navigation** : déplacement, zoom (molette ou pincement), minimap, alignement automatique des blocs.
 - **Sauvegarde** : enregistrement automatique dans le navigateur (localStorage et IndexedDB),
   export et import d'un fichier JSON.
@@ -56,6 +57,8 @@ le lien, **Activer / Désactiver le partage** et **Régénérer le lien** (sur l
 Tous les participants peuvent modifier. Le lien ajoute ce groupe à leur tableau infini, dans
 un espace libre, ou retrouve sa copie par ID ; les autres blocs et l’historique ne sont pas envoyés.
 La position du groupe et la caméra restent propres à chaque appareil ; la disposition interne est partagée.
+Les curseurs des participants sont visibles uniquement à l’intérieur du groupe partagé, avec une couleur
+et un identifiant temporaire. Ils ne sont pas enregistrés dans les sauvegardes.
 
 L’appareil source doit rester ouvert. Les copies restent disponibles hors ligne et les modifications
 sont fusionnées à la reconnexion. Toute personne ayant le lien peut copier et modifier le groupe ;

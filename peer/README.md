@@ -56,6 +56,13 @@ l’interface signale l’échec. Il n’y a aucun basculement caché vers le TU
   mais conserve le bloc sorti sur ton tableau. Supprimer un membre se propage aux participants.
   Un agrandissement reçu d’un autre appareil n’inclut pas silencieusement des blocs privés voisins :
   il faut déplacer ces blocs pour les ajouter explicitement.
+- Les curseurs sont transmis uniquement dans le groupe partagé (coordonnées relatives), au plus
+  environ 20 mises à jour par seconde. Un curseur coloré porte un identifiant temporaire de participant.
+  Il disparaît à la sortie du groupe, à la déconnexion ou après environ 6 secondes sans mise à jour.
+  Cette présence reste en mémoire, sans historique ni sauvegarde. Les déplacements hors groupe
+  ne sont pas envoyés.
+- Les blocs retrouvent un déplacement élastique et un léger étirement. La géométrie logique reste
+  inchangée ; les animations sont respectueuses de la préférence système de réduction des mouvements.
 - Les images sont identifiées par SHA-256, transférées à la demande en morceaux de 32 Kio,
   vérifiées à réception et gardées dans IndexedDB. Elles ne sont pas renvoyées à chaque mise à jour.
   Une sauvegarde/export attend les images manquantes plutôt que les supprimer silencieusement.

@@ -80,6 +80,20 @@ async function waitText(page, id, text) {
   assert.deepEqual(received.find(n=>n.id===guestPrivate.id),guestPrivate);
   const incoming = received.find(n=>n.shareId===group.id);
   assert.ok(incoming.x>=guestPrivate.x+guestPrivate.w || incoming.y>=guestPrivate.y+guestPrivate.h);
+  await host.click('#share-close'); await guest.click('#share-close');
+  await guest.waitForTimeout(600);
+  const beforePresence=await moduleOn(host,m=>JSON.stringify(m.state.state.nodes));
+  const cursorPoint=await moduleOn(guest,m=>{const g=m.state.state.nodes.find(n=>n.shareId==='group-test-0001');return m.camera.worldToScreen(g.x+100,g.y+150);});
+  await guest.mouse.move(cursorPoint.x,cursorPoint.y);
+  let cursors=[];
+  for(let i=0;i<50;i++){cursors=await moduleOn(host,m=>m['group-share'].remoteCursors());if(cursors.length)break;await host.waitForTimeout(100);}
+  assert.equal(cursors.length,1,'shared cursor should arrive');
+  assert.ok(Math.abs(cursors[0].x-(group.x+100))<2 && Math.abs(cursors[0].y-(group.y+150))<2,'cursor coordinates must be relative to the shared group');
+  assert.equal(await moduleOn(host,m=>JSON.stringify(m.state.state.nodes)),beforePresence,'presence must not change saved content');
+  await guest.mouse.move(0,0);
+  for(let i=0;i<50;i++){if(!(await moduleOn(host,m=>m['group-share'].remoteCursors())).length)break;await host.waitForTimeout(100);}
+  assert.equal((await moduleOn(host,m=>m['group-share'].remoteCursors())).length,0,'private-area cursor must disappear');
+  await host.evaluate(()=>document.dispatchEvent(new CustomEvent('bete-share-group',{detail:'group-test-0001'})));
   await moduleOn(guest,m=>{m.state.state.nodes.find(n=>n.text==='À partager').text='Depuis invité';m.state.emit();});
   await waitText(host,block.id,'Depuis invité');
   await moduleOn(host,m=>{m.state.getNode('block-test-0001').text='Depuis source';m.state.emit();});
@@ -170,7 +184,7 @@ async function waitText(page, id, text) {
   await hostAgain.screenshot({path:join(root,'tests','share-host.png')});
   await guest.screenshot({path:join(root,'tests','share-guest.png')});
   assert.deepEqual(errors,[]);
-  console.log('PASS: QR action, handshake, private-board isolation, empty placement, bidirectional edits, local positions, images, id collisions, deletions, renewed link, offline reconnection, clean console');
+  console.log('PASS: scoped live cursors, non-persistent presence, QR action, handshake, private-board isolation, empty placement, bidirectional edits, local positions, images, id collisions, deletions, renewed link, offline reconnection, clean console');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{
   if(browser)await browser.close();
   if(web)await new Promise(r=>web.close(r));

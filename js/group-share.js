@@ -1,7 +1,7 @@
-import { state, events, onSaved, newId, sanitizeNode, emit, select, getNode, setGroupMemberFilter } from './state.js?v=mvzeg834';
-import { imageBlob, storeSharedImage } from './images.js?v=mvzeg834';
-import { flyTo, view } from './camera.js?v=mvzeg834';
-import { MAX_MEMBERS, MAX_RECORDS, ROOT, validId, validImage, cleanValue, cleanRecord, mergeRecord, groupMembers, emptyPlacement, intersects } from './group-model.js?v=mvzeg834';
+import { state, events, onSaved, newId, sanitizeNode, emit, select, getNode, setGroupMemberFilter } from './state.js?v=mvzexlfc';
+import { imageBlob, storeSharedImage } from './images.js?v=mvzexlfc';
+import { flyTo, view, screenToWorld } from './camera.js?v=mvzexlfc';
+import { MAX_MEMBERS, MAX_RECORDS, ROOT, validId, validImage, cleanValue, cleanRecord, mergeRecord, groupMembers, emptyPlacement, intersects } from './group-model.js?v=mvzexlfc';
 
 // Explicit ICE config is essential: PeerJS's defaults include public TURN relays.
 export const peerConfig = {
@@ -17,6 +17,41 @@ const hex = bytes => [...bytes].map(b => b.toString(16).padStart(2, '0')).join('
 const secret = () => hex(crypto.getRandomValues(new Uint8Array(32)));
 const digest = async bytes => hex(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)));
 let scripts = new Map(), pending = Promise.resolve(), persistTimer, initialised = false;
+const cursors = new Map();
+let pointer = null, cursorScope = null, cursorTimer = null, lastCursorSent = 0;
+const presenceChanged = () => shareEvents.dispatchEvent(new Event('presence'));
+
+export function remoteCursors() {
+  const result = [];
+  for (const [key, c] of cursors) {
+    const s = shares.get(c.groupId), root = s && rootOf(s);
+    if (!root || !s.enabled || Date.now() - c.time > 6000) { cursors.delete(key); continue; }
+    let hue = 0;
+    for (const char of c.actor) hue = (hue * 31 + char.charCodeAt(0)) % 360;
+    result.push({ x: root.x + c.x, y: root.y + c.y, color: `hsl(${hue} 85% 70%)`, label: 'Participant ' + c.actor.slice(0, 4).toUpperCase() });
+  }
+  return result;
+}
+function removeCursors(s, participant) {
+  for (const [key, cursor] of cursors) if (cursor.groupId === s.groupId && (!participant || cursor.actor === participant)) cursors.delete(key);
+  presenceChanged();
+}
+function sendCursor() {
+  clearTimeout(cursorTimer);
+  lastCursorSent = performance.now();
+  const world = pointer && document.visibilityState === 'visible' ? screenToWorld(pointer.x, pointer.y) : null;
+  let active = null;
+  for (const s of shares.values()) {
+    const root = rootOf(s);
+    if (s.enabled && root && world && world.x >= root.x && world.x <= root.x + root.w && world.y >= root.y && world.y <= root.y + root.h) { active = s; break; }
+  }
+  if (cursorScope && cursorScope !== active) for (const c of cursorScope.channels) if (c.ready) send(c, { type: 'cursor', actor, x: null, y: null });
+  cursorScope = active;
+  if (active) {
+    const root = rootOf(active);
+    for (const c of active.channels) if (c.ready) send(c, { type: 'cursor', actor, x: world.x - root.x, y: world.y - root.y });
+  }
+}
 
 export function loadShareScript(name) {
   if (!scripts.has(name)) scripts.set(name, new Promise((resolve, reject) => {
@@ -142,6 +177,7 @@ export async function joinSharedGroup(config) {
 
 function stop(s, broadcast = false) {
   s.generation++;
+  removeCursors(s);
   if (broadcast && s.role === 'host') for (const c of s.channels) send(c, { type: 'stopped' });
   for (const c of s.channels) c.conn.close();
   s.channels.clear();
@@ -339,6 +375,10 @@ function attach(s, conn, host) {
   const closed = () => {
     clearTimeout(timeout);
     if (!s.channels.delete(c)) return;
+    if (host && c.cursorActor) {
+      removeCursors(s, c.cursorActor);
+      for (const other of s.channels) if (other.ready) send(other, { type: 'cursor', actor: c.cursorActor, x: null, y: null });
+    } else if (!host) removeCursors(s);
     if (s.enabled) {
       notify(s, s.role === 'host' ? 'Partage actif. ' + [...s.channels].filter(c => c.ready).length + ' participant(s).' : 'Connexion perdue. Copie locale conservée ; reconnexion automatique.');
       if (!host) { stop(s); s.nextTry = Date.now() + 5000; }
@@ -376,6 +416,23 @@ async function receive(s, c, p) {
   }
   if (p.type === 'ping') { send(c, { type: 'pong' }); return; }
   if (p.type === 'pong') return;
+  if (p.type === 'cursor') {
+    if (!validId(p.actor) || p.actor === actor) return;
+    if (c.host) {
+      if (c.cursorActor && c.cursorActor !== p.actor) return;
+      c.cursorActor = p.actor;
+    }
+    const root = rootOf(s);
+    if (!root) return;
+    const hidden = p.x === null && p.y === null;
+    if (!hidden && (!Number.isFinite(p.x) || !Number.isFinite(p.y) || p.x < 0 || p.y < 0 || p.x > root.w || p.y > root.h)) return;
+    const key = s.groupId + ':' + p.actor;
+    if (hidden) cursors.delete(key);
+    else if (cursors.has(key) || cursors.size < 240) cursors.set(key, { actor: p.actor, groupId: s.groupId, x: p.x, y: p.y, time: Date.now() });
+    if (c.host) for (const other of s.channels) if (other !== c && other.ready) send(other, { type: 'cursor', actor: p.actor, x: p.x, y: p.y });
+    presenceChanged();
+    return;
+  }
   if (p.type === 'stopped' && !c.host) {
     s.enabled = false; stop(s); persist();
     notify(s, 'Le partage a été désactivé ou son lien régénéré. Ta copie locale reste disponible.');
@@ -452,6 +509,23 @@ async function requestImages(s, c) {
 export function initGroupSharing() {
   if (initialised) return;
   initialised = true;
+  const canvas = document.getElementById('canvas');
+  canvas.addEventListener('pointermove', event => {
+    pointer = { x: event.clientX, y: event.clientY };
+    if (performance.now() - lastCursorSent >= 50) sendCursor();
+    else { clearTimeout(cursorTimer); cursorTimer = setTimeout(sendCursor, 50); }
+  });
+  const hideCursor = () => { pointer = null; clearTimeout(cursorTimer); sendCursor(); };
+  canvas.addEventListener('pointerleave', hideCursor);
+  canvas.addEventListener('pointerup', event => { if (event.pointerType === 'touch') hideCursor(); });
+  canvas.addEventListener('pointercancel', hideCursor);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible') hideCursor(); });
+  setInterval(() => {
+    const before = cursors.size;
+    remoteCursors();
+    if (before !== cursors.size) presenceChanged();
+    if (pointer) sendCursor();
+  }, 2000);
   setGroupMemberFilter((group, node) => {
     const s = shares.get(group.shareId || group.id);
     return !s?.enabled || !s.ignored.has(node.id);

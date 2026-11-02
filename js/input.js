@@ -3,15 +3,17 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzeg834';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzeg834';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzeg834';
-import { addImageFile } from './images.js?v=mvzeg834';
-import { playVideo } from './video.js?v=mvzeg834';
-import { youTubeId } from './yt.js?v=mvzeg834';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzeg834';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzeg834';
-import { undo, redo } from './history.js?v=mvzeg834';
+import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzexlfc';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzexlfc';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzexlfc';
+import { addImageFile } from './images.js?v=mvzexlfc';
+import { playVideo } from './video.js?v=mvzexlfc';
+import { youTubeId } from './yt.js?v=mvzexlfc';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzexlfc';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzexlfc';
+import { undo, redo } from './history.js?v=mvzexlfc';
+
+import { setDragging } from './motion.js?v=mvzexlfc';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 
@@ -59,6 +61,7 @@ function onHandle(n, sx, sy) {
 }
 
 function pinchStart() {
+  if (gesture?.type === 'move') setDragging(gesture.n, false);
   const [a, b] = [...pointers.values()];
   return { type: 'pinch', d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
 }
@@ -129,6 +132,7 @@ function onPointerDown(e) {
   if (n.kind !== 'group') raise(n.id); // groups keep their place: they always lie underneath
   // Moving a group carries along the blocks inside it.
   const members = n.kind === 'group' ? membersOf(n).map((m) => ({ m, ox: m.x, oy: m.y })) : null;
+  if (n.kind !== 'group') setDragging(n, true);
   gesture = { type: 'move', n, ox: n.x, oy: n.y, sx, sy, moved: false, wasSelected, members };
 }
 
@@ -212,6 +216,7 @@ function onPointerEnd(e) {
   pointers.delete(e.pointerId);
   clearGuides();
   const g = gesture;
+  if (g?.type === 'move') setDragging(g.n, false);
   if (g && g.type === 'resize') rememberSize(g.n.kind, g.n.w, g.n.h);
   if (g && ((g.type === 'move' && g.moved) || g.type === 'resize')) {
     document.dispatchEvent(new CustomEvent('bete-node-moved', { detail: g.n.id }));

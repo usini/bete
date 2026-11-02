@@ -1,14 +1,17 @@
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzeg834';
-import { view, screenToWorld } from './camera.js?v=mvzeg834';
-import { youTubeId, ytThumb } from './yt.js?v=mvzeg834';
-import { imageFor } from './images.js?v=mvzeg834';
-import { positionVideo, isVideoPlaying } from './video.js?v=mvzeg834';
-import { guides } from './snap.js?v=mvzeg834';
-import { renderMinimap } from './minimap.js?v=mvzeg834';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzeg834';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzeg834';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzeg834';
+import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzexlfc';
+import { view, screenToWorld } from './camera.js?v=mvzexlfc';
+import { youTubeId, ytThumb } from './yt.js?v=mvzexlfc';
+import { imageFor } from './images.js?v=mvzexlfc';
+import { positionVideo, isVideoPlaying } from './video.js?v=mvzexlfc';
+import { guides } from './snap.js?v=mvzexlfc';
+import { renderMinimap } from './minimap.js?v=mvzexlfc';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzexlfc';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzexlfc';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzexlfc';
+
+import { stepMotion } from './motion.js?v=mvzexlfc';
+import { remoteCursors, shareEvents } from './group-share.js?v=mvzexlfc';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -18,6 +21,9 @@ const CAPTION_FONT = '16px ' + FONT_FAMILY;
 
 let dpr = 1;
 let scheduled = false;
+let previousFrame = performance.now();
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+shareEvents.addEventListener('presence', () => requestRender());
 const thumbs = new Map(); // youtube id -> HTMLImageElement
 const ICON_ANIM_MS = 220;  // appearance animation of the 📝 button
 let iconSelId = null;      // selection the animation was started for
@@ -48,6 +54,10 @@ events.addEventListener('change', requestRender);
 
 function draw() {
   scheduled = false;
+  const now = performance.now();
+  const dt = Math.min(0.04, (now - previousFrame) / 1000);
+  previousFrame = now;
+  let moving = false;
   const { x, y, zoom } = state.camera;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#0c0e12';
@@ -64,13 +74,40 @@ function draw() {
   updateFx(performance.now());
   // Groups first (the biggest underneath), then the other blocks on top of them.
   for (const n of groupsBySize()) drawNode(n, n.id === selId, zoom);
-  for (const n of state.nodes) if (n.kind !== 'group') drawNode(n, n.id === selId, zoom);
+  for (const n of state.nodes) if (n.kind !== 'group') {
+    const m = stepMotion(n, dt);
+    moving ||= m.active;
+    ctx.save();
+    if (!reducedMotion.matches && !isVideoPlaying(n.id)) {
+      ctx.translate(m.dx + n.x + n.w / 2, m.dy + n.y + n.h / 2);
+      ctx.rotate(m.angle); ctx.scale(1 + m.stretch, 1 - m.stretch); ctx.rotate(-m.angle);
+      ctx.translate(-n.x - n.w / 2, -n.y - n.h / 2);
+    }
+    drawNode(n, n.id === selId, zoom);
+    ctx.restore();
+  }
+  drawRemoteCursors(zoom);
   renderFx(ctx); // deletion animation, above the blocks
   drawGuides(zoom);
   positionVideo();
   renderMinimap();
   // Keep animating until the 📝 button is fully shown and the deletion pieces are gone.
-  if (iconT < 1 || hasParticles()) requestRender();
+  if (iconT < 1 || hasParticles() || (moving && !reducedMotion.matches)) requestRender();
+}
+
+function drawRemoteCursors(zoom) {
+  for (const cursor of remoteCursors()) {
+    ctx.save();
+    ctx.translate(cursor.x, cursor.y); ctx.scale(1 / zoom, 1 / zoom);
+    ctx.fillStyle = cursor.color; ctx.strokeStyle = '#0c0e12'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(4, 19); ctx.lineTo(9, 13); ctx.lineTo(16, 11); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.font = '11px ' + FONT_FAMILY; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    const width = ctx.measureText(cursor.label).width;
+    ctx.fillStyle = '#14171dee'; ctx.fillRect(13, 19, width + 12, 21);
+    ctx.fillStyle = cursor.color; ctx.fillText(cursor.label, 19, 29);
+    ctx.restore();
+  }
 }
 
 // Snap guide lines (shown only while a block is being moved or resized).
