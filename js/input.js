@@ -3,15 +3,15 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzd9bsl';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzd9bsl';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzd9bsl';
-import { addImageFile } from './images.js?v=mvzd9bsl';
-import { playVideo } from './video.js?v=mvzd9bsl';
-import { youTubeId } from './yt.js?v=mvzd9bsl';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzd9bsl';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzd9bsl';
-import { undo, redo } from './history.js?v=mvzd9bsl';
+import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzeg834';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzeg834';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzeg834';
+import { addImageFile } from './images.js?v=mvzeg834';
+import { playVideo } from './video.js?v=mvzeg834';
+import { youTubeId } from './yt.js?v=mvzeg834';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzeg834';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzeg834';
+import { undo, redo } from './history.js?v=mvzeg834';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 
@@ -110,6 +110,7 @@ function onPointerDown(e) {
     if (once(action)) {
       if (action === 'image') pickImage(sel); // 🖼️: change the picture
       else if (action === 'color') pickColor(sel, sx, sy);
+      else if (action === 'share') document.dispatchEvent(new CustomEvent('bete-share-group', { detail: sel.id }));
       else startEdit(sel.id);                 // 📝: edit popup (text and link)
     }
     return;
@@ -212,6 +213,9 @@ function onPointerEnd(e) {
   clearGuides();
   const g = gesture;
   if (g && g.type === 'resize') rememberSize(g.n.kind, g.n.w, g.n.h);
+  if (g && ((g.type === 'move' && g.moved) || g.type === 'resize')) {
+    document.dispatchEvent(new CustomEvent('bete-node-moved', { detail: g.n.id }));
+  }
   // Touch: a phone does not reliably send 'dblclick', so a double-tap on a block (two taps,
   // 400 ms and 30 px apart, without dragging) is detected here.
   if (e.pointerType === 'touch' && g && g.type === 'move' && !g.moved) {

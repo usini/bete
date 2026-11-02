@@ -1,7 +1,7 @@
 // Export / import of a board. Images are embedded as data URLs so the board is
 // self-contained: it can be a JSON file, or the file saved on Google Drive (drive.js).
-import { state, serialize, setDoc } from './state.js?v=mvzd9bsl';
-import { addDataUrl, refToDataUrl } from './images.js?v=mvzd9bsl';
+import { state, serialize, setDoc } from './state.js?v=mvzeg834';
+import { addDataUrl, refToDataUrl } from './images.js?v=mvzeg834';
 
 function download(blob, name) {
   const url = URL.createObjectURL(blob);
@@ -20,7 +20,8 @@ export async function exportData() {
     if (!n.image || !n.image.startsWith('idb:')) return n;
     if (!images.has(n.image)) images.set(n.image, refToDataUrl(n.image));
     const data = await images.get(n.image);
-    return { ...n, image: data || undefined };
+    if (!data) throw new Error('Une image manque encore sur cet appareil. Attends sa réception avant la sauvegarde ou l’export.');
+    return { ...n, image: data };
   };
   doc.nodes = await Promise.all(doc.nodes.map(embed));
   if (doc.history) doc.history.states = await Promise.all(doc.history.states.map(async s => ({

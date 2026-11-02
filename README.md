@@ -3,7 +3,8 @@
 Un tableau libre pour organiser des idées : blocs de texte, images, groupes, vidéos YouTube
 et liens, sur une grande zone que l'on déplace et que l'on zoome.
 
-100 % statique : JavaScript natif (modules ES) et canvas 2D, sans dépendance ni étape de build.
+Client 100 % statique : JavaScript natif (modules ES) et canvas 2D, sans installation npm ni étape de build.
+PeerJS et la génération des QR codes sont embarqués et chargés seulement pour le partage.
 
 ## Lancer en local
 
@@ -41,11 +42,31 @@ python -m http.server 8000
 Les tableaux ne sont pas envoyés au serveur de Bête. Les appels réseau sont ceux de YouTube :
 miniatures (`i.ytimg.com`), titres (oEmbed) et lecteur (`youtube-nocookie.com`) ; et, seulement si tu
 actives la sauvegarde, ceux de Google et du service OAuth `auth-bete.usini.eu`. Ce service renouvelle
-les autorisations sans stocker les tableaux. Le jeton de renouvellement reste chiffré dans un cookie
+les autorisations sans stocker les tableaux. Le partage P2P facultatif contacte aussi
+`peer-bete.usini.eu`, STUN Google et les participants autorisés. Le jeton de renouvellement reste chiffré dans un cookie
 HttpOnly du navigateur ; le service le traite temporairement.
 
 Déploiement VPS / Portainer / Cloudflare Tunnel : voir [auth/README.md](auth/README.md)
 et le Compose autonome [auth/compose.portainer.yml](auth/compose.portainer.yml).
+
+## Partager un groupe
+
+Sélectionne un groupe puis clique sur l’icône **QR code**, sous 🎨. La fenêtre propose le QR,
+le lien, **Activer / Désactiver le partage** et **Régénérer le lien** (sur l’appareil source).
+Tous les participants peuvent modifier. Le lien ajoute ce groupe à leur tableau infini, dans
+un espace libre, ou retrouve sa copie par ID ; les autres blocs et l’historique ne sont pas envoyés.
+La position du groupe et la caméra restent propres à chaque appareil ; la disposition interne est partagée.
+
+L’appareil source doit rester ouvert. Les copies restent disponibles hors ligne et les modifications
+sont fusionnées à la reconnexion. Toute personne ayant le lien peut copier et modifier le groupe ;
+révoquer un lien ne peut pas effacer les copies déjà reçues. Deux modifications simultanées du même
+bloc sont départagées par version, sans fusion du texte caractère par caractère.
+
+Le serveur **peer-bete.usini.eu** ne fait que la signalisation WebRTC. Le contenu et les images
+passent directement entre navigateurs, avec STUN et **sans relais TURN** : certains réseaux
+ne permettront pas de connexion. Les groupes partagés indépendamment ne doivent pas se chevaucher.
+Voir [la procédure VPS / Portainer et les limites](peer/README.md), et le
+[Compose à copier](peer/compose.portainer.yml).
 
 ## Confidentialité
 

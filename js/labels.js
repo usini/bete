@@ -1,10 +1,10 @@
 // Labels: the tab above a block. It shows the YouTube title (YouTube blocks) or the block's
 // link URL; a block with neither has no label. The layout and the hit-testing live here,
 // so the renderer and the pointer handling always agree on where the label is.
-import { state } from './state.js?v=mvzd9bsl';
-import { youTubeId, youTubeTitle } from './yt.js?v=mvzd9bsl';
-import { FONT_FAMILY } from './text.js?v=mvzd9bsl';
-import { isAmazonUrl, isAmazonText } from './amazon.js?v=mvzd9bsl';
+import { state } from './state.js?v=mvzeg834';
+import { youTubeId, youTubeTitle } from './yt.js?v=mvzeg834';
+import { FONT_FAMILY } from './text.js?v=mvzeg834';
+import { isAmazonUrl, isAmazonText } from './amazon.js?v=mvzeg834';
 
 export const LABEL_SIZE = 26;                       // font size, world units
 export const LABEL_FONT = '600 ' + LABEL_SIZE + 'px ' + FONT_FAMILY;
@@ -124,6 +124,7 @@ export function imageIconBox(n, zoom) {
   const b = colorIconBox(n, zoom);
   return { ...b, y: b.y + ACTION_STEP_PX / zoom };
 }
+export const shareIconBox = imageIconBox;
 function inBox(b, w) {
   return w.x >= b.x && w.x <= b.x + b.w && w.y >= b.y && w.y <= b.y + b.h;
 }
@@ -131,6 +132,7 @@ function inBox(b, w) {
 export function actionHit(n, w, zoom) {
   if (inBox(editIconBox(n, zoom), w)) return 'edit';
   if (inBox(colorIconBox(n, zoom), w)) return 'color';
+  if (n.kind === 'group' && inBox(shareIconBox(n, zoom), w)) return 'share';
   if (n.kind === 'image' && inBox(imageIconBox(n, zoom), w)) return 'image';
   return null;
 }

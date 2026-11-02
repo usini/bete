@@ -1,5 +1,5 @@
 // Image blobs live in IndexedDB; nodes only keep a reference 'idb:<id>'.
-import { newId } from './state.js?v=mvzd9bsl';
+import { newId } from './state.js?v=mvzeg834';
 
 const DB_NAME = 'bete2';
 const STORE = 'images';
@@ -30,6 +30,14 @@ async function run(mode, op) {
 
 const putBlob = (id, blob) => run('readwrite', (s) => s.put(blob, id));
 const getBlob = (id) => run('readonly', (s) => s.get(id));
+
+export const imageBlob = ref => typeof ref === 'string' && ref.startsWith('idb:') ? getBlob(ref.slice(4)) : Promise.resolve(null);
+export async function storeSharedImage(hash, blob) {
+  const ref = 'idb:shared-' + hash;
+  await putBlob(ref.slice(4), blob);
+  cache.delete(ref); // A missing remote image may have already been requested by the renderer.
+  return ref;
+}
 
 // ref -> { img, ok }. Images are decoded once and then reused by the renderer.
 const cache = new Map();

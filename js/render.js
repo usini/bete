@@ -1,14 +1,14 @@
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzd9bsl';
-import { view, screenToWorld } from './camera.js?v=mvzd9bsl';
-import { youTubeId, ytThumb } from './yt.js?v=mvzd9bsl';
-import { imageFor } from './images.js?v=mvzd9bsl';
-import { positionVideo, isVideoPlaying } from './video.js?v=mvzd9bsl';
-import { guides } from './snap.js?v=mvzd9bsl';
-import { renderMinimap } from './minimap.js?v=mvzd9bsl';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzd9bsl';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzd9bsl';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzd9bsl';
+import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzeg834';
+import { view, screenToWorld } from './camera.js?v=mvzeg834';
+import { youTubeId, ytThumb } from './yt.js?v=mvzeg834';
+import { imageFor } from './images.js?v=mvzeg834';
+import { positionVideo, isVideoPlaying } from './video.js?v=mvzeg834';
+import { guides } from './snap.js?v=mvzeg834';
+import { renderMinimap } from './minimap.js?v=mvzeg834';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzeg834';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzeg834';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzeg834';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -150,6 +150,7 @@ function drawSelection(n, selected, zoom) {
   ctx.fillRect(n.x + n.w - hs / 2, n.y + n.h - hs / 2, hs, hs);
   drawEditIcon(n, zoom);
   if (n.kind === 'image') drawImageIcon(n, zoom);
+  if (n.kind === 'group') drawButton(shareIconBox(n, zoom), 'qr', n.color, zoom);
 }
 
 // Group: a translucent area in its colour, with a header bar at the top holding the title
@@ -328,7 +329,14 @@ function drawButton(b, emoji, color, zoom) {
   ctx.font = '16px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(emoji, 0, 1);
+  if (emoji === 'qr') {
+    ctx.strokeStyle = '#e8e8e8'; ctx.lineWidth = 1.5;
+    for (const [x, y] of [[-7, -7], [2, -7], [-7, 2]]) {
+      ctx.strokeRect(x, y, 5, 5); ctx.fillStyle = '#e8e8e8'; ctx.fillRect(x + 2, y + 2, 1, 1);
+    }
+    ctx.fillStyle = '#e8e8e8';
+    for (const [x, y] of [[2, 2], [6, 2], [4, 4], [2, 6], [6, 6]]) ctx.fillRect(x, y, 2, 2);
+  } else ctx.fillText(emoji, 0, 1);
   ctx.restore();
 }
 

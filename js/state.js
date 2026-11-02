@@ -1,6 +1,6 @@
 // Data model, sanitizers and local autosave (localStorage).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mvzd9bsl';
+import { explode } from './fx.js?v=mvzeg834';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2'];
 export const DEFAULT_COLOR = COLORS[1];
@@ -57,6 +57,7 @@ export function sanitizeNode(raw) {
     text: typeof raw.text === 'string' ? raw.text.slice(0, LIMITS.text) : '',
     color: /^#[0-9a-f]{6}$/i.test(raw.color) ? raw.color : DEFAULT_COLOR,
   };
+  if (kind === 'group' && typeof raw.shareId === 'string' && /^[a-zA-Z0-9_-]{8,80}$/.test(raw.shareId)) n.shareId = raw.shareId;
   if (typeof raw.image === 'string' && raw.image.length < LIMITS.dataUrl
       && (raw.image.startsWith('idb:') || raw.image.startsWith('data:image/'))) {
     n.image = raw.image;
@@ -167,10 +168,13 @@ export function groupsBySize() {
 
 // Blocks that move with a group: every other block whose centre lies inside it
 // (smaller groups included, bigger or equal ones never).
+let groupMemberFilter = () => true;
+export function setGroupMemberFilter(filter) { groupMemberFilter = filter; }
 export function membersOf(group) {
   const area = group.w * group.h;
   return state.nodes.filter((o) => {
     if (o === group) return false;
+    if (!groupMemberFilter(group, o)) return false;
     if (o.kind === 'group' && o.w * o.h >= area) return false;
     const cx = o.x + o.w / 2, cy = o.y + o.h / 2;
     return cx >= group.x && cx <= group.x + group.w && cy >= group.y && cy <= group.y + group.h;

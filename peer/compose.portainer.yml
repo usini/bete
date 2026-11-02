@@ -1,0 +1,34 @@
+# À coller dans une nouvelle stack Portainer (Docker Standalone).
+# cloudflared est un service sur le VPS : route vers http://127.0.0.1:3200.
+services:
+  bete-peer:
+    image: node:24-alpine
+    restart: unless-stopped
+    user: node
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      npm_config_cache: /tmp/npm-cache
+    tmpfs:
+      - /tmp:size=192m,mode=1777
+    ports:
+      - "127.0.0.1:${PEER_PORT:-3200}:9000"
+    command:
+      - sh
+      - -c
+      - >-
+        npm install --prefix /tmp/bete-peer --omit=dev --no-audit --no-fund --loglevel=error peer@1.0.2 &&
+        exec node --input-type=module -e "import('/tmp/bete-peer/node_modules/peer/dist/module.mjs').then(m=>m.PeerServer({host:'0.0.0.0',port:9000,path:'/',key:'bete',proxied:true,allow_discovery:false,concurrent_limit:200,corsOptions:{origin:['https://bete.usini.eu']}},()=>console.log('Bete PeerServer ready')))"
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:9000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: local
+      options:
+        max-size: 5m
+        max-file: "2"

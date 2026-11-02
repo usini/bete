@@ -50,6 +50,7 @@
     <ul>
       <li>Pas de compte Bête, pas de publicité ni de suivi publicitaire. La connexion Drive utilise deux cookies techniques sécurisés.</li>
       <li>Tes tableaux restent sur ton appareil, avec une sauvegarde Drive facultative. Le service de connexion Bête traite les autorisations Google, pas les tableaux.</li>
+      <li>Le partage de groupes est facultatif : leur contenu est transmis directement aux participants disposant du lien.</li>
       <li>La sauvegarde sur Google Drive est facultative : le fichier est enregistré dans ton propre Drive, dans un dossier caché réservé à Bête.</li>
     </ul>
   </div>
@@ -65,11 +66,12 @@
     <li><code>IndexedDB</code> : les images que tu ajoutes.</li>
   </ul>
   <p>
-    Ces données restent locales, sauf si tu actives la sauvegarde Drive ou utilises un service
+    Ces données restent locales, sauf si tu actives la sauvegarde Drive, partages un groupe ou utilises un service
     tiers décrit ci-dessous. Tu peux les exporter dans un fichier JSON
     (bouton « Exporter JSON ») et les supprimer en effaçant les données du site dans les réglages
     de ton navigateur. Elles restent présentes jusqu’à leur suppression, l’effacement des données du site
-    ou une suppression automatique par le navigateur. L’historique annuler/rétablir (60 états maximum)
+    ou une suppression automatique par le navigateur. Les groupes reçus par P2P sont conservés
+    de la même manière et peuvent être inclus dans tes sauvegardes locales, JSON et Drive. L’historique annuler/rétablir (60 états maximum)
     est conservé avec le tableau dans la sauvegarde locale, les exports JSON et, si activée, la sauvegarde Drive.
     Il peut contenir d’anciens textes et images supprimés du tableau courant ; supprimer un bloc
     ne l’efface donc pas immédiatement de ces états antérieurs.
@@ -202,6 +204,60 @@
     Aucune décision automatisée produisant des effets juridiques ni aucun profilage n’est réalisé par Bête.
   </p>
 
+  <h2>Partage de groupes entre appareils (facultatif)</h2>
+  <p>
+    Activer un partage ou accepter un lien de groupe déclenche une connexion PeerJS/WebRTC.
+    Le serveur de signalisation <code>peer-bete.usini.eu</code>, hébergé sur le VPS OVHcloud et
+    exposé par Cloudflare Tunnel, échange les identifiants, les offres de connexion et les
+    informations réseau nécessaires à la mise en relation. Il reçoit notamment les adresses réseau
+    présentes dans la signalisation et les informations techniques des connexions HTTP/WebSocket.
+    Il ne stocke pas et ne relaie pas le contenu des groupes ni leurs images.
+    Les mêmes limites d’information sur le pays du VPS et les journaux d’infrastructure s’appliquent
+    que pour le service OAuth décrit ci-dessus.
+  </p>
+  <p>
+    Le navigateur contacte le serveur STUN Google <code>stun.l.google.com:19302</code> pour
+    connaître son adresse réseau publique. Ce serveur peut donc recevoir cette adresse et les
+    informations techniques STUN ; il ne reçoit pas les blocs. Aucun relais TURN n’est configuré.
+    Si une connexion directe est impossible, le partage échoue sans envoi du contenu via un relais.
+    Les bibliothèques PeerJS et QR sont servies depuis Bête, sans téléchargement depuis un CDN tiers.
+  </p>
+  <p>
+    Les blocs du groupe, son titre, ses dimensions, ses couleurs, ses liens et ses images sont
+    transmis par un canal WebRTC chiffré aux appareils autorisés. Les positions internes sont
+    relatives au groupe ; la caméra et l’emplacement du groupe dans ton tableau restent locaux.
+    Les autres blocs et l’historique global ne sont pas partagés. L’appareil source retransmet
+    les modifications entre les invités. Les participants peuvent connaître leurs adresses IP
+    publiques respectives, notamment celle de la source et celles des invités connectés à elle.
+  </p>
+  <p>
+    <strong>Le lien autorise la lecture et l’écriture.</strong> Toute personne qui le possède peut
+    recevoir, modifier, exporter et conserver les données, et transmettre le lien. Il contient
+    une capacité aléatoire dans son fragment <code>#</code>, qui n’est pas envoyé dans la requête
+    HTTP. Elle est retirée de la barre d’adresse après lecture. La preuve de possession est liée
+    au canal WebRTC et vérifiée entre participants ; la capacité brute n’est pas envoyée au
+    serveur de signalisation. Cela ne protège pas contre un participant autorisé qui copie les
+    données, ni contre du code malveillant exécuté dans le navigateur.
+  </p>
+  <p>
+    Les paramètres de partage, les liens/capacités d’accès et les versions des blocs (y compris
+    les marqueurs de suppression utiles à la reconnexion) restent dans le stockage local
+    <code>bete2:groupShares</code>. Ils sont conservés jusqu’à l’effacement des données du site ;
+    désactiver le partage conserve ces paramètres pour permettre sa réactivation. Les images reçues
+    sont conservées dans IndexedDB. Les capacités privées et les paramètres d’hébergement du partage
+    ne sont pas inclus dans les exports JSON ni les sauvegardes Drive ; l’ID public du groupe et
+    le contenu du tableau, y compris les copies reçues, peuvent y figurer.
+  </p>
+  <p>
+    Tu peux désactiver ta connexion à tout moment. Sur l’appareil source, désactiver coupe le partage,
+    et régénérer le lien invalide l’ancien accès. <strong>Ces actions n’effacent pas les copies déjà
+    reçues, leurs historiques ou les exports des participants.</strong> Supprimer un bloc pendant
+    une connexion active synchronise sa suppression, sans garantir l’effacement des copies antérieures.
+    La fonction P2P est facultative et repose sur ton choix de l’activer ou d’accepter une invitation ;
+    elle n’est pas nécessaire pour utiliser le tableau local. Les traitements de sécurité de la
+    signalisation servent à protéger le fonctionnement de ce service.
+  </p>
+
   <h2>4. Retirer l'accès et supprimer tes données</h2>
   <ul>
     <li><strong>Déconnecter cet appareil</strong> : le bouton « Déconnecter » supprime les cookies
@@ -229,7 +285,8 @@
   <ul>
     <li>Aucune analyse d'audience, aucun traceur, aucune publicité.</li>
     <li>Aucune création de compte et aucune collecte d'adresse e-mail.</li>
-    <li>Aucune vente ni cession de données.</li>
+    <li>Aucune vente ni utilisation commerciale de tes données par Bête. Les transmissions techniques
+      et le partage volontaire avec les participants sont décrits ci-dessus.</li>
   </ul>
 
   <h2>6. Tes droits</h2>
