@@ -5,16 +5,17 @@
 //  - when the link is an Amazon address the popup becomes "Produit Amazon": name, price and
 //    delivery time fields appear (typed by hand, shown in the block's label)
 // It closes only with the Annuler / Valider buttons (Ctrl+Enter, or Enter in a one-line field, also validate).
-import { getNode, emit } from './state.js?v=mvzo2vgf';
-import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mvzo2vgf';
-import { youTubeId } from './yt.js?v=mvzo2vgf';
-import { addImageFile, imageFor } from './images.js?v=mvzo2vgf';
+import { getNode, emit } from './state.js?v=mvzoawg5';
+import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mvzoawg5';
+import { youTubeId } from './yt.js?v=mvzoawg5';
+import { addImageFile, imageFor } from './images.js?v=mvzoawg5';
 
-import { genericLink } from './links.js?v=mvzo2vgf';
+import { genericLink } from './links.js?v=mvzoawg5';
 
-import { isLocked } from './mobile-mode.js?v=mvzo2vgf';
+import { isLocked } from './mobile-mode.js?v=mvzoawg5';
 
-import { serviceForNode } from './services.js?v=mvzo2vgf';
+import { serviceForNode } from './services.js?v=mvzoawg5';
+import { deliveryDelay } from './delivery.js?v=mvzoawg5';
 
 const dlg = document.getElementById('textdialog');
 const title = document.getElementById('dialog-title');
@@ -175,7 +176,7 @@ export function stopEdit(commit) {
   const amazon = (!isGroup && isAmazonText(text)) || (!!link && isAmazonUrl(link));
   changed = setField(n, 'name', amazon ? nameEl.value : '') || changed;
   changed = setField(n, 'price', amazon ? priceEl.value : '') || changed;
-  changed = setField(n, 'delivery', amazon ? deliveryEl.value : '') || changed;
+  changed = setField(n, 'delivery', amazon ? (deliveryDelay(deliveryEl.value) || deliveryEl.value) : '') || changed;
   if (!imageField.hidden) {
     if (pendingFile) {
       // Stored asynchronously (IndexedDB): the block is updated once the image is saved.
@@ -204,6 +205,17 @@ el.addEventListener('keydown', (e) => {
     e.preventDefault();
     stopEdit(true);
   }
+});
+deliveryEl.addEventListener('paste', e => {
+  if (isLocked()) return;
+  const delay = deliveryDelay(e.clipboardData?.getData('text/plain'));
+  if (!delay) return;
+  e.preventDefault();
+  deliveryEl.value = delay;
+});
+deliveryEl.addEventListener('blur', () => {
+  const delay = deliveryDelay(deliveryEl.value);
+  if (delay) deliveryEl.value = delay;
 });
 for (const input of [linkEl, nameEl, priceEl, deliveryEl]) {
   input.addEventListener('keydown', (e) => {

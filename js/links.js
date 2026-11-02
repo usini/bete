@@ -1,7 +1,7 @@
-import { youTubeId } from './youtube-url.js?v=mvzo2vgf';
-import { isAmazonUrl } from './amazon.js?v=mvzo2vgf';
+import { youTubeId } from './youtube-url.js?v=mvzoawg5';
+import { isAmazonUrl } from './amazon.js?v=mvzoawg5';
 
-import { serviceForUrl } from './services.js?v=mvzo2vgf';
+import { serviceForUrl } from './services.js?v=mvzoawg5';
 
 export function plainLink(raw) {
   const text = String(raw || '').trim();

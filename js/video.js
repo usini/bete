@@ -1,8 +1,8 @@
 // Inline YouTube player: an iframe laid over the block, following the camera.
 // Only one player at a time. Started by a click on a selected video block.
-import { state, getNode } from './state.js?v=mvzo2vgf';
-import { worldToScreen, view } from './camera.js?v=mvzo2vgf';
-import { youTubeId, ytEmbed } from './yt.js?v=mvzo2vgf';
+import { state, getNode } from './state.js?v=mvzoawg5';
+import { worldToScreen, view } from './camera.js?v=mvzoawg5';
+import { youTubeId, ytEmbed } from './yt.js?v=mvzoawg5';
 
 let activeId = null;
 let wrap = null;

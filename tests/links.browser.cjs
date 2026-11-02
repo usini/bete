@@ -358,7 +358,18 @@ let browser,server;
   await page.mouse.dblclick(amazonCenter.x,amazonCenter.y);
   assert.equal(await page.locator('#textdialog').evaluate(el=>el.open),true,'Amazon without an image opens the editor');
   assert.deepEqual(await page.evaluate(()=>window.testOpenedLinks),[]);
+  await page.evaluate(()=>{
+    const arrival=new Date();arrival.setDate(arrival.getDate()+4);
+    const date=arrival.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
+    const data=new DataTransfer();data.setData('text/plain','Livraison GRATUITE '.repeat(8)+'**'+date+'** pour les membres Prime. Commandez dans les 3 h');
+    document.querySelector('#am-delivery').dispatchEvent(new ClipboardEvent('paste',{bubbles:true,cancelable:true,clipboardData:data}));
+  });
+  assert.equal(await page.locator('#am-delivery').inputValue(),'4 jours','full pasted copy must be parsed before the field length limit');
   await page.click('#text-ok');
+  assert.equal(await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    return (await import('/js/state.js'+v)).state.nodes[0].delivery;
+  }),'4 jours');
   await page.evaluate(async()=>{
     const v=new URL(document.querySelector('script[type=module]').src).search;
     const s=await import('/js/state.js'+v);s.state.nodes[0].image='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a5xQAAAAASUVORK5CYII=';s.emit();
