@@ -155,8 +155,11 @@ Les icônes et leurs sources se trouvent dans [img/services](img/services/README
 À chaque ouverture sur un appareil tactile sans pointeur précis, le tableau est verrouillé.
 Déplacement de la vue, pincement pour zoomer, lecture des liens/vidéos et réception des changements
 partagés restent disponibles. Le bouton **Déverrouiller** du menu autorise les modifications ;
-**Verrouiller** remet la lecture seule. Le verrouillage bloque création, déplacement, taille,
-édition, couleurs, suppression, annuler/rétablir, collage, dépôt, import et restauration manuelle.
+**Verrouiller** protège les gestes sur le tableau : création dans le vide, déplacement, taille,
+édition, couleurs, suppression, annuler/rétablir, collage et dépôt de fichiers/liens.
+Le menu reste entièrement utilisable, notamment pour ajouter un bloc, importer un JSON ou
+restaurer Drive. Un cadenas près de la disquette indique le verrouillage ; il disparaît dès
+que le tableau est déverrouillé.
 Il est local à cet appareil, non sauvegardé, et ne change pas les droits des autres participants.
 Les fenêtres desktop étroites restent éditables normalement.
 

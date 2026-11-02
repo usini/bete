@@ -55,6 +55,8 @@ html, body {
 }
 .tool-btn svg { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 #drive-size { align-self: center; padding: 0 4px; color: var(--muted); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#mobile-lock-indicator { align-self: center; display: flex; color: var(--muted); }
+#mobile-lock-indicator svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 .tool-btn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
 .tool-btn:disabled { opacity: 0.35; cursor: default; }
 #history-list {
@@ -454,10 +456,8 @@ button:hover { border-color: var(--accent); }
   #drive-save[data-working="true"]::after, .toast[data-type="progress"] .toast-icon { animation: none; }
 }
 
-.mobile-locked .block { opacity: 0.35; cursor: default; }
 #mobile-lock { margin-bottom: 16px; border-color: var(--accent); }
 
-.mobile-locked #import, .mobile-locked #drive-restore { opacity: 0.35; cursor: not-allowed; }
 
 /* External embeds leave the block border and action buttons accessible. */
 .embedded-block { position: fixed; z-index: 4; overflow: hidden; background: white; pointer-events: none; }

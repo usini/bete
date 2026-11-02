@@ -3,24 +3,24 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzpds6l';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzpds6l';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzpds6l';
-import { addImageFile } from './images.js?v=mvzpds6l';
-import { playVideo } from './video.js?v=mvzpds6l';
-import { youTubeId } from './yt.js?v=mvzpds6l';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzpds6l';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzpds6l';
-import { undo, redo } from './history.js?v=mvzpds6l';
+import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mvzpjd1s';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mvzpjd1s';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mvzpjd1s';
+import { addImageFile } from './images.js?v=mvzpjd1s';
+import { playVideo } from './video.js?v=mvzpjd1s';
+import { youTubeId } from './yt.js?v=mvzpjd1s';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mvzpjd1s';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mvzpjd1s';
+import { undo, redo } from './history.js?v=mvzpjd1s';
 
-import { setDragging } from './motion.js?v=mvzpds6l';
+import { setDragging } from './motion.js?v=mvzpjd1s';
 
-import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mvzpds6l';
-import { shortenAmazonText, isAmazonUrl } from './amazon.js?v=mvzpds6l';
+import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mvzpjd1s';
+import { shortenAmazonText, isAmazonUrl } from './amazon.js?v=mvzpjd1s';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mvzpds6l';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mvzpjd1s';
 
-import { serviceForNode } from './services.js?v=mvzpds6l';
+import { serviceForNode } from './services.js?v=mvzpjd1s';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 
@@ -330,20 +330,21 @@ export function initInput() {
 
   canvas.addEventListener('dragover', (e) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = isLocked() ? 'none' : 'copy';
+    const menuBlock = [...e.dataTransfer.types].includes(BLOCK_MIME);
+    e.dataTransfer.dropEffect = isLocked() && !menuBlock ? 'none' : 'copy';
   });
   canvas.addEventListener('drop', async (e) => {
     e.preventDefault();
-    if (isLocked()) return;
     const w = screenToWorld(e.clientX, e.clientY);
+    const kind = e.dataTransfer.getData(BLOCK_MIME);
+    if (kind === 'rect' || kind === 'image' || kind === 'group') {
+      addNode(kind, w.x, w.y); return;
+    }
+    if (isLocked()) return;
     const file = [...e.dataTransfer.files].find((f) => f.type.startsWith('image/'));
     if (file) {
       await imageToNode(file, addNode('image', w.x, w.y));
       return;
-    }
-    const kind = e.dataTransfer.getData(BLOCK_MIME);
-    if (kind === 'rect' || kind === 'image' || kind === 'group') {
-      addNode(kind, w.x, w.y); return;
     }
     const url = droppedLink(e.dataTransfer);
     if (url) {

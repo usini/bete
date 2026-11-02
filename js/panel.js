@@ -1,10 +1,9 @@
 // Right-hand panel: draggable blocks, selection tools, file actions.
-import { state, getNode, getSelectedId, select, addNode, events } from './state.js?v=mvzpds6l';
-import { screenToWorld, view, flyTo } from './camera.js?v=mvzpds6l';
-import { BLOCK_MIME, pickImage } from './input.js?v=mvzpds6l';
-import { exportDoc, importFile } from './storage.js?v=mvzpds6l';
+import { state, getNode, getSelectedId, select, addNode, events } from './state.js?v=mvzpjd1s';
+import { screenToWorld, view, flyTo } from './camera.js?v=mvzpjd1s';
+import { BLOCK_MIME, pickImage } from './input.js?v=mvzpjd1s';
+import { exportDoc, importFile } from './storage.js?v=mvzpjd1s';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mvzpds6l';
 
 export function initPanel() {
   const panel = document.getElementById('panel');
@@ -34,28 +33,16 @@ export function initPanel() {
   for (const el of panel.querySelectorAll('[data-block]')) {
     const kind = el.dataset.block;
     el.addEventListener('dragstart', (e) => {
-      if (isLocked()) { e.preventDefault(); return; }
       e.dataTransfer.setData(BLOCK_MIME, kind);
       e.dataTransfer.setData('text/plain', kind); // needed for the drag to start in some browsers
       e.dataTransfer.effectAllowed = 'copy';
     });
     el.addEventListener('click', () => {
-      if (isLocked()) return;
       const c = screenToWorld(view.w / 2, view.h / 2);
       const n = addNode(kind, c.x, c.y);
       if (kind === 'image') pickImage(n);
     });
   }
-
-  const updateLock = () => {
-    for (const el of panel.querySelectorAll('[data-block]')) {
-      el.draggable = !isLocked();
-      el.setAttribute('aria-disabled', String(isLocked()));
-    }
-    document.getElementById('import').disabled = isLocked();
-  };
-  modeEvents.addEventListener('change', updateLock);
-  updateLock();
 
   // Group links: one button per group, a click flies the camera to it and selects it.
   const groupsBox = document.getElementById('groups');

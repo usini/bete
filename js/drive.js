@@ -1,5 +1,5 @@
-import { localStore } from './local-store.js?v=mvzpds6l';
-import { updateBackupSize } from './backup-size.js?v=mvzpds6l';
+import { localStore } from './local-store.js?v=mvzpjd1s';
+import { updateBackupSize } from './backup-size.js?v=mvzpjd1s';
 // Optional backup of the board on Google Drive.
 //
 //  - Scope: drive.appdata only. The file (Bete.json) lives in a hidden folder reserved to this
@@ -7,12 +7,12 @@ import { updateBackupSize } from './backup-size.js?v=mvzpds6l';
 //  - Sign-in: OAuth code flow through a stateless service. Access tokens stay in memory.
 //  - Drive transfers happen only on explicit save, restore or initial connection.
 //    Local autosave remains automatic; leaving with unsaved Drive changes warns the user.
-import { state, onSaved, saveNow, serialize } from './state.js?v=mvzpds6l';
-import { exportData, importData } from './storage.js?v=mvzpds6l';
+import { state, onSaved, saveNow, serialize } from './state.js?v=mvzpjd1s';
+import { exportData, importData } from './storage.js?v=mvzpjd1s';
 
-import { notify } from './notifications.js?v=mvzpds6l';
+import { notify } from './notifications.js?v=mvzpjd1s';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mvzpds6l';
+import { modeEvents } from './mobile-mode.js?v=mvzpjd1s';
 
 const AUTH_URL = 'https://auth-bete.usini.eu';
 const FILE_NAME = 'Bete.json';
@@ -352,7 +352,7 @@ function render() {
   $('drive-restore').hidden = !linked;
   $('drive-disconnect').hidden = !linked;
   for (const id of ['drive-connect', 'drive-restore', 'drive-disconnect']) $(id).disabled = busy || connecting;
-  $('drive-restore').disabled = busy || connecting || isLocked();
+  $('drive-restore').disabled = busy || connecting;
   $('drive-status').textContent = statusText(linked, linked && tokenValid());
   $('drive-status').hidden = linked || !message;
   renderIndicator();
@@ -392,7 +392,6 @@ async function disconnect() {
 }
 
 function restore() {
-  if (isLocked()) return;
   if (!confirm('Remplacer le tableau actuel par la sauvegarde de Google Drive ?')) return;
   run('Restauration…', async () => {
     const remote = await findFile();

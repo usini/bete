@@ -20,6 +20,7 @@ export function initMobileMode() {
     button.setAttribute('aria-pressed', String(!locked));
     button.title = locked ? 'Lecture seule : autoriser les modifications' : 'Revenir en lecture seule';
     document.body.classList.toggle('mobile-locked', locked);
+    document.getElementById('mobile-lock-indicator').hidden = !locked;
   };
   button.addEventListener('click', () => setLocked(!locked));
   modeEvents.addEventListener('change', update);
