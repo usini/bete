@@ -4,9 +4,9 @@
 //    drag = one entry) is compared with the previous state, and a new entry is recorded when the
 //    blocks differ. The label ("Déplacement", "Suppression d'un bloc"...) comes from that diff.
 //  - Up to 60 states, persisted with the board and included in JSON exports.
-import { state, onSaved, replaceNodes, sanitizeNode, registerHistory, saveNow } from './state.js?v=mvzpjd1s';
+import { state, onSaved, replaceNodes, sanitizeNode, registerHistory, saveNow } from './state.js?v=mvzpna3r';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mvzpjd1s';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mvzpna3r';
 
 const MAX = 60;
 let states = []; // { json, norm, label, t } — oldest first

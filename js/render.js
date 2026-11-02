@@ -1,24 +1,24 @@
-import { positionEmbeds } from './embed-view.js?v=mvzpjd1s';
+import { positionEmbeds } from './embed-view.js?v=mvzpna3r';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzpjd1s';
-import { view, screenToWorld } from './camera.js?v=mvzpjd1s';
-import { youTubeId, ytThumb } from './yt.js?v=mvzpjd1s';
-import { imageFor } from './images.js?v=mvzpjd1s';
-import { positionVideo, isVideoPlaying } from './video.js?v=mvzpjd1s';
-import { guides } from './snap.js?v=mvzpjd1s';
-import { renderMinimap } from './minimap.js?v=mvzpjd1s';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzpjd1s';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzpjd1s';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzpjd1s';
+import { state, events, getSelectedId, groupsBySize } from './state.js?v=mvzpna3r';
+import { view, screenToWorld } from './camera.js?v=mvzpna3r';
+import { youTubeId, ytThumb } from './yt.js?v=mvzpna3r';
+import { imageFor } from './images.js?v=mvzpna3r';
+import { positionVideo, isVideoPlaying } from './video.js?v=mvzpna3r';
+import { guides } from './snap.js?v=mvzpna3r';
+import { renderMinimap } from './minimap.js?v=mvzpna3r';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mvzpna3r';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mvzpna3r';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mvzpna3r';
 
-import { genericLinkOf, plainLink } from './links.js?v=mvzpjd1s';
-import { stepMotion } from './motion.js?v=mvzpjd1s';
-import { remoteCursors, shareEvents } from './group-share.js?v=mvzpjd1s';
+import { genericLinkOf, plainLink } from './links.js?v=mvzpna3r';
+import { stepMotion } from './motion.js?v=mvzpna3r';
+import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mvzpna3r';
 
-import { isLocked } from './mobile-mode.js?v=mvzpjd1s';
+import { isLocked } from './mobile-mode.js?v=mvzpna3r';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mvzpjd1s';
-import { isAmazonUrl } from './amazon.js?v=mvzpjd1s';
+import { serviceForNode, serviceIcon } from './services.js?v=mvzpna3r';
+import { isAmazonUrl } from './amazon.js?v=mvzpna3r';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -31,6 +31,10 @@ let scheduled = false;
 let previousFrame = performance.now();
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 shareEvents.addEventListener('presence', () => requestRender());
+shareEvents.addEventListener('change', () => requestRender());
+reducedMotion.addEventListener('change', () => requestRender());
+document.addEventListener('visibilitychange', () => requestRender());
+let sharedGlowVisible = false;
 const thumbs = new Map(); // youtube id -> HTMLImageElement
 const ICON_ANIM_MS = 220;  // appearance animation of the 📝 button
 let iconSelId = null;      // selection the animation was started for
@@ -65,6 +69,7 @@ function draw() {
   const dt = Math.min(0.04, (now - previousFrame) / 1000);
   previousFrame = now;
   let moving = false;
+  sharedGlowVisible = false;
   const { x, y, zoom } = state.camera;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#0c0e12';
@@ -100,7 +105,7 @@ function draw() {
   positionEmbeds();
   renderMinimap();
   // Keep animating until the 📝 button is fully shown and the deletion pieces are gone.
-  if (iconT < 1 || hasParticles() || (moving && !reducedMotion.matches)) requestRender();
+  if (iconT < 1 || hasParticles() || sharedGlowVisible || (moving && !reducedMotion.matches)) requestRender();
 }
 
 function drawRemoteCursors(zoom) {
@@ -257,6 +262,30 @@ function drawGroup(n) {
   ctx.font = '600 ' + size + 'px ' + FONT_FAMILY;
   ctx.fillText(text, n.x + n.w / 2, n.y + hh / 2);
   ctx.restore();
+  if (isGroupShared(n)) drawSharedGlow(n);
+}
+
+// Rotating blue highlight and halo, inspired by liyrofx's CSS Glow Border Animation:
+// https://codepen.io/liyrofx/pen/poVZeEG — rendered locally, with no external dependencies.
+function drawSharedGlow(n) {
+  if (document.hidden) return;
+  const z = state.camera.zoom, c = state.camera;
+  if (n.x + n.w < c.x - view.w / (2 * z) || n.x > c.x + view.w / (2 * z) ||
+      n.y + n.h < c.y - view.h / (2 * z) || n.y > c.y + view.h / (2 * z)) return;
+  const angle = reducedMotion.matches ? 0 : performance.now() * Math.PI * 2 / 4000;
+  const glow = ctx.createConicGradient(angle, n.x + n.w / 2, n.y + n.h / 2);
+  glow.addColorStop(0, 'rgba(25,118,237,0)');
+  glow.addColorStop(0.09, '#1976ed');
+  glow.addColorStop(0.25, 'rgba(25,118,237,0)');
+  glow.addColorStop(1, 'rgba(25,118,237,0)');
+  ctx.save();
+  ctx.strokeStyle = glow;
+  ctx.lineWidth = 4 / z;
+  ctx.shadowColor = '#1976ed';
+  ctx.shadowBlur = 20 * dpr;
+  ctx.strokeRect(n.x + 2, n.y + 2, n.w - 4, n.h - 4);
+  ctx.restore();
+  if (!reducedMotion.matches) sharedGlowVisible = true;
 }
 
 // '#rrggbb' -> 'rgba(r, g, b, a)'

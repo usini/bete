@@ -1,8 +1,8 @@
-import { localStore } from './local-store.js?v=mvzpjd1s';
-import { state, events, onSaved, newId, sanitizeNode, emit, select, getNode, setGroupMemberFilter } from './state.js?v=mvzpjd1s';
-import { imageBlob, storeSharedImage } from './images.js?v=mvzpjd1s';
-import { flyTo, view, screenToWorld } from './camera.js?v=mvzpjd1s';
-import { MAX_MEMBERS, MAX_RECORDS, ROOT, validId, validImage, cleanValue, cleanRecord, mergeRecord, groupMembers, emptyPlacement, intersects } from './group-model.js?v=mvzpjd1s';
+import { localStore } from './local-store.js?v=mvzpna3r';
+import { state, events, onSaved, newId, sanitizeNode, emit, select, getNode, setGroupMemberFilter } from './state.js?v=mvzpna3r';
+import { imageBlob, storeSharedImage } from './images.js?v=mvzpna3r';
+import { flyTo, view, screenToWorld } from './camera.js?v=mvzpna3r';
+import { MAX_MEMBERS, MAX_RECORDS, ROOT, validId, validImage, cleanValue, cleanRecord, mergeRecord, groupMembers, emptyPlacement, intersects } from './group-model.js?v=mvzpna3r';
 
 // Explicit ICE config is essential: PeerJS's defaults include public TURN relays.
 export const peerConfig = {
@@ -124,6 +124,7 @@ export function shareInfo(group) {
   const s = shares.get(group.shareId || group.id);
   return s ? { enabled: s.enabled, role: s.role, status: s.status, peers: [...s.channels].filter(c => c.ready).length, url: shareUrl(s), groupId: s.groupId } : null;
 }
+export const isGroupShared = group => !!shares.get(group.shareId || group.id)?.enabled;
 export function shareUrl(s) {
   const url = new URL(location.pathname, location.origin);
   url.hash = new URLSearchParams({ group: s.groupId, peer: s.peerId, access: s.cap }).toString();

@@ -165,6 +165,12 @@ Les fenêtres desktop étroites restent éditables normalement.
 
 ## Partager un groupe
 
+Les groupes dont le partage est activé affichent une bordure bleue lumineuse en rotation,
+inspirée de [CSS Glow Border Animation de liyrofx](https://codepen.io/liyrofx/pen/poVZeEG).
+L’effet est dessiné localement dans le canvas, sans requête CodePen, sans modifier les sauvegardes
+ni envoyer de messages de présence. Il reste fixe si la réduction des animations est activée,
+et cesse d’animer lorsque les groupes sont hors écran ou le partage désactivé.
+
 Sélectionne un groupe puis clique sur l’icône **QR code**, sous 🎨. La fenêtre propose le QR,
 le lien, **Activer / Désactiver le partage** et **Régénérer le lien** (sur l’appareil source).
 Tous les participants peuvent modifier. Le lien ajoute ce groupe à leur tableau infini, dans
