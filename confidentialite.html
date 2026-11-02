@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Politique de confidentialité – Bête</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0;
+      padding: 32px 16px 64px;
+      background: #0c0e12;
+      color: #e8e8e8;
+      font: 16px/1.6 system-ui, "Segoe UI", Roboto, sans-serif;
+    }
+    main { max-width: 720px; margin: 0 auto; }
+    h1 { margin: 0 0 4px; font-size: 28px; }
+    h2 { margin: 36px 0 8px; font-size: 18px; color: #00b7eb; }
+    p, li { color: #d4d6da; }
+    ul { padding-left: 22px; }
+    a { color: #00b7eb; }
+    .meta { color: #8a919c; font-size: 14px; margin: 0 0 24px; }
+    .summary {
+      margin: 24px 0;
+      padding: 14px 18px;
+      background: #14171d;
+      border: 1px solid #262b34;
+      border-left: 4px solid #00b7eb;
+    }
+    .summary p { margin: 0 0 6px; }
+    code { background: #14171d; padding: 1px 6px; font-size: 14px; }
+  </style>
+</head>
+<body>
+<main>
+  <p><a href="./">← Retour à Bête</a></p>
+  <h1>Politique de confidentialité</h1>
+  <p class="meta">Dernière mise à jour : 2 novembre 2026</p>
+
+  <p>
+    Bête est une application web libre (licence MIT) éditée par Rémi Sarrailh (usini).
+    Son code source est public : <a href="https://github.com/usini/bete">github.com/usini/bete</a>.
+    Cette page explique quelles données l'application manipule, où elles sont stockées et
+    comment les supprimer.
+  </p>
+
+  <div class="summary">
+    <p><strong>En résumé</strong></p>
+    <ul>
+      <li>Pas de compte, pas de publicité, pas de suivi, pas de cookies déposés par Bête.</li>
+      <li>Tes tableaux restent sur ton appareil. Bête n'a pas de serveur et ne reçoit aucune de tes données.</li>
+      <li>La sauvegarde sur Google Drive est facultative : le fichier est enregistré dans ton propre Drive, dans un dossier caché réservé à Bête.</li>
+    </ul>
+  </div>
+
+  <h2>1. Données stockées sur ton appareil</h2>
+  <p>
+    Ce que tu crées dans Bête (textes, couleurs, positions des blocs, liens, images, prix et
+    délais de livraison saisis à la main) est enregistré automatiquement dans le navigateur ou
+    l'application, sur ton appareil :
+  </p>
+  <ul>
+    <li><code>localStorage</code> : le tableau, la dernière taille de bloc utilisée et les titres de vidéos YouTube déjà récupérés ;</li>
+    <li><code>IndexedDB</code> : les images que tu ajoutes.</li>
+  </ul>
+  <p>
+    Ces données ne sont envoyées à personne par Bête. Tu peux les exporter dans un fichier JSON
+    (bouton « Exporter JSON ») et les supprimer en effaçant les données du site dans les réglages
+    de ton navigateur.
+  </p>
+
+  <h2>2. Services tiers contactés par l'application</h2>
+  <p>
+    Quand un bloc contient un lien YouTube, ton navigateur contacte directement YouTube (Google) :
+  </p>
+  <ul>
+    <li><code>i.ytimg.com</code> pour afficher la miniature ;</li>
+    <li><code>www.youtube.com/oembed</code> pour récupérer le titre de la vidéo ;</li>
+    <li><code>www.youtube-nocookie.com</code> pour lire la vidéo, uniquement quand tu la lances.</li>
+  </ul>
+  <p>
+    YouTube reçoit alors l'identifiant de la vidéo et les informations techniques habituelles d'une
+    requête web (adresse IP, navigateur). Leur usage est régi par les conditions et la politique de
+    confidentialité de <a href="https://policies.google.com/privacy">Google</a>.
+  </p>
+  <p>
+    Le site est hébergé par GitHub Pages. GitHub peut enregistrer des données techniques de
+    connexion (comme l'adresse IP) selon sa propre
+    <a href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement">déclaration de confidentialité</a>.
+    Bête n'y a pas accès.
+  </p>
+
+  <h2>3. Sauvegarde sur Google Drive (facultative)</h2>
+  <p>Si tu choisis « Connecter Google Drive » :</p>
+  <ul>
+    <li>
+      <strong>Droit demandé</strong> : uniquement l'accès au dossier de données propre à
+      l'application (<code>https://www.googleapis.com/auth/drive.appdata</code>). Bête ne peut
+      ni voir, ni lire, ni modifier tes autres fichiers Drive.
+    </li>
+    <li>
+      <strong>Ce qui est enregistré</strong> : un seul fichier contenant ton tableau (blocs, textes,
+      liens, images), dans ce dossier caché. Il n'apparaît pas dans ton Drive habituel.
+    </li>
+    <li>
+      <strong>Où vont les données</strong> : directement de ton navigateur vers ton Drive. Elles ne
+      passent par aucun serveur de Bête, et personne d'autre que toi n'y a accès par ce biais.
+    </li>
+    <li>
+      <strong>Jeton de connexion</strong> : l'autorisation fournie par Google est conservée sur ton
+      appareil uniquement, le temps nécessaire à la sauvegarde. Elle n'est jamais transmise à un tiers.
+    </li>
+    <li>
+      <strong>Utilisation</strong> : les données de ton Drive servent exclusivement à sauvegarder et
+      restaurer ton tableau. Elles ne sont ni vendues, ni partagées, ni utilisées pour de la
+      publicité ou pour entraîner des modèles.
+    </li>
+  </ul>
+  <p>
+    L'utilisation par Bête des informations reçues des API Google respecte la
+    <a href="https://developers.google.com/terms/api-services-user-data-policy">politique relative aux données utilisateur des services d'API Google</a>,
+    y compris les exigences d'utilisation limitée.
+  </p>
+
+  <h2>4. Retirer l'accès et supprimer tes données</h2>
+  <ul>
+    <li>
+      <strong>Retirer l'accès de Bête à ton Drive</strong> : rends-toi sur
+      <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>,
+      choisis Bête, puis « Supprimer l'accès ».
+    </li>
+    <li>
+      <strong>Supprimer le fichier de sauvegarde</strong> : dans
+      <a href="https://drive.google.com/drive/settings">les paramètres de Google Drive</a>,
+      « Gérer les applications », puis « Supprimer les données masquées de l'application » pour Bête.
+    </li>
+    <li>
+      <strong>Supprimer les données locales</strong> : efface les données du site dans ton navigateur.
+    </li>
+  </ul>
+
+  <h2>5. Ce que Bête ne fait pas</h2>
+  <ul>
+    <li>Aucune analyse d'audience, aucun traceur, aucune publicité.</li>
+    <li>Aucune création de compte et aucune collecte d'adresse e-mail.</li>
+    <li>Aucune vente ni cession de données.</li>
+  </ul>
+
+  <h2>6. Modifications</h2>
+  <p>
+    Cette politique peut évoluer avec l'application. La date de dernière mise à jour figure en haut
+    de la page, et l'historique des modifications est public dans le dépôt GitHub.
+  </p>
+
+  <h2>7. Contact</h2>
+  <p>
+    Pour toute question, ouvre un ticket sur
+    <a href="https://github.com/usini/bete/issues">github.com/usini/bete/issues</a>.
+  </p>
+</main>
+</body>
+</html>

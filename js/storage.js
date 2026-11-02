@@ -1,7 +1,7 @@
 // Export / import of a board as one JSON file. Images are embedded as data URLs
 // so the file is self-contained and can be moved to another device.
-import { state, serialize, setDoc } from './state.js?v=mvz7o991';
-import { addDataUrl, refToDataUrl } from './images.js?v=mvz7o991';
+import { state, serialize, setDoc } from './state.js?v=mvz95lma';
+import { addDataUrl, refToDataUrl } from './images.js?v=mvz95lma';
 
 function download(blob, name) {
   const url = URL.createObjectURL(blob);

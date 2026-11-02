@@ -1,6 +1,6 @@
 // Alignment snapping: a moving or resizing block snaps its edges and centre to
 // the edges and centres of the other blocks. Guide lines are drawn while it applies.
-import { state } from './state.js?v=mvz7o991';
+import { state } from './state.js?v=mvz95lma';
 
 const TOL_PX = 8;
 const MIN = 20, MAX = 1e5;

@@ -32,6 +32,11 @@ python -m http.server 8000
 Aucune donnée n'est envoyée à un serveur. Les seuls appels réseau sont ceux de YouTube :
 miniatures (`i.ytimg.com`), titres (oEmbed) et lecteur (`youtube-nocookie.com`).
 
+## Confidentialité
+
+Voir [confidentialite.html](confidentialite.html) : quelles données sont stockées, où,
+et comment les supprimer.
+
 ## Contribuer
 
 Le navigateur garde volontiers d'anciennes versions des modules. Après toute modification de
