@@ -78,6 +78,11 @@ async function waitText(page, id, text) {
   assert.ok(link.includes('#group='));
   await guest.evaluate(link => { location.hash = new URL(link).hash; },link);
   await guest.click('#share-join');
+  const approval = host.locator('.share-approval');
+  await approval.waitFor();
+  assert.match(await approval.textContent(), /Invité [A-Z0-9]{4}/);
+  assert.equal(await moduleOn(guest,m=>m.state.state.nodes.some(n=>n.id==='group-test-0001')),false);
+  await approval.getByRole('button',{name:'Accepter'}).click();
   await waitText(guest,block.id,block.text);
   await guest.waitForFunction(()=>document.querySelector('#clock-sharing').textContent.includes('2 participants'));
   assert.match(await host.locator('#clock-sharing').textContent(),/2 participants/);
@@ -167,6 +172,7 @@ async function waitText(page, id, text) {
   assert.notEqual(newLink,link);
   await guest.evaluate(link=>{location.hash=new URL(link).hash;},newLink);
   await guest.click('#share-join');
+  await approval.getByRole('button',{name:'Accepter'}).click();
   await waitText(guest,block.id,'Depuis source');
   await guest.waitForTimeout(700);
   assert.equal((await moduleOn(guest,m=>m.state.state.nodes.filter(n=>n.shareId==='group-test-0001'))).length,1);
@@ -175,6 +181,7 @@ async function waitText(page, id, text) {
   const third=await setup(thirdContext,[]);
   await third.evaluate(link=>{location.hash=new URL(link).hash;},newLink);
   await third.click('#share-join');
+  await approval.getByRole('button',{name:'Accepter'}).click();
   await waitText(third,block.id,'Depuis source');
   await third.waitForFunction(()=>document.querySelector('#clock-sharing').textContent.includes('3 participants'));
   assert.match(await guest.locator('#clock-sharing').textContent(),/3 participants/);
@@ -205,6 +212,7 @@ async function waitText(page, id, text) {
   await moduleOn(hostAgain,m=>{Object.assign(m['group-share'].peerConfig,{host:'127.0.0.1',port:9091,secure:false,config:{iceServers:[]}});});
   // Restored auto-start may have attempted the production endpoint before the test override.
   await moduleOn(hostAgain,async m=>{const g=m.state.getNode('group-test-0001');m['group-share'].disableShare(g);await m['group-share'].enableShare(g);});
+  await hostAgain.locator('.share-approval').getByRole('button',{name:'Accepter'}).click({timeout:30000});
   for(let i=0;i<600;i++){
     if(await moduleOn(hostAgain,m=>m.state.state.nodes.some(n=>n.text==='Modifié hors ligne')))break;
     await guest.waitForTimeout(100);

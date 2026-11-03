@@ -124,14 +124,14 @@ html, body {
 }
 
 /* Text popup (opened by the 📝 button) */
-#textdialog, #drivedialog {
+#textdialog, #drivedialog, .share-approval {
   width: min(560px, calc(100vw - 32px));
   padding: 16px;
   color: var(--text);
   background: var(--panel);
   border: 2px solid var(--accent);
 }
-#textdialog::backdrop, #drivedialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+#textdialog::backdrop, #drivedialog::backdrop, .share-approval::backdrop { background: rgba(0, 0, 0, 0.6); }
 #drive-dialog-text { margin: 0 0 4px; line-height: 1.5; }
 .linklike {
   display: inline;
@@ -469,3 +469,6 @@ button:hover { border-color: var(--accent); }
   padding: 5px 9px; border: 1px solid #687588; border-radius: 6px;
   background: #14171ded; color: white; font: 12px sans-serif; cursor: pointer;
 }
+
+#share-name { width: 100%; box-sizing: border-box; margin: 4px 0 12px; }
+.share-approval { max-width: min(420px, calc(100vw - 32px)); overflow-wrap: anywhere; }

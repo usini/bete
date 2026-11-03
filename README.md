@@ -184,6 +184,10 @@ Les fenêtres desktop étroites restent éditables normalement.
 
 ## Partager un groupe
 
+Le menu permet de choisir un nom affiché. Sans nom, Bête conserve un nom local du type « Invité K7M2 ».
+L’hôte accepte ou refuse chaque nouvel appareil avant que le contenu du groupe lui soit envoyé.
+Les accords restent en mémoire pendant le partage et sont redemandés après rechargement de l’hôte.
+
 Les groupes dont le partage est activé affichent une bordure bleue lumineuse en rotation,
 inspirée de [CSS Glow Border Animation de liyrofx](https://codepen.io/liyrofx/pen/poVZeEG).
 L’effet est dessiné localement dans le canvas, sans requête CodePen, sans modifier les sauvegardes

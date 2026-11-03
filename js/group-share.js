@@ -1,9 +1,9 @@
-import { localStore } from './local-store.js?v=mvzrb4x0';
-import { state, events, onSaved, newId, sanitizeNode, emit, select, getNode, setGroupMemberFilter } from './state.js?v=mvzrb4x0';
-import { imageBlob, storeSharedImage } from './images.js?v=mvzrb4x0';
-import { flyTo, view, screenToWorld } from './camera.js?v=mvzrb4x0';
-import { MAX_MEMBERS, MAX_RECORDS, ROOT, validId, validImage, cleanValue, cleanRecord, mergeRecord, groupMembers, emptyPlacement, intersects, imageChunkBytes } from './group-model.js?v=mvzrb4x0';
-import { smoothPointer } from './motion.js?v=mvzrb4x0';
+import { localStore } from './local-store.js?v=mw11boe7';
+import { state, events, onSaved, newId, sanitizeNode, emit, select, getNode, setGroupMemberFilter } from './state.js?v=mw11boe7';
+import { imageBlob, storeSharedImage } from './images.js?v=mw11boe7';
+import { flyTo, view, screenToWorld } from './camera.js?v=mw11boe7';
+import { MAX_MEMBERS, MAX_RECORDS, ROOT, validId, validImage, cleanValue, cleanRecord, mergeRecord, groupMembers, emptyPlacement, intersects, imageChunkBytes } from './group-model.js?v=mw11boe7';
+import { smoothPointer } from './motion.js?v=mw11boe7';
 
 // Explicit ICE config is essential: PeerJS's defaults include public TURN relays.
 export const peerConfig = {
@@ -13,6 +13,21 @@ export const peerConfig = {
 const KEY = 'bete2:groupShares';
 const MAX_IMAGE = 10 * 1024 * 1024, CHUNK = 12288, MAX_PEERS = 8;
 const shares = new Map();
+const PROFILE_KEY = 'bete2:shareProfile';
+let profile;
+function shareProfile() {
+  if (profile) return profile;
+  try { profile = JSON.parse(localStore.getItem(PROFILE_KEY)); } catch {}
+  if (!/^[a-f0-9]{64}$/.test(profile?.device || '')) {
+    const alphabet = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+    const suffix = Array.from(crypto.getRandomValues(new Uint8Array(4)), byte => alphabet[byte % 32]).join('');
+    profile = { device: secret(), fallback: 'Invité ' + suffix, name: '' };
+    localStore.setItem(PROFILE_KEY, JSON.stringify(profile));
+  }
+  return profile;
+}
+const cleanName = value => typeof value === 'string' ? value.replace(/[\p{Cc}\p{Cf}]/gu, '').trim().slice(0, 40) : '';
+
 const actor = newId();
 export const shareEvents = new EventTarget();
 const hex = bytes => [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
@@ -113,7 +128,7 @@ function persist() {
 }
 function session(config) {
   return {
-    ...config, aliases: new Map(config.aliases || []), ignored: new Map(config.ignored || []), records: new Map(), clock: 0,
+    ...config, approved: new Set(), aliases: new Map(config.aliases || []), ignored: new Map(config.ignored || []), records: new Map(), clock: 0,
     peer: null, channels: new Set(), hashes: new Map(), requested: new Map(),
     status: 'Partage désactivé.', nextTry: 0, starting: false, generation: 0, seeded: config.role === 'host',
   };
@@ -208,6 +223,7 @@ export async function joinSharedGroup(config) {
 }
 
 function stop(s, broadcast = false) {
+  if (broadcast) s.approved.clear();
   s.generation++;
   s.requested.clear();
   removeCursors(s);
@@ -396,11 +412,41 @@ async function start(s) {
   finally { if (!s.peer && s.generation === generation) s.starting = false; }
 }
 
+async function approval(s, c, name) {
+  const dialog = document.createElement('dialog');
+  dialog.className = 'share-approval';
+  const form = document.createElement('form');
+  form.method = 'dialog';
+  const label = document.createElement('p');
+  label.textContent = name + ' souhaite rejoindre le groupe « ' + (rootOf(s)?.text || 'Groupe') + ' ».';
+  form.append(label);
+  const actions = document.createElement('div');
+  actions.className = 'dialog-actions';
+  form.append(actions);
+  for (const [value, text] of [['refuse', 'Refuser'], ['accept', 'Accepter']]) {
+    const button = document.createElement('button');
+    button.value = value;
+    button.textContent = text;
+    actions.append(button);
+  }
+  dialog.append(form);
+  document.body.append(dialog);
+  return new Promise(resolve => {
+    c.cancelApproval = () => dialog.close();
+    dialog.addEventListener('close', () => {
+      c.cancelApproval = null;
+      dialog.remove();
+      resolve(dialog.returnValue === 'accept');
+    }, { once: true });
+    dialog.showModal();
+  });
+}
+
 function attach(s, conn, host) {
   if (!conn) return;
   const c = { conn, host, ready: false, seeded: host, incoming: null, lastSeen: Date.now(), challenge: secret(), nonce: null, imageQueue: Promise.resolve(), wantedImages: new Set(), queued: 0, handshakes: 0 };
   s.channels.add(c);
-  const timeout = setTimeout(() => { if (!c.ready) { notify(s, 'Connexion directe impossible : réseau incompatible ou lien invalide.'); conn.close(); } }, 20000);
+  c.timeout = setTimeout(() => { if (!c.ready) { notify(s, 'Connexion directe impossible : réseau incompatible ou lien invalide.'); conn.close(); } }, 20000);
   conn.on('open', () => { if (!host) send(c, { type: 'hello', v: 1, group: s.groupId, actor, challenge: c.challenge }); });
   conn.on('data', packet => {
     if (++c.queued > 2048) { conn.close(); return; }
@@ -408,7 +454,8 @@ function attach(s, conn, host) {
     queue(async () => { try { await receive(s, c, packet); } finally { c.queued--; } }, s);
   });
   const closed = () => {
-    clearTimeout(timeout);
+    clearTimeout(c.timeout);
+    c.cancelApproval?.();
     if (!s.channels.delete(c)) return;
     if (host) sendParticipants(s);
     else s.participants = [];
@@ -439,17 +486,47 @@ async function receive(s, c, p) {
         notify(s, 'Lien invalide ou révoqué : ce canal ne correspond pas au partage attendu.');
         return;
       }
-      send(c, { type: 'authenticate', proof: await proof(s, c, 'guest', c.challenge, c.nonce) });
+      const profile = shareProfile();
+      send(c, { type: 'authenticate', device: await digest(new TextEncoder().encode(profile.device + ':' + s.groupId + ':' + s.peerId + ':' + s.cap)), name: cleanName(profile.name) || profile.fallback, proof: await proof(s, c, 'guest', c.challenge, c.nonce) });
     } else if (p.type === 'authenticate' && c.host && c.nonce) {
       if (!equalProof(p.proof, await proof(s, c, 'guest', c.challenge, c.nonce))) { c.conn.close(); return; }
-      await capture(s);
-      c.ready = true;
-      send(c, { type: 'ready' });
-      sendParticipants(s);
-      sendRecords(c, [...s.records.values()]);
-      send(c, { type: 'seed-end' });
-      notify(s, 'Partage actif. ' + [...s.channels].filter(c => c.ready).length + ' participant(s).');
-    } else if (p.type === 'ready' && !c.host && c.nonce) { c.ready = true; }
+      if (c.authenticated || !/^[a-f0-9]{64}$/.test(p.device || '')) { c.conn.close(); return; }
+      c.authenticated = true;
+      clearTimeout(c.timeout);
+      const name = cleanName(p.name) || 'Invité';
+      const finish = async accepted => {
+        if (!s.enabled || !s.channels.has(c) || !c.conn.open) return;
+        if (!accepted) {
+          send(c, { type: 'refused' });
+          c.timeout = setTimeout(() => c.conn.close(), 1000);
+          return;
+        }
+        s.approved.add(p.device);
+        await capture(s);
+        if (!s.enabled || !s.channels.has(c) || !c.conn.open) return;
+        clearTimeout(c.timeout);
+        c.lastSeen = Date.now();
+        c.ready = true;
+        send(c, { type: 'ready' });
+        sendParticipants(s);
+        sendRecords(c, [...s.records.values()]);
+        send(c, { type: 'seed-end' });
+        notify(s, name + ' a rejoint le groupe.');
+      };
+      if (s.approved.has(p.device)) await finish(true);
+      else {
+        c.timeout = setTimeout(() => c.conn.close(), 120000);
+        send(c, { type: 'waiting' });
+        approval(s, c, name).then(accepted => queue(() => finish(accepted), s));
+      }
+    } else if (p.type === 'waiting' && !c.host && c.nonce) {
+      clearTimeout(c.timeout);
+      c.timeout = setTimeout(() => c.conn.close(), 125000);
+      notify(s, 'En attente de validation par l’hôte.');
+    } else if (p.type === 'refused' && !c.host && c.nonce) {
+      s.enabled = false; stop(s); persist();
+      notify(s, 'L’hôte a refusé la demande.');
+    } else if (p.type === 'ready' && !c.host && c.nonce) { clearTimeout(c.timeout); c.ready = true; }
     else c.conn.close();
     return;
   }
@@ -559,6 +636,14 @@ async function requestImages(s, c) {
 export function initGroupSharing() {
   if (initialised) return;
   initialised = true;
+  const name = document.getElementById('share-name');
+  const profile = shareProfile();
+  name.value = profile.name;
+  name.placeholder = profile.fallback;
+  name.addEventListener('input', () => {
+    profile.name = name.value;
+    localStore.setItem(PROFILE_KEY, JSON.stringify(profile));
+  });
   const canvas = document.getElementById('canvas');
   canvas.addEventListener('pointermove', event => {
     pointer = { x: event.clientX, y: event.clientY };
@@ -620,7 +705,7 @@ export function initGroupSharing() {
       if (!s.enabled) continue;
       if (!s.peer && (rootOf(s) || s.role === 'guest')) queue(() => start(s), s);
       for (const c of s.channels) {
-        if (Date.now() - c.lastSeen > 20000) c.conn.close();
+        if (c.ready && Date.now() - c.lastSeen > 20000) c.conn.close();
         else if (c.ready) { send(c, { type: 'ping' }); queue(() => requestImages(s, c), s); }
       }
     }

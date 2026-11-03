@@ -50,7 +50,7 @@
     <ul>
       <li>Pas de compte Bête, pas de publicité ni de suivi publicitaire. La connexion Drive utilise deux cookies techniques sécurisés.</li>
       <li>Tes tableaux restent sur ton appareil, avec une sauvegarde Drive facultative. Le service de connexion Bête traite les autorisations Google, pas les tableaux.</li>
-      <li>Le partage de groupes est facultatif : leur contenu est transmis directement aux participants disposant du lien.</li>
+      <li>Le partage de groupes est facultatif : leur contenu est transmis directement aux invités approuvés par l’hôte.</li>
       <li>La sauvegarde sur Google Drive est facultative : le fichier est enregistré dans ton propre Drive, dans un dossier caché réservé à Bête.</li>
     </ul>
   </div>
@@ -265,6 +265,12 @@
   </p>
 
   <h2>Partage de groupes entre appareils (facultatif)</h2>
+  <p>
+    L’invité envoie son nom affiché et un identifiant privé propre au partage à l’hôte via WebRTC.
+    Le nom et l’identifiant d’appareil sont conservés localement. L’hôte doit approuver l’invité
+    avant tout envoi du contenu du groupe. Les informations réseau nécessaires à la connexion
+    WebRTC sont échangées avant cette approbation.
+  </p>
   <p>
     Activer un partage ou accepter un lien de groupe déclenche une connexion PeerJS/WebRTC.
     Le serveur de signalisation <code>peer-bete.usini.eu</code>, hébergé sur le VPS OVHcloud et
