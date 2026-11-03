@@ -1,5 +1,5 @@
 // Clock at the top of the page: the date and the time as HH:MM:SS, updated every second.
-import { sharingSummary, shareEvents } from './group-share.js?v=mw11boe7';
+import { sharingSummary, shareEvents } from './group-share.js?v=mw11h6tn';
 const dateEl = document.getElementById('clock-date');
 const timeEl = document.getElementById('clock-time');
 
