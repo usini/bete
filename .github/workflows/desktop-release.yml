@@ -1,6 +1,8 @@
 name: Publier Bête Windows
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       version:
@@ -13,16 +15,37 @@ permissions:
 
 concurrency:
   group: bete-desktop-release
-  cancel-in-progress: false
+  queue: max
 
 jobs:
   build:
     if: github.repository == 'usini/bete' && github.ref == 'refs/heads/main'
     runs-on: windows-2025
     environment: desktop-release
-    env:
-      BETE_VERSION: ${{ inputs.version }}
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
+      - name: Déterminer la version Windows
+        id: version
+        shell: pwsh
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          $endpoint = 'https://github.com/usini/bete/releases/latest/download/bete-desktop-latest.json'
+          $latest = [version](Invoke-RestMethod ($endpoint + '?check=' + [guid]::NewGuid())).version
+          if ($env:GITHUB_EVENT_NAME -eq 'push') {
+            $number = '{0}.{1}.{2}' -f $latest.Major, $latest.Minor, ($latest.Build + 1)
+          } else {
+            $number = $env:REQUESTED_VERSION
+          }
+          if ($number -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' -or
+              $null -eq ($parsed = $number -as [version])) {
+            throw 'Indique une version au format X.Y.Z.'
+          }
+          if ($parsed -le $latest) { throw "La version doit être supérieure à $latest." }
+          "version=$number" >> $env:GITHUB_OUTPUT
+          Write-Host "Version Windows : $number"
+
       - name: Récupérer le code
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -33,14 +56,10 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Vérifier la version et préparer Tauri
+      - name: Préparer Tauri
         shell: pwsh
         working-directory: desktop
         run: |
-          if ($env:BETE_VERSION -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' -or
-              $null -eq ($env:BETE_VERSION -as [version])) {
-            throw 'Indique une version au format X.Y.Z.'
-          }
           rustup target add x86_64-pc-windows-msvc
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           npm ci --ignore-scripts
@@ -49,6 +68,7 @@ jobs:
         shell: pwsh
         working-directory: desktop
         env:
+          BETE_VERSION: ${{ steps.version.outputs.version }}
           BETE_UPDATER_PUBLIC_KEY: ${{ vars.BETE_UPDATER_PUBLIC_KEY }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -66,7 +86,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: bete-windows-release
-          path: desktop/release-output/bete-desktop-v${{ inputs.version }}/
+          path: desktop/release-output/bete-desktop-v${{ steps.version.outputs.version }}/
           if-no-files-found: error
           retention-days: 3
 
@@ -76,7 +96,7 @@ jobs:
     permissions:
       contents: write
     env:
-      BETE_VERSION: ${{ inputs.version }}
+      BETE_VERSION: ${{ needs.build.outputs.version }}
     steps:
       - name: Récupérer les fichiers signés
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
@@ -110,7 +130,7 @@ jobs:
             return [Convert]::ToHexString($record[2..9])
           }
 
-          $latest = Invoke-RestMethod 'https://github.com/usini/bete/releases/latest/download/bete-desktop-latest.json'
+          $latest = Invoke-RestMethod ('https://github.com/usini/bete/releases/latest/download/bete-desktop-latest.json?check=' + [guid]::NewGuid())
           if ([version]$version -le [version]$latest.version) {
             throw "La version doit être supérieure à $($latest.version)."
           }
