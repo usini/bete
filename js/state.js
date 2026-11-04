@@ -1,7 +1,7 @@
-import { localStore } from './local-store.js?v=mw11h6tn';
+import { localStore } from './local-store.js?v=mw1yed4y';
 // Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mw11h6tn';
+import { explode } from './fx.js?v=mw1yed4y';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];
@@ -62,6 +62,7 @@ export function sanitizeNode(raw) {
   if (typeof raw.image === 'string' && raw.image.length < LIMITS.dataUrl
       && (raw.image.startsWith('idb:') || raw.image.startsWith('data:image/'))) {
     n.image = raw.image;
+    if (raw.keepImageOriginal === true) n.keepImageOriginal = true;
   }
   if (typeof raw.link === 'string' && raw.link.length <= 2000 && /^https?:\/\//i.test(raw.link)) {
     n.link = raw.link;

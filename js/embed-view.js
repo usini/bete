@@ -1,8 +1,8 @@
-import { state, select } from './state.js?v=mw11h6tn';
-import { worldToScreen, view } from './camera.js?v=mw11h6tn';
-import { facebookPostOf, facebookEmbed } from './facebook.js?v=mw11h6tn';
-import { googleMapsEmbedOf } from './google-maps.js?v=mw11h6tn';
-import { socialEmbedOf } from './social-embeds.js?v=mw11h6tn';
+import { state, select } from './state.js?v=mw1yed4y';
+import { worldToScreen, view } from './camera.js?v=mw1yed4y';
+import { facebookPostOf, facebookEmbed } from './facebook.js?v=mw1yed4y';
+import { googleMapsEmbedOf } from './google-maps.js?v=mw1yed4y';
+import { socialEmbedOf } from './social-embeds.js?v=mw1yed4y';
 
 const frames = new Map();
 

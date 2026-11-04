@@ -1,9 +1,44 @@
 // Right-hand panel: draggable blocks, selection tools, file actions.
-import { state, getNode, getSelectedId, select, addNode, events } from './state.js?v=mw11h6tn';
-import { screenToWorld, view, flyTo } from './camera.js?v=mw11h6tn';
-import { BLOCK_MIME, pickImage } from './input.js?v=mw11h6tn';
-import { exportDoc, importFile } from './storage.js?v=mw11h6tn';
+import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mw1yed4y';
+import { screenToWorld, view, flyTo } from './camera.js?v=mw1yed4y';
+import { BLOCK_MIME, pickImage } from './input.js?v=mw1yed4y';
+import { exportDoc, importFile } from './storage.js?v=mw1yed4y';
 
+
+import { optimizeImage } from './images.js?v=mw1yed4y';
+import { notify } from './notifications.js?v=mw1yed4y';
+
+async function optimizeBoardImages(button) {
+  const id = 'optimize-images';
+  button.disabled = true;
+  notify('Optimisation des images…', { id, type: 'progress', duration: 0 });
+  const candidates = new Map();
+  for (const node of state.nodes) {
+    if (!node.image || node.keepImageOriginal) continue;
+    if (!candidates.has(node.image)) candidates.set(node.image, []);
+    candidates.get(node.image).push(node);
+  }
+
+  let count = 0, failures = 0;
+  try {
+    for (const [ref, nodes] of candidates) {
+      try {
+        const optimized = await optimizeImage(ref);
+        if (!optimized) continue;
+        const current = nodes.filter(node => getNode(node.id) === node && node.image === ref && !node.keepImageOriginal);
+        for (const node of current) node.image = optimized;
+        count += current.length;
+        if (current.length) emit();
+      } catch {
+        failures++;
+      }
+    }
+    const summary = count ? `${count} bloc(s) optimisé(s).` : 'Aucun bloc optimisé.';
+    notify(summary + (failures ? ` ${failures} image(s) en erreur.` : ''), { id, type: failures ? 'error' : 'success' });
+  } finally {
+    button.disabled = false;
+  }
+}
 
 export function initPanel() {
   const panel = document.getElementById('panel');
@@ -85,6 +120,8 @@ export function initPanel() {
   refreshGroups();
 
   // File actions.
+  const optimize = document.getElementById('optimize-images');
+  optimize.addEventListener('click', () => optimizeBoardImages(optimize));
   document.getElementById('export').addEventListener('click', () => { exportDoc(); });
   const fileIn = document.getElementById('fileimport');
   document.getElementById('import').addEventListener('click', () => {

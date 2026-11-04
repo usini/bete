@@ -1,14 +1,14 @@
 // Labels: the tab above a block. It shows the YouTube title (YouTube blocks) or the block's
 // link URL; a block with neither has no label. The layout and the hit-testing live here,
 // so the renderer and the pointer handling always agree on where the label is.
-import { state } from './state.js?v=mw11h6tn';
-import { youTubeId, youTubeTitle } from './yt.js?v=mw11h6tn';
-import { FONT_FAMILY } from './text.js?v=mw11h6tn';
-import { isAmazonUrl, isAmazonText } from './amazon.js?v=mw11h6tn';
+import { state } from './state.js?v=mw1yed4y';
+import { youTubeId, youTubeTitle } from './yt.js?v=mw1yed4y';
+import { FONT_FAMILY } from './text.js?v=mw1yed4y';
+import { isAmazonUrl, isAmazonText } from './amazon.js?v=mw1yed4y';
 
-import { genericLink } from './links.js?v=mw11h6tn';
+import { genericLink } from './links.js?v=mw1yed4y';
 
-import { serviceForNode } from './services.js?v=mw11h6tn';
+import { serviceForNode } from './services.js?v=mw1yed4y';
 
 export const LABEL_SIZE = 26;                       // font size, world units
 export const LABEL_FONT = '600 ' + LABEL_SIZE + 'px ' + FONT_FAMILY;
@@ -140,11 +140,16 @@ export function deleteIconBox(n, zoom) {
   const b = imageIconBox(n, zoom);
   return { ...b, y: b.y + (n.kind === 'rect' ? 0 : ACTION_STEP_PX / zoom) };
 }
+export function optimizeIconBox(n, zoom) {
+  const b = deleteIconBox(n, zoom);
+  return { ...b, y: b.y + ACTION_STEP_PX / zoom };
+}
 function inBox(b, w) {
   return w.x >= b.x && w.x <= b.x + b.w && w.y >= b.y && w.y <= b.y + b.h;
 }
 // 'edit', 'color', 'image' or null: which action button is under the world point w.
 export function actionHit(n, w, zoom) {
+  if (n.image && inBox(optimizeIconBox(n, zoom), w)) return 'optimize-image';
   if (inBox(deleteIconBox(n, zoom), w)) return 'delete';
   if (inBox(editIconBox(n, zoom), w)) return 'edit';
   if (inBox(colorIconBox(n, zoom), w)) return 'color';

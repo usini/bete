@@ -1,29 +1,28 @@
-import { positionEmbeds } from './embed-view.js?v=mw11h6tn';
+import { positionEmbeds } from './embed-view.js?v=mw1yed4y';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize } from './state.js?v=mw11h6tn';
-import { view, screenToWorld } from './camera.js?v=mw11h6tn';
-import { youTubeId, ytThumb } from './yt.js?v=mw11h6tn';
-import { imageFor } from './images.js?v=mw11h6tn';
-import { positionVideo, isVideoPlaying } from './video.js?v=mw11h6tn';
-import { guides } from './snap.js?v=mw11h6tn';
-import { renderMinimap } from './minimap.js?v=mw11h6tn';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mw11h6tn';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw11h6tn';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw11h6tn';
+import { state, events, getSelectedId, groupsBySize } from './state.js?v=mw1yed4y';
+import { view, screenToWorld } from './camera.js?v=mw1yed4y';
+import { youTubeId, ytThumb } from './yt.js?v=mw1yed4y';
+import { imageCaptionFraction, imageFor } from './images.js?v=mw1yed4y';
+import { positionVideo, isVideoPlaying } from './video.js?v=mw1yed4y';
+import { guides } from './snap.js?v=mw1yed4y';
+import { renderMinimap } from './minimap.js?v=mw1yed4y';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mw1yed4y';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw1yed4y';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw1yed4y';
 
-import { genericLinkOf, plainLink } from './links.js?v=mw11h6tn';
-import { stepMotion } from './motion.js?v=mw11h6tn';
-import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw11h6tn';
+import { genericLinkOf, plainLink } from './links.js?v=mw1yed4y';
+import { stepMotion } from './motion.js?v=mw1yed4y';
+import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw1yed4y';
 
-import { isLocked } from './mobile-mode.js?v=mw11h6tn';
+import { isLocked } from './mobile-mode.js?v=mw1yed4y';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mw11h6tn';
-import { isAmazonUrl } from './amazon.js?v=mw11h6tn';
+import { serviceForNode, serviceIcon } from './services.js?v=mw1yed4y';
+import { isAmazonUrl } from './amazon.js?v=mw1yed4y';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const PAD = 10;         // inner padding of image blocks, in world units
-const CAPTION = 26;     // caption strip height for image blocks with text
 const CAPTION_FONT = '16px ' + FONT_FAMILY;
 
 let dpr = 1;
@@ -160,7 +159,7 @@ function drawNode(n, selected, zoom) {
     return;
   }
   const service = serviceForNode(n);
-  const yt = service ? null : youTubeId(n.text);
+  const yt = service || n.image ? null : youTubeId(n.text);
   if (n.color !== 'transparent') {
     ctx.fillStyle = '#14171d';
     ctx.fillRect(n.x, n.y, n.w, n.h);
@@ -174,13 +173,13 @@ function drawNode(n, selected, zoom) {
   const link = genericLinkOf(n);
   const linkTitle = link ? ((!plainLink(n.text) && n.text.trim()) || new URL(link).hostname) : '';
   const src = yt ? thumb(yt) : n.image ? imageFor(n.image, requestRender) : null;
-  // Caption strip inside image blocks (their text).
-  const label = !yt && n.kind !== 'image' && src && n.text ? n.text : null;
-  const areaH = n.h - 2 * PAD - (label ? CAPTION : 0);
+  const captionHeight = !yt && src ? n.h * imageCaptionFraction(n) : 0;
   if (src) {
-    if (areaH > 0) drawContained(src, n.x + PAD, n.y + PAD, n.w - 2 * PAD, areaH);
+    const pad = yt ? PAD : 0;
+    const areaH = n.h - 2 * pad - captionHeight;
+    if (areaH > 0) drawContained(src, n.x + pad, n.y + pad, n.w - 2 * pad, areaH);
     if (yt) drawPlay(n);
-    if (label) drawCaption(n, label);
+    if (captionHeight) drawCaption(n, n.text, captionHeight);
   } else if (service && !n.image) {
     if (appIcon) {
       drawContained(appIcon, n.x, n.y, n.w, n.h);
@@ -228,6 +227,7 @@ function drawSelection(n, selected, zoom) {
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(n.x + n.w - hs / 2, n.y + n.h - hs / 2, hs, hs);
   drawButton(deleteIconBox(n, zoom), '\u{1F5D1}️', '#ff7777', zoom);
+  if (n.image) drawButton(optimizeIconBox(n, zoom), n.keepImageOriginal ? '🔒' : '🔓', n.keepImageOriginal ? '#ffcb6b' : n.color, zoom);
   drawEditIcon(n, zoom);
   if (n.kind === 'image') drawImageIcon(n, zoom);
   if (n.kind === 'group') drawButton(shareIconBox(n, zoom), 'qr', n.color, zoom);
@@ -330,14 +330,15 @@ function drawPlay(n) {
   ctx.fill();
 }
 
-function drawCaption(n, label) {
-  const y = n.y + n.h - CAPTION;
+function drawCaption(n, label, height) {
+  const y = n.y + n.h - height;
+  const pad = Math.min(n.w * 0.05, height * 0.3);
+  const font = Math.min(height * 0.72, n.w * 0.18) + 'px ' + FONT_FAMILY;
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
-  ctx.fillRect(n.x, y, n.w, CAPTION);
-  ctx.font = CAPTION_FONT;
+  ctx.fillRect(n.x, y, n.w, height);
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#e8e8e8';
-  ctx.fillText(fit(firstLine(label), n.w - 2 * PAD), n.x + PAD, y + CAPTION / 2);
+  ctx.fillText(fit(firstLine(label), n.w - 2 * pad, font), n.x + pad, y + height / 2);
 }
 
 // Label tab above the block: a pill in the block colour (text black or white for contrast),

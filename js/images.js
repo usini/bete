@@ -1,7 +1,7 @@
 // Image blobs live in IndexedDB; nodes only keep a reference 'idb:<id>'.
-import { newId } from './state.js?v=mw11h6tn';
+import { newId } from './state.js?v=mw1yed4y';
 
-import { openDatabase } from './database.js?v=mw11h6tn';
+import { openDatabase } from './database.js?v=mw1yed4y';
 const STORE = 'images';
 
 async function run(mode, op) {
@@ -29,6 +29,9 @@ export async function storeSharedImage(hash, blob) {
 // ref -> { img, ok }. Images are decoded once and then reused by the renderer.
 const cache = new Map();
 
+// Reserve the same share of the block during rendering and resizing.
+export const imageCaptionFraction = node => node.text?.trim() ? 0.16 : 0;
+
 // Returns a ready HTMLImageElement, or null while it loads (onReady is then called).
 export function imageFor(ref, onReady) {
   let e = cache.get(ref);
@@ -54,6 +57,27 @@ async function loadRef(ref, e, onReady) {
     onReady();
   } catch (err) {
     console.warn('bete2: image load failed', err);
+  }
+}
+
+// Return a new reference so undo and other blocks can keep the original.
+export async function optimizeImage(ref) {
+  const blob = ref.startsWith('idb:') ? await imageBlob(ref) : await (await fetch(ref)).blob();
+  if (!blob || !['image/jpeg', 'image/png'].includes(blob.type)) return null;
+  if (blob.type === 'image/png' && new TextDecoder('latin1').decode(await blob.arrayBuffer()).includes('acTL')) return null;
+
+  const bitmap = await createImageBitmap(blob);
+  try {
+    const scale = Math.min(1, 1920 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const compressed = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', 0.86));
+    if (compressed?.type !== 'image/webp' || compressed.size >= blob.size) return null;
+    return addImageFile(compressed);
+  } finally {
+    bitmap.close();
   }
 }
 

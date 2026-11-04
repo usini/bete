@@ -3,24 +3,28 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mw11h6tn';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw11h6tn';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mw11h6tn';
-import { addImageFile } from './images.js?v=mw11h6tn';
-import { playVideo } from './video.js?v=mw11h6tn';
-import { youTubeId } from './yt.js?v=mw11h6tn';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mw11h6tn';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mw11h6tn';
-import { undo, redo } from './history.js?v=mw11h6tn';
+import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mw1yed4y';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw1yed4y';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mw1yed4y';
+import { addImageFile, imageCaptionFraction, imageFor } from './images.js?v=mw1yed4y';
+import { playVideo } from './video.js?v=mw1yed4y';
+import { youTubeId } from './yt.js?v=mw1yed4y';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mw1yed4y';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mw1yed4y';
+import { undo, redo } from './history.js?v=mw1yed4y';
 
-import { setDragging } from './motion.js?v=mw11h6tn';
+import { setDragging } from './motion.js?v=mw1yed4y';
 
-import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mw11h6tn';
-import { shortenAmazonText, isAmazonUrl } from './amazon.js?v=mw11h6tn';
+import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mw1yed4y';
+import { shortenAmazonText, isAmazonUrl } from './amazon.js?v=mw1yed4y';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mw11h6tn';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mw1yed4y';
 
-import { serviceForNode } from './services.js?v=mw11h6tn';
+import { serviceForNode } from './services.js?v=mw1yed4y';
+
+import { requestRender } from './render.js?v=mw1yed4y';
+
+import { notify } from './notifications.js?v=mw1yed4y';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 
@@ -130,6 +134,11 @@ function onPointerDown(e) {
         confirmDelete(sel.id);
         lastAct.t = performance.now();
       }
+      else if (action === 'optimize-image') {
+        sel.keepImageOriginal = !sel.keepImageOriginal;
+        emit();
+        notify(sel.keepImageOriginal ? 'Image protégée de l’optimisation.' : 'Image de nouveau optimisable.');
+      }
       else if (action === 'image') pickImage(sel); // 🖼️: change the picture
       else if (action === 'color') pickColor(sel, sx, sy);
       else if (action === 'share') document.dispatchEvent(new CustomEvent('bete-share-group', { detail: sel.id }));
@@ -200,6 +209,11 @@ function doubleAt(x, y) {
 }
 
 function onPointerMove(e) {
+  if (!gesture && e.pointerType === 'mouse') {
+    const selected = getNode(getSelectedId());
+    const overToggle = selected?.image && actionHit(selected, screenToWorld(e.clientX, e.clientY), state.camera.zoom) === 'optimize-image';
+    canvas.title = overToggle ? (selected.keepImageOriginal ? 'Autoriser l’optimisation' : 'Ne pas optimiser') : '';
+  }
   const p = pointers.get(e.pointerId);
   if (!p) return;
   const dx = e.clientX - p.x, dy = e.clientY - p.y;
@@ -234,9 +248,23 @@ function onPointerMove(e) {
     if (Math.hypot(e.clientX - g.sx, e.clientY - g.sy) > MOVE_PX) g.moved = true;
   } else if (g.type === 'resize') {
     const z = state.camera.zoom;
-    const size = snapResize(g.n, clamp(g.ox + (e.clientX - g.sx) / z), clamp(g.oy + (e.clientY - g.sy) / z));
-    g.n.w = size.w;
-    g.n.h = size.h;
+    const w = g.ox + (e.clientX - g.sx) / z;
+    const h = g.oy + (e.clientY - g.sy) / z;
+    const image = g.n.image && imageFor(g.n.image, requestRender);
+    if (image) {
+      const ratio = image.naturalWidth / image.naturalHeight * (1 - imageCaptionFraction(g.n));
+      // Project the dragged corner onto the line of valid sizes.
+      const width = (w + h / ratio) / (1 + 1 / (ratio * ratio));
+      const maxWidth = Math.min(MAX_SIZE, MAX_SIZE * ratio);
+      const minWidth = Math.min(maxWidth, Math.max(MIN_SIZE, MIN_SIZE * ratio));
+      g.n.w = Math.max(minWidth, Math.min(maxWidth, width));
+      g.n.h = g.n.w / ratio;
+      clearGuides();
+    } else if (!g.n.image) {
+      const size = snapResize(g.n, clamp(w), clamp(h));
+      g.n.w = size.w;
+      g.n.h = size.h;
+    }
   }
   emit();
 }
