@@ -1,0 +1,20 @@
+[package]
+name = "bete-desktop"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-updater = "2"
+base64 = "0.23"
+getrandom = "0.3"
+keyring = { version = "3.6", features = ["windows-native"] }
+reqwest = { version = "0.13", default-features = false, features = ["form", "json", "native-tls-no-alpn"] }
+serde = { version = "1", features = ["derive"] }
+sha2 = "0.10"
+tiny_http = "0.12"
+serde_json = "1"

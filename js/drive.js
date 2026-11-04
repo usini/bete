@@ -1,5 +1,5 @@
-import { localStore } from './local-store.js?v=mw20brb3';
-import { updateBackupSize } from './backup-size.js?v=mw20brb3';
+import { localStore } from './local-store.js?v=mw22tbu2';
+import { updateBackupSize } from './backup-size.js?v=mw22tbu2';
 // Optional backup of the board on Google Drive.
 //
 //  - Scope: drive.appdata only. The file (Bete.json) lives in a hidden folder reserved to this
@@ -7,12 +7,12 @@ import { updateBackupSize } from './backup-size.js?v=mw20brb3';
 //  - Sign-in: OAuth code flow through a stateless service. Access tokens stay in memory.
 //  - Drive transfers happen only on explicit save, restore or initial connection.
 //    Local autosave remains automatic; leaving with unsaved Drive changes warns the user.
-import { state, onSaved, saveNow, serialize } from './state.js?v=mw20brb3';
-import { exportData, importData } from './storage.js?v=mw20brb3';
+import { state, onSaved, saveNow, serialize } from './state.js?v=mw22tbu2';
+import { exportData, importData } from './storage.js?v=mw22tbu2';
 
-import { notify } from './notifications.js?v=mw20brb3';
+import { notify } from './notifications.js?v=mw22tbu2';
 
-import { modeEvents } from './mobile-mode.js?v=mw20brb3';
+import { modeEvents } from './mobile-mode.js?v=mw22tbu2';
 
 const AUTH_URL = 'https://auth-bete.usini.eu';
 const FILE_NAME = 'Bete.json';
@@ -57,7 +57,15 @@ try { localStore.removeItem(TOKEN_KEY); } catch { /* storage blocked */ }
 let refreshing = null;
 let connecting = false;
 let driveFailed = false;
+async function desktopAuth(command) {
+  let result;
+  try { result = await globalThis.__TAURI__.core.invoke(command); }
+  catch (error) { throw new Error(String(error)); }
+  if (command === 'drive_token' && !result) throw new AuthNeeded();
+  return result;
+}
 async function authRequest(path) {
+  if (globalThis.__TAURI__) return desktopAuth(path === '/logout' ? 'drive_logout' : 'drive_token');
   const r = await fetch(AUTH_URL + path, {
     method: 'POST', credentials: 'include', headers: { 'X-Bete-Request': '1' },
     signal: AbortSignal.timeout(20000),
@@ -109,6 +117,12 @@ function hash(str) { // cyrb53, 53 bits, plenty to detect a change
 
 // Opens synchronously from the click, so popup blockers can allow it.
 async function requestToken() {
+  if (globalThis.__TAURI__) {
+    const response = await desktopAuth('drive_login');
+    token = response.access_token;
+    tokenExpiry = Date.now() + (response.expires_in - 60) * 1000;
+    return;
+  }
   const popup = window.open(AUTH_URL + '/login', 'bete-google', 'popup,width=520,height=700');
   if (!popup) throw new Error('Le navigateur a bloqué la fenêtre de connexion.');
   await new Promise((resolve, reject) => {
@@ -202,10 +216,13 @@ async function pushStep() {
   transferResult = 'saved';
 }
 
-async function pullStep(remote) {
+async function pullStep(remote, expectedLocal) {
   driveNotice('Restauration depuis Google Drive en cours…');
   conflictPending = false;
   const doc = await (await api(`${API}/files/${remote.id}?alt=media`)).json();
+  if (expectedLocal !== undefined && hash(nodesJson()) !== expectedLocal) {
+    throw new Error('Le tableau local a changé pendant la restauration. Utilise Restaurer pour réessayer.');
+  }
   await importData(doc);
   meta.fileId = remote.id;
   meta.remoteModified = remote.modifiedTime;
@@ -214,6 +231,26 @@ async function pullStep(remote) {
   saveMeta();
   dirty = false;
   transferResult = 'restored';
+}
+
+// Opening Bête can read Drive, but never sends the local board.
+async function checkRemoteBackup(firstConnection = false) {
+  const remote = await findFile();
+  const localSignature = hash(nodesJson());
+  if (!remote) {
+    if (firstConnection) {
+      if (!state.nodes.length) { meta.sig = localSignature; saveMeta(); }
+      driveNotice('Google Drive est connecté. Aucune sauvegarde trouvée.', 'success');
+    }
+    return;
+  }
+  if (remote.id === meta.fileId && remote.modifiedTime === meta.remoteModified) return;
+  const localChanged = meta.sig ? localSignature !== meta.sig : state.nodes.length > 0;
+  if (localChanged && await askConflict(remote, true) !== 'remote') {
+    driveNotice('Sauvegarde Drive disponible. Le tableau local est conservé.', 'info');
+    return;
+  }
+  await pullStep(remote, localSignature);
 }
 
 // Right after connecting: decide what to do with the local board and the Drive file.
@@ -237,7 +274,14 @@ async function reconcileStep(interactive = true) {
   else { meta.fileId = remote.id; dirty = false; saveMeta(); return; } // already in sync
   if (choice === 'ask') choice = interactive ? await askConflict(remote) : null;
   if (choice === 'remote') await pullStep(remote);
-  else if (choice === 'local') await pushStep();
+  else if (choice === 'local') {
+    const current = await findFile();
+    if (current?.id !== remote.id || current.modifiedTime !== remote.modifiedTime) {
+      throw new Error('La sauvegarde Drive a changé. Relance la sauvegarde pour vérifier les deux versions.');
+    }
+    meta.fileId = remote.id;
+    await pushStep();
+  }
   else {
     meta.fileId = remote.id;
     saveMeta();
@@ -284,11 +328,14 @@ function fail(e) {
 // ---- conflict popup ----
 const when = (v) => new Date(v).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
 
-function askConflict(remote) {
+function askConflict(remote, restoreOnly = false) {
   return new Promise((resolve) => {
     const dlg = $('drivedialog');
     const local = meta && meta.lastSyncedAt ? 'dernière synchronisation le ' + when(meta.lastSyncedAt) : 'jamais synchronisé';
-    $('drive-dialog-text').textContent = `Le tableau sur Google Drive (modifié le ${when(remote.modifiedTime)}) `
+    $('drive-keep-local').hidden = restoreOnly;
+    $('drive-dialog-text').textContent = restoreOnly
+      ? `Une sauvegarde Google Drive est disponible (modifiée le ${when(remote.modifiedTime)}). La restaurer remplacera le tableau local.`
+      : `Le tableau sur Google Drive (modifié le ${when(remote.modifiedTime)}) `
       + `est différent de celui de cet appareil (${local}). Lequel garder ? L'autre sera remplacé.`;
     let answered = false;
     const done = (v) => { answered = true; dlg.close(); resolve(v); };
@@ -369,9 +416,14 @@ async function connect() {
     return;
   }
   connecting = false;
-  if (!meta) {
+  if (!meta || globalThis.__TAURI__) {
     meta = { linked: true, fileId: '', remoteModified: '', lastSyncedAt: 0, sig: '' };
     saveMeta();
+  }
+  if (globalThis.__TAURI__) {
+    dirty = !!state.nodes.length;
+    await run('Recherche de la sauvegarde Google Drive…', () => checkRemoteBackup(true));
+    return;
   }
   await run('Synchronisation…', reconcileStep, true);
 }
@@ -442,6 +494,5 @@ export function initDrive() {
     if (document.visibilityState === 'hidden') saveNow();
   });
   render();
-  // Restore authorization only: the local board is never silently uploaded or replaced.
-  if (meta) run('Connexion à Google Drive…', async () => {});
+  if (meta) run('Vérification de la sauvegarde Google Drive…', checkRemoteBackup);
 }

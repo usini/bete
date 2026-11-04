@@ -1,0 +1,11 @@
+{
+  "name": "bete-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "start": "tauri dev",
+    "build": "tauri build",
+    "release:build": "node release.mjs"
+  },
+  "devDependencies": { "@tauri-apps/cli": "2.12.0" }
+}

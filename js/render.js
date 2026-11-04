@@ -1,24 +1,24 @@
-import { positionEmbeds } from './embed-view.js?v=mw20brb3';
+import { positionEmbeds } from './embed-view.js?v=mw22tbu2';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize } from './state.js?v=mw20brb3';
-import { view, screenToWorld } from './camera.js?v=mw20brb3';
-import { youTubeId, ytThumb } from './yt.js?v=mw20brb3';
-import { imageCaptionFraction, imageFor } from './images.js?v=mw20brb3';
-import { positionVideo, isVideoPlaying } from './video.js?v=mw20brb3';
-import { guides } from './snap.js?v=mw20brb3';
-import { renderMinimap } from './minimap.js?v=mw20brb3';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mw20brb3';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw20brb3';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw20brb3';
+import { state, events, getSelectedId, groupsBySize } from './state.js?v=mw22tbu2';
+import { view, screenToWorld } from './camera.js?v=mw22tbu2';
+import { youTubeId, ytThumb } from './yt.js?v=mw22tbu2';
+import { imageCaptionFraction, imageFor } from './images.js?v=mw22tbu2';
+import { positionVideo, isVideoPlaying } from './video.js?v=mw22tbu2';
+import { guides } from './snap.js?v=mw22tbu2';
+import { renderMinimap } from './minimap.js?v=mw22tbu2';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mw22tbu2';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw22tbu2';
+import { groupHeaderHeight, labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw22tbu2';
 
-import { genericLinkOf, plainLink } from './links.js?v=mw20brb3';
-import { stepMotion } from './motion.js?v=mw20brb3';
-import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw20brb3';
+import { genericLinkOf, plainLink } from './links.js?v=mw22tbu2';
+import { stepMotion } from './motion.js?v=mw22tbu2';
+import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw22tbu2';
 
-import { isLocked } from './mobile-mode.js?v=mw20brb3';
+import { isLocked } from './mobile-mode.js?v=mw22tbu2';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mw20brb3';
-import { isAmazonUrl } from './amazon.js?v=mw20brb3';
+import { serviceForNode, serviceIcon } from './services.js?v=mw22tbu2';
+import { isAmazonUrl } from './amazon.js?v=mw22tbu2';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -236,11 +236,10 @@ function drawSelection(n, selected, zoom) {
 // (centred, black or white for contrast). Drawn under the other blocks.
 // The header grows with the group (22 % of its height, between 64 and 220), and the title is as
 // big as fits on one line: a big group stays readable when zoomed out.
-const GROUP_HEADER_MIN = 64, GROUP_HEADER_MAX = 220;
 function drawGroup(n) {
   ctx.fillStyle = n.color === 'transparent' ? 'transparent' : hexAlpha(n.color, 0.16);
   ctx.fillRect(n.x, n.y, n.w, n.h);
-  const hh = Math.min(n.h, Math.min(GROUP_HEADER_MAX, Math.max(GROUP_HEADER_MIN, n.h * 0.22)));
+  const hh = groupHeaderHeight(n);
   ctx.fillStyle = n.color === 'transparent' ? '#ffffff' : n.color;
   ctx.fillRect(n.x, n.y, n.w, hh);
   if (n.color !== 'transparent') {

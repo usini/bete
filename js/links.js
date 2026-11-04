@@ -1,8 +1,9 @@
-import { youTubeId } from './youtube-url.js?v=mw20brb3';
-import { isAmazonUrl } from './amazon.js?v=mw20brb3';
+import { notify } from './notifications.js?v=mw22tbu2';
+import { youTubeId } from './youtube-url.js?v=mw22tbu2';
+import { isAmazonUrl } from './amazon.js?v=mw22tbu2';
 
-import { serviceForUrl } from './services.js?v=mw20brb3';
-import { googleMapsEmbed } from './google-maps.js?v=mw20brb3';
+import { serviceForUrl } from './services.js?v=mw22tbu2';
+import { googleMapsEmbed } from './google-maps.js?v=mw22tbu2';
 
 export function plainLink(raw) {
   const map = googleMapsEmbed(raw);
@@ -50,4 +51,15 @@ export function droppedTitle(data, url) {
 }
 export function genericLinkOf(node) {
   return node.kind === 'rect' && (serviceForUrl(node.link || node.text) || !youTubeId(node.text)) ? genericLink(node.link || node.text) : null;
+}
+
+export function openLink(url) {
+  const desktop = window.__TAURI__;
+  if (!desktop) {
+    window.open(url, '_blank', 'noopener');
+    return;
+  }
+  desktop.core.invoke('open_browser', { url }).catch(() => {
+    notify('Impossible d’ouvrir le lien dans le navigateur.', { type: 'error' });
+  });
 }

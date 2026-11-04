@@ -3,28 +3,28 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mw20brb3';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw20brb3';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mw20brb3';
-import { addImageFile, imageCaptionFraction, imageFor } from './images.js?v=mw20brb3';
-import { playVideo } from './video.js?v=mw20brb3';
-import { youTubeId } from './yt.js?v=mw20brb3';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mw20brb3';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mw20brb3';
-import { undo, redo } from './history.js?v=mw20brb3';
+import { state, getNode, getSelectedId, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mw22tbu2';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw22tbu2';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mw22tbu2';
+import { addImageFile, imageCaptionFraction, imageFor } from './images.js?v=mw22tbu2';
+import { playVideo } from './video.js?v=mw22tbu2';
+import { youTubeId } from './yt.js?v=mw22tbu2';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mw22tbu2';
+import { groupHeaderHeight, labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mw22tbu2';
+import { undo, redo } from './history.js?v=mw22tbu2';
 
-import { setDragging } from './motion.js?v=mw20brb3';
+import { setDragging } from './motion.js?v=mw22tbu2';
 
-import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mw20brb3';
-import { shortenAmazonText, isAmazonUrl } from './amazon.js?v=mw20brb3';
+import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw22tbu2';
+import { shortenAmazonText, isAmazonUrl } from './amazon.js?v=mw22tbu2';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mw20brb3';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mw22tbu2';
 
-import { serviceForNode } from './services.js?v=mw20brb3';
+import { serviceForNode } from './services.js?v=mw22tbu2';
 
-import { requestRender } from './render.js?v=mw20brb3';
+import { requestRender } from './render.js?v=mw22tbu2';
 
-import { notify } from './notifications.js?v=mw20brb3';
+import { notify } from './notifications.js?v=mw22tbu2';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 const CLIPBOARD_BLOCK = 'application/x-bete-clipboard-block';
@@ -54,7 +54,7 @@ const clamp = (v) => Math.min(MAX_SIZE, Math.max(MIN_SIZE, v));
 const inside = (n, w) => w.x >= n.x && w.x <= n.x + n.w && w.y >= n.y && w.y <= n.y + n.h;
 
 // Topmost block under the world point w. Groups lie under every other block: they are only
-// hit where no block is, the smallest (innermost) group first.
+// title bars where no block is hit, the smallest (innermost) group first.
 function nodeAt(w) {
   for (let i = state.nodes.length - 1; i >= 0; i--) {
     const n = state.nodes[i];
@@ -62,7 +62,8 @@ function nodeAt(w) {
   }
   const groups = groupsBySize();
   for (let i = groups.length - 1; i >= 0; i--) {
-    if (inside(groups[i], w)) return groups[i];
+    const group = groups[i];
+    if (inside(group, w) && w.y <= group.y + groupHeaderHeight(group)) return group;
   }
   return null;
 }
@@ -171,7 +172,7 @@ function labelDown(n) {
   gesture = null;
   const info = labelInfo(n);
   if (info.kind === 'yt') {
-    if (once('label')) window.open(info.href, '_blank', 'noopener');
+    if (once('label')) openLink(info.href);
   } else {
     startEdit(n.id, 'link');
   }
@@ -190,9 +191,9 @@ function doubleAt(x, y) {
   const w = screenToWorld(x, y);
   if (isLocked()) {
     const readable = labelHit(w) || nodeAt(w);
-    if (readable && serviceForNode(readable) && linkOf(readable)) window.open(linkOf(readable), '_blank', 'noopener');
+    if (readable && serviceForNode(readable) && linkOf(readable)) openLink(linkOf(readable));
     else if (readable && youTubeId(readable.text)) playVideo(readable);
-    else if (readable && linkOf(readable)) window.open(linkOf(readable), '_blank', 'noopener');
+    else if (readable && linkOf(readable)) openLink(linkOf(readable));
     return;
   }
   if (labelHit(w)) return;
@@ -201,10 +202,10 @@ function doubleAt(x, y) {
   const n = nodeAt(w);
   if (!n) { addNode('rect', w.x, w.y); return; }
   if (!n.image && isAmazonUrl(linkOf(n))) startEdit(n.id);
-  else if (serviceForNode(n) && linkOf(n)) window.open(linkOf(n), '_blank', 'noopener');
+  else if (serviceForNode(n) && linkOf(n)) openLink(linkOf(n));
   else if (n.kind === 'group') startEdit(n.id);                               // group: edit its title
   else if (youTubeId(n.text)) playVideo(n);                              // YouTube: play
-  else if (linkOf(n)) window.open(linkOf(n), '_blank', 'noopener');      // has a link: open it
+  else if (linkOf(n)) openLink(linkOf(n));      // has a link: open it
   else if (n.kind === 'image') { if (once('pick')) pickImage(n); }       // image: (re)upload
   else startEdit(n.id);                                                  // text: edit
 }

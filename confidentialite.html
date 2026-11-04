@@ -159,6 +159,14 @@
   </p>
 
   <h2>3. Sauvegarde sur Google Drive (facultative)</h2>
+  <p>
+    Sous Windows, Bête ouvre l’autorisation dans ton navigateur et communique directement avec
+    Google. Le jeton de renouvellement reste dans le Gestionnaire d’identifiants Windows et le
+    jeton d’accès reste en mémoire. À la connexion, Bête recherche et peut restaurer la sauvegarde
+    Drive. L’envoi de ton tableau reste manuel. La déconnexion
+    Windows supprime le jeton de cet appareil. Tu peux retirer l’autorisation pour tout Bête
+    depuis ton compte Google. Le service OAuth décrit ci-dessous est utilisé par la version web.
+  </p>
   <p>Si tu choisis « Connecter Google Drive » :</p>
   <ul>
     <li>
@@ -172,8 +180,9 @@
       <strong>Ce qui est enregistré</strong> : un seul fichier contenant ton tableau (blocs, textes,
       liens, images et cadrage du tableau), dans ce dossier caché. Il n'apparaît pas dans ton Drive habituel.
       L’application lit ce fichier, son identifiant et sa date de modification pour comparer les versions,
-      le télécharger, le créer ou le remplacer lors de la connexion initiale ou à ta demande
-      (disquette ou restauration). Aucune sauvegarde Drive périodique ni aucun envoi à la fermeture
+      le télécharger à l’ouverture quand une nouvelle version est disponible ou à ta demande. Bête
+      demande confirmation avant de remplacer un tableau local modifié. La création et le remplacement
+      du fichier Drive ont lieu à ta demande ou, sur le web, lors de la connexion initiale. Aucune sauvegarde Drive périodique ni aucun envoi à la fermeture
       ou au changement d’onglet n’est effectué. L’enregistrement local reste automatique.
       En cas de conflit détecté, elle te demande quelle version conserver.
       Le fichier reste sur Drive jusqu’à sa suppression ; déconnecter Bête ne le supprime pas.

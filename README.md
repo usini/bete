@@ -112,8 +112,9 @@ python -m http.server 8000
   sauvegarde Drive existante ne sont mis à jour qu’au prochain export ou à la prochaine sauvegarde.
 - **Google Drive (facultatif)** : sauvegarde manuelle du tableau dans un dossier caché de ton Drive
   (droit `drive.appdata` uniquement), en cliquant sur la disquette. Aucun transfert périodique,
-  au retour sur l’onglet ou à la fermeture. La connexion initiale compare les versions ; les ouvertures
-  suivantes conservent le tableau local, et « Restaurer » permet de récupérer la version Drive.
+  au retour sur l’onglet ou à la fermeture. La connexion initiale compare les versions ; à chaque ouverture,
+  une nouvelle version Drive est restaurée si le tableau local est intact. En cas de conflit, Bête
+  propose de restaurer ou de garder le tableau local. Aucun envoi vers Drive ne part à l’ouverture.
   En cas de conflit lors d’une sauvegarde, tu choisis la version à conserver.
   La disquette à côté de l’historique apparaît uniquement si Drive est configuré : rouge pendant la
   reconnexion, jaune pour les modifications en attente, verte quand tout est sauvegardé et rouge

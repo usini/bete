@@ -44,7 +44,7 @@ test('Drive stays manual; hiding only saves locally and leaving warns only for p
   const context = vm.createContext({
     isLocked: () => false, modeEvents: {addEventListener(){}}, notify(){}, updateBackupSize(){},
     localStore: {getItem:()=>null, removeItem(){}, setItem(){}},
-    state: {nodes:[{id:'local',text:'before'}]}, AbortSignal,
+    state: {nodes:[{id:'local',text:'before'}]}, AbortSignal, URLSearchParams,
     serialize:()=>({nodes:context.state.nodes}),
     document: {visibilityState:'visible', addEventListener:(name,fn)=>documentEvents.set(name,fn),
       getElementById(id) {
@@ -54,7 +54,7 @@ test('Drive stays manual; hiding only saves locally and leaving warns only for p
     window: {addEventListener:(name,fn)=>windowEvents.set(name,fn)},
     onSaved: fn => {saved=fn;}, saveNow:()=>{localSaves++;saved();},
     setInterval:()=>{intervals++;},
-    fetch:async()=>{networkCalls++;throw new Error('Unexpected background request');},
+    fetch:async()=>{networkCalls++;return Response.json({files:[]});},
   });
   vm.runInContext(source+`
     meta={linked:true,sig:hash(nodesJson())};token='valid';tokenExpiry=Date.now()+3600000;
@@ -70,8 +70,68 @@ test('Drive stays manual; hiding only saves locally and leaving warns only for p
   context.document.visibilityState='hidden';documentEvents.get('visibilitychange')();
   context.document.visibilityState='visible';documentEvents.get('visibilitychange')();
   assert.equal(leave().prevented,true);
-  assert.equal(networkCalls,0);
+  assert.equal(networkCalls,1);
   assert.ok(localSaves>=3);
   context.client.markSaved();assert.equal(leave().prevented,false);
   context.client.change();context.client.unlink();assert.equal(leave().prevented,false);
+});
+
+test('desktop restores into an empty board and asks before replacing local blocks', async () => {
+  const commands = [];
+  let remoteModified = '2026-11-01T00:00:00Z';
+  const requests = [];
+  const elements = new Map();
+  const source = readFileSync(new URL('../js/drive.js', import.meta.url), 'utf8')
+    .replace(/^import .*;\r?\n/gm, '').replaceAll('export ', '');
+  const context = vm.createContext({
+    __TAURI__: { core: { async invoke(command) {
+      commands.push(command);
+      return { access_token: 'desktop-access', expires_in: 3600 };
+    } } },
+    isLocked: () => false, notify(){}, updateBackupSize(){},
+    localStore: { getItem: () => null, removeItem(){}, setItem(){} },
+    state: { nodes: [] },
+    URLSearchParams,
+    serialize: () => ({ nodes: context.state.nodes }),
+    importData: async doc => { context.state.nodes = doc.nodes; },
+    document: { getElementById(id) {
+      if (id === 'drivedialog') return {
+        close(){}, addEventListener(){},
+        showModal() { elements.get('drive-later').onclick(); },
+      };
+      if (!elements.has(id)) elements.set(id, { dataset: {}, setAttribute(){} });
+      return elements.get(id);
+    } },
+    fetch: async (url, opts) => {
+      requests.push([url, opts.headers.Authorization]);
+      return url.includes('alt=media')
+        ? Response.json({ nodes: [{ id: 'restored' }] })
+        : Response.json({ files: [{ id: 'backup', modifiedTime: remoteModified }] });
+    },
+  });
+  vm.runInContext(source + '\nglobalThis.client = { connect, checkRemoteBackup };', context);
+  await context.client.connect();
+  assert.deepEqual(commands, ['drive_login']);
+  assert.equal(requests.length, 2);
+  assert.match(requests[0][0], /^https:\/\/www\.googleapis\.com\/drive\/v3\/files\?spaces=appDataFolder/);
+  assert.deepEqual(requests[1], ['https://www.googleapis.com/drive/v3/files/backup?alt=media', 'Bearer desktop-access']);
+  assert.equal(context.state.nodes[0].id, 'restored');
+  requests.length = 0;
+  await context.client.checkRemoteBackup();
+  assert.equal(requests.length, 1, 'unchanged Drive version is not downloaded again');
+  requests.length = 0;
+  remoteModified = '2026-11-02T00:00:00Z';
+  await context.client.checkRemoteBackup();
+  assert.equal(requests.length, 2, 'new Drive version is downloaded when the local board is clean');
+  context.state.nodes = [{ id: 'local' }];
+  requests.length = 0;
+  remoteModified = '2026-11-03T00:00:00Z';
+  await context.client.checkRemoteBackup();
+  assert.equal(requests.length, 1, 'declining an opening conflict does not download or upload');
+  assert.equal(context.state.nodes[0].id, 'local');
+  requests.length = 0;
+  await context.client.connect();
+  assert.equal(requests.length, 1);
+  assert.equal(elements.get('drive-keep-local').hidden, true);
+  assert.equal(context.state.nodes[0].id, 'local');
 });

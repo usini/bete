@@ -4,3 +4,8 @@ Thumbs.db
 *.log
 
 tests/share-*.png
+
+desktop/dist/
+desktop/src-tauri/target/
+desktop/src-tauri/gen/
+desktop/release-output/

@@ -1,0 +1,5 @@
+{
+  "identifier": "board",
+  "windows": ["main"],
+  "permissions": ["core:event:allow-listen", "core:event:allow-unlisten", "core:window:allow-destroy"]
+}

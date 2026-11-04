@@ -1,9 +1,9 @@
-import { localStore } from './local-store.js?v=mw20brb3';
-import { state, events, onSaved, newId, sanitizeNode, emit, select, getNode, setGroupMemberFilter } from './state.js?v=mw20brb3';
-import { imageBlob, storeSharedImage } from './images.js?v=mw20brb3';
-import { flyTo, view, screenToWorld } from './camera.js?v=mw20brb3';
-import { MAX_MEMBERS, MAX_RECORDS, ROOT, validId, validImage, cleanValue, cleanRecord, mergeRecord, groupMembers, emptyPlacement, intersects, imageChunkBytes } from './group-model.js?v=mw20brb3';
-import { smoothPointer } from './motion.js?v=mw20brb3';
+import { localStore } from './local-store.js?v=mw22tbu2';
+import { state, events, onSaved, newId, sanitizeNode, emit, select, getNode, setGroupMemberFilter } from './state.js?v=mw22tbu2';
+import { imageBlob, storeSharedImage } from './images.js?v=mw22tbu2';
+import { flyTo, view, screenToWorld } from './camera.js?v=mw22tbu2';
+import { MAX_MEMBERS, MAX_RECORDS, ROOT, validId, validImage, cleanValue, cleanRecord, mergeRecord, groupMembers, emptyPlacement, intersects, imageChunkBytes } from './group-model.js?v=mw22tbu2';
+import { smoothPointer } from './motion.js?v=mw22tbu2';
 
 // Explicit ICE config is essential: PeerJS's defaults include public TURN relays.
 export const peerConfig = {
@@ -151,7 +151,7 @@ export function shareInfo(group) {
 }
 export const isGroupShared = group => !!shares.get(group.shareId || group.id)?.enabled;
 export function shareUrl(s) {
-  const url = new URL(location.pathname, location.origin);
+  const url = window.__TAURI__ ? new URL('https://bete.usini.eu/') : new URL(location.pathname, location.origin);
   url.hash = new URLSearchParams({ group: s.groupId, peer: s.peerId, access: s.cap }).toString();
   return url.href;
 }
@@ -375,7 +375,9 @@ async function start(s) {
   try {
     await loadShareScript('peerjs.min.js');
     if (!s.enabled || s.generation !== generation) return;
-    const peer = new window.Peer(s.role === 'host' ? s.peerId : undefined, peerConfig);
+    // The desktop origin cannot use the web-only CORS endpoint for generated IDs.
+    const peerId = s.role === 'host' ? s.peerId : window.__TAURI__ ? 'bete-' + secret().slice(0, 32) : undefined;
+    const peer = new window.Peer(peerId, peerConfig);
     s.peer = peer;
     peer.on('open', () => {
       if (s.peer !== peer) return;
@@ -636,7 +638,7 @@ async function requestImages(s, c) {
 export function initGroupSharing() {
   if (initialised) return;
   initialised = true;
-  const name = document.getElementById('share-name');
+  const name = document.getElementById('share-display-name');
   const profile = shareProfile();
   name.value = profile.name;
   name.placeholder = profile.fallback;

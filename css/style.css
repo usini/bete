@@ -477,5 +477,5 @@ button:hover { border-color: var(--accent); }
   background: #14171ded; color: white; font: 12px sans-serif; cursor: pointer;
 }
 
-#share-name { width: 100%; box-sizing: border-box; margin: 4px 0 12px; }
+#share-display-name { width: 100%; box-sizing: border-box; margin: 4px 0 12px; }
 .share-approval { max-width: min(420px, calc(100vw - 32px)); overflow-wrap: anywhere; }
