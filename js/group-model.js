@@ -24,6 +24,7 @@ export function cleanValue(raw, root = false) {
     color: raw.color === 'transparent' ? 'transparent' : /^#[a-f0-9]{6}$/i.test(raw.color) ? raw.color.toLowerCase() : '#00b7eb',
   };
   if (validImage(raw.image)) n.image = raw.image;
+  if (n.kind !== 'group' && raw.hideLinkLabel === true) n.hideLinkLabel = true;
   if (typeof raw.link === 'string' && /^https?:\/\//i.test(raw.link) && raw.link.length <= 2000) n.link = raw.link;
   for (const k of ['name', 'price', 'delivery']) if (typeof raw[k] === 'string' && raw[k].trim()) n[k] = raw[k].trim().slice(0, 100);
   return n;

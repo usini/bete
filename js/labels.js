@@ -1,14 +1,14 @@
 // Labels: the tab above a block. It shows the YouTube title (YouTube blocks) or the block's
 // link URL; a block with neither has no label. The layout and the hit-testing live here,
 // so the renderer and the pointer handling always agree on where the label is.
-import { state } from './state.js?v=mw1z285p';
-import { youTubeId, youTubeTitle } from './yt.js?v=mw1z285p';
-import { FONT_FAMILY } from './text.js?v=mw1z285p';
-import { isAmazonUrl, isAmazonText } from './amazon.js?v=mw1z285p';
+import { state } from './state.js?v=mw20brb3';
+import { youTubeId, youTubeTitle } from './yt.js?v=mw20brb3';
+import { FONT_FAMILY } from './text.js?v=mw20brb3';
+import { isAmazonUrl, isAmazonText } from './amazon.js?v=mw20brb3';
 
-import { genericLink } from './links.js?v=mw1z285p';
+import { genericLink } from './links.js?v=mw20brb3';
 
-import { serviceForNode } from './services.js?v=mw1z285p';
+import { serviceForNode } from './services.js?v=mw20brb3';
 
 export const LABEL_SIZE = 26;                       // font size, world units
 export const LABEL_FONT = '600 ' + LABEL_SIZE + 'px ' + FONT_FAMILY;
@@ -92,6 +92,7 @@ function layoutProduct(p, maxW) {
 
 // Geometry of a block's label, in world units: { info, text, icon, x, y, w, h }, or null.
 export function labelLayout(n) {
+  if (n.hideLinkLabel) return null;
   let scale = Math.min(n.w, n.h) / 400;
   const layout = baseLabelLayout({ ...n, x: 0, y: 0, w: n.w / scale });
   if (!layout) return null;

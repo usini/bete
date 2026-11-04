@@ -1,10 +1,18 @@
-import { localStore } from './local-store.js?v=mw1z285p';
+import { localStore } from './local-store.js?v=mw20brb3';
 // Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mw1z285p';
+import { explode } from './fx.js?v=mw20brb3';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];
+const COLOR_KEY = 'bete2:lastColor';
+const savedColor = localStore.getItem(COLOR_KEY);
+let lastColor = COLORS.includes(savedColor) ? savedColor : DEFAULT_COLOR;
+
+export function rememberColor(color) {
+  lastColor = color;
+  localStore.setItem(COLOR_KEY, color);
+}
 export const SIZES = { rect: { w: 180, h: 110 }, image: { w: 220, h: 170 }, group: { w: 420, h: 300 } };
 
 // Size of the last block resized by the user, per kind: new blocks of that kind reuse it.
@@ -60,6 +68,7 @@ export function sanitizeNode(raw) {
     text: typeof raw.text === 'string' ? raw.text.slice(0, LIMITS.text) : '',
     color: raw.color === 'transparent' ? 'transparent' : /^#[0-9a-f]{6}$/i.test(raw.color) ? raw.color : DEFAULT_COLOR,
   };
+  if (kind !== 'group' && raw.hideLinkLabel === true) n.hideLinkLabel = true;
   if (kind === 'group' && typeof raw.shareId === 'string' && /^[a-zA-Z0-9_-]{8,80}$/.test(raw.shareId)) n.shareId = raw.shareId;
   if (typeof raw.image === 'string' && raw.image.length < LIMITS.dataUrl
       && (raw.image.startsWith('idb:') || raw.image.startsWith('data:image/'))) {
@@ -144,7 +153,7 @@ export function select(id) {
 
 export function addNode(kind, cx, cy) {
   const s = lastSize[kind] || SIZES[kind];
-  const n = { id: newId(), kind, x: cx - s.w / 2, y: cy - s.h / 2, w: s.w, h: s.h, text: '', color: DEFAULT_COLOR };
+  const n = { id: newId(), kind, x: cx - s.w / 2, y: cy - s.h / 2, w: s.w, h: s.h, text: '', color: lastColor };
   state.nodes.push(n);
   selectedId = n.id;
   emit();

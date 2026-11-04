@@ -5,18 +5,18 @@
 //  - when the link is an Amazon address the popup becomes "Produit Amazon": name, price and
 //    delivery time fields appear (typed by hand, shown in the block's label)
 // It closes only with the Annuler / Valider buttons (Ctrl+Enter, or Enter in a one-line field, also validate).
-import { getNode, emit } from './state.js?v=mw1z285p';
-import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw1z285p';
-import { youTubeId } from './yt.js?v=mw1z285p';
-import { addImageFile, imageFor } from './images.js?v=mw1z285p';
+import { getNode, emit } from './state.js?v=mw20brb3';
+import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw20brb3';
+import { youTubeId } from './yt.js?v=mw20brb3';
+import { addImageFile, imageFor } from './images.js?v=mw20brb3';
 
-import { genericLink } from './links.js?v=mw1z285p';
+import { genericLink } from './links.js?v=mw20brb3';
 
-import { isLocked } from './mobile-mode.js?v=mw1z285p';
+import { isLocked } from './mobile-mode.js?v=mw20brb3';
 
-import { serviceForNode } from './services.js?v=mw1z285p';
-import { deliveryDelay } from './delivery.js?v=mw1z285p';
-import { googleMapsEmbed } from './google-maps.js?v=mw1z285p';
+import { serviceForNode } from './services.js?v=mw20brb3';
+import { deliveryDelay } from './delivery.js?v=mw20brb3';
+import { googleMapsEmbed } from './google-maps.js?v=mw20brb3';
 
 const dlg = document.getElementById('textdialog');
 const title = document.getElementById('dialog-title');
@@ -25,6 +25,7 @@ const linkField = document.getElementById('link-field');
 const amazonBox = document.getElementById('amazon-fields');
 const el = document.getElementById('editor');
 const linkEl = document.getElementById('linkinput');
+const hideLinkLabel = document.getElementById('hide-link-label');
 const errEl = document.getElementById('link-error');
 const nameEl = document.getElementById('am-name');
 const priceEl = document.getElementById('am-price');
@@ -104,6 +105,8 @@ export function startEdit(id, focus = 'text') {
   textField.querySelector('span').textContent = isGroup ? 'Titre' : 'Texte';
   el.value = n.text;
   linkEl.value = n.link || '';
+  hideLinkLabel.closest('label').hidden = isGroup;
+  hideLinkLabel.checked = n.hideLinkLabel === true;
   nameEl.value = n.name || '';
   priceEl.value = n.price || '';
   deliveryEl.value = n.delivery || '';
@@ -161,6 +164,11 @@ export function stopEdit(commit) {
   editingId = null;
   dlg.close();
   let changed = false;
+  if (!isGroup && hideLinkLabel.checked !== (n.hideLinkLabel === true)) {
+    if (hideLinkLabel.checked) n.hideLinkLabel = true;
+    else delete n.hideLinkLabel;
+    changed = true;
+  }
   let text = n.text;
   if (!textField.hidden) {
     text = isGroup ? el.value : shortenAmazonText(el.value);

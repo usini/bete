@@ -3,28 +3,28 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mw1z285p';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw1z285p';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mw1z285p';
-import { addImageFile, imageCaptionFraction, imageFor } from './images.js?v=mw1z285p';
-import { playVideo } from './video.js?v=mw1z285p';
-import { youTubeId } from './yt.js?v=mw1z285p';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mw1z285p';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mw1z285p';
-import { undo, redo } from './history.js?v=mw1z285p';
+import { state, getNode, getSelectedId, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mw20brb3';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw20brb3';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mw20brb3';
+import { addImageFile, imageCaptionFraction, imageFor } from './images.js?v=mw20brb3';
+import { playVideo } from './video.js?v=mw20brb3';
+import { youTubeId } from './yt.js?v=mw20brb3';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mw20brb3';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mw20brb3';
+import { undo, redo } from './history.js?v=mw20brb3';
 
-import { setDragging } from './motion.js?v=mw1z285p';
+import { setDragging } from './motion.js?v=mw20brb3';
 
-import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mw1z285p';
-import { shortenAmazonText, isAmazonUrl } from './amazon.js?v=mw1z285p';
+import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mw20brb3';
+import { shortenAmazonText, isAmazonUrl } from './amazon.js?v=mw20brb3';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mw1z285p';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mw20brb3';
 
-import { serviceForNode } from './services.js?v=mw1z285p';
+import { serviceForNode } from './services.js?v=mw20brb3';
 
-import { requestRender } from './render.js?v=mw1z285p';
+import { requestRender } from './render.js?v=mw20brb3';
 
-import { notify } from './notifications.js?v=mw1z285p';
+import { notify } from './notifications.js?v=mw20brb3';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 const CLIPBOARD_BLOCK = 'application/x-bete-clipboard-block';
@@ -93,7 +93,7 @@ function pickColor(n, x, y) {
     button.setAttribute('aria-pressed', String(n.color.toLowerCase() === color.toLowerCase()));
     button.addEventListener('click', () => {
       const target = getNode(id);
-      if (target && !isLocked()) { target.color = color; emit(); }
+      if (target && !isLocked()) { target.color = color; rememberColor(color); emit(); }
       palette.hidePopover();
     });
     return button;
