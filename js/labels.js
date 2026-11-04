@@ -1,14 +1,14 @@
 // Labels: the tab above a block. It shows the YouTube title (YouTube blocks) or the block's
 // link URL; a block with neither has no label. The layout and the hit-testing live here,
 // so the renderer and the pointer handling always agree on where the label is.
-import { state } from './state.js?v=mw2b1r9l';
-import { youTubeId, youTubeTitle } from './yt.js?v=mw2b1r9l';
-import { FONT_FAMILY } from './text.js?v=mw2b1r9l';
-import { isAmazonUrl, isAmazonText } from './amazon.js?v=mw2b1r9l';
+import { state } from './state.js?v=mw2c0igk';
+import { youTubeId, youTubeTitle } from './yt.js?v=mw2c0igk';
+import { FONT_FAMILY } from './text.js?v=mw2c0igk';
+import { isAmazonUrl, isAmazonText } from './amazon.js?v=mw2c0igk';
 
-import { genericLink } from './links.js?v=mw2b1r9l';
+import { genericLink } from './links.js?v=mw2c0igk';
 
-import { serviceForNode } from './services.js?v=mw2b1r9l';
+import { serviceForNode } from './services.js?v=mw2c0igk';
 
 export const LABEL_SIZE = 26;                       // font size, world units
 export const LABEL_FONT = '600 ' + LABEL_SIZE + 'px ' + FONT_FAMILY;
@@ -116,11 +116,6 @@ function baseLabelLayout(n) {
   measurer.font = LABEL_FONT;
   const w = 2 * LABEL_PAD + iconW + measurer.measureText(text).width;
   return { info, text, icon, x: n.x, y: n.y - LABEL_GAP - LABEL_H, w, h: LABEL_H };
-}
-
-// Geometry shared by the group title renderer and hit-testing.
-export function groupHeaderHeight(group) {
-  return Math.min(group.h, Math.min(220, Math.max(64, group.h * 0.22)));
 }
 
 // Action buttons, stacked just outside the right edge of a selected block, in world units:

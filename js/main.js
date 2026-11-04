@@ -1,17 +1,17 @@
 // Bootstrap: load the saved board, wire the UI, start rendering.
-import { loadFromStorage, saveNow } from './state.js?v=mw2b1r9l';
-import { resize, requestRender } from './render.js?v=mw2b1r9l';
-import { initInput } from './input.js?v=mw2b1r9l';
-import { initPanel } from './panel.js?v=mw2b1r9l';
-import { initMinimap } from './minimap.js?v=mw2b1r9l';
-import { initClock } from './clock.js?v=mw2b1r9l';
-import { initDrive } from './drive.js?v=mw2b1r9l';
-import { initHistory } from './history.js?v=mw2b1r9l';
-import { initGroupSharing } from './group-share.js?v=mw2b1r9l';
-import { initGroupShareUI } from './group-share-ui.js?v=mw2b1r9l';
+import { loadFromStorage, saveNow } from './state.js?v=mw2c0igk';
+import { resize, requestRender } from './render.js?v=mw2c0igk';
+import { initInput } from './input.js?v=mw2c0igk';
+import { initPanel } from './panel.js?v=mw2c0igk';
+import { initMinimap } from './minimap.js?v=mw2c0igk';
+import { initClock } from './clock.js?v=mw2c0igk';
+import { initDrive } from './drive.js?v=mw2c0igk';
+import { initHistory } from './history.js?v=mw2c0igk';
+import { initGroupSharing } from './group-share.js?v=mw2c0igk';
+import { initGroupShareUI } from './group-share-ui.js?v=mw2c0igk';
 
-import { initMobileMode } from './mobile-mode.js?v=mw2b1r9l';
-import { localStorageFailed } from './local-store.js?v=mw2b1r9l';
+import { initMobileMode } from './mobile-mode.js?v=mw2c0igk';
+import { localStorageFailed } from './local-store.js?v=mw2c0igk';
 
 initMobileMode();
 loadFromStorage();
@@ -36,7 +36,7 @@ if (window.__TAURI__) {
     driveSection.hidden = false;
     initDrive();
   }).catch(console.error);
-  import('./desktop.js?v=mw2b1r9l').then(({ initDesktop }) => initDesktop());
+  import('./desktop.js?v=mw2c0igk').then(({ initDesktop }) => initDesktop());
 } else initDrive();
 initGroupSharing();
 initGroupShareUI();

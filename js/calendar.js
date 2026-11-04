@@ -1,4 +1,4 @@
-import ICAL from './vendor/ical.min.js?v=mw2b1r9l';
+import ICAL from './vendor/ical.min.js?v=mw2c0igk';
 
 const day = (date, offset = 0) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + offset);
 const month = (date, offset = 0) => new Date(date.getFullYear(), date.getMonth() + offset, 1);

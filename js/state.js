@@ -1,7 +1,7 @@
-import { localStore } from './local-store.js?v=mw2b1r9l';
+import { localStore } from './local-store.js?v=mw2c0igk';
 // Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mw2b1r9l';
+import { explode } from './fx.js?v=mw2c0igk';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];
@@ -155,6 +155,7 @@ export function addNode(kind, cx, cy) {
   const s = lastSize[kind] || SIZES[kind];
   const n = { id: newId(), kind, x: cx - s.w / 2, y: cy - s.h / 2, w: s.w, h: s.h, text: '', color: lastColor };
   state.nodes.push(n);
+  fitGroupsAround(n);
   selectedId = n.id;
   emit();
   return n;
@@ -170,8 +171,10 @@ export function replaceNodes(list) {
 
 export function removeNode(id) {
   const gone = getNode(id);
+  const groups = gone ? containingGroups(gone) : [];
   if (gone) explode(gone.x, gone.y, gone.w, gone.h, gone.color); // deletion animation
   state.nodes = state.nodes.filter((n) => n.id !== id);
+  fitGroupsAround(null, groups);
   if (selectedId === id) selectedId = null;
   emit();
 }
@@ -185,16 +188,63 @@ export function groupsBySize() {
 // Blocks that move with a group: every other block whose centre lies inside it
 // (smaller groups included, bigger or equal ones never).
 let groupMemberFilter = () => true;
-export function setGroupMemberFilter(filter) { groupMemberFilter = filter; }
+let protectGroupFit = () => {};
+export function setGroupMemberFilter(filter, protectFit = () => {}) {
+  groupMemberFilter = filter;
+  protectGroupFit = protectFit;
+}
+
+const GROUP_HEADER_MIN = 64, GROUP_HEADER_MAX = 220, GROUP_HEADER_RATIO = 0.22;
+const GROUP_PADDING = 18;
+const headerForHeight = height => Math.min(GROUP_HEADER_MAX, Math.max(GROUP_HEADER_MIN, height * GROUP_HEADER_RATIO));
+export const groupHeaderHeight = group => Math.min(group.h, headerForHeight(group.h));
+
+function insideGroup(group, node) {
+  if (node === group || (node.kind === 'group' && node.w * node.h >= group.w * group.h)) return false;
+  const x = node.x + node.w / 2, y = node.y + node.h / 2;
+  return x >= group.x && x <= group.x + group.w && y >= group.y && y <= group.y + group.h;
+}
+const isMember = (group, node) => insideGroup(group, node) && groupMemberFilter(group, node);
+
 export function membersOf(group) {
-  const area = group.w * group.h;
-  return state.nodes.filter((o) => {
-    if (o === group) return false;
-    if (!groupMemberFilter(group, o)) return false;
-    if (o.kind === 'group' && o.w * o.h >= area) return false;
-    const cx = o.x + o.w / 2, cy = o.y + o.h / 2;
-    return cx >= group.x && cx <= group.x + group.w && cy >= group.y && cy <= group.y + group.h;
-  });
+  return state.nodes.filter(node => isMember(group, node));
+}
+
+export function containingGroups(node) {
+  return state.nodes.filter(group => group.kind === 'group' && isMember(group, node));
+}
+
+// Fit the affected frames after the gesture, keeping their contents in world coordinates.
+export function fitGroupsAround(node, previous = [], keepMembership = false) {
+  const affected = new Set([...previous, ...(node ? containingGroups(node) : [])]);
+  const fittedChildren = new Map();
+  for (const group of groupsBySize().reverse()) {
+    if (!affected.has(group)) continue;
+    const members = new Set([...membersOf(group), ...(fittedChildren.get(group) || [])]);
+    if (keepMembership && previous.includes(group)) members.add(node);
+    if (!members.size) continue; // Keep an empty frame available for the next drop.
+    let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+    for (const member of members) {
+      left = Math.min(left, member.x);
+      right = Math.max(right, member.x + member.w);
+      top = Math.min(top, member.y);
+      bottom = Math.max(bottom, member.y + member.h);
+    }
+    const bodyHeight = bottom - top + 2 * GROUP_PADDING;
+    const header = headerForHeight(bodyHeight / (1 - GROUP_HEADER_RATIO));
+    const bounds = {
+      x: left - GROUP_PADDING, y: top - GROUP_PADDING - header,
+      w: right - left + 2 * GROUP_PADDING, h: bodyHeight + header,
+    };
+    if (bounds.w > LIMITS.size || bounds.h > LIMITS.size) continue;
+    for (const parent of containingGroups(group)) {
+      affected.add(parent);
+      if (!fittedChildren.has(parent)) fittedChildren.set(parent, []);
+      fittedChildren.get(parent).push(group);
+    }
+    protectGroupFit(group, state.nodes.filter(other => other !== group && !members.has(other) && insideGroup(bounds, other)));
+    Object.assign(group, bounds);
+  }
 }
 
 // Move a node to the top of the z-order (end of the array).

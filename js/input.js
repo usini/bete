@@ -3,28 +3,28 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mw2b1r9l';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw2b1r9l';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mw2b1r9l';
-import { addImageFile, imageCaptionFraction, imageFor } from './images.js?v=mw2b1r9l';
-import { playVideo } from './video.js?v=mw2b1r9l';
-import { youTubeId } from './yt.js?v=mw2b1r9l';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mw2b1r9l';
-import { groupHeaderHeight, labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mw2b1r9l';
-import { undo, redo } from './history.js?v=mw2b1r9l';
+import { state, getNode, getSelectedId, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, COLORS } from './state.js?v=mw2c0igk';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw2c0igk';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mw2c0igk';
+import { addImageFile, imageCaptionFraction, imageFor } from './images.js?v=mw2c0igk';
+import { playVideo } from './video.js?v=mw2c0igk';
+import { youTubeId } from './yt.js?v=mw2c0igk';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mw2c0igk';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mw2c0igk';
+import { undo, redo } from './history.js?v=mw2c0igk';
 
-import { setDragging } from './motion.js?v=mw2b1r9l';
+import { setDragging } from './motion.js?v=mw2c0igk';
 
-import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw2b1r9l';
-import { shortenAmazonText, isAmazonUrl } from './amazon.js?v=mw2b1r9l';
+import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw2c0igk';
+import { shortenAmazonText, isAmazonUrl } from './amazon.js?v=mw2c0igk';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mw2b1r9l';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mw2c0igk';
 
-import { serviceForNode } from './services.js?v=mw2b1r9l';
+import { serviceForNode } from './services.js?v=mw2c0igk';
 
-import { requestRender } from './render.js?v=mw2b1r9l';
+import { requestRender } from './render.js?v=mw2c0igk';
 
-import { notify } from './notifications.js?v=mw2b1r9l';
+import { notify } from './notifications.js?v=mw2c0igk';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 const CLIPBOARD_BLOCK = 'application/x-bete-clipboard-block';
@@ -125,7 +125,7 @@ function onPointerDown(e) {
     const members = sel.kind === 'group' ? membersOf(sel).map(m => ({
       m, x: m.x - sel.x, y: m.y - sel.y, w: m.w, h: m.h,
     })) : null;
-    gesture = { type: 'resize', n: sel, ox: sel.w, oy: sel.h, sx, sy, members };
+    gesture = { type: 'resize', n: sel, ox: sel.w, oy: sel.h, sx, sy, members, previousGroups: containingGroups(sel) };
     return;
   }
   const w = screenToWorld(sx, sy);
@@ -166,7 +166,7 @@ function onPointerDown(e) {
   // Moving a group carries along the blocks inside it.
   const members = n.kind === 'group' ? membersOf(n).map((m) => ({ m, ox: m.x, oy: m.y })) : null;
   if (n.kind !== 'group') setDragging(n, true);
-  gesture = { type: 'move', n, ox: n.x, oy: n.y, sx, sy, moved: false, wasSelected, members };
+  gesture = { type: 'move', n, ox: n.x, oy: n.y, sx, sy, moved: false, wasSelected, members, previousGroups: containingGroups(n) };
 }
 
 // Click on a label: edits the link. On a YouTube block the label opens the video instead.
@@ -305,6 +305,7 @@ function onPointerEnd(e) {
   if (g && g.type === 'resize') rememberSize(g.n.kind, g.n.w, g.n.h);
   if (g && ((g.type === 'move' && g.moved) || g.type === 'resize')) {
     document.dispatchEvent(new CustomEvent('bete-node-moved', { detail: g.n.id }));
+    fitGroupsAround(g.n, g.previousGroups, g.type === 'resize');
   }
   // Touch: a phone does not reliably send 'dblclick', so a double-tap on a block (two taps,
   // 400 ms and 30 px apart, without dragging) is detected here.
@@ -438,6 +439,7 @@ export function initInput() {
         block.x = center.x - block.w / 2 + offset;
         block.y = center.y - block.h / 2 + offset;
         state.nodes.push(block);
+        fitGroupsAround(block);
         select(block.id);
         return;
       }

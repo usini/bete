@@ -1,9 +1,9 @@
-import { localStore } from './local-store.js?v=mw2b1r9l';
-import { state, events, onSaved, newId, sanitizeNode, emit, select, getNode, setGroupMemberFilter } from './state.js?v=mw2b1r9l';
-import { imageBlob, storeSharedImage } from './images.js?v=mw2b1r9l';
-import { flyTo, view, screenToWorld } from './camera.js?v=mw2b1r9l';
-import { MAX_MEMBERS, MAX_RECORDS, ROOT, validId, validImage, cleanValue, cleanRecord, mergeRecord, groupMembers, emptyPlacement, intersects, imageChunkBytes } from './group-model.js?v=mw2b1r9l';
-import { smoothPointer } from './motion.js?v=mw2b1r9l';
+import { localStore } from './local-store.js?v=mw2c0igk';
+import { state, events, onSaved, newId, sanitizeNode, emit, select, getNode, setGroupMemberFilter } from './state.js?v=mw2c0igk';
+import { imageBlob, storeSharedImage } from './images.js?v=mw2c0igk';
+import { flyTo, view, screenToWorld } from './camera.js?v=mw2c0igk';
+import { MAX_MEMBERS, MAX_RECORDS, ROOT, validId, validImage, cleanValue, cleanRecord, mergeRecord, groupMembers, emptyPlacement, intersects, imageChunkBytes } from './group-model.js?v=mw2c0igk';
+import { smoothPointer } from './motion.js?v=mw2c0igk';
 
 // Explicit ICE config is essential: PeerJS's defaults include public TURN relays.
 export const peerConfig = {
@@ -665,6 +665,13 @@ export function initGroupSharing() {
   setGroupMemberFilter((group, node) => {
     const s = shares.get(group.shareId || group.id);
     return !s?.enabled || !s.ignored.has(node.id);
+  }, (group, outsiders) => {
+    const s = shares.get(group.shareId || group.id);
+    if (!s?.enabled) return;
+    for (const node of outsiders) {
+      if (!s.ignored.has(node.id)) s.ignored.set(node.id, JSON.stringify([node.x, node.y, node.w, node.h]));
+    }
+    if (outsiders.length) persist();
   });
   document.addEventListener('bete-node-moved', event => {
     const node = getNode(event.detail);
