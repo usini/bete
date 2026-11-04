@@ -11,3 +11,5 @@ Aucun CDN n’est contacté pour les télécharger.
 
 Le client remplace explicitement la configuration ICE par STUN uniquement, pour ne pas
 utiliser les relais TURN présents dans les paramètres par défaut de PeerJS.
+
+- ICAL.js 2.2.1, MPL-2.0. Source : https://github.com/kewisch/ical.js/tree/v2.2.1. Le calendrier Windows charge ce module localement.

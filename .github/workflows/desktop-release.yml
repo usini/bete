@@ -1,0 +1,121 @@
+name: Publier Bête Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version Windows au format X.Y.Z
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bete-desktop-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.repository == 'usini/bete' && github.ref == 'refs/heads/main'
+    runs-on: windows-2025
+    environment: desktop-release
+    env:
+      BETE_VERSION: ${{ inputs.version }}
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Installer Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+
+      - name: Vérifier la version et préparer Tauri
+        shell: pwsh
+        working-directory: desktop
+        run: |
+          if ($env:BETE_VERSION -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' -or
+              $null -eq ($env:BETE_VERSION -as [version])) {
+            throw 'Indique une version au format X.Y.Z.'
+          }
+          rustup target add x86_64-pc-windows-msvc
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          npm ci --ignore-scripts
+
+      - name: Compiler et signer
+        shell: pwsh
+        working-directory: desktop
+        env:
+          BETE_UPDATER_PUBLIC_KEY: ${{ vars.BETE_UPDATER_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          BETE_GOOGLE_DESKTOP_CLIENT_ID: ${{ vars.BETE_GOOGLE_DESKTOP_CLIENT_ID }}
+          BETE_GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.BETE_GOOGLE_DESKTOP_CLIENT_SECRET }}
+        run: |
+          foreach ($name in 'BETE_UPDATER_PUBLIC_KEY','TAURI_SIGNING_PRIVATE_KEY','BETE_GOOGLE_DESKTOP_CLIENT_ID','BETE_GOOGLE_DESKTOP_CLIENT_SECRET') {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              throw "Configuration manquante dans desktop-release ($name)."
+            }
+          }
+          npm run release:build -- $env:BETE_VERSION
+
+      - name: Transmettre les fichiers signés
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: bete-windows-release
+          path: desktop/release-output/bete-desktop-v${{ inputs.version }}/
+          if-no-files-found: error
+          retention-days: 3
+
+  publish:
+    needs: build
+    runs-on: windows-2025
+    permissions:
+      contents: write
+    env:
+      BETE_VERSION: ${{ inputs.version }}
+    steps:
+      - name: Récupérer les fichiers signés
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: bete-windows-release
+          path: release
+
+      - name: Vérifier et publier
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = $env:BETE_VERSION
+          $tag = "bete-desktop-v$version"
+          $asset = "Bete-Desktop-$version-x64-setup.exe"
+          $installer = "release/$asset"
+          $signatureFile = "$installer.sig"
+          $manifestFile = 'release/bete-desktop-latest.json'
+          $manifest = Get-Content -LiteralPath $manifestFile -Raw | ConvertFrom-Json
+          $platform = $manifest.platforms.'windows-x86_64'
+          $signature = (Get-Content -LiteralPath $signatureFile -Raw).Trim()
+          if ($manifest.version -ne $version -or $platform.signature -cne $signature -or
+              $platform.url -ne "https://github.com/usini/bete/releases/download/$tag/$asset" -or
+              !(Test-Path -LiteralPath $installer -PathType Leaf)) {
+            throw 'Fichiers de release incohérents.'
+          }
+
+          function Get-SigningKeyId($value) {
+            $decoded = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($value))
+            $record = [Convert]::FromBase64String(($decoded -split '\r?\n')[1])
+            return [Convert]::ToHexString($record[2..9])
+          }
+
+          $latest = Invoke-RestMethod 'https://github.com/usini/bete/releases/latest/download/bete-desktop-latest.json'
+          if ([version]$version -le [version]$latest.version) {
+            throw "La version doit être supérieure à $($latest.version)."
+          }
+          if ((Get-SigningKeyId $signature) -ne (Get-SigningKeyId $latest.platforms.'windows-x86_64'.signature)) {
+            throw 'La clé de signature ne correspond pas à celle de la version publique.'
+          }
+          gh release create $tag $installer $signatureFile $manifestFile --repo usini/bete --target $env:GITHUB_SHA --latest --title "Bête Desktop $version" --notes "Version Windows x64 de Bête."
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }

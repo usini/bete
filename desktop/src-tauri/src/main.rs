@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod calendar;
 mod drive;
 
 use std::time::Duration;
@@ -72,6 +73,7 @@ fn main() {
             open_browser,
             check_update,
             install_update,
+            calendar::calendar_feed,
             drive::drive_configured,
             drive::drive_login,
             drive::drive_token,
@@ -79,6 +81,8 @@ fn main() {
         ])
         .setup(|app| {
             WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
+                // Let WebView2 deliver HTML5 URL and file drops to the board.
+                .disable_drag_drop_handler()
                 .title("Bête")
                 .inner_size(1280.0, 850.0)
                 .min_inner_size(520.0, 360.0)

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Bête</title>
-  <link rel="stylesheet" href="css/style.css?v=mw22tbu2">
+  <link rel="stylesheet" href="css/style.css?v=mw2b1r9l">
 </head>
 <body>
   <canvas id="canvas"></canvas>
@@ -89,6 +89,17 @@
     <p class="hint"><button type="button" id="drive-later" class="linklike">Décider plus tard</button></p>
   </dialog>
 
+  <dialog id="group-index" aria-labelledby="group-index-title">
+    <header class="group-index-header">
+      <div>
+        <h2 id="group-index-title">Groupes du tableau</h2>
+        <p class="hint">Glisse les poignées pour réorganiser les raccourcis. Clique sur un groupe pour le voir en entier.</p>
+      </div>
+      <form method="dialog"><button type="submit" autofocus>Fermer</button></form>
+    </header>
+    <div id="group-list"></div>
+  </dialog>
+
   <dialog id="sharedialog" aria-labelledby="share-title">
     <h3 id="share-title">Partager un groupe</h3>
     <p id="share-name"></p>
@@ -122,7 +133,7 @@
 
       <section id="groups" hidden>
         <h2><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M7 7V3h10v4M7 12h10M7 16h6"/></svg>Groupes</h2>
-        <div id="group-list"></div>
+        <button type="button" id="open-group-index">Voir les groupes</button>
       </section>
 
       <section id="drive">
@@ -154,6 +165,6 @@
   <input type="file" id="image-file" accept="image/*" hidden>
   <input type="file" id="fileimport" accept="application/json,.json" hidden>
 
-  <script type="module" src="js/main.js?v=mw22tbu2"></script>
+  <script type="module" src="js/main.js?v=mw2b1r9l"></script>
 </body>
 </html>

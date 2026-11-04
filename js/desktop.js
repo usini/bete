@@ -1,8 +1,9 @@
-import { saveNow } from './state.js?v=mw22tbu2';
-import { flushLocalWrites } from './local-store.js?v=mw22tbu2';
-import { openLink } from './links.js?v=mw22tbu2';
-import { notify } from './notifications.js?v=mw22tbu2';
-import { parseShareLink } from './group-share.js?v=mw22tbu2';
+import { initDesktopCalendar } from './calendar.js?v=mw2b1r9l';
+import { saveNow } from './state.js?v=mw2b1r9l';
+import { flushLocalWrites } from './local-store.js?v=mw2b1r9l';
+import { openLink } from './links.js?v=mw2b1r9l';
+import { notify } from './notifications.js?v=mw2b1r9l';
+import { parseShareLink } from './group-share.js?v=mw2b1r9l';
 
 function confirmUpdate(version) {
   const dialog = document.createElement('dialog');
@@ -36,6 +37,7 @@ function confirmUpdate(version) {
 export async function initDesktop() {
   const { core, window: native } = window.__TAURI__;
   const appWindow = native.getCurrentWindow();
+  initDesktopCalendar(core.invoke);
   const privacy = document.querySelector('.panel-footer a');
   privacy.href = 'https://bete.usini.eu/confidentialite.html';
   privacy.addEventListener('click', event => { event.preventDefault(); openLink(privacy.href); });

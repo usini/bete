@@ -12,7 +12,11 @@ npm run start
 npm run build
 ```
 
-L’installateur NSIS de test se trouve dans `src-tauri/target/release/bundle/nsis/`. Les liens HTTP et HTTPS s’ouvrent dans le navigateur par défaut. Pour rejoindre un groupe, colle son lien dans le champ du menu. La version Windows conserve la sauvegarde locale et l’import/export JSON.
+L’installateur NSIS de test se trouve dans `src-tauri/target/release/bundle/nsis/`. Les liens HTTP et HTTPS s’ouvrent dans le navigateur par défaut. Tu peux aussi glisser une URL depuis ton navigateur vers le tableau pour créer un bloc. Pour rejoindre un groupe, colle son lien dans le champ du menu. La version Windows conserve la sauvegarde locale et l’import/export JSON.
+
+## Calendrier iCal
+
+Clique sur la date ou l’heure, colle ton lien iCal HTTPS ou webcal et clique sur **Enregistrer le lien**. Le calendrier affiche le mois et les événements du jour sélectionné. Le prochain événement s’affiche sous l’horloge. L’application recharge le flux au démarrage et à l’ouverture du calendrier. Le lien reste dans le Gestionnaire d’identifiants Windows. Il est possible de le remplacer ou de le retirer depuis le calendrier.
 
 ## Activer Google Drive dans le build Windows
 
@@ -53,3 +57,17 @@ Si tu n’as pas encore de clé, crée-la une fois avec `npx tauri signer genera
 L’installateur de test désactive la recherche de mises à jour. La signature Tauri authentifie les mises à jour. Pour identifier l’éditeur dans Windows, configure aussi la signature Authenticode.
 
 [Format du manifeste de mise à jour](https://v2.tauri.app/plugin/updater/#static-json-file) · [Signature Windows](https://v2.tauri.app/distribute/sign/windows/)
+
+### Depuis GitHub Actions
+
+Dans les paramètres du dépôt, crée un environnement **desktop-release** et limite-le à la branche `main`. Ajoute les valeurs suivantes dans cet environnement.
+
+| Type | Nom | Valeur |
+|---|---|---|
+| Variable | `BETE_UPDATER_PUBLIC_KEY` | Clé publique Tauri utilisée par la version 0.2.0 |
+| Secret | `TAURI_SIGNING_PRIVATE_KEY` | Texte de la clé privée correspondante |
+| Secret | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Mot de passe de la clé, si elle est protégée |
+| Variable | `BETE_GOOGLE_DESKTOP_CLIENT_ID` | ID du client OAuth Desktop |
+| Secret | `BETE_GOOGLE_DESKTOP_CLIENT_SECRET` | Secret du client OAuth Desktop |
+
+Dans **Actions → Publier Bête Windows → Run workflow**, sélectionne `main` et saisis une version supérieure à celle publiée. Le job de compilation signe les fichiers. Un job distinct vérifie le manifeste et la continuité de la clé de signature, puis publie la release. Un push ordinaire ne déclenche pas le workflow.

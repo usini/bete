@@ -1,12 +1,13 @@
 // Right-hand panel: draggable blocks, selection tools, file actions.
-import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mw22tbu2';
-import { screenToWorld, view, flyTo } from './camera.js?v=mw22tbu2';
-import { BLOCK_MIME, pickImage } from './input.js?v=mw22tbu2';
-import { exportDoc, importFile } from './storage.js?v=mw22tbu2';
+import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mw2b1r9l';
+import { screenToWorld, view, flyTo } from './camera.js?v=mw2b1r9l';
+import { BLOCK_MIME, pickImage } from './input.js?v=mw2b1r9l';
+import { exportDoc, importFile } from './storage.js?v=mw2b1r9l';
 
 
-import { optimizeImage } from './images.js?v=mw22tbu2';
-import { notify } from './notifications.js?v=mw22tbu2';
+import { optimizeImage } from './images.js?v=mw2b1r9l';
+import { notify } from './notifications.js?v=mw2b1r9l';
+import { localStore } from './local-store.js?v=mw2b1r9l';
 
 async function optimizeBoardImages(button) {
   const id = 'optimize-images';
@@ -79,43 +80,100 @@ export function initPanel() {
     });
   }
 
-  // Group links: one button per group, a click flies the camera to it and selects it.
   const groupsBox = document.getElementById('groups');
+  const groupIndex = document.getElementById('group-index');
   const groupList = document.getElementById('group-list');
-  let groupSig = '';
+  const orderKey = 'bete2:groupIndexOrder';
+  let order = [];
+  try {
+    const saved = JSON.parse(localStore.getItem(orderKey));
+    if (Array.isArray(saved)) order = saved.filter(id => typeof id === 'string');
+  } catch { /* Start with the board order. */ }
+
   const goToGroup = (id) => {
-    const g = getNode(id);
-    if (!g) return;
-    const zoom = Math.min(1.5, Math.max(0.1, Math.min(view.w * 0.7 / g.w, view.h * 0.7 / g.h)));
+    const group = getNode(id);
+    if (group?.kind !== 'group') return;
+    groupIndex.close();
+    panel.classList.add('collapsed');
+    setToggleLabel();
+    const zoom = Math.min(1.5, view.w * 0.84 / group.w, view.h * 0.84 / group.h);
     select(id);
-    flyTo(g.x + g.w / 2, g.y + g.h / 2, zoom);
-    if (matchMedia('(max-width: 600px)').matches) { // on a phone the panel would hide the group
-      panel.classList.add('collapsed');
-      setToggleLabel();
-    }
+    flyTo(group.x + group.w / 2, group.y + group.h / 2, zoom);
   };
-  const refreshGroups = () => {
-    const groups = state.nodes.filter((n) => n.kind === 'group');
-    // The list is rebuilt only when a title, a colour or the set of groups changes (not on every pan).
-    const sig = groups.map((g) => g.id + '|' + g.text + '|' + g.color).join('\n');
-    if (sig === groupSig) return;
-    groupSig = sig;
+
+  let groupSig = '';
+  function refreshGroups() {
+    const groups = state.nodes.filter(node => node.kind === 'group');
     groupsBox.hidden = groups.length === 0;
-    groupList.replaceChildren(...groups.map((g) => {
-      const b = document.createElement('button');
-      b.className = 'group-link';
-      b.title = 'Aller au groupe';
+    if (!groupIndex.open) return;
+    const ranks = new Map(order.map((id, index) => [id, index]));
+    groups.sort((a, b) => (ranks.get(a.id) ?? Infinity) - (ranks.get(b.id) ?? Infinity));
+    const signature = JSON.stringify(groups.map(group => [group.id, group.text, group.color]));
+    if (signature === groupSig) return;
+    groupSig = signature;
+    groupList.replaceChildren(...groups.map(group => {
+      const card = document.createElement('article');
+      card.dataset.groupId = group.id;
+      const link = document.createElement('button');
+      link.type = 'button';
+      link.className = 'group-link';
+      const name = group.text.split('\n')[0].trim() || 'Groupe sans titre';
       const dot = document.createElement('span');
       dot.className = 'dot';
-      dot.style.background = g.color;
-      const name = document.createElement('span');
-      name.className = 'name';
-      name.textContent = g.text.split('\n')[0].trim() || 'Groupe sans titre';
-      b.append(dot, name);
-      b.addEventListener('click', () => goToGroup(g.id));
-      return b;
+      dot.style.background = group.color === 'transparent' ? 'white' : group.color;
+      const text = document.createElement('span');
+      text.className = 'name';
+      text.textContent = name;
+      link.append(dot, text);
+      link.addEventListener('click', () => goToGroup(group.id));
+
+      const grip = document.createElement('button');
+      grip.type = 'button';
+      grip.className = 'group-grip';
+      grip.textContent = '⠿';
+      grip.title = 'Glisser ou utiliser les flèches pour déplacer';
+      grip.setAttribute('aria-label', 'Déplacer ' + name);
+      grip.addEventListener('pointerdown', event => {
+        if (event.button !== 0) return;
+        grip.setPointerCapture(event.pointerId);
+        card.classList.add('group-dragging');
+      });
+      grip.addEventListener('lostpointercapture', () => card.classList.remove('group-dragging'));
+      grip.addEventListener('pointerup', event => {
+        if (!grip.hasPointerCapture(event.pointerId)) return;
+        const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-group-id]');
+        if (target && groupList.contains(target)) moveShortcut(card, target);
+      });
+      grip.addEventListener('keydown', event => {
+        const target = ['ArrowLeft', 'ArrowUp'].includes(event.key) ? card.previousElementSibling
+          : ['ArrowRight', 'ArrowDown'].includes(event.key) ? card.nextElementSibling : null;
+        if (!target) return;
+        event.preventDefault();
+        moveShortcut(card, target);
+      });
+      card.append(link, grip);
+      return card;
     }));
-  };
+  }
+
+  function moveShortcut(card, target) {
+    if (card === target) return;
+    const cards = [...groupList.children];
+    const index = cards.indexOf(target);
+    cards.splice(cards.indexOf(card), 1);
+    cards.splice(index, 0, card);
+    order = cards.map(item => item.dataset.groupId);
+    localStore.setItem(orderKey, JSON.stringify(order));
+    refreshGroups();
+    [...groupList.children].find(item => item.dataset.groupId === card.dataset.groupId)
+      ?.querySelector('.group-grip').focus();
+  }
+
+  document.getElementById('open-group-index').addEventListener('click', () => {
+    groupSig = '';
+    groupIndex.showModal();
+    refreshGroups();
+  });
   events.addEventListener('change', refreshGroups);
   refreshGroups();
 

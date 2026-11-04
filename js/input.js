@@ -3,28 +3,28 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mw22tbu2';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw22tbu2';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mw22tbu2';
-import { addImageFile, imageCaptionFraction, imageFor } from './images.js?v=mw22tbu2';
-import { playVideo } from './video.js?v=mw22tbu2';
-import { youTubeId } from './yt.js?v=mw22tbu2';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mw22tbu2';
-import { groupHeaderHeight, labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mw22tbu2';
-import { undo, redo } from './history.js?v=mw22tbu2';
+import { state, getNode, getSelectedId, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mw2b1r9l';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw2b1r9l';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mw2b1r9l';
+import { addImageFile, imageCaptionFraction, imageFor } from './images.js?v=mw2b1r9l';
+import { playVideo } from './video.js?v=mw2b1r9l';
+import { youTubeId } from './yt.js?v=mw2b1r9l';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mw2b1r9l';
+import { groupHeaderHeight, labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mw2b1r9l';
+import { undo, redo } from './history.js?v=mw2b1r9l';
 
-import { setDragging } from './motion.js?v=mw22tbu2';
+import { setDragging } from './motion.js?v=mw2b1r9l';
 
-import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw22tbu2';
-import { shortenAmazonText, isAmazonUrl } from './amazon.js?v=mw22tbu2';
+import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw2b1r9l';
+import { shortenAmazonText, isAmazonUrl } from './amazon.js?v=mw2b1r9l';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mw22tbu2';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mw2b1r9l';
 
-import { serviceForNode } from './services.js?v=mw22tbu2';
+import { serviceForNode } from './services.js?v=mw2b1r9l';
 
-import { requestRender } from './render.js?v=mw22tbu2';
+import { requestRender } from './render.js?v=mw2b1r9l';
 
-import { notify } from './notifications.js?v=mw22tbu2';
+import { notify } from './notifications.js?v=mw2b1r9l';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 const CLIPBOARD_BLOCK = 'application/x-bete-clipboard-block';
@@ -122,7 +122,10 @@ function onPointerDown(e) {
     return;
   }
   if (sel && onHandle(sel, sx, sy)) {
-    gesture = { type: 'resize', n: sel, ox: sel.w, oy: sel.h, sx, sy };
+    const members = sel.kind === 'group' ? membersOf(sel).map(m => ({
+      m, x: m.x - sel.x, y: m.y - sel.y, w: m.w, h: m.h,
+    })) : null;
+    gesture = { type: 'resize', n: sel, ox: sel.w, oy: sel.h, sx, sy, members };
     return;
   }
   const w = screenToWorld(sx, sy);
@@ -252,6 +255,28 @@ function onPointerMove(e) {
     const z = state.camera.zoom;
     const w = g.ox + (e.clientX - g.sx) / z;
     const h = g.oy + (e.clientY - g.sy) / z;
+    if (g.members) {
+      // Project the handle onto the diagonal of the original group so both axes use one scale.
+      const requested = (w * g.ox + h * g.oy) / (g.ox ** 2 + g.oy ** 2);
+      let minScale = MIN_SIZE / Math.min(g.ox, g.oy);
+      let maxScale = MAX_SIZE / Math.max(g.ox, g.oy);
+      for (const member of g.members) {
+        minScale = Math.max(minScale, MIN_SIZE / Math.min(member.w, member.h));
+        maxScale = Math.min(maxScale, MAX_SIZE / Math.max(member.w, member.h));
+      }
+      const scale = Math.max(Math.min(1, minScale), Math.min(Math.max(1, maxScale), requested));
+      g.n.w = g.ox * scale;
+      g.n.h = g.oy * scale;
+      for (const { m, x, y, w, h } of g.members) {
+        m.x = g.n.x + x * scale;
+        m.y = g.n.y + y * scale;
+        m.w = w * scale;
+        m.h = h * scale;
+      }
+      clearGuides();
+      emit();
+      return;
+    }
     const image = g.n.image && imageFor(g.n.image, requestRender);
     if (image) {
       const ratio = image.naturalWidth / image.naturalHeight * (1 - imageCaptionFraction(g.n));
