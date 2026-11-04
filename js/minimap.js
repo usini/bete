@@ -1,10 +1,11 @@
 // Minimap (bottom-left): all the blocks in their colour + the current view as a white frame.
 // Click or drag on it to move the view there.
-import { state, emit, groupsBySize } from './state.js?v=mw1yed4y';
-import { view } from './camera.js?v=mw1yed4y';
+import { state, emit, groupsBySize } from './state.js?v=mw1yobwe';
+import { cancelFlight, flyTo, view } from './camera.js?v=mw1yobwe';
 
 const canvas = document.getElementById('minimap');
 const ctx = canvas.getContext('2d');
+const fitButton = document.getElementById('fit-board');
 let frozen = null; // fit transform kept while dragging, so the map does not shift under the finger
 
 // World rectangle currently visible on the main canvas.
@@ -31,6 +32,7 @@ function fit(W, H) {
 }
 
 export function renderMinimap() {
+  fitButton.disabled = !state.nodes.length;
   const W = canvas.clientWidth, H = canvas.clientHeight;
   if (!W || !H) return;
   const dpr = window.devicePixelRatio || 1;
@@ -65,8 +67,21 @@ function recenter(e) {
 }
 
 export function initMinimap() {
+  fitButton.addEventListener('click', () => {
+    if (!state.nodes.length) return;
+    let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
+    for (const n of state.nodes) {
+      left = Math.min(left, n.x);
+      top = Math.min(top, n.y);
+      right = Math.max(right, n.x + n.w);
+      bottom = Math.max(bottom, n.y + n.h);
+    }
+    const zoom = Math.min(8, view.w * 0.8 / (right - left), view.h * 0.8 / (bottom - top));
+    flyTo((left + right) / 2, (top + bottom) / 2, zoom);
+  });
   canvas.addEventListener('pointerdown', (e) => {
     e.preventDefault();
+    cancelFlight();
     canvas.setPointerCapture(e.pointerId);
     frozen = fit(canvas.clientWidth, canvas.clientHeight);
     recenter(e);

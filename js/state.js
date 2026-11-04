@@ -1,7 +1,7 @@
-import { localStore } from './local-store.js?v=mw1yed4y';
+import { localStore } from './local-store.js?v=mw1yobwe';
 // Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mw1yed4y';
+import { explode } from './fx.js?v=mw1yobwe';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];
@@ -29,6 +29,8 @@ export function rememberSize(kind, w, h) {
 const KEY = 'bete2:doc';
 const LIMITS = { pos: 1e6, size: 1e5, minSize: 20, text: 20000, maxNodes: 5000, dataUrl: 20e6 };
 
+// Keep camera transforms numerically stable even far below normal viewing scales.
+export const MIN_ZOOM = 1e-9;
 export const state = { camera: { x: 0, y: 0, zoom: 1 }, nodes: [] };
 export const events = new EventTarget();
 let selectedId = null;
@@ -88,7 +90,7 @@ export function setDoc(raw) {
   state.camera = {
     x: num(c.x, -LIMITS.pos, LIMITS.pos, 0),
     y: num(c.y, -LIMITS.pos, LIMITS.pos, 0),
-    zoom: num(c.zoom, 0.05, 8, 1),
+    zoom: num(c.zoom, MIN_ZOOM, 8, 1),
   };
   state.nodes = (Array.isArray(o.nodes) ? o.nodes.slice(0, LIMITS.maxNodes) : [])
     .map(sanitizeNode)

@@ -3,30 +3,31 @@
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mw1yed4y';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw1yed4y';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mw1yed4y';
-import { addImageFile, imageCaptionFraction, imageFor } from './images.js?v=mw1yed4y';
-import { playVideo } from './video.js?v=mw1yed4y';
-import { youTubeId } from './yt.js?v=mw1yed4y';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mw1yed4y';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mw1yed4y';
-import { undo, redo } from './history.js?v=mw1yed4y';
+import { state, getNode, getSelectedId, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberSize, groupsBySize, membersOf, COLORS } from './state.js?v=mw1yobwe';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw1yobwe';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mw1yobwe';
+import { addImageFile, imageCaptionFraction, imageFor } from './images.js?v=mw1yobwe';
+import { playVideo } from './video.js?v=mw1yobwe';
+import { youTubeId } from './yt.js?v=mw1yobwe';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mw1yobwe';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mw1yobwe';
+import { undo, redo } from './history.js?v=mw1yobwe';
 
-import { setDragging } from './motion.js?v=mw1yed4y';
+import { setDragging } from './motion.js?v=mw1yobwe';
 
-import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mw1yed4y';
-import { shortenAmazonText, isAmazonUrl } from './amazon.js?v=mw1yed4y';
+import { plainLink, genericLink, droppedLink, droppedTitle } from './links.js?v=mw1yobwe';
+import { shortenAmazonText, isAmazonUrl } from './amazon.js?v=mw1yobwe';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mw1yed4y';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mw1yobwe';
 
-import { serviceForNode } from './services.js?v=mw1yed4y';
+import { serviceForNode } from './services.js?v=mw1yobwe';
 
-import { requestRender } from './render.js?v=mw1yed4y';
+import { requestRender } from './render.js?v=mw1yobwe';
 
-import { notify } from './notifications.js?v=mw1yed4y';
+import { notify } from './notifications.js?v=mw1yobwe';
 
 export const BLOCK_MIME = 'application/x-bete-block';
+const CLIPBOARD_BLOCK = 'application/x-bete-clipboard-block';
 
 const canvas = document.getElementById('canvas');
 const picker = document.getElementById('filepick');
@@ -383,9 +384,38 @@ export function initInput() {
     }
   });
 
+  const clipboardBlocked = e => isLocked() || isEditing() || document.querySelector('dialog[open]')
+    || (e.target instanceof Element && e.target.closest('input, textarea, select, [contenteditable]'));
+
+  window.addEventListener('copy', e => {
+    if (clipboardBlocked(e) || !e.clipboardData || window.getSelection()?.toString()) return;
+    const selected = getNode(getSelectedId());
+    if (!selected) return;
+    const { id, shareId, ...block } = selected;
+    e.clipboardData.setData(CLIPBOARD_BLOCK, JSON.stringify(block));
+    e.clipboardData.setData('text/plain', block.text || block.link || '');
+    e.preventDefault();
+  });
+
   window.addEventListener('paste', async (e) => {
-    if (isLocked() || isEditing() || document.querySelector('dialog[open]')) return;
-    if (e.target instanceof Element && e.target.closest('input, textarea, [contenteditable], dialog')) return;
+    if (clipboardBlocked(e)) return;
+    const copied = e.clipboardData?.getData(CLIPBOARD_BLOCK);
+    if (copied) {
+      let block;
+      try { block = sanitizeNode(JSON.parse(copied)); } catch { /* Fall back to standard clipboard data. */ }
+      if (block) {
+        e.preventDefault();
+        const center = screenToWorld(view.w / 2, view.h / 2);
+        const offset = 24 / state.camera.zoom;
+        block.id = newId();
+        delete block.shareId;
+        block.x = center.x - block.w / 2 + offset;
+        block.y = center.y - block.h / 2 + offset;
+        state.nodes.push(block);
+        select(block.id);
+        return;
+      }
+    }
     const selected = getNode(getSelectedId());
     const pasted = e.clipboardData?.getData('text/plain');
     const url = plainLink(pasted);

@@ -1,12 +1,12 @@
 // Right-hand panel: draggable blocks, selection tools, file actions.
-import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mw1yed4y';
-import { screenToWorld, view, flyTo } from './camera.js?v=mw1yed4y';
-import { BLOCK_MIME, pickImage } from './input.js?v=mw1yed4y';
-import { exportDoc, importFile } from './storage.js?v=mw1yed4y';
+import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mw1yobwe';
+import { screenToWorld, view, flyTo } from './camera.js?v=mw1yobwe';
+import { BLOCK_MIME, pickImage } from './input.js?v=mw1yobwe';
+import { exportDoc, importFile } from './storage.js?v=mw1yobwe';
 
 
-import { optimizeImage } from './images.js?v=mw1yed4y';
-import { notify } from './notifications.js?v=mw1yed4y';
+import { optimizeImage } from './images.js?v=mw1yobwe';
+import { notify } from './notifications.js?v=mw1yobwe';
 
 async function optimizeBoardImages(button) {
   const id = 'optimize-images';

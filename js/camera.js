@@ -1,5 +1,5 @@
 // World <-> screen transforms (screen = CSS pixels, world = abstract units).
-import { state, emit } from './state.js?v=mw1yed4y';
+import { state, emit, MIN_ZOOM } from './state.js?v=mw1yobwe';
 
 export const view = { w: window.innerWidth, h: window.innerHeight };
 
@@ -16,7 +16,7 @@ export function screenToWorld(sx, sy) {
 // Zoom keeping the point under (sx, sy) fixed.
 export function zoomAt(sx, sy, factor) {
   const before = screenToWorld(sx, sy);
-  state.camera.zoom = Math.min(8, Math.max(0.05, state.camera.zoom * factor));
+  state.camera.zoom = Math.min(8, Math.max(MIN_ZOOM, state.camera.zoom * factor));
   const after = screenToWorld(sx, sy);
   state.camera.x += before.x - after.x;
   state.camera.y += before.y - after.y;

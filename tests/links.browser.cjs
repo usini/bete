@@ -27,6 +27,23 @@ let browser,server;
   await page.goto('http://127.0.0.1:8092/');
   await page.waitForFunction(()=>document.querySelector('#drive-status').textContent);
   assert.equal(await page.locator('#drive-size').isVisible(),false,'size follows the optional Drive indicator');
+  const clipboard = await page.evaluate(async()=>{
+    const v=new URL(document.querySelector('script[type=module]').src).search;
+    const s=await import('/js/state.js'+v), images=await import('/js/images.js'+v);
+    const ref=await images.addImageFile(new Blob(['test'],{type:'image/png'}));
+    const original=s.addNode('rect',0,0);
+    Object.assign(original,{text:'Bloc à copier',link:'https://example.org',image:ref,keepImageOriginal:true});
+    const data=new DataTransfer(), canvas=document.querySelector('#canvas');
+    canvas.dispatchEvent(new ClipboardEvent('copy',{bubbles:true,cancelable:true,clipboardData:data}));
+    canvas.dispatchEvent(new ClipboardEvent('paste',{bubbles:true,cancelable:true,clipboardData:data}));
+    const result={original:{...original},duplicate:{...s.state.nodes.at(-1)},fallback:data.getData('text/plain')};
+    s.replaceNodes([]);
+    return result;
+  });
+  assert.notEqual(clipboard.duplicate.id,clipboard.original.id);
+  for(const key of ['kind','w','h','text','link','image','keepImageOriginal'])
+    assert.equal(clipboard.duplicate[key],clipboard.original[key]);
+  assert.equal(clipboard.fallback,'Bloc à copier');
   const link='http://localhost:8092/private/page?secret=never-fetch';
   await page.evaluate(async link=>{
     const v=new URL(document.querySelector('script[type=module]').src).search;
