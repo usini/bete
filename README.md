@@ -187,7 +187,7 @@ Les fenêtres desktop étroites restent éditables normalement.
 
 Exporte un tableau Bête en JSON et place-le dans un dépôt public, à la racine de la branche `main`. Ouvre ensuite `https://bete.usini.eu/?github=COMPTE-DEPOT-FICHIER` avec le nom du fichier sans `.json`. Si le compte ou le dépôt contient un tiret, utilise `?github=COMPTE/DEPOT/FICHIER`.
 
-Le tableau est en lecture seule. Le lien apparaît dans **Voir les groupes → Tableaux externes** sur ce navigateur. Publie uniquement un export dont tu souhaites rendre le contenu public, y compris son historique.
+Le tableau est en lecture seule. À chaque ouverture, Bête redemande le JSON à GitHub avec une URL horodatée pour contourner le cache. Le lien apparaît dans **Voir les groupes → Tableaux externes** sur ce navigateur. Publie uniquement un export dont tu souhaites rendre le contenu public, y compris son historique.
 
 ## Partager un groupe
 

@@ -1,4 +1,4 @@
-import { localStore } from './local-store.js?v=mw2jmum7';
+import { localStore } from './local-store.js?v=mw2oi5mc';
 
 export const githubBoard = new URLSearchParams(location.search).get('github');
 export const externalMode = githubBoard !== null;
@@ -27,7 +27,10 @@ export function recentGithubBoards() {
 export async function loadGithubBoard(value) {
   const source = githubSource(value);
   if (!source) throw new Error('Lien GitHub invalide. Utilise COMPTE-DEPOT-FICHIER ou COMPTE/DEPOT/FICHIER.');
-  const response = await fetch(source.url, {
+  const url = new URL(source.url);
+  url.searchParams.set('_t', Date.now().toString());
+  const response = await fetch(url, {
+    cache: 'no-store',
     credentials: 'omit', referrerPolicy: 'no-referrer', redirect: 'error',
     signal: AbortSignal.timeout(25000),
   });

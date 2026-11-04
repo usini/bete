@@ -1,9 +1,9 @@
-import { initDesktopCalendar } from './calendar.js?v=mw2jmum7';
-import { saveNow } from './state.js?v=mw2jmum7';
-import { flushLocalWrites } from './local-store.js?v=mw2jmum7';
-import { openLink } from './links.js?v=mw2jmum7';
-import { notify } from './notifications.js?v=mw2jmum7';
-import { parseShareLink } from './group-share.js?v=mw2jmum7';
+import { initDesktopCalendar } from './calendar.js?v=mw2oi5mc';
+import { saveNow } from './state.js?v=mw2oi5mc';
+import { flushLocalWrites } from './local-store.js?v=mw2oi5mc';
+import { openLink } from './links.js?v=mw2oi5mc';
+import { notify } from './notifications.js?v=mw2oi5mc';
+import { parseShareLink } from './group-share.js?v=mw2oi5mc';
 
 function confirmUpdate(version) {
   const dialog = document.createElement('dialog');
