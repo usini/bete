@@ -1,7 +1,7 @@
-import { localStore } from './local-store.js?v=mw2oq6uc';
+import { localStore } from './local-store.js?v=mw2pb768';
 // YouTube helpers: URL detection, thumbnail / embed URLs, and video titles.
 // A rectangle whose text contains a YouTube URL is rendered as a video.
-export { youTubeId } from './youtube-url.js?v=mw2oq6uc';
+export { youTubeId } from './youtube-url.js?v=mw2pb768';
 export function ytThumb(id) { return 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg'; }
 export function ytEmbed(id) { return 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0&playsinline=1'; }
 
@@ -23,6 +23,8 @@ function saveTitles() {
   try { localStore.setItem(TITLE_KEY, JSON.stringify(Object.fromEntries(titles))); }
   catch { /* storage full or blocked: titles just won't persist */ }
 }
+
+export const cachedYouTubeTitle = id => titles.get(id) || null;
 
 // Returns the cached title (or null while unknown); onReady is called once it arrives.
 export function youTubeTitle(id, onReady) {

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Bête</title>
-  <link rel="stylesheet" href="css/style.css?v=mw2oq6uc">
+  <link rel="stylesheet" href="css/style.css?v=mw2pb768">
 </head>
 <body>
   <canvas id="canvas"></canvas>
@@ -89,6 +89,14 @@
     <p class="hint"><button type="button" id="drive-later" class="linklike">Décider plus tard</button></p>
   </dialog>
 
+  <dialog id="command-search" aria-label="Rechercher dans le tableau">
+    <input id="command-query" type="search" role="combobox" aria-label="Rechercher dans le tableau"
+      aria-autocomplete="list" aria-controls="command-results" aria-expanded="false"
+      placeholder="Rechercher dans le tableau…" autocomplete="off" autofocus>
+    <ul id="command-results" role="listbox" aria-label="Résultats" hidden></ul>
+    <p id="command-empty" role="status" hidden>Aucun résultat</p>
+  </dialog>
+
   <dialog id="group-index" aria-labelledby="group-index-title">
     <header class="group-index-header">
       <div>
@@ -170,6 +178,6 @@
   <input type="file" id="image-file" accept="image/*" hidden>
   <input type="file" id="fileimport" accept="application/json,.json" hidden>
 
-  <script type="module" src="js/main.js?v=mw2oq6uc"></script>
+  <script type="module" src="js/main.js?v=mw2pb768"></script>
 </body>
 </html>

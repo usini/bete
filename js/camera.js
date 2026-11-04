@@ -1,5 +1,5 @@
 // World <-> screen transforms (screen = CSS pixels, world = abstract units).
-import { state, emit, MIN_ZOOM } from './state.js?v=mw2oq6uc';
+import { state, emit, MIN_ZOOM } from './state.js?v=mw2pb768';
 
 export const view = { w: window.innerWidth, h: window.innerHeight };
 
@@ -26,6 +26,10 @@ export function zoomAt(sx, sy, factor) {
 export function panBy(dxScreen, dyScreen) {
   state.camera.x -= dxScreen / state.camera.zoom;
   state.camera.y -= dyScreen / state.camera.zoom;
+}
+
+export function flyToBlock({ x, y, w, h }) {
+  flyTo(x + w / 2, y + h / 2, Math.min(1.5, view.w * 0.84 / w, view.h * 0.84 / h));
 }
 
 // Smooth camera flight to (x, y) at the given zoom. Any new flight, or cancelFlight(),

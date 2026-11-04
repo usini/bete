@@ -1,14 +1,14 @@
-import { externalMode, recentGithubBoards } from './external-board.js?v=mw2oq6uc';
+import { externalMode, recentGithubBoards } from './external-board.js?v=mw2pb768';
 // Right-hand panel: draggable blocks, selection tools, file actions.
-import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mw2oq6uc';
-import { screenToWorld, view, flyTo } from './camera.js?v=mw2oq6uc';
-import { BLOCK_MIME, pickImage } from './input.js?v=mw2oq6uc';
-import { exportDoc, importFile } from './storage.js?v=mw2oq6uc';
+import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mw2pb768';
+import { screenToWorld, view, flyToBlock } from './camera.js?v=mw2pb768';
+import { BLOCK_MIME, pickImage } from './input.js?v=mw2pb768';
+import { exportDoc, importFile } from './storage.js?v=mw2pb768';
 
 
-import { optimizeImage } from './images.js?v=mw2oq6uc';
-import { notify } from './notifications.js?v=mw2oq6uc';
-import { localStore } from './local-store.js?v=mw2oq6uc';
+import { optimizeImage } from './images.js?v=mw2pb768';
+import { notify } from './notifications.js?v=mw2pb768';
+import { localStore } from './local-store.js?v=mw2pb768';
 
 async function optimizeBoardImages(button) {
   const id = 'optimize-images';
@@ -99,9 +99,8 @@ export function initPanel() {
     groupIndex.close();
     panel.classList.add('collapsed');
     setToggleLabel();
-    const zoom = Math.min(1.5, view.w * 0.84 / group.w, view.h * 0.84 / group.h);
     select(id);
-    flyTo(group.x + group.w / 2, group.y + group.h / 2, zoom);
+    flyToBlock(group);
   };
 
   let groupSig = '';
