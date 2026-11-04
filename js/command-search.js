@@ -1,24 +1,29 @@
-import { flyToBlock } from './camera.js?v=mw2pb768';
-import { linkOf } from './labels.js?v=mw2pb768';
-import { openLink } from './links.js?v=mw2pb768';
-import { serviceForNode } from './services.js?v=mw2pb768';
-import { getNode, select, state } from './state.js?v=mw2pb768';
-import { cachedYouTubeTitle, youTubeId } from './yt.js?v=mw2pb768';
+import { flyToBlock } from './camera.js?v=mw2pob0u';
+import { linkOf } from './labels.js?v=mw2pob0u';
+import { openLink } from './links.js?v=mw2pob0u';
+import { serviceForNode } from './services.js?v=mw2pob0u';
+import { getNode, select, state } from './state.js?v=mw2pob0u';
+import { cachedYouTubeTitle, youTubeId } from './yt.js?v=mw2pob0u';
 
 const normalize = text => text.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 
 function search(query) {
   if (!query) return [];
-  const matches = [];
+  const prefixes = [];
+  const wordMatches = [];
+  const escapedQuery = query.replace(/[.*+?^$\{\}()|[\]\\]/g, '\\$&');
+  const wordPrefix = new RegExp('[^\\p{L}\\p{N}]' + escapedQuery, 'u');
   for (const node of state.nodes) {
     const link = linkOf(node);
     const video = node.kind === 'group' ? null : youTubeId(link || node.text);
     const href = link || (video ? 'https://www.youtube.com/watch?v=' + video : null);
-    const label = [node.name, cachedYouTubeTitle(video), serviceForNode(node)?.name, node.text]
-      .find(text => text && normalize(text).startsWith(query));
-    if (label) matches.push({ id: node.id, label, href, group: node.kind === 'group' });
+    const labels = [node.name, cachedYouTubeTitle(video), serviceForNode(node)?.name, node.text]
+      .filter(Boolean).map(label => ({ label, text: normalize(label) }));
+    const prefix = labels.find(({ text }) => text.startsWith(query));
+    const match = prefix || labels.find(({ text }) => wordPrefix.test(text));
+    if (match) (prefix ? prefixes : wordMatches).push({ id: node.id, label: match.label, href, group: node.kind === 'group' });
   }
-  return matches;
+  return prefixes.concat(wordMatches);
 }
 
 export function initCommandSearch() {

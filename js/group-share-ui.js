@@ -1,5 +1,5 @@
-import { state, getNode } from './state.js?v=mw2pb768';
-import { shareInfo, prepareShare, enableShare, disableShare, regenerateShare, joinSharedGroup, parseShareLink, shareEvents, loadShareScript } from './group-share.js?v=mw2pb768';
+import { state, getNode } from './state.js?v=mw2pob0u';
+import { shareInfo, prepareShare, enableShare, disableShare, regenerateShare, joinSharedGroup, parseShareLink, shareEvents, loadShareScript } from './group-share.js?v=mw2pob0u';
 
 const $ = id => document.getElementById(id);
 let groupId = null, invitation = null, lastQr = '', working = false;
