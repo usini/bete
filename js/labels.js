@@ -1,20 +1,19 @@
 // Labels: the tab above a block. It shows the YouTube title (YouTube blocks) or the block's
 // link URL; a block with neither has no label. The layout and the hit-testing live here,
 // so the renderer and the pointer handling always agree on where the label is.
-import { state } from './state.js?v=mw1yobwe';
-import { youTubeId, youTubeTitle } from './yt.js?v=mw1yobwe';
-import { FONT_FAMILY } from './text.js?v=mw1yobwe';
-import { isAmazonUrl, isAmazonText } from './amazon.js?v=mw1yobwe';
+import { state } from './state.js?v=mw1z285p';
+import { youTubeId, youTubeTitle } from './yt.js?v=mw1z285p';
+import { FONT_FAMILY } from './text.js?v=mw1z285p';
+import { isAmazonUrl, isAmazonText } from './amazon.js?v=mw1z285p';
 
-import { genericLink } from './links.js?v=mw1yobwe';
+import { genericLink } from './links.js?v=mw1z285p';
 
-import { serviceForNode } from './services.js?v=mw1yobwe';
+import { serviceForNode } from './services.js?v=mw1z285p';
 
 export const LABEL_SIZE = 26;                       // font size, world units
 export const LABEL_FONT = '600 ' + LABEL_SIZE + 'px ' + FONT_FAMILY;
 export const LABEL_H = 40, LABEL_GAP = 6, LABEL_PAD = 12;
 export const ICON = 14, ICON_GAP = 12;             // play icon, YouTube blocks only
-const MAX_W_FACTOR = 1.5;                          // a tab may be up to 1.5x its block
 
 const PRODUCT_W_FACTOR = 2.5;                      // Amazon product labels may be wider (up to 2.5x)
 const measurer = document.createElement('canvas').getContext('2d');
@@ -93,10 +92,12 @@ function layoutProduct(p, maxW) {
 
 // Geometry of a block's label, in world units: { info, text, icon, x, y, w, h }, or null.
 export function labelLayout(n) {
-  const scale = Math.min(n.w, n.h) / 400;
+  let scale = Math.min(n.w, n.h) / 400;
   const layout = baseLabelLayout({ ...n, x: 0, y: 0, w: n.w / scale });
-  return layout ? { ...layout, x: n.x, y: n.y + layout.y * scale,
-    w: layout.w * scale, h: layout.h * scale, scale } : null;
+  if (!layout) return null;
+  scale = Math.min(scale, n.w / layout.w);
+  return { ...layout, x: n.x, y: n.y + layout.y * scale,
+    w: Math.min(n.w, layout.w * scale), h: layout.h * scale, scale };
 }
 
 function baseLabelLayout(n) {
@@ -109,7 +110,7 @@ function baseLabelLayout(n) {
   }
   const icon = info.kind === 'yt';
   const iconW = icon ? ICON + ICON_GAP : 0;
-  const maxText = Math.max(40, n.w * MAX_W_FACTOR - 2 * LABEL_PAD - iconW);
+  const maxText = Math.max(40, n.w - 2 * LABEL_PAD - iconW);
   const text = fitLabel(info.text.split('\n')[0], maxText);
   measurer.font = LABEL_FONT;
   const w = 2 * LABEL_PAD + iconW + measurer.measureText(text).width;

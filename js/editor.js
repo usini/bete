@@ -5,18 +5,18 @@
 //  - when the link is an Amazon address the popup becomes "Produit Amazon": name, price and
 //    delivery time fields appear (typed by hand, shown in the block's label)
 // It closes only with the Annuler / Valider buttons (Ctrl+Enter, or Enter in a one-line field, also validate).
-import { getNode, emit } from './state.js?v=mw1yobwe';
-import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw1yobwe';
-import { youTubeId } from './yt.js?v=mw1yobwe';
-import { addImageFile, imageFor } from './images.js?v=mw1yobwe';
+import { getNode, emit } from './state.js?v=mw1z285p';
+import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw1z285p';
+import { youTubeId } from './yt.js?v=mw1z285p';
+import { addImageFile, imageFor } from './images.js?v=mw1z285p';
 
-import { genericLink } from './links.js?v=mw1yobwe';
+import { genericLink } from './links.js?v=mw1z285p';
 
-import { isLocked } from './mobile-mode.js?v=mw1yobwe';
+import { isLocked } from './mobile-mode.js?v=mw1z285p';
 
-import { serviceForNode } from './services.js?v=mw1yobwe';
-import { deliveryDelay } from './delivery.js?v=mw1yobwe';
-import { googleMapsEmbed } from './google-maps.js?v=mw1yobwe';
+import { serviceForNode } from './services.js?v=mw1z285p';
+import { deliveryDelay } from './delivery.js?v=mw1z285p';
+import { googleMapsEmbed } from './google-maps.js?v=mw1z285p';
 
 const dlg = document.getElementById('textdialog');
 const title = document.getElementById('dialog-title');

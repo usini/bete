@@ -1,29 +1,28 @@
-import { positionEmbeds } from './embed-view.js?v=mw1yobwe';
+import { positionEmbeds } from './embed-view.js?v=mw1z285p';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize } from './state.js?v=mw1yobwe';
-import { view, screenToWorld } from './camera.js?v=mw1yobwe';
-import { youTubeId, ytThumb } from './yt.js?v=mw1yobwe';
-import { imageCaptionFraction, imageFor } from './images.js?v=mw1yobwe';
-import { positionVideo, isVideoPlaying } from './video.js?v=mw1yobwe';
-import { guides } from './snap.js?v=mw1yobwe';
-import { renderMinimap } from './minimap.js?v=mw1yobwe';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mw1yobwe';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw1yobwe';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw1yobwe';
+import { state, events, getSelectedId, groupsBySize } from './state.js?v=mw1z285p';
+import { view, screenToWorld } from './camera.js?v=mw1z285p';
+import { youTubeId, ytThumb } from './yt.js?v=mw1z285p';
+import { imageCaptionFraction, imageFor } from './images.js?v=mw1z285p';
+import { positionVideo, isVideoPlaying } from './video.js?v=mw1z285p';
+import { guides } from './snap.js?v=mw1z285p';
+import { renderMinimap } from './minimap.js?v=mw1z285p';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mw1z285p';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw1z285p';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw1z285p';
 
-import { genericLinkOf, plainLink } from './links.js?v=mw1yobwe';
-import { stepMotion } from './motion.js?v=mw1yobwe';
-import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw1yobwe';
+import { genericLinkOf, plainLink } from './links.js?v=mw1z285p';
+import { stepMotion } from './motion.js?v=mw1z285p';
+import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw1z285p';
 
-import { isLocked } from './mobile-mode.js?v=mw1yobwe';
+import { isLocked } from './mobile-mode.js?v=mw1z285p';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mw1yobwe';
-import { isAmazonUrl } from './amazon.js?v=mw1yobwe';
+import { serviceForNode, serviceIcon } from './services.js?v=mw1z285p';
+import { isAmazonUrl } from './amazon.js?v=mw1z285p';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const PAD = 10;         // inner padding of image blocks, in world units
-const CAPTION_FONT = '16px ' + FONT_FAMILY;
 
 let dpr = 1;
 let scheduled = false;
@@ -333,12 +332,17 @@ function drawPlay(n) {
 function drawCaption(n, label, height) {
   const y = n.y + n.h - height;
   const pad = Math.min(n.w * 0.05, height * 0.3);
-  const font = Math.min(height * 0.72, n.w * 0.18) + 'px ' + FONT_FAMILY;
+  const text = label.trim().replace(/\s+/g, ' ');
+  const maxWidth = n.w - 2 * pad;
+  const maxSize = Math.min(height * 0.72, n.w * 0.18);
+  ctx.font = maxSize + 'px ' + FONT_FAMILY;
+  const measured = ctx.measureText(text).width;
+  if (measured > maxWidth) ctx.font = (maxSize * maxWidth / measured) + 'px ' + FONT_FAMILY;
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
   ctx.fillRect(n.x, y, n.w, height);
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#e8e8e8';
-  ctx.fillText(fit(firstLine(label), n.w - 2 * pad, font), n.x + pad, y + height / 2);
+  ctx.fillText(text, n.x + pad, y + height / 2, maxWidth);
 }
 
 // Label tab above the block: a pill in the block colour (text black or white for contrast),
@@ -494,11 +498,3 @@ function drawBlockText(text, n, color) {
 }
 
 function firstLine(text) { return String(text).split('\n')[0]; }
-
-function fit(text, maxW, font = CAPTION_FONT) {
-  ctx.font = font;
-  if (ctx.measureText(text).width <= maxW) return text;
-  let t = text;
-  while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
-  return t + '…';
-}
