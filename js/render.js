@@ -1,24 +1,25 @@
-import { positionEmbeds } from './embed-view.js?v=mw2e6cqi';
+import { externalMode } from './external-board.js?v=mw2jmum7';
+import { positionEmbeds } from './embed-view.js?v=mw2jmum7';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize, groupHeaderHeight } from './state.js?v=mw2e6cqi';
-import { view, screenToWorld } from './camera.js?v=mw2e6cqi';
-import { youTubeId, ytThumb } from './yt.js?v=mw2e6cqi';
-import { imageCaptionFraction, imageFor } from './images.js?v=mw2e6cqi';
-import { positionVideo, isVideoPlaying } from './video.js?v=mw2e6cqi';
-import { guides } from './snap.js?v=mw2e6cqi';
-import { renderMinimap } from './minimap.js?v=mw2e6cqi';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mw2e6cqi';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw2e6cqi';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw2e6cqi';
+import { state, events, getSelectedId, groupsBySize, groupHeaderHeight } from './state.js?v=mw2jmum7';
+import { view, screenToWorld } from './camera.js?v=mw2jmum7';
+import { youTubeId, ytThumb } from './yt.js?v=mw2jmum7';
+import { imageCaptionFraction, imageFor } from './images.js?v=mw2jmum7';
+import { positionVideo, isVideoPlaying } from './video.js?v=mw2jmum7';
+import { guides } from './snap.js?v=mw2jmum7';
+import { renderMinimap } from './minimap.js?v=mw2jmum7';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mw2jmum7';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw2jmum7';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw2jmum7';
 
-import { genericLinkOf, plainLink } from './links.js?v=mw2e6cqi';
-import { stepMotion } from './motion.js?v=mw2e6cqi';
-import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw2e6cqi';
+import { genericLinkOf, plainLink } from './links.js?v=mw2jmum7';
+import { stepMotion } from './motion.js?v=mw2jmum7';
+import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw2jmum7';
 
-import { isLocked } from './mobile-mode.js?v=mw2e6cqi';
+import { isLocked } from './mobile-mode.js?v=mw2jmum7';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mw2e6cqi';
-import { isAmazonUrl } from './amazon.js?v=mw2e6cqi';
+import { serviceForNode, serviceIcon } from './services.js?v=mw2jmum7';
+import { isAmazonUrl } from './amazon.js?v=mw2jmum7';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -100,7 +101,7 @@ function draw() {
   renderFx(ctx); // deletion animation, above the blocks
   drawGuides(zoom);
   positionVideo();
-  positionEmbeds();
+  if (!externalMode) positionEmbeds();
   renderMinimap();
   // Keep animating until the 📝 button is fully shown and the deletion pieces are gone.
   if (iconT < 1 || hasParticles() || sharedGlowVisible || ((moving || cursorMoving) && !reducedMotion.matches)) requestRender();
@@ -171,7 +172,7 @@ function drawNode(n, selected, zoom) {
   const appIcon = service && !n.image ? serviceIcon(service, requestRender) : null;
   const link = genericLinkOf(n);
   const linkTitle = link ? ((!plainLink(n.text) && n.text.trim()) || new URL(link).hostname) : '';
-  const src = yt ? thumb(yt) : n.image ? imageFor(n.image, requestRender) : null;
+  const src = yt && !externalMode ? thumb(yt) : n.image ? imageFor(n.image, requestRender) : null;
   const captionHeight = !yt && src ? n.h * imageCaptionFraction(n) : 0;
   if (src) {
     const pad = yt ? PAD : 0;

@@ -1,7 +1,8 @@
-import { localStore } from './local-store.js?v=mw2e6cqi';
+import { externalMode } from './external-board.js?v=mw2jmum7';
+import { localStore } from './local-store.js?v=mw2jmum7';
 // Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mw2e6cqi';
+import { explode } from './fx.js?v=mw2jmum7';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];
@@ -120,6 +121,7 @@ const savedListeners = [];
 export function onSaved(fn) { savedListeners.push(fn); }
 
 export function saveNow() {
+  if (externalMode) return;
   clearTimeout(saveTimer);
   let saved;
   try { saved = localStore.setItem(KEY, JSON.stringify(serialize())); }
@@ -139,6 +141,7 @@ let saveTimer = null;
 // Every change goes through emit(): notifies the UI and schedules an autosave.
 export function emit() {
   events.dispatchEvent(new Event('change'));
+  if (externalMode) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveNow, 300);
 }

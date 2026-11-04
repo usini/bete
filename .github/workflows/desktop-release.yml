@@ -19,7 +19,9 @@ concurrency:
 
 jobs:
   build:
-    if: github.repository == 'usini/bete' && github.ref == 'refs/heads/main'
+    if: >-
+      github.repository == 'usini/bete' && github.ref == 'refs/heads/main' &&
+      (github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip windows]'))
     runs-on: windows-2025
     environment: desktop-release
     outputs:

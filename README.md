@@ -183,6 +183,12 @@ que le tableau est déverrouillé.
 Il est local à cet appareil, non sauvegardé, et ne change pas les droits des autres participants.
 Les fenêtres desktop étroites restent éditables normalement.
 
+## Lire un tableau public depuis GitHub
+
+Exporte un tableau Bête en JSON et place-le dans un dépôt public, à la racine de la branche `main`. Ouvre ensuite `https://bete.usini.eu/?github=COMPTE-DEPOT-FICHIER` avec le nom du fichier sans `.json`. Si le compte ou le dépôt contient un tiret, utilise `?github=COMPTE/DEPOT/FICHIER`.
+
+Le tableau est en lecture seule. Le lien apparaît dans **Voir les groupes → Tableaux externes** sur ce navigateur. Publie uniquement un export dont tu souhaites rendre le contenu public, y compris son historique.
+
 ## Partager un groupe
 
 Le menu permet de choisir un nom affiché. Sans nom, Bête conserve un nom local du type « Invité K7M2 ».

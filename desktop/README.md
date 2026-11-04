@@ -71,3 +71,5 @@ Dans les paramètres du dépôt, crée un environnement **desktop-release** et l
 | Secret | `BETE_GOOGLE_DESKTOP_CLIENT_SECRET` | Secret du client OAuth Desktop |
 
 Dans **Actions → Publier Bête Windows → Run workflow**, sélectionne `main` et saisis une version supérieure à celle publiée. Le job de compilation signe les fichiers. Un job distinct vérifie le manifeste et la continuité de la clé de signature, puis publie la release. Chaque push sur `main` déclenche aussi une release Windows et incrémente la version publiée de `0.0.1`. Les publications passent une par une dans la file GitHub Actions.
+
+Pour un changement réservé au web, ajoute `[skip windows]` au message du dernier commit poussé. GitHub Pages se déploie et le job de compilation Windows est ignoré.

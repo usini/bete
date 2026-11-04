@@ -548,3 +548,27 @@ button:hover { border-color: var(--accent); }
   font-size: 11px;
   pointer-events: auto;
 }
+
+.external-board [data-local-board], .external-board #history-btn { display: none; }
+#external-board-status:not([hidden]) {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: min(350px, 90vw);
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  font-size: 13px;
+}
+#external-board-status a, #external-board-list a { color: var(--accent); }
+#external-boards { margin-top: 24px; }
+#external-board-list { display: flex; flex-wrap: wrap; gap: 8px; }
+#external-board-list a { padding: 10px 14px; border: 1px solid var(--line); background: var(--block); overflow-wrap: anywhere; }
+@media (max-width: 740px) {
+  #external-board-status:not([hidden]) { top: 64px; }
+}

@@ -1,13 +1,14 @@
+import { externalMode, recentGithubBoards } from './external-board.js?v=mw2jmum7';
 // Right-hand panel: draggable blocks, selection tools, file actions.
-import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mw2e6cqi';
-import { screenToWorld, view, flyTo } from './camera.js?v=mw2e6cqi';
-import { BLOCK_MIME, pickImage } from './input.js?v=mw2e6cqi';
-import { exportDoc, importFile } from './storage.js?v=mw2e6cqi';
+import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mw2jmum7';
+import { screenToWorld, view, flyTo } from './camera.js?v=mw2jmum7';
+import { BLOCK_MIME, pickImage } from './input.js?v=mw2jmum7';
+import { exportDoc, importFile } from './storage.js?v=mw2jmum7';
 
 
-import { optimizeImage } from './images.js?v=mw2e6cqi';
-import { notify } from './notifications.js?v=mw2e6cqi';
-import { localStore } from './local-store.js?v=mw2e6cqi';
+import { optimizeImage } from './images.js?v=mw2jmum7';
+import { notify } from './notifications.js?v=mw2jmum7';
+import { localStore } from './local-store.js?v=mw2jmum7';
 
 async function optimizeBoardImages(button) {
   const id = 'optimize-images';
@@ -83,6 +84,8 @@ export function initPanel() {
   const groupsBox = document.getElementById('groups');
   const groupIndex = document.getElementById('group-index');
   const groupList = document.getElementById('group-list');
+  const externalSection = document.getElementById('external-boards');
+  const externalList = document.getElementById('external-board-list');
   const orderKey = 'bete2:groupIndexOrder';
   let order = [];
   try {
@@ -102,9 +105,11 @@ export function initPanel() {
   };
 
   let groupSig = '';
+  let hasExternal = recentGithubBoards().length > 0;
   function refreshGroups() {
     const groups = state.nodes.filter(node => node.kind === 'group');
-    groupsBox.hidden = groups.length === 0;
+    if (externalMode && !hasExternal) hasExternal = recentGithubBoards().length > 0;
+    groupsBox.hidden = groups.length === 0 && !hasExternal;
     if (!groupIndex.open) return;
     const ranks = new Map(order.map((id, index) => [id, index]));
     groups.sort((a, b) => (ranks.get(a.id) ?? Infinity) - (ranks.get(b.id) ?? Infinity));
@@ -151,7 +156,8 @@ export function initPanel() {
         event.preventDefault();
         moveShortcut(card, target);
       });
-      card.append(link, grip);
+      card.append(link);
+      if (!externalMode) card.append(grip);
       return card;
     }));
   }
@@ -171,6 +177,15 @@ export function initPanel() {
 
   document.getElementById('open-group-index').addEventListener('click', () => {
     groupSig = '';
+    const boards = recentGithubBoards();
+    externalSection.hidden = !boards.length;
+    externalList.replaceChildren(...boards.map(board => {
+      const link = document.createElement('a');
+      link.href = '?' + new URLSearchParams({ github: board.id });
+      link.textContent = board.name;
+      link.title = board.id;
+      return link;
+    }));
     groupIndex.showModal();
     refreshGroups();
   });
