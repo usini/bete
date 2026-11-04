@@ -1,25 +1,25 @@
-import { externalMode } from './external-board.js?v=mw2oi5mc';
-import { positionEmbeds } from './embed-view.js?v=mw2oi5mc';
+import { externalMode } from './external-board.js?v=mw2on59w';
+import { positionEmbeds } from './embed-view.js?v=mw2on59w';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize, groupHeaderHeight } from './state.js?v=mw2oi5mc';
-import { view, screenToWorld } from './camera.js?v=mw2oi5mc';
-import { youTubeId, ytThumb } from './yt.js?v=mw2oi5mc';
-import { imageCaptionFraction, imageFor } from './images.js?v=mw2oi5mc';
-import { positionVideo, isVideoPlaying } from './video.js?v=mw2oi5mc';
-import { guides } from './snap.js?v=mw2oi5mc';
-import { renderMinimap } from './minimap.js?v=mw2oi5mc';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mw2oi5mc';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw2oi5mc';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw2oi5mc';
+import { state, events, getSelectedId, groupsBySize, groupHeaderHeight } from './state.js?v=mw2on59w';
+import { view, screenToWorld } from './camera.js?v=mw2on59w';
+import { youTubeId, ytThumb } from './yt.js?v=mw2on59w';
+import { imageCaptionFraction, imageFor } from './images.js?v=mw2on59w';
+import { positionVideo, isVideoPlaying } from './video.js?v=mw2on59w';
+import { guides } from './snap.js?v=mw2on59w';
+import { renderMinimap } from './minimap.js?v=mw2on59w';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mw2on59w';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw2on59w';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw2on59w';
 
-import { genericLinkOf, plainLink } from './links.js?v=mw2oi5mc';
-import { stepMotion } from './motion.js?v=mw2oi5mc';
-import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw2oi5mc';
+import { genericLinkOf, plainLink } from './links.js?v=mw2on59w';
+import { stepMotion } from './motion.js?v=mw2on59w';
+import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw2on59w';
 
-import { isLocked } from './mobile-mode.js?v=mw2oi5mc';
+import { isLocked } from './mobile-mode.js?v=mw2on59w';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mw2oi5mc';
-import { isAmazonUrl } from './amazon.js?v=mw2oi5mc';
+import { serviceForNode, serviceIcon } from './services.js?v=mw2on59w';
+import { isAmazonUrl } from './amazon.js?v=mw2on59w';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -181,9 +181,12 @@ function drawNode(n, selected, zoom) {
     if (yt) drawPlay(n);
     if (captionHeight) drawCaption(n, n.text, captionHeight);
   } else if (service && !n.image) {
+    const label = (!plainLink(n.text) && n.text.trim()) || service.name;
     if (appIcon) {
-      drawContained(appIcon, n.x, n.y, n.w, n.h);
-    } else drawBlockText(service.name, n, '#e8e8e8');
+      const height = n.h * 0.16;
+      drawContained(appIcon, n.x, n.y, n.w, n.h - height);
+      drawCaption(n, label, height);
+    } else drawBlockText(label, n, '#e8e8e8');
   } else if (linkTitle && !n.image) {
     drawBlockText(linkTitle, n, '#e8e8e8');
   } else if (!yt && n.kind !== 'image') {
@@ -340,9 +343,10 @@ function drawCaption(n, label, height) {
   if (measured > maxWidth) ctx.font = (maxSize * maxWidth / measured) + 'px ' + FONT_FAMILY;
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
   ctx.fillRect(n.x, y, n.w, height);
+  ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#e8e8e8';
-  ctx.fillText(text, n.x + pad, y + height / 2, maxWidth);
+  ctx.fillText(text, n.x + n.w / 2, y + height / 2, maxWidth);
 }
 
 // Label tab above the block: a pill in the block colour (text black or white for contrast),

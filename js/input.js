@@ -1,31 +1,31 @@
-import { externalMode } from './external-board.js?v=mw2oi5mc';
+import { externalMode } from './external-board.js?v=mw2on59w';
 // Pointer, wheel, keyboard, paste and drop handling for the canvas.
 //  - click on a label: edit popup, link field first (YouTube labels open the video instead)
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, COLORS } from './state.js?v=mw2oi5mc';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw2oi5mc';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mw2oi5mc';
-import { addImageFile, imageCaptionFraction, imageFor } from './images.js?v=mw2oi5mc';
-import { playVideo } from './video.js?v=mw2oi5mc';
-import { youTubeId } from './yt.js?v=mw2oi5mc';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mw2oi5mc';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mw2oi5mc';
-import { undo, redo } from './history.js?v=mw2oi5mc';
+import { state, getNode, getSelectedId, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, COLORS } from './state.js?v=mw2on59w';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw2on59w';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mw2on59w';
+import { addImageFile, imageCaptionFraction, imageFor } from './images.js?v=mw2on59w';
+import { playVideo } from './video.js?v=mw2on59w';
+import { youTubeId } from './yt.js?v=mw2on59w';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mw2on59w';
+import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mw2on59w';
+import { undo, redo } from './history.js?v=mw2on59w';
 
-import { setDragging } from './motion.js?v=mw2oi5mc';
+import { setDragging } from './motion.js?v=mw2on59w';
 
-import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw2oi5mc';
-import { shortenAmazonText, isAmazonUrl } from './amazon.js?v=mw2oi5mc';
+import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw2on59w';
+import { shortenAmazonText, isAmazonUrl } from './amazon.js?v=mw2on59w';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mw2oi5mc';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mw2on59w';
 
-import { serviceForNode } from './services.js?v=mw2oi5mc';
+import { serviceForNode } from './services.js?v=mw2on59w';
 
-import { requestRender } from './render.js?v=mw2oi5mc';
+import { requestRender } from './render.js?v=mw2on59w';
 
-import { notify } from './notifications.js?v=mw2oi5mc';
+import { notify } from './notifications.js?v=mw2on59w';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 const CLIPBOARD_BLOCK = 'application/x-bete-clipboard-block';

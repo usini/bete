@@ -1,8 +1,8 @@
-import { externalMode } from './external-board.js?v=mw2oi5mc';
-import { localStore } from './local-store.js?v=mw2oi5mc';
+import { externalMode } from './external-board.js?v=mw2on59w';
+import { localStore } from './local-store.js?v=mw2on59w';
 // Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mw2oi5mc';
+import { explode } from './fx.js?v=mw2on59w';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];

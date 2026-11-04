@@ -1,4 +1,4 @@
-import { localStore } from './local-store.js?v=mw2oi5mc';
+import { localStore } from './local-store.js?v=mw2on59w';
 
 export const githubBoard = new URLSearchParams(location.search).get('github');
 export const externalMode = githubBoard !== null;
