@@ -1,7 +1,7 @@
-import { localStore } from './local-store.js?v=mw2c0igk';
+import { localStore } from './local-store.js?v=mw2e6cqi';
 // Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mw2c0igk';
+import { explode } from './fx.js?v=mw2e6cqi';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];
@@ -195,7 +195,7 @@ export function setGroupMemberFilter(filter, protectFit = () => {}) {
 }
 
 const GROUP_HEADER_MIN = 64, GROUP_HEADER_MAX = 220, GROUP_HEADER_RATIO = 0.22;
-const GROUP_PADDING = 18;
+const GROUP_MIN_PADDING = 28, GROUP_PADDING_RATIO = 0.10;
 const headerForHeight = height => Math.min(GROUP_HEADER_MAX, Math.max(GROUP_HEADER_MIN, height * GROUP_HEADER_RATIO));
 export const groupHeaderHeight = group => Math.min(group.h, headerForHeight(group.h));
 
@@ -230,11 +230,14 @@ export function fitGroupsAround(node, previous = [], keepMembership = false) {
       top = Math.min(top, member.y);
       bottom = Math.max(bottom, member.y + member.h);
     }
-    const bodyHeight = bottom - top + 2 * GROUP_PADDING;
+    const width = right - left, height = bottom - top;
+    const padX = Math.max(GROUP_MIN_PADDING, width * GROUP_PADDING_RATIO);
+    const padY = Math.max(GROUP_MIN_PADDING, height * GROUP_PADDING_RATIO);
+    const bodyHeight = height + 2 * padY;
     const header = headerForHeight(bodyHeight / (1 - GROUP_HEADER_RATIO));
     const bounds = {
-      x: left - GROUP_PADDING, y: top - GROUP_PADDING - header,
-      w: right - left + 2 * GROUP_PADDING, h: bodyHeight + header,
+      x: left - padX, y: top - padY - header,
+      w: width + 2 * padX, h: bodyHeight + header,
     };
     if (bounds.w > LIMITS.size || bounds.h > LIMITS.size) continue;
     for (const parent of containingGroups(group)) {
