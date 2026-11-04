@@ -1,21 +1,21 @@
-import { initDesktopCalendar } from './calendar.js?v=mw2on59w';
-import { saveNow } from './state.js?v=mw2on59w';
-import { flushLocalWrites } from './local-store.js?v=mw2on59w';
-import { openLink } from './links.js?v=mw2on59w';
-import { notify } from './notifications.js?v=mw2on59w';
-import { parseShareLink } from './group-share.js?v=mw2on59w';
+import { initDesktopCalendar } from './calendar.js?v=mw2oq6uc';
+import { saveNow } from './state.js?v=mw2oq6uc';
+import { flushLocalWrites } from './local-store.js?v=mw2oq6uc';
+import { openLink } from './links.js?v=mw2oq6uc';
+import { notify } from './notifications.js?v=mw2oq6uc';
+import { parseShareLink } from './group-share.js?v=mw2oq6uc';
 
-function confirmUpdate(version) {
+function chooseUpdate(version) {
   const dialog = document.createElement('dialog');
   dialog.className = 'share-approval';
   const form = document.createElement('form');
   form.method = 'dialog';
   const message = document.createElement('p');
-  message.textContent = 'Installer Bête ' + version + ' à la fermeture ?';
+  message.textContent = 'Bête ' + version + ' est disponible.';
   const actions = document.createElement('div');
   actions.className = 'dialog-actions';
   for (const [value, text] of [
-    ['cancel', 'Annuler'], ['close', 'Fermer sans mise à jour'], ['update', 'Mettre à jour et fermer'],
+    ['now', 'Installer maintenant'], ['later', 'Plus tard'], ['on-close', 'Installer à la fermeture'],
   ]) {
     const button = document.createElement('button');
     button.value = value;
@@ -58,18 +58,14 @@ export async function initDesktop() {
   });
   document.querySelector('#share-display-name').after(join);
 
-  let version = null;
-  let closing = false;
-  let progress;
-  await appWindow.onCloseRequested(async event => {
-    event.preventDefault();
-    if (closing) return;
-    closing = true;
+  let scheduledVersion = null;
+  let busy = false;
+  async function finish(version) {
+    let progress;
+    busy = true;
     try {
-      const choice = version ? await confirmUpdate(version) : 'close';
-      if (choice !== 'close' && choice !== 'update') return;
-      if (await saveNow() !== true || !await flushLocalWrites()) throw new Error('La sauvegarde locale a échoué. Exporte le tableau avant de fermer.');
-      if (choice === 'update') {
+      if (await saveNow() !== true || !await flushLocalWrites()) throw new Error('La sauvegarde locale a échoué. Exporte le tableau avant de continuer.');
+      if (version) {
         progress = document.createElement('dialog');
         progress.className = 'share-approval';
         progress.textContent = 'Téléchargement de la mise à jour…';
@@ -82,13 +78,23 @@ export async function initDesktop() {
       notify(String(error), { id: 'desktop-update', type: 'error', duration: 0 });
     } finally {
       progress?.remove();
-      progress = undefined;
-      closing = false;
+      busy = false;
     }
+  }
+  await appWindow.onCloseRequested(async event => {
+    event.preventDefault();
+    if (busy) return;
+    const version = scheduledVersion;
+    scheduledVersion = null;
+    await finish(version);
   });
   try {
-    version = await core.invoke('check_update');
-    if (version) notify('Bête ' + version + ' est disponible. Tu pourras l’installer à la fermeture.', { id: 'desktop-update', duration: 0 });
+    const version = await core.invoke('check_update');
+    if (!version || busy) return;
+    busy = true;
+    const choice = await chooseUpdate(version).finally(() => { busy = false; });
+    if (choice === 'on-close') scheduledVersion = version;
+    if (choice === 'now') await finish(version);
   } catch {
     notify('La vérification des mises à jour a échoué.', { id: 'desktop-update', type: 'error' });
   }

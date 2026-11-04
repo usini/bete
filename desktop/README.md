@@ -52,7 +52,7 @@ Si tu n’as pas encore de clé, crée-la une fois avec `npx tauri signer genera
 2. Renseigne `BETE_UPDATER_PUBLIC_KEY` avec le contenu de la clé publique, `TAURI_SIGNING_PRIVATE_KEY` avec la clé privée ou son chemin et, si nécessaire, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
 3. Incrémente la version dans `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` et `package.json`, puis actualise les fichiers de verrouillage.
 4. Lance `npm run release:build`. Le dossier `release-output/bete-desktop-v<VERSION>/` contient l’installateur, la signature et le manifeste. Joins les trois fichiers à une release publique de `usini/bete` avec ce tag exact et définis-la comme dernière release. Le manifeste contient déjà l’URL de téléchargement et la signature.
-5. Teste la mise à jour depuis la version précédente avant d’annoncer la release. L’application affiche la disponibilité au démarrage. À la fermeture, elle laisse choisir entre mettre à jour, fermer simplement ou annuler.
+5. Teste la mise à jour depuis la version précédente avant d’annoncer la release. Au démarrage, l’application propose **Installer maintenant**, **Plus tard** ou **Installer à la fermeture**. **Plus tard** reporte la proposition au prochain lancement.
 
 L’installateur de test désactive la recherche de mises à jour. La signature Tauri authentifie les mises à jour. Pour identifier l’éditeur dans Windows, configure aussi la signature Authenticode.
 
