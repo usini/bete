@@ -3,6 +3,7 @@
 mod calendar;
 mod drive;
 mod shortcuts;
+mod applications;
 
 use std::time::Duration;
 use tauri::{AppHandle, Url, WebviewUrl, WebviewWindowBuilder};
@@ -70,13 +71,18 @@ async fn install_update(app: AppHandle, version: String, restart: bool) -> Resul
 }
 
 fn main() {
-    let mut builder = tauri::Builder::default().plugin(tauri_plugin_opener::init()).plugin(shortcuts::plugin());
+    let mut builder = tauri::Builder::default().plugin(tauri_plugin_opener::init()).plugin(shortcuts::plugin()).plugin(tauri_plugin_dialog::init());
     if option_env!("BETE_UPDATER_PUBLIC_KEY").is_some() {
         builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     }
     builder
         .invoke_handler(tauri::generate_handler![
             open_browser,
+            applications::sync_application_blocks,
+            applications::revoke_all_application_permissions,
+            applications::application_launch_status,
+            applications::set_application_launch_enabled,
+            applications::launch_application,
             minimize_window,
             shortcuts::get_global_shortcut,
             shortcuts::set_global_shortcut,
@@ -89,7 +95,8 @@ fn main() {
             drive::drive_logout
         ])
         .setup(|app| {
-            WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
+            applications::init(app.handle());
+            let main_window = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                 // Let WebView2 deliver HTML5 URL and file drops to the board.
                 .disable_drag_drop_handler()
                 .title("Bête")
@@ -103,6 +110,7 @@ fn main() {
                 })
                 .on_new_window(|_, _| tauri::webview::NewWindowResponse::Deny)
                 .build()?;
+            applications::install_file_bridge(&main_window)?;
             shortcuts::init(app.handle());
             Ok(())
         })

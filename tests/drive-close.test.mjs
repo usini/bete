@@ -29,3 +29,12 @@ test('shutdown waits for an existing Drive operation to finish before starting a
  const pending=vm.runInContext('saveDriveBeforeClose()',ctx);await Promise.resolve();assert.deepEqual(calls,[]);
  vm.runInContext('busy=false;releaseIdle();',ctx);await pending;assert.deepEqual(calls,['GET','PATCH']);
 });
+
+test('unchanged desktop shutdown skips all network requests, but real changes still upload',async()=>{
+ const {ctx,calls}=client({id:'file',modifiedTime:'old'});
+ vm.runInContext('meta.sig=hash(nodesJson());dirty=true;',ctx);
+ assert.equal((await vm.runInContext('saveDriveBeforeClose()',ctx)).skipped,true);assert.deepEqual(calls,[]);
+ vm.runInContext('state.nodes[0].text="changed";',ctx);
+ assert.equal((await vm.runInContext('saveDriveBeforeClose()',ctx)).skipped,false);assert.deepEqual(calls,['GET','PATCH']);
+ assert.equal((await vm.runInContext('saveDriveBeforeClose()',ctx)).skipped,true);assert.deepEqual(calls,['GET','PATCH']);
+});

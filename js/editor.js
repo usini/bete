@@ -1,9 +1,9 @@
-import { githubRepository } from './github-repo.js?v=mw3kyoh5';
-import { updateGitHubCard } from './github-cards.js?v=mw3kyoh5';
-import { alignmentPlan } from './alignment.js?v=mw3kyoh5';
-import { labelLayout } from './labels.js?v=mw3kyoh5';
-import { amazonBadgeLayout } from './amazon.js?v=mw3kyoh5';
-import { freeDropPosition } from './placement.js?v=mw3kyoh5';
+import { githubRepository } from './github-repo.js?v=mw3mnbdx';
+import { updateGitHubCard } from './github-cards.js?v=mw3mnbdx';
+import { alignmentPlan } from './alignment.js?v=mw3mnbdx';
+import { labelLayout } from './labels.js?v=mw3mnbdx';
+import { amazonBadgeLayout } from './amazon.js?v=mw3mnbdx';
+import { freeDropPosition } from './placement.js?v=mw3mnbdx';
 // Edit mode: one popup (modal <dialog>) to change a block's text and link.
 // Opened by the 📝 button, a click on a label, Enter, or a double-click on a block with no link.
 //  - the text field is hidden for image blocks (they have no text)
@@ -11,18 +11,18 @@ import { freeDropPosition } from './placement.js?v=mw3kyoh5';
 //  - when the link is an Amazon address the popup becomes "Produit Amazon": name, price and
 //    delivery time fields appear (typed by hand, shown in the block's label)
 // It closes only with the Annuler / Valider buttons (Ctrl+Enter, or Enter in a one-line field, also validate).
-import { state, getNode, emit, membersOf, fitGroupsAround, containingGroups, saveNow } from './state.js?v=mw3kyoh5';
-import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw3kyoh5';
-import { youTubeId } from './yt.js?v=mw3kyoh5';
-import { addImageFile, imageFor, fitNodeImage } from './images.js?v=mw3kyoh5';
+import { state, getNode, emit, membersOf, fitGroupsAround, containingGroups, saveNow } from './state.js?v=mw3mnbdx';
+import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw3mnbdx';
+import { youTubeId } from './yt.js?v=mw3mnbdx';
+import { addImageFile, imageFor, fitNodeImage } from './images.js?v=mw3mnbdx';
 
-import { genericLink } from './links.js?v=mw3kyoh5';
+import { genericLink } from './links.js?v=mw3mnbdx';
 
-import { isLocked } from './mobile-mode.js?v=mw3kyoh5';
+import { isLocked } from './mobile-mode.js?v=mw3mnbdx';
 
-import { serviceForNode } from './services.js?v=mw3kyoh5';
-import { deliveryDelay } from './delivery.js?v=mw3kyoh5';
-import { googleMapsEmbed } from './google-maps.js?v=mw3kyoh5';
+import { serviceForNode } from './services.js?v=mw3mnbdx';
+import { deliveryDelay } from './delivery.js?v=mw3mnbdx';
+import { googleMapsEmbed } from './google-maps.js?v=mw3mnbdx';
 
 const dlg = document.getElementById('textdialog');
 const title = document.getElementById('dialog-title');
@@ -48,6 +48,7 @@ const alignPreview = document.getElementById('group-align-preview');
 let pendingAlignment = null;
 let editingId = null;
 let ytBlock = false; // no link / image fields: the block is a YouTube block or a group
+let isApplication = false;
 let isGroup = false; // the block being edited is a group (its text is its title)
 
 // Image chosen or pasted in the popup: only applied on Valider, thrown away on Annuler.
@@ -95,13 +96,13 @@ export function isEditing() { return editingId !== null; }
 // so the separate link field is hidden), or the link field holds one (image blocks have no text).
 // Shows the product fields and the special look.
 function refreshAmazon() {
-  const amazonText = !textField.hidden && !isGroup && isAmazonText(shortenAmazonText(el.value));
+  const amazonText = !textField.hidden && !isGroup && !isApplication && isAmazonText(shortenAmazonText(el.value));
   linkField.hidden = ytBlock || amazonText;
   const amazonLink = !linkField.hidden && isAmazonUrl(normalizeLink(linkEl.value) || '');
   const on = amazonText || amazonLink;
   amazonBox.hidden = !on;
   dlg.classList.toggle('amazon', on);
-  title.textContent = on ? 'Produit Amazon' : isGroup ? 'Modifier le groupe' : 'Modifier le bloc';
+  title.textContent = on ? 'Produit Amazon' : isGroup ? 'Modifier le groupe' : isApplication ? 'Modifier l’application' : 'Modifier le bloc';
 }
 
 // focus: 'text' or 'link' — which field gets the cursor (when both are shown).
@@ -116,11 +117,12 @@ export function startEdit(id, focus = 'text') {
   alignStatus.textContent = 'Prépare un aperçu du rangement des blocs.';
   textField.hidden = n.kind === 'image';
   isGroup = n.kind === 'group';
-  ytBlock = isGroup || (!serviceForNode(n) && !!youTubeId(n.text));
+  isApplication = !!n.application;
+  ytBlock = isGroup || isApplication || (!serviceForNode(n) && !!youTubeId(n.text));
   textField.querySelector('span').textContent = isGroup ? 'Titre' : 'Texte';
   el.value = n.text;
   linkEl.value = n.link || '';
-  hideLinkLabel.closest('label').hidden = isGroup;
+  hideLinkLabel.closest('label').hidden = isGroup || isApplication;
   hideLinkLabel.checked = n.hideLinkLabel === true;
   nameEl.value = n.name || '';
   priceEl.value = n.price || '';
@@ -193,6 +195,7 @@ export function stopEdit(commit) {
   if (!textField.hidden) {
     text = isGroup ? el.value : shortenAmazonText(el.value);
     if (text !== n.text) { n.text = text; changed = true; }
+    if (n.application) n.application.label = text.trim().slice(0,100) || 'Application';
   }
   if (link !== undefined && link !== (n.link || '')) {
     if (link) n.link = link;

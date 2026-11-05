@@ -45,3 +45,13 @@ test('legacy inline images import once and missing assets never replace the curr
   const missing=client({nodes:[{image:'idb:missing'}]});
   await assert.rejects(missing.api.exportData(),/image manque/);
 });
+
+test('desktop import revokes local application permissions before replacing the board',async()=>{
+ const calls=[];const context=vm.createContext({
+  __TAURI__:{core:{invoke:async command=>{calls.push(command);}}},
+  setDoc:()=>calls.push('replace'),
+ });
+ vm.runInContext(source+'\nglobalThis.api={importData};',context);
+ await context.api.importData({nodes:[{application:{reference:'a'.repeat(64),label:'App'}}]});
+ assert.deepEqual(calls,['revoke_all_application_permissions','replace']);
+});

@@ -10,7 +10,7 @@ async function run(choice, saved=true, driveFail=false) {
   const ctx=vm.createContext({
     window:{__TAURI__:{core:{invoke:async(command,args)=>{calls.push([command,args]);return command==='check_update'?'0.9.0':undefined;}},window:{getCurrentWindow:()=>({onCloseRequested:async fn=>{close=fn;},destroy:async()=>calls.push(['destroy'])})}}},
     document:{createElement:element,querySelector:element,body:{append(){}}},
-    initDesktopShortcuts:async()=>{},isEditing:()=>false,stopEdit(){},waitForDriveIdle:async()=>{calls.push(['idle']);},
+    initApplications:async()=>{},flushApplicationWrites:async()=>{},initDesktopShortcuts:async()=>{},isEditing:()=>false,stopEdit(){},waitForDriveIdle:async()=>{calls.push(['idle']);},
     optimizeBoardImages:async()=>{calls.push(['optimize']);return {count:1,failures:0};},
     saveDriveBeforeClose:async()=>{calls.push(['drive']);if(driveFail)throw new Error('Drive hors ligne');},
     initDesktopCalendar(){},chooseUpdate:async()=>choice,saveNow:async()=>{calls.push(['save']);return saved;},flushLocalWrites:async()=>{calls.push(['flush']);return true;},

@@ -281,3 +281,21 @@ Les produits Amazon collés depuis l’extension reprennent la taille de créati
 Dès l’ajout ou le remplacement d’une image (collage, dépôt, éditeur ou extension Amazon), le bloc conserve sa largeur de création et ajuste sa hauteur au ratio de l’image, en réservant la place du texte éventuel.
 
 Sur Windows, **Ctrl+Alt+Espace** restaure Bête et ouvre sa barre de commande depuis une autre application. Le menu permet de modifier, activer ou désactiver le raccourci ; ces réglages sont conservés sur l’appareil. En cas de conflit, choisis une autre combinaison. Bête doit rester lancée, éventuellement réduite.
+
+Dans **Voir les groupes → Tableaux externes**, ajoute manuellement un lien de tableau Bête (`?github=…`), un identifiant `COMPTE/DEPOT/FICHIER`, ou le lien GitHub/raw d’un JSON à la racine de la branche `main`. Le lien est enregistré sur cet appareil ; le téléchargement commence uniquement à l’ouverture du tableau. **Retirer** supprime seulement le raccourci local, jamais le fichier GitHub. La liste reste accessible même sans groupe local.
+
+À la fermeture desktop, aucun envoi Drive n’est effectué si le tableau et son historique correspondent à la dernière sauvegarde. Vider un historique déjà vide ne modifie plus sa date ; une optimisation réelle ou un nettoyage effectif de l’historique reste une modification à sauvegarder.
+
+**F**, lorsqu’un groupe est sélectionné, cadre la vue sur ce groupe. Ce raccourci reste inactif pendant la saisie.
+
+**Ctrl+S** lance la sauvegarde Google Drive (connexion préalable nécessaire). **V** bascule le verrouillage du tableau sur mobile comme sur ordinateur ; le bouton du menu est aussi disponible sur ordinateur. Le verrouillage bloque les modifications locales mais permet toujours la navigation et la sauvegarde. Les tableaux externes restent toujours en lecture seule.
+
+## Blocs d’applications Windows
+
+Dépose un raccourci `.lnk` sans arguments, un `.exe` local ou un raccourci Steam `.url`. Les liens `steam://rungameid/123` et `steam://run/123` peuvent aussi être collés ou déposés. Les autres commandes Steam sont refusées. Un clic sur le bloc demande une autorisation Windows individuelle avant le premier lancement. L’ouverture globale est désactivée au départ ; le menu permet de la désactiver ou réactiver, toujours avec confirmation native.
+
+Une croix rouge indique un bloc non autorisé, ou un lancement global désactivé. Sur le web, elle reste toujours affichée et aucun programme n’est lancé. Les chemins des exécutables et toutes les autorisations restent dans la configuration locale Windows, hors des tableaux, historiques, exports, sauvegardes Drive et partages. Supprimer le bloc révoque son autorisation ; Ctrl+Z, duplication et import nécessitent une nouvelle validation. Sur un autre ordinateur, un raccourci `.exe`/`.lnk` doit être déposé localement à nouveau.
+
+Les chemins réseau/amovibles, les scripts, les interpréteurs usuels et les raccourcis avec arguments sont refusés. Un changement du contenu de l’exécutable exige une nouvelle confirmation. Voir [la note de sécurité](SECURITE-APPLICATIONS.md).
+
+Depuis la barre de commande appelée par la hotkey Windows, l’ouverture réussie d’un lien ou d’une application réduit Bête. L’ouverture locale avec Espace conserve la fenêtre.

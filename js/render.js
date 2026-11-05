@@ -1,27 +1,28 @@
-import { githubRepository, cleanGitHubData } from './github-repo.js?v=mw3kyoh5';
-import { dropPreviewGroup } from './placement.js?v=mw3kyoh5';
-import { externalMode } from './external-board.js?v=mw3kyoh5';
-import { positionEmbeds } from './embed-view.js?v=mw3kyoh5';
+import { applicationAllowed, applicationEvents } from './applications.js?v=mw3mnbdx';
+import { githubRepository, cleanGitHubData } from './github-repo.js?v=mw3mnbdx';
+import { dropPreviewGroup } from './placement.js?v=mw3mnbdx';
+import { externalMode } from './external-board.js?v=mw3mnbdx';
+import { positionEmbeds } from './embed-view.js?v=mw3mnbdx';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize, groupHeaderHeight } from './state.js?v=mw3kyoh5';
-import { view, screenToWorld } from './camera.js?v=mw3kyoh5';
-import { youTubeId, ytThumb } from './yt.js?v=mw3kyoh5';
-import { imageCaptionFraction, imageFor } from './images.js?v=mw3kyoh5';
-import { positionVideo, isVideoPlaying } from './video.js?v=mw3kyoh5';
-import { guides } from './snap.js?v=mw3kyoh5';
-import { renderMinimap } from './minimap.js?v=mw3kyoh5';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mw3kyoh5';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw3kyoh5';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw3kyoh5';
+import { state, events, getSelectedId, groupsBySize, groupHeaderHeight } from './state.js?v=mw3mnbdx';
+import { view, screenToWorld } from './camera.js?v=mw3mnbdx';
+import { youTubeId, ytThumb } from './yt.js?v=mw3mnbdx';
+import { imageCaptionFraction, imageFor } from './images.js?v=mw3mnbdx';
+import { positionVideo, isVideoPlaying } from './video.js?v=mw3mnbdx';
+import { guides } from './snap.js?v=mw3mnbdx';
+import { renderMinimap } from './minimap.js?v=mw3mnbdx';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mw3mnbdx';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw3mnbdx';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw3mnbdx';
 
-import { genericLinkOf, plainLink } from './links.js?v=mw3kyoh5';
-import { stepMotion } from './motion.js?v=mw3kyoh5';
-import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw3kyoh5';
+import { genericLinkOf, plainLink } from './links.js?v=mw3mnbdx';
+import { stepMotion } from './motion.js?v=mw3mnbdx';
+import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw3mnbdx';
 
-import { isLocked } from './mobile-mode.js?v=mw3kyoh5';
+import { isLocked } from './mobile-mode.js?v=mw3mnbdx';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mw3kyoh5';
-import { amazonBadgeLayout } from './amazon.js?v=mw3kyoh5';
+import { serviceForNode, serviceIcon } from './services.js?v=mw3mnbdx';
+import { amazonBadgeLayout } from './amazon.js?v=mw3mnbdx';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -43,6 +44,7 @@ let iconStart = 0;         // when that selection happened
 let iconT = 1;             // animation progress, 0 -> 1
 
 setLabelRedraw(() => requestRender());
+applicationEvents.addEventListener('change', requestRender);
 
 export function requestRender() {
   if (!scheduled) {
@@ -178,7 +180,9 @@ function drawNode(n, selected, zoom) {
   const linkTitle = link ? ((!plainLink(n.text) && n.text.trim()) || new URL(link).hostname) : '';
   const src = yt && !externalMode ? thumb(yt) : n.image ? imageFor(n.image, requestRender) : null;
   const captionHeight = !yt && src ? n.h * imageCaptionFraction(n) : 0;
-  if (src) {
+  if (n.application) {
+    drawApplicationBlock(n);
+  } else if (src) {
     const pad = yt ? PAD : 0;
     const areaH = n.h - 2 * pad - captionHeight;
     if (areaH > 0) drawContained(src, n.x + pad, n.y + pad, n.w - 2 * pad, areaH);
@@ -545,4 +549,17 @@ function drawRepositoryCard(n, repo, icon) {
   drawBlockText(data.description||'Dépôt public GitHub',{x:n.x+pad,y:n.y+n.h*.28,w:n.w-2*pad,h:n.h*.35},'#dedee5');
   const details=[data.language,data.license,'★ '+data.stars.toLocaleString('fr-FR'),data.release?'Version '+data.release:'',data.pushedAt?'Activité : '+new Date(data.pushedAt).toLocaleDateString('fr-FR'):''].filter(Boolean).join(' · ');
   drawBlockText(details,{x:n.x+pad,y:n.y+n.h*.69,w:n.w-2*pad,h:n.h*.25},'#a8cbd5');
+}
+
+function drawApplicationBlock(n) {
+  const size=Math.min(n.w*.55,n.h*.55),x=n.x+(n.w-size)/2,y=n.y+n.h*.08;
+  ctx.fillStyle='#dce9f3';
+  ctx.fillRect(x,y,size,size);ctx.fillStyle='#1d3545';
+  ctx.fillRect(x+size*.12,y+size*.24,size*.76,size*.64);
+  ctx.fillStyle='#dce9f3';ctx.fillRect(x+size*.22,y+size*.38,size*.2,size*.2);
+  drawCaption(n,n.application.label,n.h*.23);
+  if(!applicationAllowed(n)){
+    ctx.save();ctx.strokeStyle='#ff3030';ctx.lineWidth=Math.max(2,Math.min(n.w,n.h)*.045);ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+size,y+size);ctx.moveTo(x+size,y);ctx.lineTo(x,y+size);ctx.stroke();ctx.restore();
+  }
 }

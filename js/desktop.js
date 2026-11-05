@@ -1,13 +1,14 @@
-import { initDesktopShortcuts } from './desktop-shortcuts.js?v=mw3kyoh5';
-import { optimizeBoardImages } from './optimize.js?v=mw3kyoh5';
-import { waitForDriveIdle, saveDriveBeforeClose } from './drive.js?v=mw3kyoh5';
-import { isEditing, stopEdit } from './editor.js?v=mw3kyoh5';
-import { initDesktopCalendar } from './calendar.js?v=mw3kyoh5';
-import { saveNow } from './state.js?v=mw3kyoh5';
-import { flushLocalWrites } from './local-store.js?v=mw3kyoh5';
-import { openLink } from './links.js?v=mw3kyoh5';
-import { notify } from './notifications.js?v=mw3kyoh5';
-import { parseShareLink } from './group-share.js?v=mw3kyoh5';
+import { initApplications, flushApplicationWrites } from './applications.js?v=mw3mnbdx';
+import { initDesktopShortcuts } from './desktop-shortcuts.js?v=mw3mnbdx';
+import { optimizeBoardImages } from './optimize.js?v=mw3mnbdx';
+import { waitForDriveIdle, saveDriveBeforeClose } from './drive.js?v=mw3mnbdx';
+import { isEditing, stopEdit } from './editor.js?v=mw3mnbdx';
+import { initDesktopCalendar } from './calendar.js?v=mw3mnbdx';
+import { saveNow } from './state.js?v=mw3mnbdx';
+import { flushLocalWrites } from './local-store.js?v=mw3mnbdx';
+import { openLink } from './links.js?v=mw3mnbdx';
+import { notify } from './notifications.js?v=mw3mnbdx';
+import { parseShareLink } from './group-share.js?v=mw3mnbdx';
 
 function chooseUpdate(version) {
   const dialog = document.createElement('dialog');
@@ -43,6 +44,7 @@ export async function initDesktop() {
   const appWindow = native.getCurrentWindow();
   initDesktopCalendar(core.invoke);
   await initDesktopShortcuts(window.__TAURI__);
+  await initApplications(window.__TAURI__);
   const privacy = document.querySelector('.panel-footer a');
   privacy.href = 'https://bete.usini.eu/confidentialite.html';
   privacy.addEventListener('click', event => { event.preventDefault(); openLink(privacy.href); });
@@ -80,6 +82,7 @@ export async function initDesktop() {
       progress.addEventListener('cancel', event => event.preventDefault());
       document.body.append(progress);
       progress.show();
+      await flushApplicationWrites();
       await waitForDriveIdle();
       progress.close();
       progress.showModal();

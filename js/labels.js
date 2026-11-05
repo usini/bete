@@ -1,15 +1,15 @@
-import { externalMode } from './external-board.js?v=mw3kyoh5';
+import { externalMode } from './external-board.js?v=mw3mnbdx';
 // Labels: the tab above a block. It shows the YouTube title (YouTube blocks) or the block's
 // link URL; a block with neither has no label. The layout and the hit-testing live here,
 // so the renderer and the pointer handling always agree on where the label is.
-import { state } from './state.js?v=mw3kyoh5';
-import { youTubeId, youTubeTitle } from './yt.js?v=mw3kyoh5';
-import { FONT_FAMILY } from './text.js?v=mw3kyoh5';
-import { isAmazonUrl, isAmazonText } from './amazon.js?v=mw3kyoh5';
+import { state } from './state.js?v=mw3mnbdx';
+import { youTubeId, youTubeTitle } from './yt.js?v=mw3mnbdx';
+import { FONT_FAMILY } from './text.js?v=mw3mnbdx';
+import { isAmazonUrl, isAmazonText } from './amazon.js?v=mw3mnbdx';
 
-import { genericLink } from './links.js?v=mw3kyoh5';
+import { genericLink } from './links.js?v=mw3mnbdx';
 
-import { serviceForNode } from './services.js?v=mw3kyoh5';
+import { serviceForNode } from './services.js?v=mw3mnbdx';
 
 export const LABEL_SIZE = 26;                       // font size, world units
 export const LABEL_FONT = '600 ' + LABEL_SIZE + 'px ' + FONT_FAMILY;
@@ -25,7 +25,7 @@ export function setLabelRedraw(fn) { redraw = fn; }
 
 // What the label of a block shows, or null when it has none.
 export function labelInfo(n) {
-  if (n.kind === 'group') return null; // a group's text is its title, not a link or a video
+  if (n.kind === 'group' || n.application) return null; // a group's text is its title, not a link or a video
   const yt = serviceForNode(n) ? null : youTubeId(n.text);
   if (yt) {
     return {
@@ -53,7 +53,7 @@ export function labelInfo(n) {
 
 // The address a block opens: its link, or its text when that text is an Amazon URL.
 export function linkOf(n) {
-  if (n.kind === 'group') return null;
+  if (n.kind === 'group' || n.application) return null;
   if (n.link) return n.link;
   return isAmazonText(n.text) ? n.text.trim() : genericLink(n.text);
 }

@@ -1,14 +1,15 @@
-import { externalMode, recentGithubBoards } from './external-board.js?v=mw3kyoh5';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mw3mnbdx';
+import { externalMode, recentGithubBoards, addExternalBoard, removeExternalBoard } from './external-board.js?v=mw3mnbdx';
 // Right-hand panel: draggable blocks, selection tools, file actions.
-import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mw3kyoh5';
-import { screenToWorld, view, flyToBlock } from './camera.js?v=mw3kyoh5';
-import { BLOCK_MIME, pickImage } from './input.js?v=mw3kyoh5';
-import { exportDoc, importFile } from './storage.js?v=mw3kyoh5';
+import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mw3mnbdx';
+import { screenToWorld, view, flyToBlock } from './camera.js?v=mw3mnbdx';
+import { BLOCK_MIME, pickImage } from './input.js?v=mw3mnbdx';
+import { exportDoc, importFile } from './storage.js?v=mw3mnbdx';
 
 
-import { optimizeBoardImages as optimizeImages } from './optimize.js?v=mw3kyoh5';
-import { notify } from './notifications.js?v=mw3kyoh5';
-import { localStore } from './local-store.js?v=mw3kyoh5';
+import { optimizeBoardImages as optimizeImages } from './optimize.js?v=mw3mnbdx';
+import { notify } from './notifications.js?v=mw3mnbdx';
+import { localStore } from './local-store.js?v=mw3mnbdx';
 
 async function optimizeBoardImages(button) {
   const id = 'optimize-images';
@@ -19,7 +20,7 @@ async function optimizeBoardImages(button) {
     const summary = count ? `${count} bloc(s) optimisé(s).` : 'Aucun bloc optimisé.';
     notify(summary + ' Historique vidé.' + (failures ? ` ${failures} image(s) en erreur.` : ''), { id, type: failures ? 'error' : 'success' });
   } finally {
-    button.disabled = false;
+    button.disabled = isLocked();
   }
 }
 
@@ -51,11 +52,13 @@ export function initPanel() {
   for (const el of panel.querySelectorAll('[data-block]')) {
     const kind = el.dataset.block;
     el.addEventListener('dragstart', (e) => {
+      if (isLocked()) { e.preventDefault(); return; }
       e.dataTransfer.setData(BLOCK_MIME, kind);
       e.dataTransfer.setData('text/plain', kind); // needed for the drag to start in some browsers
       e.dataTransfer.effectAllowed = 'copy';
     });
     el.addEventListener('click', () => {
+      if (isLocked()) return;
       const c = screenToWorld(view.w / 2, view.h / 2);
       const n = addNode(kind, c.x, c.y);
       if (kind === 'image') pickImage(n);
@@ -85,11 +88,10 @@ export function initPanel() {
   };
 
   let groupSig = '';
-  let hasExternal = recentGithubBoards().length > 0;
+
   function refreshGroups() {
     const groups = state.nodes.filter(node => node.kind === 'group');
-    if (externalMode && !hasExternal) hasExternal = recentGithubBoards().length > 0;
-    groupsBox.hidden = groups.length === 0 && !hasExternal;
+    groupsBox.hidden = false;
     if (!groupIndex.open) return;
     const ranks = new Map(order.map((id, index) => [id, index]));
     groups.sort((a, b) => (ranks.get(a.id) ?? Infinity) - (ranks.get(b.id) ?? Infinity));
@@ -155,17 +157,50 @@ export function initPanel() {
       ?.querySelector('.group-grip').focus();
   }
 
-  document.getElementById('open-group-index').addEventListener('click', () => {
-    groupSig = '';
+  const externalForm = document.getElementById('external-board-add');
+  const externalInput = document.getElementById('external-board-link');
+  const externalMessage = document.getElementById('external-board-message');
+  function refreshExternalBoards() {
     const boards = recentGithubBoards();
-    externalSection.hidden = !boards.length;
+    externalSection.hidden = false;
     externalList.replaceChildren(...boards.map(board => {
+      const row = document.createElement('div');
+      row.className = 'external-board-item';
       const link = document.createElement('a');
       link.href = '?' + new URLSearchParams({ github: board.id });
       link.textContent = board.name;
       link.title = board.id;
-      return link;
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.textContent = 'Retirer';
+      remove.setAttribute('aria-label', 'Retirer ' + board.id + ' de la liste');
+      remove.addEventListener('click', async () => {
+        remove.disabled = true;
+        try { await removeExternalBoard(board.id); refreshExternalBoards(); externalMessage.textContent = 'Lien retiré de cet appareil.'; }
+        catch (error) { externalMessage.textContent = error.message; remove.disabled = false; }
+      });
+      row.append(link, remove);
+      return row;
     }));
+    if (!boards.length) externalMessage.textContent = 'Aucun tableau externe enregistré.';
+  }
+  externalForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = externalForm.querySelector('button');
+    button.disabled = true;
+    try {
+      await addExternalBoard(externalInput.value);
+      externalInput.value = '';
+      refreshExternalBoards();
+      externalMessage.textContent = 'Lien ajouté. Clique sur son nom pour ouvrir le tableau.';
+      externalInput.focus();
+    } catch (error) { externalMessage.textContent = error.message; }
+    finally { button.disabled = false; }
+  });
+  document.getElementById('open-group-index').addEventListener('click', () => {
+    groupSig = '';
+    externalMessage.textContent = '';
+    refreshExternalBoards();
     groupIndex.showModal();
     refreshGroups();
   });
@@ -174,14 +209,26 @@ export function initPanel() {
 
   // File actions.
   const optimize = document.getElementById('optimize-images');
-  optimize.addEventListener('click', () => optimizeBoardImages(optimize));
+  optimize.addEventListener('click', () => { if (!isLocked()) optimizeBoardImages(optimize); });
   document.getElementById('export').addEventListener('click', () => { exportDoc(); });
   const fileIn = document.getElementById('fileimport');
   document.getElementById('import').addEventListener('click', () => {
+    if (isLocked()) return;
     fileIn.value = '';
     fileIn.click();
   });
   fileIn.addEventListener('change', () => {
-    if (fileIn.files[0]) importFile(fileIn.files[0]);
+    if (!isLocked() && fileIn.files[0]) importFile(fileIn.files[0]);
   });
+  const refreshLock = () => {
+    document.getElementById('import').disabled = isLocked();
+    optimize.disabled = isLocked();
+    for (const block of panel.querySelectorAll('[data-block]')) {
+      block.draggable = !isLocked();
+      block.setAttribute('aria-disabled', String(isLocked()));
+    }
+  };
+  modeEvents.addEventListener('change', refreshLock);
+  refreshLock();
+
 }

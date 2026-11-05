@@ -24,7 +24,7 @@ export async function initDesktopShortcuts(desktop) {
     } finally { busy = false; save.disabled = false; enabled.disabled = false; }
   };
   try {
-    await desktop.event.listen('bete-open-command-search', () => window.dispatchEvent(new Event('bete-open-command-search')));
+    await desktop.event.listen('bete-open-command-search', () => window.dispatchEvent(new CustomEvent('bete-open-command-search', { detail: { global: true } })));
     render(await invoke('get_global_shortcut'));
     section.hidden = false;
     save.addEventListener('click', () => persist());

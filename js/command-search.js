@@ -1,10 +1,11 @@
-import { notify } from './notifications.js?v=mw3kyoh5';
-import { flyToBlock } from './camera.js?v=mw3kyoh5';
-import { linkOf } from './labels.js?v=mw3kyoh5';
-import { openLink } from './links.js?v=mw3kyoh5';
-import { serviceForNode } from './services.js?v=mw3kyoh5';
-import { getNode, select, state } from './state.js?v=mw3kyoh5';
-import { cachedYouTubeTitle, youTubeId } from './yt.js?v=mw3kyoh5';
+import { openApplication } from './applications.js?v=mw3mnbdx';
+import { notify } from './notifications.js?v=mw3mnbdx';
+import { flyToBlock } from './camera.js?v=mw3mnbdx';
+import { linkOf } from './labels.js?v=mw3mnbdx';
+import { openLink } from './links.js?v=mw3mnbdx';
+import { serviceForNode } from './services.js?v=mw3mnbdx';
+import { getNode, select, state } from './state.js?v=mw3mnbdx';
+import { cachedYouTubeTitle, youTubeId } from './yt.js?v=mw3mnbdx';
 
 const normalize = text => text.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 
@@ -23,11 +24,11 @@ function search(query) {
     const link = linkOf(node);
     const video = node.kind === 'group' ? null : youTubeId(link || node.text);
     const href = link || (video ? 'https://www.youtube.com/watch?v=' + video : null);
-    const labels = [node.name, cachedYouTubeTitle(video), serviceForNode(node)?.name, node.text]
+    const labels = [node.application?.label, node.name, cachedYouTubeTitle(video), serviceForNode(node)?.name, node.text]
       .filter(Boolean).map(label => ({ label, text: normalize(label) }));
     const prefix = labels.find(({ text }) => text.startsWith(query));
     const match = prefix || labels.find(({ text }) => wordPrefix.test(text));
-    if (match) (prefix ? prefixes : wordMatches).push({ id: node.id, label: match.label, href, group: node.kind === 'group' });
+    if (match) (prefix ? prefixes : wordMatches).push({ id: node.id, label: match.label, href, application: !!node.application, group: node.kind === 'group' });
   }
   return commandMatches.concat(prefixes, wordMatches);
 }
@@ -39,6 +40,7 @@ export function initCommandSearch() {
   const empty = dialog.querySelector('#command-empty');
   let matches = [];
   let active = -1;
+  let openedFromGlobal = false;
 
   function highlight(index) {
     list.children[active]?.setAttribute('aria-selected', 'false');
@@ -54,7 +56,7 @@ export function initCommandSearch() {
   function refresh() {
     const query = normalize(input.value);
     matches = search(query);
-    list.replaceChildren(...matches.map(({ label, href, group, command }, i) => {
+    list.replaceChildren(...matches.map(({ label, href, group, command, application }, i) => {
       const item = document.createElement('li');
       item.id = 'command-result-' + i;
       item.setAttribute('role', 'option');
@@ -62,7 +64,7 @@ export function initCommandSearch() {
       const text = document.createElement('span');
       text.textContent = label;
       const kind = document.createElement('small');
-      kind.textContent = command ? 'Commande Windows' : group ? 'Groupe' : href ? 'Lien' : 'Bloc';
+      kind.textContent = command ? 'Commande Windows' : application ? 'Application' : group ? 'Groupe' : href ? 'Lien' : 'Bloc';
       item.append(text, kind);
       return item;
     }));
@@ -72,7 +74,7 @@ export function initCommandSearch() {
     highlight(matches.length ? 0 : -1);
   }
 
-  function activate(index) {
+  async function activate(index) {
     const match = matches[index];
     if (match?.command && window.__TAURI__) {
       dialog.close();
@@ -82,8 +84,17 @@ export function initCommandSearch() {
     }
     const node = match && getNode(match.id);
     if (!node) return;
+    const minimizeAfterOpening = openedFromGlobal;
     dialog.close();
-    if (match.href) openLink(match.href);
+    if (node.application) {
+      const opened = await openApplication(node);
+      if (opened && minimizeAfterOpening && window.__TAURI__) window.__TAURI__.core.invoke('minimize_window').catch(() => {});
+    } else if (match.href) {
+      const opened = await openLink(match.href);
+      if (opened && minimizeAfterOpening && window.__TAURI__) {
+        window.__TAURI__.core.invoke('minimize_window').catch(() => notify('Impossible de réduire la fenêtre.', { type: 'error' }));
+      }
+    }
     else {
       select(node.id);
       flyToBlock(node);
@@ -110,7 +121,8 @@ export function initCommandSearch() {
     if (event.target === dialog) dialog.close();
   });
 
-  const openCommands = () => {
+  const openCommands = (fromGlobal = false) => {
+    openedFromGlobal = fromGlobal;
     if (dialog.open) { input.focus(); return; }
     if (document.querySelector('dialog[open]')) return;
     document.querySelectorAll(':popover-open').forEach(popover => popover.hidePopover());
@@ -119,7 +131,7 @@ export function initCommandSearch() {
     dialog.showModal();
     input.focus();
   };
-  window.addEventListener('bete-open-command-search', openCommands);
+  window.addEventListener('bete-open-command-search', event => openCommands(event.detail?.global === true));
   window.addEventListener('keydown', event => {
     if (event.code !== 'Space' || event.defaultPrevented || event.repeat || event.isComposing ||
         event.ctrlKey || event.metaKey || event.altKey || event.shiftKey ||

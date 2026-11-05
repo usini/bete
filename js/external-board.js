@@ -1,21 +1,11 @@
-import { localStore } from './local-store.js?v=mw3kyoh5';
+import { githubSource, parseExternalBoardLink } from './external-source.js?v=mw3mnbdx';
+export { githubSource } from './external-source.js?v=mw3mnbdx';
+import { localStore } from './local-store.js?v=mw3mnbdx';
 
 export const githubBoard = new URLSearchParams(location.search).get('github');
 export const externalMode = githubBoard !== null;
 const RECENTS = 'bete2:githubBoards';
 const MAX_BYTES = 50 * 1024 * 1024;
-
-export function githubSource(value) {
-  const parts = value.includes('/') ? value.split('/') : value.split('-');
-  const [owner, repo, ...rest] = parts;
-  const file = (value.includes('/') ? rest.length === 1 && rest[0] : rest.join('-'));
-  if (!/^[a-z0-9][a-z0-9-]{0,38}$/i.test(owner || '') ||
-      !/^[a-z0-9_][a-z0-9_.-]{0,99}$/i.test(repo || '') ||
-      !/^[a-z0-9_][a-z0-9_.-]{0,199}$/i.test(file || '')) return null;
-  const name = file.replace(/\.json$/i, '');
-  if (!name) return null;
-  return { id: [owner, repo, name].join('/'), name, url: `https://raw.githubusercontent.com/${owner}/${repo}/main/${name}.json` };
-}
 
 export function recentGithubBoards() {
   try {
@@ -68,4 +58,16 @@ export async function loadGithubBoard(value) {
   });
   localStore.setItem(RECENTS, JSON.stringify([source.id, ...recentGithubBoards().map(board => board.id).filter(id => id !== source.id)].slice(0, 30)));
   return { camera: raw.camera, nodes };
+}
+
+export async function addExternalBoard(link) {
+  const source=parseExternalBoardLink(link,location.origin);
+  if(!source)throw new Error('Lien invalide : utilise un lien Bête avec ?github=, COMPTE/DEPOT/FICHIER ou un fichier JSON sur la branche main.');
+  const ids=[source.id,...recentGithubBoards().map(b=>b.id).filter(id=>id!==source.id)].slice(0,30);
+  if(await localStore.setItem(RECENTS,JSON.stringify(ids))===false)throw new Error('Impossible d’enregistrer le lien sur cet appareil.');
+  return source;
+}
+export async function removeExternalBoard(id) {
+  const ids=recentGithubBoards().map(b=>b.id).filter(value=>value!==id);
+  if(await localStore.setItem(RECENTS,JSON.stringify(ids))===false)throw new Error('Impossible d’enregistrer la suppression sur cet appareil.');
 }

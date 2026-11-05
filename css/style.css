@@ -618,3 +618,9 @@ button:hover { border-color: var(--accent); }
 }
 
 #group-align-preview { width: 100%; height: auto; background: #0c0e12; border: 1px solid #444; border-radius: 6px; margin-bottom: 10px; }
+
+.external-board-item { display: flex; align-items: stretch; gap: 4px; max-width: 100%; }
+.external-board-item button { width: auto; margin: 0; padding: 8px; }
+#external-board-add { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
+#external-board-add .field { flex: 1 1 220px; }
+#external-board-add button { width: auto; margin-bottom: 12px; }

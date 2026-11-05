@@ -4,9 +4,9 @@
 //    drag = one entry) is compared with the previous state, and a new entry is recorded when the
 //    blocks differ. The label ("Déplacement", "Suppression d'un bloc"...) comes from that diff.
 //  - Up to 60 states, persisted with the board and included in JSON exports.
-import { state, onSaved, replaceNodes, sanitizeNode, registerHistory, saveNow } from './state.js?v=mw3kyoh5';
+import { state, onSaved, replaceNodes, sanitizeNode, registerHistory, saveNow } from './state.js?v=mw3mnbdx';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mw3kyoh5';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mw3mnbdx';
 
 const MAX = 60;
 let states = []; // { json, norm, label, t } — oldest first
@@ -120,6 +120,8 @@ function renderList() {
 
 export function clearHistory() {
   if (isLocked()) return;
+  // A single current state is already an empty undo history: keep its timestamp stable.
+  if (states.length === 1 && pos === 0 && states[0].norm === normOf(state.nodes)) return;
   states = [{ json: JSON.stringify(state.nodes), norm: normOf(state.nodes), label: 'Historique vidé', t: Date.now() }];
   pos = 0;
   refreshUi();

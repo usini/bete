@@ -278,7 +278,7 @@
     Un lien Bête avec le paramètre <code>github</code> charge un fichier JSON public directement
     depuis GitHub à chaque ouverture, avec un horodatage pour contourner le cache.
     GitHub reçoit les informations réseau de la requête. Le navigateur garde
-    localement un raccourci vers les tableaux externes ouverts. Les tableaux externes sont
+    localement un raccourci vers les tableaux externes ouverts ou ajoutés manuellement. Ces raccourcis peuvent être retirés dans « Voir les groupes », sans supprimer les fichiers GitHub. Ajouter un lien ne télécharge pas le tableau ; seule son ouverture le fait. Les tableaux externes sont
     consultables en lecture seule et leur contenu est séparé de la sauvegarde du tableau personnel.
   </p>
 
@@ -406,6 +406,18 @@
   <p>Sous Windows, le raccourci global et son état activé/désactivé sont enregistrés dans le dossier
     de configuration local de Bête. Windows signale uniquement l’activation de cette combinaison ;
     Bête n’enregistre pas les autres frappes clavier. Ce réglage n’est pas envoyé sur Drive.</p>
+  <h2>Applications locales Windows</h2>
+  <p>Déposer un exécutable ou un raccourci enregistre sa destination uniquement dans le dossier
+    de configuration Windows de Bête. Les autorisations sont individuelles par bloc et conservées
+    séparément, avec une empreinte de l’exécutable ; elles ne sont jamais incluses dans les tableaux,
+    historiques, exports JSON, Drive ou groupes partagés. Le tableau contient seulement un nom,
+    une référence opaque et, pour Steam, l’identifiant public du jeu. La suppression d’un bloc révoque
+    son autorisation. Un import révoque les autorisations d’applications avant de charger ses blocs.</p>
+  <p>Le lancement est désactivé au départ. Windows demande confirmation pour chaque nouveau bloc
+    et pour activer ou désactiver le lancement global. Après autorisation, Bête peut lancer
+    l’exécutable désigné, ou transmettre un lien de lancement de jeu à Steam. Les applications
+    ainsi ouvertes suivent leurs propres règles de confidentialité. La version web ne lance rien.</p>
+
   <h2>6. Tes droits</h2>
   <p>
     Selon les traitements et les conditions prévues par la réglementation, tu peux demander l’accès,

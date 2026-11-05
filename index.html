@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Bête</title>
-  <link rel="stylesheet" href="css/style.css?v=mw3kyoh5">
+  <link rel="stylesheet" href="css/style.css?v=mw3mnbdx">
 </head>
 <body>
   <canvas id="canvas"></canvas>
@@ -112,8 +112,13 @@
       <form method="dialog"><button type="submit" autofocus>Fermer</button></form>
     </header>
     <div id="group-list"></div>
-    <section id="external-boards" hidden>
+    <section id="external-boards">
       <h3>Tableaux externes</h3>
+      <form id="external-board-add">
+        <label class="field"><span>Lien du tableau externe</span><input id="external-board-link" type="text" maxlength="2048" placeholder="https://bete.usini.eu/?github=…" autocomplete="off" spellcheck="false"></label>
+        <button type="submit">Ajouter le lien</button>
+      </form>
+      <p id="external-board-message" class="hint" role="status"></p>
       <div id="external-board-list"></div>
     </section>
   </dialog>
@@ -163,6 +168,11 @@
         <button id="drive-disconnect" hidden><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 4H4v16h5M10 12h11m-4-4 4 4-4 4"/></svg><span>Déconnecter</span></button>
       </section>
 
+      <section id="desktop-applications" hidden>
+        <h2>Applications sur cet ordinateur</h2>
+        <button type="button" id="application-launch-toggle">Activer l’ouverture d’applications</button>
+        <p id="application-launch-status" class="hint">Ouverture désactivée.</p>
+      </section>
       <section id="desktop-shortcuts" hidden>
         <h2>Raccourci global Windows</h2>
         <label><input type="checkbox" id="global-shortcut-enabled"> Activer le raccourci global</label>
@@ -192,6 +202,6 @@
   <input type="file" id="image-file" accept="image/*" hidden>
   <input type="file" id="fileimport" accept="application/json,.json" hidden>
 
-  <script type="module" src="js/main.js?v=mw3kyoh5"></script>
+  <script type="module" src="js/main.js?v=mw3mnbdx"></script>
 </body>
 </html>

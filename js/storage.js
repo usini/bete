@@ -1,7 +1,7 @@
 // Export / import of a board. Images are embedded as data URLs so the board is
 // self-contained: it can be a JSON file, or the file saved on Google Drive (drive.js).
-import { state, serialize, setDoc } from './state.js?v=mw3kyoh5';
-import { addDataUrl, refToDataUrl } from './images.js?v=mw3kyoh5';
+import { state, serialize, setDoc } from './state.js?v=mw3mnbdx';
+import { addDataUrl, refToDataUrl } from './images.js?v=mw3mnbdx';
 
 
 function download(blob, name) {
@@ -66,6 +66,9 @@ export async function importData(doc) {
       ...s, nodes: await restore(s?.nodes),
     }))),
   };
+  if (doc.nodes?.some(n => n?.application) && globalThis.__TAURI__) {
+    await globalThis.__TAURI__.core.invoke('revoke_all_application_permissions');
+  }
   setDoc(doc);
 }
 
