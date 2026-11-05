@@ -1,33 +1,34 @@
-import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mw3jmzda';
-import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mw3jmzda';
-import { externalMode } from './external-board.js?v=mw3jmzda';
+import { updateGitHubCard } from './github-cards.js?v=mw3kjxkr';
+import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mw3kjxkr';
+import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mw3kjxkr';
+import { externalMode } from './external-board.js?v=mw3kjxkr';
 // Pointer, wheel, keyboard, paste and drop handling for the canvas.
 //  - click on a label: edit popup, link field first (YouTube labels open the video instead)
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, getLastSelectedGroup, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, COLORS } from './state.js?v=mw3jmzda';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw3jmzda';
-import { startEdit, stopEdit, isEditing, previewGroupAlignment } from './editor.js?v=mw3jmzda';
-import { addDataUrl, addImageFile, imageCaptionFraction, imageFor } from './images.js?v=mw3jmzda';
-import { playVideo } from './video.js?v=mw3jmzda';
-import { youTubeId } from './yt.js?v=mw3jmzda';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mw3jmzda';
-import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mw3jmzda';
-import { undo, redo } from './history.js?v=mw3jmzda';
+import { state, getNode, getSelectedId, getLastSelectedGroup, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, COLORS } from './state.js?v=mw3kjxkr';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw3kjxkr';
+import { startEdit, stopEdit, isEditing, previewGroupAlignment } from './editor.js?v=mw3kjxkr';
+import { addDataUrl, addImageFile, fitNodeImage, imageCaptionFraction, imageFor } from './images.js?v=mw3kjxkr';
+import { playVideo } from './video.js?v=mw3kjxkr';
+import { youTubeId } from './yt.js?v=mw3kjxkr';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mw3kjxkr';
+import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mw3kjxkr';
+import { undo, redo } from './history.js?v=mw3kjxkr';
 
-import { setDragging } from './motion.js?v=mw3jmzda';
+import { setDragging } from './motion.js?v=mw3kjxkr';
 
-import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw3jmzda';
-import { shortenAmazonText, isAmazonUrl, amazonBadgeLayout } from './amazon.js?v=mw3jmzda';
+import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw3kjxkr';
+import { shortenAmazonText, isAmazonUrl, amazonBadgeLayout } from './amazon.js?v=mw3kjxkr';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mw3jmzda';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mw3kjxkr';
 
-import { serviceForNode } from './services.js?v=mw3jmzda';
+import { serviceForNode } from './services.js?v=mw3kjxkr';
 
-import { requestRender } from './render.js?v=mw3jmzda';
+import { requestRender } from './render.js?v=mw3kjxkr';
 
-import { notify } from './notifications.js?v=mw3jmzda';
+import { notify } from './notifications.js?v=mw3kjxkr';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 const CLIPBOARD_BLOCK = 'application/x-bete-clipboard-block';
@@ -369,8 +370,12 @@ export function pickImage(n) {
 
 async function imageToNode(file, n) {
   const ref = await addImageFile(file);
-  if (isLocked()) return;
+  if (isLocked() || getNode(n.id) !== n) return;
+  const previousGroups = containingGroups(n);
   n.image = ref;
+  await fitNodeImage(n);
+  if (getNode(n.id) !== n) return;
+  fitGroupsAround(n, previousGroups, true);
   emit();
 }
 
@@ -450,6 +455,7 @@ export function initInput() {
       if (genericLink(url)) { n.link = url; n.text = droppedTitle(e.dataTransfer, url); }
       else n.text = shortenAmazonText(url);
       emit();
+      updateGitHubCard(n);
       if (isAmazonUrl(url)) startEdit(n.id);
     }
   });
@@ -480,9 +486,14 @@ export function initInput() {
         catch { delete product.image; notify('Image indisponible ; produit collé sans image.'); }
       }
       if (isLocked() || externalMode) return;
-      const block = sanitizeNode({ ...product, id: newId(), x: center.x - product.w / 2, y: center.y - product.h / 2 });
-      state.nodes.push(block);
-      fitGroupsAround(block);
+      // Use the same remembered size and colour as a newly created rectangle.
+      const { w, h, ...content } = product;
+      const block = addNode('rect', center.x, center.y);
+      const previousGroups = containingGroups(block);
+      Object.assign(block, content);
+      await fitNodeImage(block);
+      if (getNode(block.id) !== block) return;
+      fitGroupsAround(block, previousGroups, true);
       select(block.id);
       return;
     }
@@ -517,6 +528,7 @@ export function initInput() {
         delete selected.link;
       }
       emit();
+      updateGitHubCard(selected);
       if (isAmazonUrl(url)) startEdit(selected.id);
       return;
     }
@@ -533,6 +545,7 @@ export function initInput() {
     if (url && genericLink(url)) n.link = url;
     else n.text = url ? shortenAmazonText(url) : pasted.slice(0, 20000);
     emit();
+    if (url) updateGitHubCard(n);
     if (url && isAmazonUrl(url)) startEdit(n.id);
   });
 

@@ -1,7 +1,9 @@
-import { alignmentPlan } from './alignment.js?v=mw3jmzda';
-import { labelLayout } from './labels.js?v=mw3jmzda';
-import { amazonBadgeLayout } from './amazon.js?v=mw3jmzda';
-import { freeDropPosition } from './placement.js?v=mw3jmzda';
+import { githubRepository } from './github-repo.js?v=mw3kjxkr';
+import { updateGitHubCard } from './github-cards.js?v=mw3kjxkr';
+import { alignmentPlan } from './alignment.js?v=mw3kjxkr';
+import { labelLayout } from './labels.js?v=mw3kjxkr';
+import { amazonBadgeLayout } from './amazon.js?v=mw3kjxkr';
+import { freeDropPosition } from './placement.js?v=mw3kjxkr';
 // Edit mode: one popup (modal <dialog>) to change a block's text and link.
 // Opened by the 📝 button, a click on a label, Enter, or a double-click on a block with no link.
 //  - the text field is hidden for image blocks (they have no text)
@@ -9,18 +11,18 @@ import { freeDropPosition } from './placement.js?v=mw3jmzda';
 //  - when the link is an Amazon address the popup becomes "Produit Amazon": name, price and
 //    delivery time fields appear (typed by hand, shown in the block's label)
 // It closes only with the Annuler / Valider buttons (Ctrl+Enter, or Enter in a one-line field, also validate).
-import { state, getNode, emit, membersOf, fitGroupsAround, saveNow } from './state.js?v=mw3jmzda';
-import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw3jmzda';
-import { youTubeId } from './yt.js?v=mw3jmzda';
-import { addImageFile, imageFor } from './images.js?v=mw3jmzda';
+import { state, getNode, emit, membersOf, fitGroupsAround, containingGroups, saveNow } from './state.js?v=mw3kjxkr';
+import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw3kjxkr';
+import { youTubeId } from './yt.js?v=mw3kjxkr';
+import { addImageFile, imageFor, fitNodeImage } from './images.js?v=mw3kjxkr';
 
-import { genericLink } from './links.js?v=mw3jmzda';
+import { genericLink } from './links.js?v=mw3kjxkr';
 
-import { isLocked } from './mobile-mode.js?v=mw3jmzda';
+import { isLocked } from './mobile-mode.js?v=mw3kjxkr';
 
-import { serviceForNode } from './services.js?v=mw3jmzda';
-import { deliveryDelay } from './delivery.js?v=mw3jmzda';
-import { googleMapsEmbed } from './google-maps.js?v=mw3jmzda';
+import { serviceForNode } from './services.js?v=mw3kjxkr';
+import { deliveryDelay } from './delivery.js?v=mw3kjxkr';
+import { googleMapsEmbed } from './google-maps.js?v=mw3kjxkr';
 
 const dlg = document.getElementById('textdialog');
 const title = document.getElementById('dialog-title');
@@ -107,6 +109,7 @@ export function startEdit(id, focus = 'text') {
   const n = getNode(id);
   if (isLocked() || !n || dlg.open) return;
   editingId = id;
+  document.getElementById('github-refresh').textContent = 'Actualiser les informations GitHub';
   pendingAlignment = null;
   alignSection.hidden = n.kind !== 'group';
   alignPreview.hidden = true;
@@ -127,6 +130,7 @@ export function startEdit(id, focus = 'text') {
   imageField.hidden = ytBlock; // a YouTube block shows its video thumbnail
   showCurrentImage(n);
   refreshAmazon();
+  document.getElementById('github-refresh').hidden = !githubRepository(n.link || n.text);
   dlg.showModal();
   const target = textField.hidden || (focus === 'link' && !linkField.hidden) ? linkEl : el;
   target.focus();
@@ -177,6 +181,7 @@ export function stopEdit(commit) {
   if (pendingAlignment) saveNow();
   editingId = null;
   dlg.close();
+  const originalLink = n.link || n.text;
   let changed = false;
   let imageSave = null;
   if (!isGroup && hideLinkLabel.checked !== (n.hideLinkLabel === true)) {
@@ -206,8 +211,15 @@ export function stopEdit(commit) {
   if (!imageField.hidden) {
     if (pendingFile) {
       // Stored asynchronously (IndexedDB): the block is updated once the image is saved.
-      imageSave = addImageFile(pendingFile).then((ref) => {
-        if (!isLocked() && getNode(n.id)) { n.image = ref; emit(); }
+      imageSave = addImageFile(pendingFile).then(async (ref) => {
+        if (!isLocked() && getNode(n.id) === n) {
+          const previousGroups = containingGroups(n);
+          n.image = ref;
+          await fitNodeImage(n);
+          if (getNode(n.id) !== n) return;
+          fitGroupsAround(n, previousGroups, true);
+          emit();
+        }
       });
     } else if (removeImage && n.image) {
       delete n.image;
@@ -228,7 +240,10 @@ export function stopEdit(commit) {
     changed = true;
   }
   pendingAlignment = null;
-  if (changed) emit();
+  if (changed) {
+    emit();
+    if ((n.link || n.text) !== originalLink) updateGitHubCard(n);
+  }
   return imageSave;
 }
 
@@ -331,3 +346,11 @@ export function previewGroupAlignment(id) {
   startEdit(id);
   if (editingId === id && isGroup) document.getElementById('group-align-button').click();
 }
+
+document.getElementById('github-refresh').addEventListener('click',async()=>{
+  const n=getNode(editingId),button=document.getElementById('github-refresh');
+  if(!n||isLocked())return;
+  const id=n.id;button.disabled=true;button.textContent='Chargement…';
+  try {const ok=await updateGitHubCard(n,true);if(editingId===id)button.textContent=ok?'Informations actualisées':'Dépôt inaccessible : icône et nom conservés';}
+  finally{button.disabled=false;}
+});

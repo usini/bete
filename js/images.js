@@ -1,7 +1,8 @@
+import { fittedImageSize } from './image-size.js?v=mw3kjxkr';
 // Image blobs live in IndexedDB; nodes only keep a reference 'idb:<id>'.
-import { newId } from './state.js?v=mw3jmzda';
+import { newId, getNode } from './state.js?v=mw3kjxkr';
 
-import { openDatabase } from './database.js?v=mw3jmzda';
+import { openDatabase } from './database.js?v=mw3kjxkr';
 const STORE = 'images';
 
 async function run(mode, op) {
@@ -104,4 +105,21 @@ function blobToDataUrl(blob) {
     r.onerror = () => reject(r.error);
     r.readAsDataURL(blob);
   });
+}
+
+export async function fitNodeImage(node) {
+  const ref = node.image;
+  if (!ref) return false;
+  let bitmap;
+  try {
+    const blob = ref.startsWith('idb:') ? await imageBlob(ref) : await (await fetch(ref)).blob();
+    if (!blob) return false;
+    bitmap = await createImageBitmap(blob);
+    if (getNode(node.id) !== node || node.image !== ref) return false;
+    const size = fittedImageSize(node, bitmap.width, bitmap.height);
+    if (!size) return false;
+    Object.assign(node, size);
+    return true;
+  } catch { return false; }
+  finally { bitmap?.close(); }
 }

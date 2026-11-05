@@ -77,3 +77,7 @@ Pour un changement réservé au web, ajoute `[skip windows]` au message du derni
 ## Fermeture et sauvegarde
 
 À la fermeture (ou avant installation d’une mise à jour), Bête affiche « Sauvegarde en cours », optimise les images et vide l’historique, sauvegarde localement puis sur Google Drive si connecté. La fenêtre se ferme une fois les écritures terminées. En cas d’échec ou de conflit Drive, elle reste ouverte pour réessayer ou résoudre le conflit. Sans compte Drive connecté, la sauvegarde reste locale.
+
+## Raccourci global
+
+Par défaut, **Ctrl+Alt+Espace** restaure la fenêtre et ouvre la barre de commande même depuis une autre application. La section **Raccourci global Windows** du menu permet de choisir une combinaison et de l’activer/désactiver. Le choix est conservé dans le dossier de configuration local Windows de Bête. Bête doit rester lancée ; fermer l’application libère le raccourci. Un conflit n’empêche pas le démarrage et peut être corrigé dans le menu.

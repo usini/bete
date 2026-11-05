@@ -1,10 +1,11 @@
-import { amazonBadgeLayout } from './amazon.js?v=mw3jmzda';
-import { labelLayout } from './labels.js?v=mw3jmzda';
-import { externalMode } from './external-board.js?v=mw3jmzda';
-import { localStore } from './local-store.js?v=mw3jmzda';
+import { cleanGitHubData } from './github-repo.js?v=mw3kjxkr';
+import { amazonBadgeLayout } from './amazon.js?v=mw3kjxkr';
+import { labelLayout } from './labels.js?v=mw3kjxkr';
+import { externalMode } from './external-board.js?v=mw3kjxkr';
+import { localStore } from './local-store.js?v=mw3kjxkr';
 // Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mw3jmzda';
+import { explode } from './fx.js?v=mw3kjxkr';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];
@@ -86,6 +87,10 @@ export function sanitizeNode(raw) {
   // Amazon product details, typed by hand in the edit popup (shown in the label).
   for (const k of ['name', 'price', 'delivery']) {
     if (typeof raw[k] === 'string' && raw[k].trim()) n[k] = raw[k].trim().slice(0, 100);
+  }
+  if (n.kind === 'rect' && raw.github) {
+    const github = cleanGitHubData(raw.github, n.link || n.text);
+    if (github) n.github = github;
   }
   return n;
 }

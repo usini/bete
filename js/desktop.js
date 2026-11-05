@@ -1,12 +1,13 @@
-import { optimizeBoardImages } from './optimize.js?v=mw3jmzda';
-import { waitForDriveIdle, saveDriveBeforeClose } from './drive.js?v=mw3jmzda';
-import { isEditing, stopEdit } from './editor.js?v=mw3jmzda';
-import { initDesktopCalendar } from './calendar.js?v=mw3jmzda';
-import { saveNow } from './state.js?v=mw3jmzda';
-import { flushLocalWrites } from './local-store.js?v=mw3jmzda';
-import { openLink } from './links.js?v=mw3jmzda';
-import { notify } from './notifications.js?v=mw3jmzda';
-import { parseShareLink } from './group-share.js?v=mw3jmzda';
+import { initDesktopShortcuts } from './desktop-shortcuts.js?v=mw3kjxkr';
+import { optimizeBoardImages } from './optimize.js?v=mw3kjxkr';
+import { waitForDriveIdle, saveDriveBeforeClose } from './drive.js?v=mw3kjxkr';
+import { isEditing, stopEdit } from './editor.js?v=mw3kjxkr';
+import { initDesktopCalendar } from './calendar.js?v=mw3kjxkr';
+import { saveNow } from './state.js?v=mw3kjxkr';
+import { flushLocalWrites } from './local-store.js?v=mw3kjxkr';
+import { openLink } from './links.js?v=mw3kjxkr';
+import { notify } from './notifications.js?v=mw3kjxkr';
+import { parseShareLink } from './group-share.js?v=mw3kjxkr';
 
 function chooseUpdate(version) {
   const dialog = document.createElement('dialog');
@@ -41,6 +42,7 @@ export async function initDesktop() {
   const { core, window: native } = window.__TAURI__;
   const appWindow = native.getCurrentWindow();
   initDesktopCalendar(core.invoke);
+  await initDesktopShortcuts(window.__TAURI__);
   const privacy = document.querySelector('.panel-footer a');
   privacy.href = 'https://bete.usini.eu/confidentialite.html';
   privacy.addEventListener('click', event => { event.preventDefault(); openLink(privacy.href); });

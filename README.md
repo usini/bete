@@ -273,3 +273,11 @@ Sur desktop, fermer Bête affiche **Sauvegarde en cours**, optimise les images, 
 Les liens d’accueil Google Agenda acceptent aussi les variantes de compte et de langue, par exemple `https://calendar.google.com/calendar/u/1/r?hl=fr`.
 
 Les nouveaux blocs masquent par défaut l’étiquette de lien au-dessus du bloc. Décoche **Masquer le lien au-dessus du bloc** dans l’éditeur pour l’afficher. Les blocs existants et leurs réglages sont conservés.
+
+Les liens de dépôts GitHub publics collés ou déposés affichent le nom, la description, le langage, la licence, les étoiles, la dernière version publiée et la date d’activité lorsque disponibles. Les informations sont demandées directement à l’API GitHub sans connexion, puis conservées avec le bloc. **Actualiser les informations GitHub** dans l’éditeur relance la récupération. Pour un dépôt privé, inexistant, une erreur réseau ou une limite API, seule l’icône GitHub et `compte/repo` sont affichés. Le lien d’accueil GitHub garde son icône. Aucun chargement automatique au simple affichage d’un tableau importé ou partagé.
+
+Les produits Amazon collés depuis l’extension reprennent la taille de création des rectangles (dernière taille utilisée), au lieu des dimensions de l’image fournies par l’extension.
+
+Dès l’ajout ou le remplacement d’une image (collage, dépôt, éditeur ou extension Amazon), le bloc conserve sa largeur de création et ajuste sa hauteur au ratio de l’image, en réservant la place du texte éventuel.
+
+Sur Windows, **Ctrl+Alt+Espace** restaure Bête et ouvre sa barre de commande depuis une autre application. Le menu permet de modifier, activer ou désactiver le raccourci ; ces réglages sont conservés sur l’appareil. En cas de conflit, choisis une autre combinaison. Bête doit rester lancée, éventuellement réduite.

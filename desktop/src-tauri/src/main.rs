@@ -2,6 +2,7 @@
 
 mod calendar;
 mod drive;
+mod shortcuts;
 
 use std::time::Duration;
 use tauri::{AppHandle, Url, WebviewUrl, WebviewWindowBuilder};
@@ -64,13 +65,15 @@ async fn install_update(app: AppHandle, version: String, restart: bool) -> Resul
 }
 
 fn main() {
-    let mut builder = tauri::Builder::default().plugin(tauri_plugin_opener::init());
+    let mut builder = tauri::Builder::default().plugin(tauri_plugin_opener::init()).plugin(shortcuts::plugin());
     if option_env!("BETE_UPDATER_PUBLIC_KEY").is_some() {
         builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     }
     builder
         .invoke_handler(tauri::generate_handler![
             open_browser,
+            shortcuts::get_global_shortcut,
+            shortcuts::set_global_shortcut,
             check_update,
             install_update,
             calendar::calendar_feed,
@@ -94,6 +97,7 @@ fn main() {
                 })
                 .on_new_window(|_, _| tauri::webview::NewWindowResponse::Deny)
                 .build()?;
+            shortcuts::init(app.handle());
             Ok(())
         })
         .run(tauri::generate_context!())

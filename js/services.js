@@ -1,3 +1,4 @@
+import { githubRepository } from './github-repo.js?v=mw3kjxkr';
 // Explicit host/path rules only. Never fetch metadata or a favicon from a linked service.
 const root = path => path === '/';
 const oneOf = (...paths) => path => paths.includes(path);
@@ -31,6 +32,7 @@ export function serviceForUrl(value) {
   try {
     const url = new URL(String(value).trim());
     if (url.protocol !== 'https:' || url.username || url.password || url.port) return null;
+    if (githubRepository(url.href)) return { id: 'github', name: 'GitHub' };
     const path = url.pathname === '/' ? '/' : url.pathname.replace(/\/$/, '');
     const service = entries.find(entry => entry.hosts.includes(url.hostname) && entry.path(path)
       && (entry.anyLocation || (!url.search && !url.hash)));

@@ -1,26 +1,27 @@
-import { dropPreviewGroup } from './placement.js?v=mw3jmzda';
-import { externalMode } from './external-board.js?v=mw3jmzda';
-import { positionEmbeds } from './embed-view.js?v=mw3jmzda';
+import { githubRepository, cleanGitHubData } from './github-repo.js?v=mw3kjxkr';
+import { dropPreviewGroup } from './placement.js?v=mw3kjxkr';
+import { externalMode } from './external-board.js?v=mw3kjxkr';
+import { positionEmbeds } from './embed-view.js?v=mw3kjxkr';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize, groupHeaderHeight } from './state.js?v=mw3jmzda';
-import { view, screenToWorld } from './camera.js?v=mw3jmzda';
-import { youTubeId, ytThumb } from './yt.js?v=mw3jmzda';
-import { imageCaptionFraction, imageFor } from './images.js?v=mw3jmzda';
-import { positionVideo, isVideoPlaying } from './video.js?v=mw3jmzda';
-import { guides } from './snap.js?v=mw3jmzda';
-import { renderMinimap } from './minimap.js?v=mw3jmzda';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mw3jmzda';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw3jmzda';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw3jmzda';
+import { state, events, getSelectedId, groupsBySize, groupHeaderHeight } from './state.js?v=mw3kjxkr';
+import { view, screenToWorld } from './camera.js?v=mw3kjxkr';
+import { youTubeId, ytThumb } from './yt.js?v=mw3kjxkr';
+import { imageCaptionFraction, imageFor } from './images.js?v=mw3kjxkr';
+import { positionVideo, isVideoPlaying } from './video.js?v=mw3kjxkr';
+import { guides } from './snap.js?v=mw3kjxkr';
+import { renderMinimap } from './minimap.js?v=mw3kjxkr';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mw3kjxkr';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw3kjxkr';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw3kjxkr';
 
-import { genericLinkOf, plainLink } from './links.js?v=mw3jmzda';
-import { stepMotion } from './motion.js?v=mw3jmzda';
-import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw3jmzda';
+import { genericLinkOf, plainLink } from './links.js?v=mw3kjxkr';
+import { stepMotion } from './motion.js?v=mw3kjxkr';
+import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw3kjxkr';
 
-import { isLocked } from './mobile-mode.js?v=mw3jmzda';
+import { isLocked } from './mobile-mode.js?v=mw3kjxkr';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mw3jmzda';
-import { amazonBadgeLayout } from './amazon.js?v=mw3jmzda';
+import { serviceForNode, serviceIcon } from './services.js?v=mw3kjxkr';
+import { amazonBadgeLayout } from './amazon.js?v=mw3kjxkr';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -161,6 +162,7 @@ function drawNode(n, selected, zoom) {
     return;
   }
   const service = serviceForNode(n);
+  const repository = n.kind === 'rect' ? githubRepository(n.link || n.text) : null;
   const yt = service || n.image ? null : youTubeId(n.text);
   if (n.color !== 'transparent') {
     ctx.fillStyle = '#14171d';
@@ -182,6 +184,8 @@ function drawNode(n, selected, zoom) {
     if (areaH > 0) drawContained(src, n.x + pad, n.y + pad, n.w - 2 * pad, areaH);
     if (yt) drawPlay(n);
     if (captionHeight) drawCaption(n, n.text, captionHeight);
+  } else if (repository && !n.image) {
+    drawRepositoryCard(n, repository, appIcon);
   } else if (service && !n.image) {
     const label = (!plainLink(n.text) && n.text.trim()) || service.name;
     if (appIcon) {
@@ -526,4 +530,19 @@ function drawDropPreview(zoom) {
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(text, x + width / 2, y + 13 / zoom);
   ctx.restore();
+}
+
+function drawRepositoryCard(n, repo, icon) {
+  const data=cleanGitHubData(n.github,n.link||n.text);
+  if(!data){
+    const height=n.h*.2;
+    if(icon)drawContained(icon,n.x+n.w*.08,n.y+n.h*.06,n.w*.84,n.h-height-n.h*.1);
+    drawCaption(n,repo.key,height);return;
+  }
+  const pad=Math.min(n.w,n.h)*.06;
+  if(icon)drawContained(icon,n.x+pad,n.y+pad,n.w*.14,n.h*.18);
+  drawBlockText(repo.key,{x:n.x+n.w*.22,y:n.y+pad,w:n.w*.72-pad,h:n.h*.18},'#f2f2f2');
+  drawBlockText(data.description||'Dépôt public GitHub',{x:n.x+pad,y:n.y+n.h*.28,w:n.w-2*pad,h:n.h*.35},'#dedee5');
+  const details=[data.language,data.license,'★ '+data.stars.toLocaleString('fr-FR'),data.release?'Version '+data.release:'',data.pushedAt?'Activité : '+new Date(data.pushedAt).toLocaleDateString('fr-FR'):''].filter(Boolean).join(' · ');
+  drawBlockText(details,{x:n.x+pad,y:n.y+n.h*.69,w:n.w-2*pad,h:n.h*.25},'#a8cbd5');
 }

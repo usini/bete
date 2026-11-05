@@ -1,9 +1,9 @@
-import { flyToBlock } from './camera.js?v=mw3jmzda';
-import { linkOf } from './labels.js?v=mw3jmzda';
-import { openLink } from './links.js?v=mw3jmzda';
-import { serviceForNode } from './services.js?v=mw3jmzda';
-import { getNode, select, state } from './state.js?v=mw3jmzda';
-import { cachedYouTubeTitle, youTubeId } from './yt.js?v=mw3jmzda';
+import { flyToBlock } from './camera.js?v=mw3kjxkr';
+import { linkOf } from './labels.js?v=mw3kjxkr';
+import { openLink } from './links.js?v=mw3kjxkr';
+import { serviceForNode } from './services.js?v=mw3kjxkr';
+import { getNode, select, state } from './state.js?v=mw3kjxkr';
+import { cachedYouTubeTitle, youTubeId } from './yt.js?v=mw3kjxkr';
 
 const normalize = text => text.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 
@@ -98,6 +98,16 @@ export function initCommandSearch() {
     if (event.target === dialog) dialog.close();
   });
 
+  const openCommands = () => {
+    if (dialog.open) { input.focus(); return; }
+    if (document.querySelector('dialog[open]')) return;
+    document.querySelectorAll(':popover-open').forEach(popover => popover.hidePopover());
+    input.value = '';
+    refresh();
+    dialog.showModal();
+    input.focus();
+  };
+  window.addEventListener('bete-open-command-search', openCommands);
   window.addEventListener('keydown', event => {
     if (event.code !== 'Space' || event.defaultPrevented || event.repeat || event.isComposing ||
         event.ctrlKey || event.metaKey || event.altKey || event.shiftKey ||
@@ -106,8 +116,6 @@ export function initCommandSearch() {
     if (target instanceof HTMLElement &&
         (target.isContentEditable || target.closest('input, textarea, select, button, a[href]'))) return;
     event.preventDefault();
-    input.value = '';
-    refresh();
-    dialog.showModal();
+    openCommands();
   });
 }

@@ -30,7 +30,7 @@ test('app entry points are recognized while documents, profiles, songs and repos
     ['https://www.reddit.com/','reddit'],['https://www.twitch.tv/','twitch'],['https://web.telegram.org/k/','telegram'],
   ];
   for (const [url,id] of cases) assert.equal(serviceForUrl(url).id,id,url);
-  for (const url of ['https://docs.google.com/document/d/private/edit','https://drive.google.com/file/d/123/view','https://instagram.com/profile','https://github.com/usini/bete','https://open.spotify.com/track/123','https://google.com/search?q=private','https://twitch.tv/channel']) assert.equal(serviceForUrl(url),null,url);
+  for (const url of ['https://docs.google.com/document/d/private/edit','https://drive.google.com/file/d/123/view','https://instagram.com/profile','https://open.spotify.com/track/123','https://google.com/search?q=private','https://twitch.tv/channel']) assert.equal(serviceForUrl(url),null,url);
 });
 
 test('lookalike domains, credentials, custom ports and non-rectangle blocks cannot get branded icons', () => {

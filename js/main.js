@@ -1,18 +1,18 @@
-import { externalMode, githubBoard, loadGithubBoard } from './external-board.js?v=mw3jmzda';
+import { externalMode, githubBoard, loadGithubBoard } from './external-board.js?v=mw3kjxkr';
 // Bootstrap: load the saved board, wire the UI, start rendering.
-import { loadFromStorage, saveNow, setDoc } from './state.js?v=mw3jmzda';
-import { resize, requestRender } from './render.js?v=mw3jmzda';
-import { initInput } from './input.js?v=mw3jmzda';
-import { initCommandSearch } from './command-search.js?v=mw3jmzda';
-import { initPanel } from './panel.js?v=mw3jmzda';
-import { initMinimap } from './minimap.js?v=mw3jmzda';
-import { initClock } from './clock.js?v=mw3jmzda';
-import { initHistory } from './history.js?v=mw3jmzda';
-import { initGroupSharing } from './group-share.js?v=mw3jmzda';
-import { initGroupShareUI } from './group-share-ui.js?v=mw3jmzda';
+import { loadFromStorage, saveNow, setDoc } from './state.js?v=mw3kjxkr';
+import { resize, requestRender } from './render.js?v=mw3kjxkr';
+import { initInput } from './input.js?v=mw3kjxkr';
+import { initCommandSearch } from './command-search.js?v=mw3kjxkr';
+import { initPanel } from './panel.js?v=mw3kjxkr';
+import { initMinimap } from './minimap.js?v=mw3kjxkr';
+import { initClock } from './clock.js?v=mw3kjxkr';
+import { initHistory } from './history.js?v=mw3kjxkr';
+import { initGroupSharing } from './group-share.js?v=mw3kjxkr';
+import { initGroupShareUI } from './group-share-ui.js?v=mw3kjxkr';
 
-import { initMobileMode } from './mobile-mode.js?v=mw3jmzda';
-import { localStorageFailed } from './local-store.js?v=mw3jmzda';
+import { initMobileMode } from './mobile-mode.js?v=mw3kjxkr';
+import { localStorageFailed } from './local-store.js?v=mw3kjxkr';
 
 initMobileMode();
 if (externalMode) {
@@ -43,7 +43,7 @@ initMinimap();
 initClock();
 if (!externalMode) {
   initHistory();
-  const { initDrive } = await import('./drive.js?v=mw3jmzda');
+  const { initDrive } = await import('./drive.js?v=mw3kjxkr');
   if (window.__TAURI__) {
     const driveSection = document.getElementById('drive-status').closest('section');
     driveSection.hidden = true;
@@ -52,7 +52,7 @@ if (!externalMode) {
       driveSection.hidden = false;
       initDrive();
     }).catch(console.error);
-    import('./desktop.js?v=mw3jmzda').then(({ initDesktop }) => initDesktop());
+    import('./desktop.js?v=mw3kjxkr').then(({ initDesktop }) => initDesktop());
   } else initDrive();
   initGroupSharing();
   initGroupShareUI();

@@ -1,3 +1,4 @@
+import { cleanGitHubData } from './github-repo.js?v=mw3kjxkr';
 // Shared groups use relative geometry and a bounded last-writer-wins register per block.
 // Lamport clocks avoid depending on the devices' wall clocks. Tombstones survive reconnection.
 export const MAX_MEMBERS = 1000;
@@ -27,6 +28,10 @@ export function cleanValue(raw, root = false) {
   if (n.kind !== 'group' && raw.hideLinkLabel === true) n.hideLinkLabel = true;
   if (typeof raw.link === 'string' && /^https?:\/\//i.test(raw.link) && raw.link.length <= 2000) n.link = raw.link;
   for (const k of ['name', 'price', 'delivery']) if (typeof raw[k] === 'string' && raw[k].trim()) n[k] = raw[k].trim().slice(0, 100);
+  if (n.kind === 'rect' && raw.github) {
+    const github = cleanGitHubData(raw.github, n.link || n.text);
+    if (github) n.github = github;
+  }
   return n;
 }
 

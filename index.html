@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Bête</title>
-  <link rel="stylesheet" href="css/style.css?v=mw3jmzda">
+  <link rel="stylesheet" href="css/style.css?v=mw3kjxkr">
 </head>
 <body>
   <canvas id="canvas"></canvas>
@@ -73,6 +73,7 @@
         </label>
       </div>
     </div>
+    <button type="button" id="github-refresh" hidden>Actualiser les informations GitHub</button>
     <section id="group-align" hidden>
       <button type="button" id="group-align-button">Aligner</button>
       <p id="group-align-status" class="hint" role="status">Prépare un aperçu du rangement des blocs.</p>
@@ -162,6 +163,14 @@
         <button id="drive-disconnect" hidden><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 4H4v16h5M10 12h11m-4-4 4 4-4 4"/></svg><span>Déconnecter</span></button>
       </section>
 
+      <section id="desktop-shortcuts" hidden>
+        <h2>Raccourci global Windows</h2>
+        <label><input type="checkbox" id="global-shortcut-enabled"> Activer le raccourci global</label>
+        <label class="field"><span>Ouvrir la barre de commande</span><input id="global-shortcut-value" type="text" value="Ctrl+Alt+Space" maxlength="100" spellcheck="false" autocomplete="off"></label>
+        <p class="hint">Exemple : Ctrl+Alt+Space. Bête doit rester lancée.</p>
+        <button type="button" id="global-shortcut-save">Enregistrer le raccourci</button>
+        <p id="global-shortcut-status" class="hint" role="status"></p>
+      </section>
       <h2 data-local-board><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 3H5v18h14V8l-5-5ZM14 3v6h5"/></svg>Fichier</h2>
       <button data-local-board type="button" id="optimize-images"><span aria-hidden="true">🗜️</span><span>Optimiser les images</span></button>
       <button data-local-board id="export"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 3H5v18h14v-9M13 3h8v8M21 3l-10 10"/></svg><span>Exporter JSON</span></button>
@@ -183,6 +192,6 @@
   <input type="file" id="image-file" accept="image/*" hidden>
   <input type="file" id="fileimport" accept="application/json,.json" hidden>
 
-  <script type="module" src="js/main.js?v=mw3jmzda"></script>
+  <script type="module" src="js/main.js?v=mw3kjxkr"></script>
 </body>
 </html>
