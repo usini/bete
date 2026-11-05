@@ -6,18 +6,21 @@ let lastT = 0;
 // Make a world box explode into coloured pieces.
 export function explode(x, y, w, h, color) {
   const cx = x + w / 2, cy = y + h / 2;
+  const particleColor = /^#[0-9a-f]{6}$/i.test(color || '') ? color : '#f2f2f2';
+  const scale = Math.max(1, Math.min(w, h) / 160);
   const count = Math.max(14, Math.min(48, Math.round((w * h) / 600)));
   for (let i = 0; i < count; i++) {
     const px = x + Math.random() * w;
     const py = y + Math.random() * h;
     const ang = Math.atan2(py - cy, px - cx) + (Math.random() - 0.5) * 1.2;
-    const sp = 130 + Math.random() * 360;
+    const sp = (130 + Math.random() * 360) * scale;
     particles.push({
       x: px, y: py,
       vx: Math.cos(ang) * sp,
-      vy: Math.sin(ang) * sp - 90,
-      size: 6 + Math.random() * 14,
-      color,
+      vy: Math.sin(ang) * sp - 90 * scale,
+      gravity: 900 * scale,
+      size: (6 + Math.random() * 14) * scale,
+      color: particleColor,
       life: 1,
       max: 0.55 + Math.random() * 0.5,
       rot: Math.random() * Math.PI,
@@ -35,7 +38,7 @@ export function updateFx(now) {
   lastT = now;
   for (const p of particles) {
     p.life -= dt / p.max;
-    p.vy += 900 * dt; // gravity
+    p.vy += p.gravity * dt; // gravity
     p.x += p.vx * dt;
     p.y += p.vy * dt;
     p.vx *= 0.99;

@@ -1,13 +1,13 @@
-import { initDesktopShortcuts } from './desktop-shortcuts.js?v=mw3kjxkr';
-import { optimizeBoardImages } from './optimize.js?v=mw3kjxkr';
-import { waitForDriveIdle, saveDriveBeforeClose } from './drive.js?v=mw3kjxkr';
-import { isEditing, stopEdit } from './editor.js?v=mw3kjxkr';
-import { initDesktopCalendar } from './calendar.js?v=mw3kjxkr';
-import { saveNow } from './state.js?v=mw3kjxkr';
-import { flushLocalWrites } from './local-store.js?v=mw3kjxkr';
-import { openLink } from './links.js?v=mw3kjxkr';
-import { notify } from './notifications.js?v=mw3kjxkr';
-import { parseShareLink } from './group-share.js?v=mw3kjxkr';
+import { initDesktopShortcuts } from './desktop-shortcuts.js?v=mw3kyoh5';
+import { optimizeBoardImages } from './optimize.js?v=mw3kyoh5';
+import { waitForDriveIdle, saveDriveBeforeClose } from './drive.js?v=mw3kyoh5';
+import { isEditing, stopEdit } from './editor.js?v=mw3kyoh5';
+import { initDesktopCalendar } from './calendar.js?v=mw3kyoh5';
+import { saveNow } from './state.js?v=mw3kyoh5';
+import { flushLocalWrites } from './local-store.js?v=mw3kyoh5';
+import { openLink } from './links.js?v=mw3kyoh5';
+import { notify } from './notifications.js?v=mw3kyoh5';
+import { parseShareLink } from './group-share.js?v=mw3kyoh5';
 
 function chooseUpdate(version) {
   const dialog = document.createElement('dialog');

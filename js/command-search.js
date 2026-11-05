@@ -1,14 +1,20 @@
-import { flyToBlock } from './camera.js?v=mw3kjxkr';
-import { linkOf } from './labels.js?v=mw3kjxkr';
-import { openLink } from './links.js?v=mw3kjxkr';
-import { serviceForNode } from './services.js?v=mw3kjxkr';
-import { getNode, select, state } from './state.js?v=mw3kjxkr';
-import { cachedYouTubeTitle, youTubeId } from './yt.js?v=mw3kjxkr';
+import { notify } from './notifications.js?v=mw3kyoh5';
+import { flyToBlock } from './camera.js?v=mw3kyoh5';
+import { linkOf } from './labels.js?v=mw3kyoh5';
+import { openLink } from './links.js?v=mw3kyoh5';
+import { serviceForNode } from './services.js?v=mw3kyoh5';
+import { getNode, select, state } from './state.js?v=mw3kyoh5';
+import { cachedYouTubeTitle, youTubeId } from './yt.js?v=mw3kyoh5';
 
 const normalize = text => text.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 
 function search(query) {
-  if (!query) return [];
+  const commands = window.__TAURI__ ? [
+    { command: 'focus', label: 'Focus' },
+    { command: 'minimize', label: 'Réduire' },
+  ] : [];
+  const commandMatches = commands.filter(item => normalize(item.label).startsWith(query));
+  if (!query) return commandMatches;
   const prefixes = [];
   const wordMatches = [];
   const escapedQuery = query.replace(/[.*+?^$\{\}()|[\]\\]/g, '\\$&');
@@ -23,7 +29,7 @@ function search(query) {
     const match = prefix || labels.find(({ text }) => wordPrefix.test(text));
     if (match) (prefix ? prefixes : wordMatches).push({ id: node.id, label: match.label, href, group: node.kind === 'group' });
   }
-  return prefixes.concat(wordMatches);
+  return commandMatches.concat(prefixes, wordMatches);
 }
 
 export function initCommandSearch() {
@@ -48,7 +54,7 @@ export function initCommandSearch() {
   function refresh() {
     const query = normalize(input.value);
     matches = search(query);
-    list.replaceChildren(...matches.map(({ label, href, group }, i) => {
+    list.replaceChildren(...matches.map(({ label, href, group, command }, i) => {
       const item = document.createElement('li');
       item.id = 'command-result-' + i;
       item.setAttribute('role', 'option');
@@ -56,7 +62,7 @@ export function initCommandSearch() {
       const text = document.createElement('span');
       text.textContent = label;
       const kind = document.createElement('small');
-      kind.textContent = group ? 'Groupe' : href ? 'Lien' : 'Bloc';
+      kind.textContent = command ? 'Commande Windows' : group ? 'Groupe' : href ? 'Lien' : 'Bloc';
       item.append(text, kind);
       return item;
     }));
@@ -68,6 +74,12 @@ export function initCommandSearch() {
 
   function activate(index) {
     const match = matches[index];
+    if (match?.command && window.__TAURI__) {
+      dialog.close();
+      if (match.command === 'focus') document.getElementById('fit-board').click();
+      else window.__TAURI__.core.invoke('minimize_window').catch(() => notify('Impossible de réduire la fenêtre.', { type: 'error' }));
+      return;
+    }
     const node = match && getNode(match.id);
     if (!node) return;
     dialog.close();

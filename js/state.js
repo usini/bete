@@ -1,11 +1,11 @@
-import { cleanGitHubData } from './github-repo.js?v=mw3kjxkr';
-import { amazonBadgeLayout } from './amazon.js?v=mw3kjxkr';
-import { labelLayout } from './labels.js?v=mw3kjxkr';
-import { externalMode } from './external-board.js?v=mw3kjxkr';
-import { localStore } from './local-store.js?v=mw3kjxkr';
+import { cleanGitHubData } from './github-repo.js?v=mw3kyoh5';
+import { amazonBadgeLayout } from './amazon.js?v=mw3kyoh5';
+import { labelLayout } from './labels.js?v=mw3kyoh5';
+import { externalMode } from './external-board.js?v=mw3kyoh5';
+import { localStore } from './local-store.js?v=mw3kyoh5';
 // Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mw3kjxkr';
+import { explode } from './fx.js?v=mw3kyoh5';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];

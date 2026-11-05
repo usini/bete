@@ -81,3 +81,5 @@ Pour un changement réservé au web, ajoute `[skip windows]` au message du derni
 ## Raccourci global
 
 Par défaut, **Ctrl+Alt+Espace** restaure la fenêtre et ouvre la barre de commande même depuis une autre application. La section **Raccourci global Windows** du menu permet de choisir une combinaison et de l’activer/désactiver. Le choix est conservé dans le dossier de configuration local Windows de Bête. Bête doit rester lancée ; fermer l’application libère le raccourci. Un conflit n’empêche pas le démarrage et peut être corrigé dans le menu.
+
+La barre de commande Windows propose **Focus** (même cadrage global que le bouton près de la minimap) et **Réduire** (réduit la fenêtre sans quitter Bête). Elles apparaissent dès l’ouverture de la barre et peuvent être filtrées en tapant leur nom, avec ou sans accents.

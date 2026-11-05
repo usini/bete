@@ -1,34 +1,34 @@
-import { updateGitHubCard } from './github-cards.js?v=mw3kjxkr';
-import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mw3kjxkr';
-import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mw3kjxkr';
-import { externalMode } from './external-board.js?v=mw3kjxkr';
+import { updateGitHubCard } from './github-cards.js?v=mw3kyoh5';
+import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mw3kyoh5';
+import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mw3kyoh5';
+import { externalMode } from './external-board.js?v=mw3kyoh5';
 // Pointer, wheel, keyboard, paste and drop handling for the canvas.
 //  - click on a label: edit popup, link field first (YouTube labels open the video instead)
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, getLastSelectedGroup, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, COLORS } from './state.js?v=mw3kjxkr';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw3kjxkr';
-import { startEdit, stopEdit, isEditing, previewGroupAlignment } from './editor.js?v=mw3kjxkr';
-import { addDataUrl, addImageFile, fitNodeImage, imageCaptionFraction, imageFor } from './images.js?v=mw3kjxkr';
-import { playVideo } from './video.js?v=mw3kjxkr';
-import { youTubeId } from './yt.js?v=mw3kjxkr';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mw3kjxkr';
-import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mw3kjxkr';
-import { undo, redo } from './history.js?v=mw3kjxkr';
+import { state, getNode, getSelectedId, getLastSelectedGroup, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, COLORS } from './state.js?v=mw3kyoh5';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw3kyoh5';
+import { startEdit, stopEdit, isEditing, previewGroupAlignment } from './editor.js?v=mw3kyoh5';
+import { addDataUrl, addImageFile, fitNodeImage, imageCaptionFraction, imageFor } from './images.js?v=mw3kyoh5';
+import { playVideo } from './video.js?v=mw3kyoh5';
+import { youTubeId } from './yt.js?v=mw3kyoh5';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mw3kyoh5';
+import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mw3kyoh5';
+import { undo, redo } from './history.js?v=mw3kyoh5';
 
-import { setDragging } from './motion.js?v=mw3kjxkr';
+import { setDragging } from './motion.js?v=mw3kyoh5';
 
-import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw3kjxkr';
-import { shortenAmazonText, isAmazonUrl, amazonBadgeLayout } from './amazon.js?v=mw3kjxkr';
+import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw3kyoh5';
+import { shortenAmazonText, isAmazonUrl, amazonBadgeLayout } from './amazon.js?v=mw3kyoh5';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mw3kjxkr';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mw3kyoh5';
 
-import { serviceForNode } from './services.js?v=mw3kjxkr';
+import { serviceForNode } from './services.js?v=mw3kyoh5';
 
-import { requestRender } from './render.js?v=mw3kjxkr';
+import { requestRender } from './render.js?v=mw3kyoh5';
 
-import { notify } from './notifications.js?v=mw3kjxkr';
+import { notify } from './notifications.js?v=mw3kyoh5';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 const CLIPBOARD_BLOCK = 'application/x-bete-clipboard-block';

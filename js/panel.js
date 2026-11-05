@@ -1,14 +1,14 @@
-import { externalMode, recentGithubBoards } from './external-board.js?v=mw3kjxkr';
+import { externalMode, recentGithubBoards } from './external-board.js?v=mw3kyoh5';
 // Right-hand panel: draggable blocks, selection tools, file actions.
-import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mw3kjxkr';
-import { screenToWorld, view, flyToBlock } from './camera.js?v=mw3kjxkr';
-import { BLOCK_MIME, pickImage } from './input.js?v=mw3kjxkr';
-import { exportDoc, importFile } from './storage.js?v=mw3kjxkr';
+import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mw3kyoh5';
+import { screenToWorld, view, flyToBlock } from './camera.js?v=mw3kyoh5';
+import { BLOCK_MIME, pickImage } from './input.js?v=mw3kyoh5';
+import { exportDoc, importFile } from './storage.js?v=mw3kyoh5';
 
 
-import { optimizeBoardImages as optimizeImages } from './optimize.js?v=mw3kjxkr';
-import { notify } from './notifications.js?v=mw3kjxkr';
-import { localStore } from './local-store.js?v=mw3kjxkr';
+import { optimizeBoardImages as optimizeImages } from './optimize.js?v=mw3kyoh5';
+import { notify } from './notifications.js?v=mw3kyoh5';
+import { localStore } from './local-store.js?v=mw3kyoh5';
 
 async function optimizeBoardImages(button) {
   const id = 'optimize-images';

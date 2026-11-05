@@ -10,6 +10,11 @@ use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_updater::UpdaterExt;
 
 #[tauri::command]
+fn minimize_window(window: tauri::WebviewWindow) -> Result<(), String> {
+    window.minimize().map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 fn open_browser(app: AppHandle, url: String) -> Result<(), String> {
     let parsed = Url::parse(&url).map_err(|_| "Adresse invalide.")?;
     if !matches!(parsed.scheme(), "https" | "http")
@@ -72,6 +77,7 @@ fn main() {
     builder
         .invoke_handler(tauri::generate_handler![
             open_browser,
+            minimize_window,
             shortcuts::get_global_shortcut,
             shortcuts::set_global_shortcut,
             check_update,
