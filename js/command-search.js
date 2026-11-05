@@ -1,11 +1,11 @@
-import { openApplication } from './applications.js?v=mw3slh1j';
-import { notify } from './notifications.js?v=mw3slh1j';
-import { flyToBlock } from './camera.js?v=mw3slh1j';
-import { linkOf } from './labels.js?v=mw3slh1j';
-import { openLink } from './links.js?v=mw3slh1j';
-import { serviceForNode } from './services.js?v=mw3slh1j';
-import { getNode, select, state } from './state.js?v=mw3slh1j';
-import { cachedYouTubeTitle, youTubeId } from './yt.js?v=mw3slh1j';
+import { openApplication } from './applications.js?v=mw443e0p';
+import { notify } from './notifications.js?v=mw443e0p';
+import { flyToBlock } from './camera.js?v=mw443e0p';
+import { linkOf } from './labels.js?v=mw443e0p';
+import { openLink } from './links.js?v=mw443e0p';
+import { serviceForNode } from './services.js?v=mw443e0p';
+import { getNode, select, state } from './state.js?v=mw443e0p';
+import { cachedYouTubeTitle, youTubeId } from './yt.js?v=mw443e0p';
 
 const normalize = text => text.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 

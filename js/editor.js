@@ -1,9 +1,11 @@
-import { githubRepository } from './github-repo.js?v=mw3slh1j';
-import { updateGitHubCard } from './github-cards.js?v=mw3slh1j';
-import { alignmentPlan } from './alignment.js?v=mw3slh1j';
-import { labelLayout } from './labels.js?v=mw3slh1j';
-import { amazonBadgeLayout } from './amazon.js?v=mw3slh1j';
-import { freeDropPosition } from './placement.js?v=mw3slh1j';
+import { exportGroup, GROUP_PREFIX } from './group-transfer.js?v=mw443e0p';
+import { notify } from './notifications.js?v=mw443e0p';
+import { githubRepository } from './github-repo.js?v=mw443e0p';
+import { updateGitHubCard } from './github-cards.js?v=mw443e0p';
+import { alignmentPlan } from './alignment.js?v=mw443e0p';
+import { labelLayout } from './labels.js?v=mw443e0p';
+import { amazonBadgeLayout } from './amazon.js?v=mw443e0p';
+import { freeDropPosition } from './placement.js?v=mw443e0p';
 // Edit mode: one popup (modal <dialog>) to change a block's text and link.
 // Opened by the 📝 button, a click on a label, Enter, or a double-click on a block with no link.
 //  - the text field is hidden for image blocks (they have no text)
@@ -11,18 +13,18 @@ import { freeDropPosition } from './placement.js?v=mw3slh1j';
 //  - when the link is an Amazon address the popup becomes "Produit Amazon": name, price and
 //    delivery time fields appear (typed by hand, shown in the block's label)
 // It closes only with the Annuler / Valider buttons (Ctrl+Enter, or Enter in a one-line field, also validate).
-import { state, getNode, emit, membersOf, fitGroupsAround, containingGroups, saveNow } from './state.js?v=mw3slh1j';
-import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw3slh1j';
-import { youTubeId } from './yt.js?v=mw3slh1j';
-import { addImageFile, imageFor, fitNodeImage } from './images.js?v=mw3slh1j';
+import { state, getNode, emit, membersOf, fitGroupsAround, containingGroups, saveNow } from './state.js?v=mw443e0p';
+import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw443e0p';
+import { youTubeId } from './yt.js?v=mw443e0p';
+import { addImageFile, imageFor, fitNodeImage } from './images.js?v=mw443e0p';
 
-import { genericLink } from './links.js?v=mw3slh1j';
+import { genericLink } from './links.js?v=mw443e0p';
 
-import { isLocked } from './mobile-mode.js?v=mw3slh1j';
+import { isLocked } from './mobile-mode.js?v=mw443e0p';
 
-import { serviceForNode } from './services.js?v=mw3slh1j';
-import { deliveryDelay } from './delivery.js?v=mw3slh1j';
-import { googleMapsEmbed } from './google-maps.js?v=mw3slh1j';
+import { serviceForNode } from './services.js?v=mw443e0p';
+import { deliveryDelay } from './delivery.js?v=mw443e0p';
+import { googleMapsEmbed } from './google-maps.js?v=mw443e0p';
 
 const dlg = document.getElementById('textdialog');
 const title = document.getElementById('dialog-title');
@@ -405,3 +407,21 @@ document.getElementById('group-resize-button').addEventListener('click', () => {
   stopEdit(true);
   if (!isEditing()) resizeGroupBlocks(id);
 });
+
+for(const [id,copy] of [['group-download-board',false],['group-copy-content',true]]) {
+  document.getElementById(id).addEventListener('click',async()=>{
+    const group=getNode(editingId),button=document.getElementById(id);
+    if(group?.kind!=='group')return;
+    button.disabled=true;
+    try{
+      const data=await exportGroup(group,el.value);
+      if(copy){await navigator.clipboard.writeText(GROUP_PREFIX+JSON.stringify(data));notify('Groupe copié : colle-le dans un tableau avec Ctrl+V.');}
+      else {
+        const name=(el.value.trim().split('\n')[0]||'groupe').replace(/[<>:"/\\|?*\u0000-\u001f]/g,'-').replace(/[. ]+$/g,'').slice(0,100)||'groupe';
+        const url=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));
+        const link=Object.assign(document.createElement('a'),{href:url,download:name+'.json'});document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+      }
+    }catch(error){notify(String(error.message||error),{type:'error'});}
+    finally{button.disabled=false;}
+  });
+}
