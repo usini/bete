@@ -1,14 +1,14 @@
-import { initApplications, flushApplicationWrites } from './applications.js?v=mw3mnbdx';
-import { initDesktopShortcuts } from './desktop-shortcuts.js?v=mw3mnbdx';
-import { optimizeBoardImages } from './optimize.js?v=mw3mnbdx';
-import { waitForDriveIdle, saveDriveBeforeClose } from './drive.js?v=mw3mnbdx';
-import { isEditing, stopEdit } from './editor.js?v=mw3mnbdx';
-import { initDesktopCalendar } from './calendar.js?v=mw3mnbdx';
-import { saveNow } from './state.js?v=mw3mnbdx';
-import { flushLocalWrites } from './local-store.js?v=mw3mnbdx';
-import { openLink } from './links.js?v=mw3mnbdx';
-import { notify } from './notifications.js?v=mw3mnbdx';
-import { parseShareLink } from './group-share.js?v=mw3mnbdx';
+import { initApplications, flushApplicationWrites } from './applications.js?v=mw3nilz8';
+import { initDesktopShortcuts } from './desktop-shortcuts.js?v=mw3nilz8';
+import { optimizeBoardImages } from './optimize.js?v=mw3nilz8';
+import { waitForDriveIdle, saveDriveBeforeClose, hasPendingDriveChanges } from './drive.js?v=mw3nilz8';
+import { isEditing, stopEdit } from './editor.js?v=mw3nilz8';
+import { initDesktopCalendar } from './calendar.js?v=mw3nilz8';
+import { saveNow } from './state.js?v=mw3nilz8';
+import { flushLocalWrites } from './local-store.js?v=mw3nilz8';
+import { openLink } from './links.js?v=mw3nilz8';
+import { notify } from './notifications.js?v=mw3nilz8';
+import { parseShareLink } from './group-share.js?v=mw3nilz8';
 
 function chooseUpdate(version) {
   const dialog = document.createElement('dialog');
@@ -78,7 +78,7 @@ export async function initDesktop() {
       progress = document.createElement('dialog');
       progress.className = 'share-approval';
       progress.setAttribute('aria-live', 'polite');
-      progress.textContent = 'Sauvegarde en cours — optimisation des images…';
+      progress.textContent = 'Fermeture en cours…';
       progress.addEventListener('cancel', event => event.preventDefault());
       document.body.append(progress);
       progress.show();
@@ -86,10 +86,14 @@ export async function initDesktop() {
       await waitForDriveIdle();
       progress.close();
       progress.showModal();
-      const optimized = await optimizeBoardImages();
-      if (optimized.failures) notify('Certaines images ont été conservées sans optimisation.', { type: 'info' });
+      const prepareBackup = hasPendingDriveChanges();
+      if (prepareBackup) {
+        progress.textContent = 'Sauvegarde en cours — optimisation des images…';
+        const optimized = await optimizeBoardImages();
+        if (optimized.failures) notify('Certaines images ont été conservées sans optimisation.', { type: 'info' });
+      }
       if (await saveNow() !== true || !await flushLocalWrites()) throw new Error('La sauvegarde locale a échoué. Exporte le tableau avant de continuer.');
-      progress.textContent = 'Sauvegarde en cours — Google Drive…';
+      progress.textContent = prepareBackup ? 'Sauvegarde en cours — Google Drive…' : 'Fermeture en cours…';
       await saveDriveBeforeClose();
       if (await saveNow() !== true || !await flushLocalWrites()) throw new Error('La sauvegarde locale a échoué.');
       if (version) {

@@ -1,28 +1,28 @@
-import { applicationAllowed, applicationEvents } from './applications.js?v=mw3mnbdx';
-import { githubRepository, cleanGitHubData } from './github-repo.js?v=mw3mnbdx';
-import { dropPreviewGroup } from './placement.js?v=mw3mnbdx';
-import { externalMode } from './external-board.js?v=mw3mnbdx';
-import { positionEmbeds } from './embed-view.js?v=mw3mnbdx';
+import { applicationAllowed, applicationEvents } from './applications.js?v=mw3nilz8';
+import { githubRepository, cleanGitHubData } from './github-repo.js?v=mw3nilz8';
+import { dropPreviewGroup } from './placement.js?v=mw3nilz8';
+import { externalMode } from './external-board.js?v=mw3nilz8';
+import { positionEmbeds } from './embed-view.js?v=mw3nilz8';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize, groupHeaderHeight } from './state.js?v=mw3mnbdx';
-import { view, screenToWorld } from './camera.js?v=mw3mnbdx';
-import { youTubeId, ytThumb } from './yt.js?v=mw3mnbdx';
-import { imageCaptionFraction, imageFor } from './images.js?v=mw3mnbdx';
-import { positionVideo, isVideoPlaying } from './video.js?v=mw3mnbdx';
-import { guides } from './snap.js?v=mw3mnbdx';
-import { renderMinimap } from './minimap.js?v=mw3mnbdx';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mw3mnbdx';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw3mnbdx';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw3mnbdx';
+import { state, events, getSelectedId, groupsBySize, groupHeaderHeight } from './state.js?v=mw3nilz8';
+import { view, screenToWorld } from './camera.js?v=mw3nilz8';
+import { youTubeId, ytThumb } from './yt.js?v=mw3nilz8';
+import { imageCaptionFraction, imageFor } from './images.js?v=mw3nilz8';
+import { positionVideo, isVideoPlaying } from './video.js?v=mw3nilz8';
+import { guides } from './snap.js?v=mw3nilz8';
+import { renderMinimap } from './minimap.js?v=mw3nilz8';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mw3nilz8';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw3nilz8';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw3nilz8';
 
-import { genericLinkOf, plainLink } from './links.js?v=mw3mnbdx';
-import { stepMotion } from './motion.js?v=mw3mnbdx';
-import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw3mnbdx';
+import { genericLinkOf, plainLink } from './links.js?v=mw3nilz8';
+import { stepMotion } from './motion.js?v=mw3nilz8';
+import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw3nilz8';
 
-import { isLocked } from './mobile-mode.js?v=mw3mnbdx';
+import { isLocked } from './mobile-mode.js?v=mw3nilz8';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mw3mnbdx';
-import { amazonBadgeLayout } from './amazon.js?v=mw3mnbdx';
+import { serviceForNode, serviceIcon } from './services.js?v=mw3nilz8';
+import { amazonBadgeLayout } from './amazon.js?v=mw3nilz8';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');

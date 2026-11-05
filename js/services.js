@@ -1,4 +1,4 @@
-import { githubRepository } from './github-repo.js?v=mw3mnbdx';
+import { githubRepository } from './github-repo.js?v=mw3nilz8';
 // Explicit host/path rules only. Never fetch metadata or a favicon from a linked service.
 const root = path => path === '/';
 const oneOf = (...paths) => path => paths.includes(path);

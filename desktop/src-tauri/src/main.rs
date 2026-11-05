@@ -83,6 +83,7 @@ fn main() {
             applications::application_launch_status,
             applications::set_application_launch_enabled,
             applications::launch_application,
+            applications::pick_application,
             minimize_window,
             shortcuts::get_global_shortcut,
             shortcuts::set_global_shortcut,

@@ -8,7 +8,7 @@ function client(remote, failUpload=false) {
  const source=readFileSync(new URL('../js/drive.js',import.meta.url),'utf8').replace(/^import .*;\r?\n/gm,'').replaceAll('export ','');
  const ctx=vm.createContext({
   localStore:{getItem:()=>null,removeItem(){},setItem(){}},state:{nodes:[{id:'a',text:'local'}]},
-  serialize:()=>({nodes:ctx.state.nodes}),document:{getElementById:()=>element},notify(){},updateBackupSize(){},
+  serialize:()=>({nodes:ctx.state.nodes,camera:ctx.state.camera}),document:{getElementById:()=>element},notify(){},updateBackupSize(){},
   URLSearchParams,AbortSignal,Response,console,exportData:async()=>({nodes:ctx.state.nodes}),
   fetch:async(url,options={})=>{calls.push(options.method||'GET');if(url.includes('/upload/')) {if(failUpload)throw new TypeError('offline');return Response.json({id:'file',modifiedTime:'new'});}return Response.json({files:remote?[remote]:[]});},
  });
@@ -37,4 +37,15 @@ test('unchanged desktop shutdown skips all network requests, but real changes st
  vm.runInContext('state.nodes[0].text="changed";',ctx);
  assert.equal((await vm.runInContext('saveDriveBeforeClose()',ctx)).skipped,false);assert.deepEqual(calls,['GET','PATCH']);
  assert.equal((await vm.runInContext('saveDriveBeforeClose()',ctx)).skipped,true);assert.deepEqual(calls,['GET','PATCH']);
+});
+
+test('panning and zooming the view do not dirty Drive or trigger a closing upload',async()=>{
+ const {ctx,calls}=client({id:'file',modifiedTime:'old'});
+ vm.runInContext('state.camera={x:0,y:0,zoom:1};meta.sig=hash(nodesJson());',ctx);
+ assert.equal(vm.runInContext('hasPendingDriveChanges()',ctx),false);
+ vm.runInContext('state.camera={x:1000,y:-500,zoom:.25};',ctx);
+ assert.equal(vm.runInContext('hasPendingDriveChanges()',ctx),false);
+ assert.equal((await vm.runInContext('saveDriveBeforeClose()',ctx)).skipped,true);assert.deepEqual(calls,[]);
+ vm.runInContext('state.nodes[0].x=50;',ctx);
+ assert.equal(vm.runInContext('hasPendingDriveChanges()',ctx),true);
 });

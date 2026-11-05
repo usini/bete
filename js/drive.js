@@ -1,5 +1,5 @@
-import { localStore } from './local-store.js?v=mw3mnbdx';
-import { updateBackupSize } from './backup-size.js?v=mw3mnbdx';
+import { localStore } from './local-store.js?v=mw3nilz8';
+import { updateBackupSize } from './backup-size.js?v=mw3nilz8';
 // Optional backup of the board on Google Drive.
 //
 //  - Scope: drive.appdata only. The file (Bete.json) lives in a hidden folder reserved to this
@@ -7,12 +7,12 @@ import { updateBackupSize } from './backup-size.js?v=mw3mnbdx';
 //  - Sign-in: OAuth code flow through a stateless service. Access tokens stay in memory.
 //  - Drive transfers happen only on explicit save, restore or initial connection.
 //    Local autosave remains automatic; leaving with unsaved Drive changes warns the user.
-import { state, onSaved, saveNow, serialize } from './state.js?v=mw3mnbdx';
-import { exportData, importData } from './storage.js?v=mw3mnbdx';
+import { state, onSaved, saveNow, serialize } from './state.js?v=mw3nilz8';
+import { exportData, importData } from './storage.js?v=mw3nilz8';
 
-import { notify } from './notifications.js?v=mw3mnbdx';
+import { notify } from './notifications.js?v=mw3nilz8';
 
-import { modeEvents } from './mobile-mode.js?v=mw3mnbdx';
+import { modeEvents } from './mobile-mode.js?v=mw3nilz8';
 
 const AUTH_URL = 'https://auth-bete.usini.eu';
 const FILE_NAME = 'Bete.json';
@@ -503,6 +503,9 @@ export function initDrive() {
 // Desktop shutdown must await existing transfers and never overwrite a newer remote backup.
 export async function waitForDriveIdle() {
   while (busy) await new Promise(resolve => idleWaiters.push(resolve));
+}
+export function hasPendingDriveChanges() {
+  return !meta || !meta.sig || conflictPending || hash(nodesJson()) !== meta.sig;
 }
 export async function saveDriveBeforeClose() {
   await waitForDriveIdle();

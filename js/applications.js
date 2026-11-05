@@ -1,12 +1,15 @@
-import { state, events, addNode, getNode, emit } from './state.js?v=mw3mnbdx';
-import { externalMode } from './external-board.js?v=mw3mnbdx';
-import { isLocked } from './mobile-mode.js?v=mw3mnbdx';
-import { notify } from './notifications.js?v=mw3mnbdx';
-import { cleanApplication, newSteamApplication } from './application-model.js?v=mw3mnbdx';
+import { screenToWorld, view } from './camera.js?v=mw3nilz8';
+import { state, events, addNode, getNode, emit } from './state.js?v=mw3nilz8';
+import { externalMode } from './external-board.js?v=mw3nilz8';
+import { isLocked } from './mobile-mode.js?v=mw3nilz8';
+import { notify } from './notifications.js?v=mw3nilz8';
+import { cleanApplication, newSteamApplication } from './application-model.js?v=mw3nilz8';
 export const applicationEvents=new EventTarget();
 let lastSnapshot=null;
 let native=null,queue=Promise.resolve(),status={enabled:false,approved:{}};
 let opening=false,lastOpened=0,lastBlock='';
+const pendingDrops=new Map();
+function finishDrop(id){clearTimeout(pendingDrops.get(id));pendingDrops.delete(id);}
 const repaint=()=>applicationEvents.dispatchEvent(new Event('change'));
 export const applicationAllowed=node=>!!native&&status.enabled&&status.approved[node.id]===node.application?.reference;
 export const flushApplicationWrites=()=>queue;
@@ -33,7 +36,11 @@ export function dropApplicationFile(file,x,y){
     return true;
   }
   if(!window.chrome?.webview?.postMessageWithAdditionalObjects){notify('Ce WebView2 ne permet pas le dépôt d’applications. Mets à jour WebView2.',{type:'error'});return true;}
-  window.chrome.webview.postMessageWithAdditionalObjects({type:'bete-application-drop',x,y},[file]);return true;
+  const requestId=crypto.randomUUID();
+  pendingDrops.set(requestId,setTimeout(()=>{pendingDrops.delete(requestId);notify('Le dépôt n’a pas été reçu par Windows. Utilise Ajouter une application dans le menu.',{type:'error',duration:0});},5000));
+  try{window.chrome.webview.postMessageWithAdditionalObjects(JSON.stringify({type:'bete-application-drop',x,y,requestId}),[file]);}
+  catch(error){finishDrop(requestId);notify('Dépôt impossible : '+String(error),{type:'error',duration:0});}
+  return true;
 }
 export async function openApplication(node){
   if(!node?.application)return false;
@@ -54,11 +61,22 @@ export async function initApplications(desktop){
   const update=()=>{button.textContent=status.enabled?'Désactiver l’ouverture d’applications':'Activer l’ouverture d’applications';label.textContent=status.enabled?'Chaque nouveau bloc nécessite aussi une autorisation individuelle.':'Ouverture désactivée sur cet ordinateur.';};
   applicationEvents.addEventListener('change',update);
   await desktop.event.listen('bete-application-dropped',event=>{
-    if(isLocked()||externalMode)return;
+    finishDrop(event.payload.requestId);
+    if(isLocked()||externalMode){notify('Déverrouille le tableau avec V pour ajouter une application.');return;}
     const {application,x,y}=event.payload;
     if(Number.isFinite(x)&&Number.isFinite(y)&&Math.abs(x)<=1e6&&Math.abs(y)<=1e6)addApplicationBlock(application,x,y);
   });
-  await desktop.event.listen('bete-application-error',event=>notify(String(event.payload),{type:'error',duration:0}));
+  await desktop.event.listen('bete-application-error',event=>{finishDrop(event.payload?.requestId);notify(String(event.payload?.message||event.payload),{type:'error',duration:0});});
+  const add=document.getElementById('application-add');
+  add.addEventListener('click',async()=>{
+    if(isLocked()||externalMode){notify('Déverrouille le tableau avec V pour ajouter une application.');return;}
+    add.disabled=true;
+    try{
+      const application=await desktop.core.invoke('pick_application');
+      if(application&&!isLocked()&&!externalMode){const center=screenToWorld(view.w/2,view.h/2);addApplicationBlock(application,center.x,center.y);}
+    }catch(error){notify(String(error),{type:'error',duration:0});}
+    finally{add.disabled=false;}
+  });
   events.addEventListener('change',()=>{sync().catch(error=>notify('Autorisations locales : '+String(error),{type:'error'}));});
   button.addEventListener('click',async()=>{
     button.disabled=true;

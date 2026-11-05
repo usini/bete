@@ -1,3 +1,5 @@
+import vm from 'node:vm';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cleanApplication, steamApplicationUri } from '../js/application-model.js';
@@ -11,4 +13,12 @@ test('portable application blocks cannot import launch permissions, paths, comma
  assert.deepEqual(cleanApplication(raw),{reference:'a'.repeat(64),label:'Application'});
  const clean=cleanValue({kind:'rect',application:raw});assert.deepEqual(clean.application,{reference:'a'.repeat(64),label:'Application'});
  assert.equal(cleanApplication({reference:'../../cmd.exe'}),null);
+});
+
+test('WebView2 file drops use a JSON string so Wry does not swallow the additional file object',()=>{
+ const source=readFileSync(new URL('../js/applications.js',import.meta.url),'utf8').replace(/^import .*;\r?\n/gm,'').replaceAll('export ','');
+ let sent;const file={name:'Bambu Studio.lnk'};
+ const ctx=vm.createContext({EventTarget,crypto:{randomUUID:()=> 'request-1'},setTimeout:()=>1,clearTimeout(){},notify(){},window:{__TAURI__:{},chrome:{webview:{postMessageWithAdditionalObjects:(message,files)=>{sent={message,files};}}}}});
+ vm.runInContext(source,ctx);ctx.file=file;assert.equal(vm.runInContext('dropApplicationFile(file,10,20)',ctx),true);
+ assert.equal(typeof sent.message,'string');assert.equal(JSON.parse(sent.message).type,'bete-application-drop');assert.equal(sent.files[0],file);
 });

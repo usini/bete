@@ -299,3 +299,7 @@ Une croix rouge indique un bloc non autorisé, ou un lancement global désactiv�
 Les chemins réseau/amovibles, les scripts, les interpréteurs usuels et les raccourcis avec arguments sont refusés. Un changement du contenu de l’exécutable exige une nouvelle confirmation. Voir [la note de sécurité](SECURITE-APPLICATIONS.md).
 
 Depuis la barre de commande appelée par la hotkey Windows, l’ouverture réussie d’un lien ou d’une application réduit Bête. L’ouverture locale avec Espace conserve la fenêtre.
+
+Déplacer ou zoomer la vue, déplacer ou redimensionner la fenêtre Windows ne déclenche pas de sauvegarde Drive. Si le contenu et l’historique sont déjà sauvegardés, la fermeture conserve uniquement la vue en local et ne lance pas un nettoyage automatique susceptible de créer une modification artificielle.
+
+Sous Windows, **Menu → Applications sur cet ordinateur → Ajouter une application…** permet aussi de choisir un `.lnk`, `.exe` ou `.url` Steam via le sélecteur natif. Il crée un bloc non autorisé, à valider individuellement au premier clic. Si un dépôt ne transmet pas le fichier, Bête affiche désormais une erreur et propose ce parcours. Le tableau doit être déverrouillé (V).

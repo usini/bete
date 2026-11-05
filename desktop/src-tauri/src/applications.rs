@@ -509,6 +509,45 @@ fn launch(app: &AppHandle, id: &str, reference: &str) -> Result<bool, String> {
     state.prompting.store(false, Ordering::SeqCst);
     result
 }
+#[tauri::command]
+pub async fn pick_application(app: AppHandle) -> Result<Option<Application>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let Some(file) = app
+            .dialog()
+            .file()
+            .set_title("Ajouter une application Windows")
+            .add_filter("Applications et raccourcis", &["exe", "lnk", "url"])
+            .blocking_pick_file()
+        else {
+            return Ok(None);
+        };
+        let path = file.into_path().map_err(|e| e.to_string())?;
+        use windows::Win32::System::Com::{
+            CoInitializeEx, CoUninitialize, COINIT_APARTMENTTHREADED,
+        };
+        let initialized = unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED).is_ok() };
+        let result = from_file(&app, &path).map(Some);
+        if initialized {
+            unsafe {
+                CoUninitialize();
+            }
+        }
+        result
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+fn decode_drop_message(text: &str) -> Option<serde_json::Value> {
+    if text.len() > 2048 {
+        return None;
+    }
+    let mut value: serde_json::Value = serde_json::from_str(text).ok()?;
+    // Wry's preceding IPC listener requires a string message, so accept its envelope.
+    if let Some(inner) = value.as_str() {
+        value = serde_json::from_str(inner).ok()?;
+    }
+    (value["type"] == "bete-application-drop").then_some(value)
+}
 // Get the actual dropped file from WebView2; JavaScript never supplies an executable path.
 pub fn install_file_bridge(window: &tauri::WebviewWindow) -> tauri::Result<()> {
     use webview2_com::{
@@ -528,15 +567,22 @@ pub fn install_file_bridge(window: &tauri::WebviewWindow) -> tauri::Result<()> {
             let trusted=tauri::Url::parse(&source).ok().is_some_and(|u|(u.scheme()=="tauri"&&u.host_str()==Some("localhost"))||(u.scheme()=="http"&&u.host_str()==Some("tauri.localhost")&&u.port().is_none()));
             if !trusted{return Ok(());}
             let mut message=PWSTR::null();args.WebMessageAsJson(&mut message)?;
-            let text=take_pwstr(message);if text.len()>2048{return Ok(());}
-            let Ok(value)=serde_json::from_str::<serde_json::Value>(&text)else{return Ok(());};
-            if value["type"]!="bete-application-drop"{return Ok(());}
-            let objects=args.cast::<ICoreWebView2WebMessageReceivedEventArgs2>()?.AdditionalObjects()?;let mut count=0;objects.Count(&mut count)?;if count!=1{return Ok(());}
-            let file=objects.GetValueAtIndex(0)?.cast::<ICoreWebView2File>()?;
-            let mut path=PWSTR::null();file.Path(&mut path)?;let path=take_pwstr(path);
-            match from_file(&app,Path::new(&path)){
-                Ok(application)=>{let _=app.emit_to("main","bete-application-dropped",serde_json::json!({"application":application,"x":value["x"],"y":value["y"]}));},
-                Err(error)=>{let _=app.emit_to("main","bete-application-error",error);}
+            let text=take_pwstr(message);
+            let Some(value)=decode_drop_message(&text)else{return Ok(());};
+            let result = (|| -> Result<Application,String> {
+                let args2 = args.cast::<ICoreWebView2WebMessageReceivedEventArgs2>().map_err(|e| format!("WebView2 ne transmet pas le fichier : {e}"))?;
+                let objects = args2.AdditionalObjects().map_err(|e| e.to_string())?;
+                let mut count=0; objects.Count(&mut count).map_err(|e|e.to_string())?;
+                if count!=1 { return Err("Aucun fichier reçu. Utilise Ajouter une application dans le menu.".into()); }
+                let file=objects.GetValueAtIndex(0).and_then(|v|v.cast::<ICoreWebView2File>()).map_err(|e|format!("Fichier non reconnu par WebView2 : {e}"))?;
+                let mut path=PWSTR::null();file.Path(&mut path).map_err(|e|e.to_string())?;
+                let path=take_pwstr(path);
+                if path.is_empty(){return Err("Le raccourci déposé n’a pas de chemin local. Utilise Ajouter une application dans le menu.".into());}
+                from_file(&app,Path::new(&path))
+            })();
+            match result {
+                Ok(application)=>{let _=app.emit_to("main","bete-application-dropped",serde_json::json!({"application":application,"x":value["x"],"y":value["y"],"requestId":value["requestId"]}));},
+                Err(error)=>{let _=app.emit_to("main","bete-application-error",serde_json::json!({"message":error,"requestId":value["requestId"]}));}
             }
             Ok(())
         })),&mut token);
@@ -709,5 +755,16 @@ mod tests {
         unsafe {
             CoUninitialize();
         }
+    }
+    #[test]
+    fn file_drop_messages_accept_the_wry_string_envelope() {
+        let message =
+            serde_json::json!({"type":"bete-application-drop","requestId":"test","x":10,"y":20});
+        let plain = message.to_string();
+        let wrapped = serde_json::to_string(&plain).unwrap();
+        assert_eq!(decode_drop_message(&wrapped).unwrap()["requestId"], "test");
+        assert!(decode_drop_message(&plain).is_some());
+        assert!(decode_drop_message("{}").is_none());
+        assert!(decode_drop_message(&"x".repeat(2049)).is_none());
     }
 }

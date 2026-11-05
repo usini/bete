@@ -4,13 +4,13 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 const source=readFileSync(new URL('../js/desktop.js',import.meta.url),'utf8')
   .replace(/^import .*;\r?\n/gm,'').replace(/function chooseUpdate\(version\) \{[\s\S]*?\nexport async function initDesktop/, 'async function initDesktop');
-async function run(choice, saved=true, driveFail=false) {
+async function run(choice, saved=true, driveFail=false, pendingChanges=true) {
   const calls=[];let close;
   const element=()=>({addEventListener(){},setAttribute(){},append(){},after(){},show(){},close(){},showModal(){},remove(){}});
   const ctx=vm.createContext({
     window:{__TAURI__:{core:{invoke:async(command,args)=>{calls.push([command,args]);return command==='check_update'?'0.9.0':undefined;}},window:{getCurrentWindow:()=>({onCloseRequested:async fn=>{close=fn;},destroy:async()=>calls.push(['destroy'])})}}},
     document:{createElement:element,querySelector:element,body:{append(){}}},
-    initApplications:async()=>{},flushApplicationWrites:async()=>{},initDesktopShortcuts:async()=>{},isEditing:()=>false,stopEdit(){},waitForDriveIdle:async()=>{calls.push(['idle']);},
+    hasPendingDriveChanges:()=>pendingChanges,initApplications:async()=>{},flushApplicationWrites:async()=>{},initDesktopShortcuts:async()=>{},isEditing:()=>false,stopEdit(){},waitForDriveIdle:async()=>{calls.push(['idle']);},
     optimizeBoardImages:async()=>{calls.push(['optimize']);return {count:1,failures:0};},
     saveDriveBeforeClose:async()=>{calls.push(['drive']);if(driveFail)throw new Error('Drive hors ligne');},
     initDesktopCalendar(){},chooseUpdate:async()=>choice,saveNow:async()=>{calls.push(['save']);return saved;},flushLocalWrites:async()=>{calls.push(['flush']);return true;},
@@ -47,4 +47,11 @@ test('failed Drive backup keeps the app open and prevents update installation',a
   assert.ok(calls.some(([n])=>n==='error'));
   assert.ok(!calls.some(([n])=>n==='destroy'||n==='install_update'));
  }
+});
+
+test('view-only desktop changes do not manufacture a backup by optimizing images or clearing history',async()=>{
+ const {calls,close}=await run('later',true,false,false);await close({preventDefault(){}});
+ assert.ok(!calls.some(([name])=>name==='optimize'));
+ assert.ok(calls.some(([name])=>name==='save'));
+ assert.ok(calls.some(([name])=>name==='destroy'));
 });
