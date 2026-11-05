@@ -1,7 +1,7 @@
-import { localStore } from './local-store.js?v=mw3s4pp0';
+import { localStore } from './local-store.js?v=mw3slh1j';
 // YouTube helpers: URL detection, thumbnail / embed URLs, and video titles.
 // A rectangle whose text contains a YouTube URL is rendered as a video.
-export { youTubeId } from './youtube-url.js?v=mw3s4pp0';
+export { youTubeId } from './youtube-url.js?v=mw3slh1j';
 export function ytThumb(id) { return 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg'; }
 export function ytEmbed(id) { return 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0&playsinline=1'; }
 

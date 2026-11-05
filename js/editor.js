@@ -1,9 +1,9 @@
-import { githubRepository } from './github-repo.js?v=mw3s4pp0';
-import { updateGitHubCard } from './github-cards.js?v=mw3s4pp0';
-import { alignmentPlan } from './alignment.js?v=mw3s4pp0';
-import { labelLayout } from './labels.js?v=mw3s4pp0';
-import { amazonBadgeLayout } from './amazon.js?v=mw3s4pp0';
-import { freeDropPosition } from './placement.js?v=mw3s4pp0';
+import { githubRepository } from './github-repo.js?v=mw3slh1j';
+import { updateGitHubCard } from './github-cards.js?v=mw3slh1j';
+import { alignmentPlan } from './alignment.js?v=mw3slh1j';
+import { labelLayout } from './labels.js?v=mw3slh1j';
+import { amazonBadgeLayout } from './amazon.js?v=mw3slh1j';
+import { freeDropPosition } from './placement.js?v=mw3slh1j';
 // Edit mode: one popup (modal <dialog>) to change a block's text and link.
 // Opened by the 📝 button, a click on a label, Enter, or a double-click on a block with no link.
 //  - the text field is hidden for image blocks (they have no text)
@@ -11,18 +11,18 @@ import { freeDropPosition } from './placement.js?v=mw3s4pp0';
 //  - when the link is an Amazon address the popup becomes "Produit Amazon": name, price and
 //    delivery time fields appear (typed by hand, shown in the block's label)
 // It closes only with the Annuler / Valider buttons (Ctrl+Enter, or Enter in a one-line field, also validate).
-import { state, getNode, emit, membersOf, fitGroupsAround, containingGroups, saveNow } from './state.js?v=mw3s4pp0';
-import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw3s4pp0';
-import { youTubeId } from './yt.js?v=mw3s4pp0';
-import { addImageFile, imageFor, fitNodeImage } from './images.js?v=mw3s4pp0';
+import { state, getNode, emit, membersOf, fitGroupsAround, containingGroups, saveNow } from './state.js?v=mw3slh1j';
+import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw3slh1j';
+import { youTubeId } from './yt.js?v=mw3slh1j';
+import { addImageFile, imageFor, fitNodeImage } from './images.js?v=mw3slh1j';
 
-import { genericLink } from './links.js?v=mw3s4pp0';
+import { genericLink } from './links.js?v=mw3slh1j';
 
-import { isLocked } from './mobile-mode.js?v=mw3s4pp0';
+import { isLocked } from './mobile-mode.js?v=mw3slh1j';
 
-import { serviceForNode } from './services.js?v=mw3s4pp0';
-import { deliveryDelay } from './delivery.js?v=mw3s4pp0';
-import { googleMapsEmbed } from './google-maps.js?v=mw3s4pp0';
+import { serviceForNode } from './services.js?v=mw3slh1j';
+import { deliveryDelay } from './delivery.js?v=mw3slh1j';
+import { googleMapsEmbed } from './google-maps.js?v=mw3slh1j';
 
 const dlg = document.getElementById('textdialog');
 const title = document.getElementById('dialog-title');

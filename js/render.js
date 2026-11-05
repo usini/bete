@@ -1,28 +1,28 @@
-import { applicationAllowed, applicationEvents } from './applications.js?v=mw3s4pp0';
-import { githubRepository, cleanGitHubData } from './github-repo.js?v=mw3s4pp0';
-import { dropPreviewGroup } from './placement.js?v=mw3s4pp0';
-import { externalMode } from './external-board.js?v=mw3s4pp0';
-import { positionEmbeds } from './embed-view.js?v=mw3s4pp0';
+import { applicationAllowed, applicationEvents } from './applications.js?v=mw3slh1j';
+import { githubRepository, cleanGitHubData } from './github-repo.js?v=mw3slh1j';
+import { dropPreviewGroup } from './placement.js?v=mw3slh1j';
+import { externalMode } from './external-board.js?v=mw3slh1j';
+import { positionEmbeds } from './embed-view.js?v=mw3slh1j';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize, groupHeaderHeight, groupHeaderBox } from './state.js?v=mw3s4pp0';
-import { view, screenToWorld } from './camera.js?v=mw3s4pp0';
-import { youTubeId, ytThumb } from './yt.js?v=mw3s4pp0';
-import { imageCaptionFraction, imageFor } from './images.js?v=mw3s4pp0';
-import { positionVideo, isVideoPlaying } from './video.js?v=mw3s4pp0';
-import { guides } from './snap.js?v=mw3s4pp0';
-import { renderMinimap } from './minimap.js?v=mw3s4pp0';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mw3s4pp0';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw3s4pp0';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw3s4pp0';
+import { state, events, getSelectedId, groupsBySize, groupHeaderHeight, groupHeaderBox } from './state.js?v=mw3slh1j';
+import { view, screenToWorld } from './camera.js?v=mw3slh1j';
+import { youTubeId, ytThumb } from './yt.js?v=mw3slh1j';
+import { imageCaptionFraction, imageFor } from './images.js?v=mw3slh1j';
+import { positionVideo, isVideoPlaying } from './video.js?v=mw3slh1j';
+import { guides } from './snap.js?v=mw3slh1j';
+import { renderMinimap } from './minimap.js?v=mw3slh1j';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mw3slh1j';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw3slh1j';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw3slh1j';
 
-import { genericLinkOf, plainLink } from './links.js?v=mw3s4pp0';
-import { stepMotion } from './motion.js?v=mw3s4pp0';
-import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw3s4pp0';
+import { genericLinkOf, plainLink } from './links.js?v=mw3slh1j';
+import { stepMotion } from './motion.js?v=mw3slh1j';
+import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw3slh1j';
 
-import { isLocked } from './mobile-mode.js?v=mw3s4pp0';
+import { isLocked } from './mobile-mode.js?v=mw3slh1j';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mw3s4pp0';
-import { amazonBadgeLayout } from './amazon.js?v=mw3s4pp0';
+import { serviceForNode, serviceIcon } from './services.js?v=mw3slh1j';
+import { amazonBadgeLayout } from './amazon.js?v=mw3slh1j';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -273,9 +273,21 @@ function drawGroup(n) {
   ctx.fillStyle = textOn(n.color === 'transparent' ? '#ffffff' : n.color);
   if (!title) ctx.globalAlpha = 0.45; // placeholder
   const text = title || 'Groupe';
-  const size = fitLine(text, n.w - 4 * PAD, hh * 0.62);
+  // Follow the visible header height instead of shrinking the whole title to fit.
+  const size = hh * 0.62;
   ctx.font = '600 ' + size + 'px ' + FONT_FAMILY;
-  ctx.fillText(text, n.x + n.w / 2, header.y + hh / 2);
+  const available = Math.max(0, n.w - 2 * Math.min(n.w * 0.04, 8 / state.camera.zoom));
+  let label = text;
+  if (ctx.measureText(label).width > available) {
+    let low = 0, high = text.length;
+    while (low < high) {
+      const mid = Math.ceil((low + high) / 2);
+      if (ctx.measureText(text.slice(0, mid) + '…').width <= available) low = mid;
+      else high = mid - 1;
+    }
+    label = ctx.measureText('…').width <= available ? text.slice(0, low) + '…' : '';
+  }
+  ctx.fillText(label, n.x + n.w / 2, header.y + hh / 2);
   ctx.restore();
   if (isGroupShared(n)) drawSharedGlow(n);
 }
