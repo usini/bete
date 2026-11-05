@@ -1,36 +1,36 @@
-import { addSteamBlock, dropApplicationFile, openApplication } from './applications.js?v=mw3nilz8';
-import { steamApplicationUri } from './application-model.js?v=mw3nilz8';
-import { updateGitHubCard } from './github-cards.js?v=mw3nilz8';
-import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mw3nilz8';
-import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mw3nilz8';
-import { externalMode } from './external-board.js?v=mw3nilz8';
+import { addSteamBlock, dropApplicationFile, openApplication } from './applications.js?v=mw3rh9st';
+import { steamApplicationUri } from './application-model.js?v=mw3rh9st';
+import { updateGitHubCard } from './github-cards.js?v=mw3rh9st';
+import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mw3rh9st';
+import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mw3rh9st';
+import { externalMode } from './external-board.js?v=mw3rh9st';
 // Pointer, wheel, keyboard, paste and drop handling for the canvas.
 //  - click on a label: edit popup, link field first (YouTube labels open the video instead)
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, getLastSelectedGroup, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, COLORS } from './state.js?v=mw3nilz8';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight, flyToBlock } from './camera.js?v=mw3nilz8';
-import { startEdit, stopEdit, isEditing, previewGroupAlignment } from './editor.js?v=mw3nilz8';
-import { addDataUrl, addImageFile, fitNodeImage, imageCaptionFraction, imageFor } from './images.js?v=mw3nilz8';
-import { playVideo } from './video.js?v=mw3nilz8';
-import { youTubeId } from './yt.js?v=mw3nilz8';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mw3nilz8';
-import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mw3nilz8';
-import { undo, redo } from './history.js?v=mw3nilz8';
+import { state, getNode, getSelectedId, getLastSelectedGroup, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, COLORS } from './state.js?v=mw3rh9st';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight, flyToBlock } from './camera.js?v=mw3rh9st';
+import { startEdit, stopEdit, isEditing, previewGroupAlignment, resizeGroupBlocks } from './editor.js?v=mw3rh9st';
+import { addDataUrl, addImageFile, fitNodeImage, imageCaptionFraction, imageFor } from './images.js?v=mw3rh9st';
+import { playVideo } from './video.js?v=mw3rh9st';
+import { youTubeId } from './yt.js?v=mw3rh9st';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mw3rh9st';
+import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mw3rh9st';
+import { undo, redo } from './history.js?v=mw3rh9st';
 
-import { setDragging } from './motion.js?v=mw3nilz8';
+import { setDragging } from './motion.js?v=mw3rh9st';
 
-import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw3nilz8';
-import { shortenAmazonText, isAmazonUrl, amazonBadgeLayout } from './amazon.js?v=mw3nilz8';
+import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw3rh9st';
+import { shortenAmazonText, isAmazonUrl, amazonBadgeLayout } from './amazon.js?v=mw3rh9st';
 
-import { isLocked, setLocked, modeEvents } from './mobile-mode.js?v=mw3nilz8';
+import { isLocked, setLocked, modeEvents } from './mobile-mode.js?v=mw3rh9st';
 
-import { serviceForNode } from './services.js?v=mw3nilz8';
+import { serviceForNode } from './services.js?v=mw3rh9st';
 
-import { requestRender } from './render.js?v=mw3nilz8';
+import { requestRender } from './render.js?v=mw3rh9st';
 
-import { notify } from './notifications.js?v=mw3nilz8';
+import { notify } from './notifications.js?v=mw3rh9st';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 const CLIPBOARD_BLOCK = 'application/x-bete-clipboard-block';
@@ -204,14 +204,14 @@ function doubleAt(x, y) {
   const w = screenToWorld(x, y);
   if (isLocked()) {
     const readable = labelHit(w) || nodeAt(w);
-    if (readable?.application) return;
+    if (readable?.application) { openApplication(readable); return; }
     if (readable && serviceForNode(readable) && linkOf(readable)) openLink(linkOf(readable));
     else if (readable && youTubeId(readable.text)) playVideo(readable);
     else if (readable && linkOf(readable)) openLink(linkOf(readable));
     return;
   }
   if (labelHit(w)) return;
-  if (nodeAt(w)?.application) return;
+  if (nodeAt(w)?.application) { openApplication(nodeAt(w)); return; }
   const selected = getNode(getSelectedId());
   if (selected && actionHit(selected, w, state.camera.zoom)) return;
   const n = nodeAt(w);
@@ -346,10 +346,6 @@ function onPointerEnd(e) {
     document.dispatchEvent(new CustomEvent('bete-node-moved', { detail: g.n.id }));
     fitGroupsAround(g.n, g.previousGroups, g.type === 'resize', g.targetGroup);
   }
-  if (g && !g.moved && (g.type === 'move' || (g.type === 'pan' && g.readNode))) {
-    const clicked = g.type === 'move' ? g.n : nodeAt(screenToWorld(e.clientX, e.clientY));
-    if (clicked?.application) openApplication(clicked);
-  }
   // Touch: a phone does not reliably send 'dblclick', so a double-tap on a block (two taps,
   // 400 ms and 30 px apart, without dragging) is detected here.
   if (e.pointerType === 'touch' && g && (g.type === 'move' || (g.type === 'pan' && g.readNode)) && !g.moved) {
@@ -455,7 +451,7 @@ export function initInput() {
       addNode(kind, w.x, w.y); return;
     }
     if (isLocked()) return;
-    const applicationFile = [...e.dataTransfer.files].find(f => /\.(?:exe|lnk|url)$/i.test(f.name));
+    const applicationFile = [...e.dataTransfer.files].find(f => /\.(?:exe|lnk|url|bat)$/i.test(f.name));
     if (applicationFile && dropApplicationFile(applicationFile, w.x, w.y)) return;
     const steam = steamApplicationUri(e.dataTransfer.getData('text/uri-list').trim()) || steamApplicationUri(e.dataTransfer.getData('text/plain'));
     if (steam) { addSteamBlock(steam, w.x, w.y); return; }
@@ -605,7 +601,9 @@ export function initInput() {
       const key = e.key.toLowerCase();
       if (['r', 'g', 'm', 't', 'a', 'f'].includes(key)) {
         e.preventDefault();
-        if (key === 'r' || key === 'g') {
+        if (key === 'r' && getNode(getSelectedId())?.kind === 'group') {
+          resizeGroupBlocks(getSelectedId());
+        } else if (key === 'r' || key === 'g') {
           const point = cursorPosition || { x: view.w / 2, y: view.h / 2 };
           const world = screenToWorld(point.x, point.y);
           const created = addNode(key === 'r' ? 'rect' : 'group', world.x, world.y);
@@ -613,8 +611,7 @@ export function initInput() {
         } else if (key === 'm') {
           document.getElementById('panel-toggle').click();
         } else if (key === 'f') {
-          const group = getNode(getSelectedId());
-          if (group?.kind === 'group') flyToBlock(group);
+          document.getElementById('fit-board').click();
         } else if (key === 't') document.getElementById('open-group-index').click();
         else {
           const group = getLastSelectedGroup();

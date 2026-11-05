@@ -1,16 +1,17 @@
-import { openApplication } from './applications.js?v=mw3nilz8';
-import { notify } from './notifications.js?v=mw3nilz8';
-import { flyToBlock } from './camera.js?v=mw3nilz8';
-import { linkOf } from './labels.js?v=mw3nilz8';
-import { openLink } from './links.js?v=mw3nilz8';
-import { serviceForNode } from './services.js?v=mw3nilz8';
-import { getNode, select, state } from './state.js?v=mw3nilz8';
-import { cachedYouTubeTitle, youTubeId } from './yt.js?v=mw3nilz8';
+import { openApplication } from './applications.js?v=mw3rh9st';
+import { notify } from './notifications.js?v=mw3rh9st';
+import { flyToBlock } from './camera.js?v=mw3rh9st';
+import { linkOf } from './labels.js?v=mw3rh9st';
+import { openLink } from './links.js?v=mw3rh9st';
+import { serviceForNode } from './services.js?v=mw3rh9st';
+import { getNode, select, state } from './state.js?v=mw3rh9st';
+import { cachedYouTubeTitle, youTubeId } from './yt.js?v=mw3rh9st';
 
 const normalize = text => text.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 
 function search(query) {
   const commands = window.__TAURI__ ? [
+    { command: 'calc', label: 'Calc' },
     { command: 'focus', label: 'Focus' },
     { command: 'minimize', label: 'Réduire' },
   ] : [];
@@ -24,7 +25,7 @@ function search(query) {
     const link = linkOf(node);
     const video = node.kind === 'group' ? null : youTubeId(link || node.text);
     const href = link || (video ? 'https://www.youtube.com/watch?v=' + video : null);
-    const labels = [node.application?.label, node.name, cachedYouTubeTitle(video), serviceForNode(node)?.name, node.text]
+    const labels = [node.github?.repository, node.github?.description, node.application?.label, node.name, cachedYouTubeTitle(video), serviceForNode(node)?.name, node.text]
       .filter(Boolean).map(label => ({ label, text: normalize(label) }));
     const prefix = labels.find(({ text }) => text.startsWith(query));
     const match = prefix || labels.find(({ text }) => wordPrefix.test(text));
@@ -79,6 +80,7 @@ export function initCommandSearch() {
     if (match?.command && window.__TAURI__) {
       dialog.close();
       if (match.command === 'focus') document.getElementById('fit-board').click();
+      else if (match.command === 'calc') window.__TAURI__.core.invoke('open_calculator').catch(() => notify('Impossible d’ouvrir la calculatrice.', {type:'error'}));
       else window.__TAURI__.core.invoke('minimize_window').catch(() => notify('Impossible de réduire la fenêtre.', { type: 'error' }));
       return;
     }

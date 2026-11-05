@@ -11,6 +11,13 @@ use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_updater::UpdaterExt;
 
 #[tauri::command]
+fn open_calculator() -> Result<(), String> {
+    let root = std::env::var_os("SystemRoot").ok_or("Dossier Windows introuvable")?;
+    std::process::Command::new(std::path::Path::new(&root).join("System32").join("calc.exe")).spawn().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 fn minimize_window(window: tauri::WebviewWindow) -> Result<(), String> {
     window.minimize().map_err(|error| error.to_string())
 }
@@ -78,6 +85,7 @@ fn main() {
     builder
         .invoke_handler(tauri::generate_handler![
             open_browser,
+            open_calculator,
             applications::sync_application_blocks,
             applications::revoke_all_application_permissions,
             applications::application_launch_status,

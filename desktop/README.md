@@ -76,7 +76,7 @@ Pour un changement réservé au web, ajoute `[skip windows]` au message du derni
 
 ## Fermeture et sauvegarde
 
-À la fermeture (ou avant installation d’une mise à jour), Bête affiche « Sauvegarde en cours », optimise les images et vide l’historique, sauvegarde localement puis sur Google Drive si connecté. La fenêtre se ferme une fois les écritures terminées. En cas d’échec ou de conflit Drive, elle reste ouverte pour réessayer ou résoudre le conflit. Sans compte Drive connecté, la sauvegarde reste locale.
+À la fermeture (ou avant installation d’une mise à jour), Bête affiche « Sauvegarde en cours », optimise les images et vide l’historique, sauvegarde localement puis sur Google Drive si connecté. La fenêtre se ferme une fois les écritures terminées. Si Drive est injoignable, Bête se ferme après la sauvegarde locale ; les modifications restent en attente pour une sauvegarde manuelle ultérieure. En cas de conflit Drive, elle reste ouverte pour le résoudre. Sans compte Drive connecté, la sauvegarde reste locale.
 
 ## Raccourci global
 

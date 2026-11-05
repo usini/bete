@@ -1,9 +1,9 @@
-import { githubRepository } from './github-repo.js?v=mw3nilz8';
-import { updateGitHubCard } from './github-cards.js?v=mw3nilz8';
-import { alignmentPlan } from './alignment.js?v=mw3nilz8';
-import { labelLayout } from './labels.js?v=mw3nilz8';
-import { amazonBadgeLayout } from './amazon.js?v=mw3nilz8';
-import { freeDropPosition } from './placement.js?v=mw3nilz8';
+import { githubRepository } from './github-repo.js?v=mw3rh9st';
+import { updateGitHubCard } from './github-cards.js?v=mw3rh9st';
+import { alignmentPlan } from './alignment.js?v=mw3rh9st';
+import { labelLayout } from './labels.js?v=mw3rh9st';
+import { amazonBadgeLayout } from './amazon.js?v=mw3rh9st';
+import { freeDropPosition } from './placement.js?v=mw3rh9st';
 // Edit mode: one popup (modal <dialog>) to change a block's text and link.
 // Opened by the 📝 button, a click on a label, Enter, or a double-click on a block with no link.
 //  - the text field is hidden for image blocks (they have no text)
@@ -11,18 +11,18 @@ import { freeDropPosition } from './placement.js?v=mw3nilz8';
 //  - when the link is an Amazon address the popup becomes "Produit Amazon": name, price and
 //    delivery time fields appear (typed by hand, shown in the block's label)
 // It closes only with the Annuler / Valider buttons (Ctrl+Enter, or Enter in a one-line field, also validate).
-import { state, getNode, emit, membersOf, fitGroupsAround, containingGroups, saveNow } from './state.js?v=mw3nilz8';
-import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw3nilz8';
-import { youTubeId } from './yt.js?v=mw3nilz8';
-import { addImageFile, imageFor, fitNodeImage } from './images.js?v=mw3nilz8';
+import { state, getNode, emit, membersOf, fitGroupsAround, containingGroups, saveNow } from './state.js?v=mw3rh9st';
+import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw3rh9st';
+import { youTubeId } from './yt.js?v=mw3rh9st';
+import { addImageFile, imageFor, fitNodeImage } from './images.js?v=mw3rh9st';
 
-import { genericLink } from './links.js?v=mw3nilz8';
+import { genericLink } from './links.js?v=mw3rh9st';
 
-import { isLocked } from './mobile-mode.js?v=mw3nilz8';
+import { isLocked } from './mobile-mode.js?v=mw3rh9st';
 
-import { serviceForNode } from './services.js?v=mw3nilz8';
-import { deliveryDelay } from './delivery.js?v=mw3nilz8';
-import { googleMapsEmbed } from './google-maps.js?v=mw3nilz8';
+import { serviceForNode } from './services.js?v=mw3rh9st';
+import { deliveryDelay } from './delivery.js?v=mw3rh9st';
+import { googleMapsEmbed } from './google-maps.js?v=mw3rh9st';
 
 const dlg = document.getElementById('textdialog');
 const title = document.getElementById('dialog-title');
@@ -46,6 +46,7 @@ const alignSection = document.getElementById('group-align');
 const alignStatus = document.getElementById('group-align-status');
 const alignPreview = document.getElementById('group-align-preview');
 let pendingAlignment = null;
+let pendingApplication = null;
 let editingId = null;
 let ytBlock = false; // no link / image fields: the block is a YouTube block or a group
 let isApplication = false;
@@ -112,6 +113,9 @@ export function startEdit(id, focus = 'text') {
   editingId = id;
   document.getElementById('github-refresh').textContent = 'Actualiser les informations GitHub';
   pendingAlignment = null;
+  pendingApplication = null;
+  document.getElementById('application-change').hidden = !n.application || !window.__TAURI__;
+  document.getElementById('application-change').textContent = 'Changer l’application…';
   alignSection.hidden = n.kind !== 'group';
   alignPreview.hidden = true;
   alignStatus.textContent = 'Prépare un aperçu du rangement des blocs.';
@@ -166,6 +170,7 @@ export function stopEdit(commit) {
   const n = getNode(editingId);
   if (!commit || !n) {
     pendingAlignment = null;
+    pendingApplication = null;
     editingId = null;
     releasePending();
     if (dlg.open) dlg.close();
@@ -185,6 +190,12 @@ export function stopEdit(commit) {
   dlg.close();
   const originalLink = n.link || n.text;
   let changed = false;
+  if (pendingApplication && n.application) {
+    n.application = pendingApplication;
+    el.value = pendingApplication.label;
+    changed = true;
+  }
+  pendingApplication = null;
   let imageSave = null;
   if (!isGroup && hideLinkLabel.checked !== (n.hideLinkLabel === true)) {
     if (hideLinkLabel.checked) n.hideLinkLabel = true;
@@ -240,6 +251,12 @@ export function stopEdit(commit) {
       Object.assign(block, { x: placement.x, y: placement.y, w: placement.w, h: placement.h });
     }
     fitGroupsAround(null, [n]);
+    const contents = membersOf(n);
+    const obstacles = state.nodes.filter(other => other.kind === 'group' && other !== n && !contents.includes(other) && !membersOf(other).includes(n)).map(other => ({...other, kind:'rect'}));
+    const position = freeDropPosition(n, obstacles);
+    const dx = position.x - n.x, dy = position.y - n.y;
+    n.x += dx; n.y += dy;
+    for (const child of contents) { child.x += dx; child.y += dy; }
     changed = true;
   }
   pendingAlignment = null;
@@ -356,4 +373,35 @@ document.getElementById('github-refresh').addEventListener('click',async()=>{
   const id=n.id;button.disabled=true;button.textContent='Chargement…';
   try {const ok=await updateGitHubCard(n,true);if(editingId===id)button.textContent=ok?'Informations actualisées':'Dépôt inaccessible : icône et nom conservés';}
   finally{button.disabled=false;}
+});
+
+document.getElementById('application-change').addEventListener('click', async () => {
+  const id = editingId;
+  const button = document.getElementById('application-change');
+  if (!id || isLocked() || !window.__TAURI__) return;
+  button.disabled = true;
+  try {
+    const chosen = await window.__TAURI__.core.invoke('pick_application');
+    if (chosen && editingId === id) { pendingApplication = chosen; button.textContent = 'Nouvelle application : ' + chosen.label; }
+  } catch (error) { alert(String(error)); }
+  finally { button.disabled = false; }
+});
+
+export function resizeGroupBlocks(id) {
+  const group = getNode(id);
+  if (isLocked() || group?.kind !== 'group') return;
+  const blocks = membersOf(group).filter(n => n.kind !== 'group');
+  if (!blocks.length) return;
+  saveNow();
+  const w = Math.max(...blocks.map(n => n.w)), h = Math.max(...blocks.map(n => n.h));
+  for (const block of blocks) { block.w = w; block.h = h; }
+  fitGroupsAround(null, [group]);
+  emit();
+  previewGroupAlignment(id);
+  stopEdit(true);
+}
+document.getElementById('group-resize-button').addEventListener('click', () => {
+  const id = editingId;
+  stopEdit(true);
+  if (!isEditing()) resizeGroupBlocks(id);
 });

@@ -1,28 +1,28 @@
-import { applicationAllowed, applicationEvents } from './applications.js?v=mw3nilz8';
-import { githubRepository, cleanGitHubData } from './github-repo.js?v=mw3nilz8';
-import { dropPreviewGroup } from './placement.js?v=mw3nilz8';
-import { externalMode } from './external-board.js?v=mw3nilz8';
-import { positionEmbeds } from './embed-view.js?v=mw3nilz8';
+import { applicationAllowed, applicationEvents } from './applications.js?v=mw3rh9st';
+import { githubRepository, cleanGitHubData } from './github-repo.js?v=mw3rh9st';
+import { dropPreviewGroup } from './placement.js?v=mw3rh9st';
+import { externalMode } from './external-board.js?v=mw3rh9st';
+import { positionEmbeds } from './embed-view.js?v=mw3rh9st';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize, groupHeaderHeight } from './state.js?v=mw3nilz8';
-import { view, screenToWorld } from './camera.js?v=mw3nilz8';
-import { youTubeId, ytThumb } from './yt.js?v=mw3nilz8';
-import { imageCaptionFraction, imageFor } from './images.js?v=mw3nilz8';
-import { positionVideo, isVideoPlaying } from './video.js?v=mw3nilz8';
-import { guides } from './snap.js?v=mw3nilz8';
-import { renderMinimap } from './minimap.js?v=mw3nilz8';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mw3nilz8';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw3nilz8';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw3nilz8';
+import { state, events, getSelectedId, groupsBySize, groupHeaderHeight } from './state.js?v=mw3rh9st';
+import { view, screenToWorld } from './camera.js?v=mw3rh9st';
+import { youTubeId, ytThumb } from './yt.js?v=mw3rh9st';
+import { imageCaptionFraction, imageFor } from './images.js?v=mw3rh9st';
+import { positionVideo, isVideoPlaying } from './video.js?v=mw3rh9st';
+import { guides } from './snap.js?v=mw3rh9st';
+import { renderMinimap } from './minimap.js?v=mw3rh9st';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mw3rh9st';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw3rh9st';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw3rh9st';
 
-import { genericLinkOf, plainLink } from './links.js?v=mw3nilz8';
-import { stepMotion } from './motion.js?v=mw3nilz8';
-import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw3nilz8';
+import { genericLinkOf, plainLink } from './links.js?v=mw3rh9st';
+import { stepMotion } from './motion.js?v=mw3rh9st';
+import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw3rh9st';
 
-import { isLocked } from './mobile-mode.js?v=mw3nilz8';
+import { isLocked } from './mobile-mode.js?v=mw3rh9st';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mw3nilz8';
-import { amazonBadgeLayout } from './amazon.js?v=mw3nilz8';
+import { serviceForNode, serviceIcon } from './services.js?v=mw3rh9st';
+import { amazonBadgeLayout } from './amazon.js?v=mw3rh9st';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -553,10 +553,14 @@ function drawRepositoryCard(n, repo, icon) {
 
 function drawApplicationBlock(n) {
   const size=Math.min(n.w*.55,n.h*.55),x=n.x+(n.w-size)/2,y=n.y+n.h*.08;
+  const icon=n.application.icon && imageFor(n.application.icon, requestRender);
+  if (icon) drawContained(icon,x,y,size,size);
+  else {
   ctx.fillStyle='#dce9f3';
   ctx.fillRect(x,y,size,size);ctx.fillStyle='#1d3545';
   ctx.fillRect(x+size*.12,y+size*.24,size*.76,size*.64);
   ctx.fillStyle='#dce9f3';ctx.fillRect(x+size*.22,y+size*.38,size*.2,size*.2);
+  }
   drawCaption(n,n.application.label,n.h*.23);
   if(!applicationAllowed(n)){
     ctx.save();ctx.strokeStyle='#ff3030';ctx.lineWidth=Math.max(2,Math.min(n.w,n.h)*.045);ctx.lineCap='round';

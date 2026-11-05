@@ -7,6 +7,7 @@ export function cleanApplication(raw) {
   if(!raw||typeof raw!=='object'||typeof raw.reference!=='string'||!/^[a-f0-9]{64}$/.test(raw.reference))return null;
   const label=typeof raw.label==='string'?raw.label.replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,100):'Application';
   const result={reference:raw.reference,label:label||'Application'};
+  if(typeof raw.icon==='string' && raw.icon.length<=200000 && /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(raw.icon)) result.icon=raw.icon;
   const steam=steamApplicationUri(raw.steam);if(steam)result.steam=steam;
   return result;
 }

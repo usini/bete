@@ -292,14 +292,18 @@ Dans **Voir les groupes → Tableaux externes**, ajoute manuellement un lien de 
 
 ## Blocs d’applications Windows
 
-Dépose un raccourci `.lnk` sans arguments, un `.exe` local ou un raccourci Steam `.url`. Les liens `steam://rungameid/123` et `steam://run/123` peuvent aussi être collés ou déposés. Les autres commandes Steam sont refusées. Un clic sur le bloc demande une autorisation Windows individuelle avant le premier lancement. L’ouverture globale est désactivée au départ ; le menu permet de la désactiver ou réactiver, toujours avec confirmation native.
+Dépose un raccourci `.lnk` sans arguments, un `.exe` ou `.bat` local, ou un raccourci Steam `.url`. L’icône locale est récupérée si disponible. Un double-clic lance l’application après sa validation individuelle. Les liens `steam://rungameid/123` et `steam://run/123` peuvent aussi être collés ou déposés. Les autres commandes Steam sont refusées. Un clic sur le bloc demande une autorisation Windows individuelle avant le premier lancement. L’ouverture globale est désactivée au départ ; le menu permet de la désactiver ou réactiver, toujours avec confirmation native.
 
 Une croix rouge indique un bloc non autorisé, ou un lancement global désactivé. Sur le web, elle reste toujours affichée et aucun programme n’est lancé. Les chemins des exécutables et toutes les autorisations restent dans la configuration locale Windows, hors des tableaux, historiques, exports, sauvegardes Drive et partages. Supprimer le bloc révoque son autorisation ; Ctrl+Z, duplication et import nécessitent une nouvelle validation. Sur un autre ordinateur, un raccourci `.exe`/`.lnk` doit être déposé localement à nouveau.
 
-Les chemins réseau/amovibles, les scripts, les interpréteurs usuels et les raccourcis avec arguments sont refusés. Un changement du contenu de l’exécutable exige une nouvelle confirmation. Voir [la note de sécurité](SECURITE-APPLICATIONS.md).
+Les chemins réseau/amovibles, les scripts autres que `.bat`, les interpréteurs usuels et les raccourcis avec arguments sont refusés. Un changement du contenu de l’exécutable exige une nouvelle confirmation. Voir [la note de sécurité](SECURITE-APPLICATIONS.md).
 
 Depuis la barre de commande appelée par la hotkey Windows, l’ouverture réussie d’un lien ou d’une application réduit Bête. L’ouverture locale avec Espace conserve la fenêtre.
 
 Déplacer ou zoomer la vue, déplacer ou redimensionner la fenêtre Windows ne déclenche pas de sauvegarde Drive. Si le contenu et l’historique sont déjà sauvegardés, la fermeture conserve uniquement la vue en local et ne lance pas un nettoyage automatique susceptible de créer une modification artificielle.
 
 Sous Windows, **Menu → Applications sur cet ordinateur → Ajouter une application…** permet aussi de choisir un `.lnk`, `.exe` ou `.url` Steam via le sélecteur natif. Il crée un bloc non autorisé, à valider individuellement au premier clic. Si un dépôt ne transmet pas le fichier, Bête affiche désormais une erreur et propose ce parcours. Le tableau doit être déverrouillé (V).
+
+Si Google Drive est injoignable à la fermeture de la version Windows, Bête conserve le tableau localement et se ferme. Les modifications restent en attente : utilise Ctrl+S ou la disquette pour réessayer après le retour de la connexion. Un conflit entre deux versions reste à résoudre dans Bête.
+
+Les autorisations de lancement ne lancent plus immédiatement une application : refaire un double-clic après validation. Sur Windows, **Calc** ouvre la calculatrice depuis la barre de commande. **F** cadre tout le tableau. **R**, lorsqu’un groupe est sélectionné, uniformise ses blocs sur la largeur et la hauteur maximales puis les aligne ; le bouton **Redimensionner** est disponible dans l’éditeur de groupe. Sans groupe sélectionné, R conserve la création d’un rectangle. L’alignement évite les autres groupes indépendants. Les en-têtes des groupes adaptent leur hauteur au zoom. La recherche inclut le nom et la description des dépôts GitHub.

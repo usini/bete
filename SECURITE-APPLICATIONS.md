@@ -10,9 +10,9 @@
 
 ## Surface de lancement
 
-Le dépôt de fichier utilise l’objet File de WebView2 et récupère son chemin côté natif, sans autoriser une chaîne de chemin fournie par un tableau. La source du message doit être l’origine locale Tauri de la fenêtre. Le `.lnk` est lu par COM sans `Resolve`, ne peut avoir d’arguments et sa destination est figée comme chemin d’exécutable. Aucun shell ni interprétation de commande n’est utilisé.
+Le dépôt de fichier utilise l’objet File de WebView2 et récupère son chemin côté natif, sans autoriser une chaîne de chemin fournie par un tableau. La source du message doit être l’origine locale Tauri de la fenêtre. Le `.lnk` est lu par COM sans `Resolve`, ne peut avoir d’arguments et sa destination est figée comme chemin d’exécutable. Les `.exe` sont lancés sans shell. Les `.bat` sont exécutés par `cmd.exe /d /s /c` avec un chemin local validé, sans arguments supplémentaires ; les métacaractères dans le chemin sont refusés. Un script autorisé peut exécuter des commandes avec les droits de l’utilisateur.
 
-Les fichiers doivent résider sur un disque fixe local. Les chemins UNC, périphériques, flux alternatifs, supports amovibles et extensions autres que `.exe` pour la cible sont refusés. Les noms d’interpréteurs et d’outils système usuels sont refusés. Une poignée de fichier interdit les écritures/suppressions pendant le calcul d’empreinte, la confirmation et le démarrage. Un binaire modifié nécessite une nouvelle validation.
+Les fichiers doivent résider sur un disque fixe local. Les chemins UNC, périphériques, flux alternatifs, supports amovibles et extensions autres que `.exe` ou `.bat` pour la cible sont refusés. Les noms d’interpréteurs et d’outils système usuels sont refusés. Une poignée de fichier interdit les écritures/suppressions pendant le calcul d’empreinte, la confirmation et le démarrage. Un binaire modifié nécessite une nouvelle validation.
 
 Steam est limité à `steam://rungameid/<identifiant numérique>` et à l’équivalent `steam://run/<identifiant numérique>`, normalisé vers le premier. Les paramètres, commandes d’installation/désinstallation et arguments supplémentaires sont refusés. Le schéma Steam utilise le gestionnaire enregistré dans Windows.
 

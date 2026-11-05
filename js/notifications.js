@@ -27,3 +27,9 @@ export function notify(message, { id = 'default', type = 'info', duration = 4000
   entry.text.textContent = message;
   if (duration > 0) entry.timer = setTimeout(() => { entry.node.remove(); entries.delete(id); }, duration);
 }
+
+export function dismissNotification(id) {
+  const entry = entries.get(id);
+  if (!entry) return;
+  clearTimeout(entry.timer); entry.node.remove(); entries.delete(id);
+}

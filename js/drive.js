@@ -1,5 +1,5 @@
-import { localStore } from './local-store.js?v=mw3nilz8';
-import { updateBackupSize } from './backup-size.js?v=mw3nilz8';
+import { localStore } from './local-store.js?v=mw3rh9st';
+import { updateBackupSize } from './backup-size.js?v=mw3rh9st';
 // Optional backup of the board on Google Drive.
 //
 //  - Scope: drive.appdata only. The file (Bete.json) lives in a hidden folder reserved to this
@@ -7,12 +7,12 @@ import { updateBackupSize } from './backup-size.js?v=mw3nilz8';
 //  - Sign-in: OAuth code flow through a stateless service. Access tokens stay in memory.
 //  - Drive transfers happen only on explicit save, restore or initial connection.
 //    Local autosave remains automatic; leaving with unsaved Drive changes warns the user.
-import { state, onSaved, saveNow, serialize } from './state.js?v=mw3nilz8';
-import { exportData, importData } from './storage.js?v=mw3nilz8';
+import { state, onSaved, saveNow, serialize } from './state.js?v=mw3rh9st';
+import { exportData, importData } from './storage.js?v=mw3rh9st';
 
-import { notify } from './notifications.js?v=mw3nilz8';
+import { notify } from './notifications.js?v=mw3rh9st';
 
-import { modeEvents } from './mobile-mode.js?v=mw3nilz8';
+import { modeEvents } from './mobile-mode.js?v=mw3rh9st';
 
 const AUTH_URL = 'https://auth-bete.usini.eu';
 const FILE_NAME = 'Bete.json';
@@ -34,6 +34,7 @@ let idleWaiters = [];
 const releaseIdle = () => { const waiters = idleWaiters; idleWaiters = []; for (const resolve of waiters) resolve(); };
 let conflictPending = false; // "Décider plus tard" was chosen: wait for the next explicit action
 let transferResult = '';
+let lastRunError = null;
 let message = '';        // transient status line (progress, errors)
 
 class AuthNeeded extends Error {}
@@ -150,10 +151,10 @@ async function requestToken() {
 // ---- Drive API ----
 async function api(url, opts = {}) {
   await ensureToken();
-  let r = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + token } });
+  let r = await fetch(url, { ...(globalThis.AbortSignal?.timeout ? { signal: AbortSignal.timeout(10000) } : {}), ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + token } });
   if (r.status === 401) {
     token = null; await ensureToken();
-    r = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + token } });
+    r = await fetch(url, { ...(globalThis.AbortSignal?.timeout ? { signal: AbortSignal.timeout(10000) } : {}), ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + token } });
     if (r.status === 401) { token = null; throw new AuthNeeded(); }
   }
   if (!r.ok) {
@@ -295,7 +296,7 @@ async function reconcileStep(interactive = true) {
 // Runs one sync operation: one at a time, with status messages and error handling.
 async function run(label, step, announce = false) {
   if (busy) return false;
-  busy = true; driveFailed = false; transferResult = '';
+  busy = true; driveFailed = false; transferResult = ''; lastRunError = null;
   say(label);
   if (announce) driveNotice(label);
   try {
@@ -308,6 +309,7 @@ async function run(label, step, announce = false) {
     else if (announce) driveNotice('Synchronisation terminée. Aucune modification en attente.', 'success');
     return true;
   } catch (e) {
+    lastRunError = e;
     fail(e);
     return false;
   } finally {
@@ -517,11 +519,17 @@ export async function saveDriveBeforeClose() {
   const ok = await run('Sauvegarde en cours…', async () => {
     const remote = await findFile();
     if (remote && (remote.id !== meta.fileId || remote.modifiedTime !== meta.remoteModified)) {
-      throw new Error('La sauvegarde Drive a changé. Résous le conflit avec la disquette avant de fermer.');
+      const error = new Error('La sauvegarde Drive a changé. Résous le conflit avec la disquette avant de fermer.');
+      error.code = 'DRIVE_CONFLICT';
+      throw error;
     }
     conflictPending = false;
     await pushStep();
   });
-  if (!ok || dirty || conflictPending) throw new Error(message || 'La sauvegarde Google Drive n’est pas terminée.');
+  if (!ok) {
+    if (lastRunError?.code === 'DRIVE_CONFLICT') throw lastRunError;
+    return { skipped: true, unavailable: true };
+  }
+  if (dirty || conflictPending) throw new Error(message || 'La sauvegarde Google Drive n’est pas terminée.');
   return { skipped: false };
 }

@@ -21,7 +21,7 @@ test('desktop shutdown awaits the upload and updates Drive metadata',async()=>{
 });
 test('newer remote data or failed uploads block shutdown, disconnected Drive is skipped',async()=>{
  const conflict=client({id:'file',modifiedTime:'changed'});await assert.rejects(vm.runInContext('saveDriveBeforeClose()',conflict.ctx));assert.deepEqual(conflict.calls,['GET']);
- const offline=client({id:'file',modifiedTime:'old'},true);await assert.rejects(vm.runInContext('saveDriveBeforeClose()',offline.ctx));
+ const offline=client({id:'file',modifiedTime:'old'},true);assert.equal((await vm.runInContext('saveDriveBeforeClose()',offline.ctx)).unavailable,true);
  const unlinked=client(null);vm.runInContext('meta=null;',unlinked.ctx);assert.equal((await vm.runInContext('saveDriveBeforeClose()',unlinked.ctx)).skipped,true);assert.deepEqual(unlinked.calls,[]);
 });
 test('shutdown waits for an existing Drive operation to finish before starting another',async()=>{

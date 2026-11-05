@@ -1,9 +1,9 @@
-import { screenToWorld, view } from './camera.js?v=mw3nilz8';
-import { state, events, addNode, getNode, emit } from './state.js?v=mw3nilz8';
-import { externalMode } from './external-board.js?v=mw3nilz8';
-import { isLocked } from './mobile-mode.js?v=mw3nilz8';
-import { notify } from './notifications.js?v=mw3nilz8';
-import { cleanApplication, newSteamApplication } from './application-model.js?v=mw3nilz8';
+import { screenToWorld, view } from './camera.js?v=mw3rh9st';
+import { state, events, addNode, getNode, emit } from './state.js?v=mw3rh9st';
+import { externalMode } from './external-board.js?v=mw3rh9st';
+import { isLocked } from './mobile-mode.js?v=mw3rh9st';
+import { notify, dismissNotification } from './notifications.js?v=mw3rh9st';
+import { cleanApplication, newSteamApplication } from './application-model.js?v=mw3rh9st';
 export const applicationEvents=new EventTarget();
 let lastSnapshot=null;
 let native=null,queue=Promise.resolve(),status={enabled:false,approved:{}};
@@ -29,10 +29,10 @@ export function addApplicationBlock(application,x,y){
 }
 export function addSteamBlock(value,x,y){const app=newSteamApplication(value);return app?addApplicationBlock(app,x,y):null;}
 export function dropApplicationFile(file,x,y){
-  if(!/\.(?:exe|lnk|url)$/i.test(file.name))return false;
+  if(!/\.(?:exe|lnk|url|bat)$/i.test(file.name))return false;
   if(!window.__TAURI__){
     const reference=Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
-    addApplicationBlock({reference,label:file.name.replace(/\.(?:exe|lnk|url)$/i,'')},x,y);
+    addApplicationBlock({reference,label:file.name.replace(/\.(?:exe|lnk|url|bat)$/i,'')},x,y);
     return true;
   }
   if(!window.chrome?.webview?.postMessageWithAdditionalObjects){notify('Ce WebView2 ne permet pas le dépôt d’applications. Mets à jour WebView2.',{type:'error'});return true;}
@@ -50,10 +50,11 @@ export async function openApplication(node){
   try{
     await sync();
     if(getNode(node.id)!==node)return false;
+    notify(node.application.label + ' est en cours de lancement…', {id:'application-launch',type:'progress',duration:0});
     const opened=await native.core.invoke('launch_application',{blockId:node.id,reference:node.application.reference});
     status=await native.core.invoke('application_launch_status');repaint();return opened;
   }catch(error){notify(String(error),{type:'error',duration:0});return false;}
-  finally{opening=false;lastOpened=performance.now();}
+  finally{dismissNotification('application-launch');opening=false;lastOpened=performance.now();}
 }
 export async function initApplications(desktop){
   native=desktop;

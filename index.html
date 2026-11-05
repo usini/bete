@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Bête</title>
-  <link rel="stylesheet" href="css/style.css?v=mw3nilz8">
+  <link rel="stylesheet" href="css/style.css?v=mw3rh9st">
 </head>
 <body>
   <canvas id="canvas"></canvas>
@@ -73,9 +73,11 @@
         </label>
       </div>
     </div>
+    <button type="button" id="application-change" hidden>Changer l’application…</button>
     <button type="button" id="github-refresh" hidden>Actualiser les informations GitHub</button>
     <section id="group-align" hidden>
       <button type="button" id="group-align-button">Aligner</button>
+      <button type="button" id="group-resize-button">Redimensionner</button>
       <p id="group-align-status" class="hint" role="status">Prépare un aperçu du rangement des blocs.</p>
       <canvas id="group-align-preview" width="600" height="260" hidden aria-label="Aperçu du rangement des blocs"></canvas>
     </section>
@@ -203,6 +205,6 @@
   <input type="file" id="image-file" accept="image/*" hidden>
   <input type="file" id="fileimport" accept="application/json,.json" hidden>
 
-  <script type="module" src="js/main.js?v=mw3nilz8"></script>
+  <script type="module" src="js/main.js?v=mw3rh9st"></script>
 </body>
 </html>

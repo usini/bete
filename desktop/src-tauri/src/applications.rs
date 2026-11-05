@@ -30,11 +30,14 @@ pub struct Application {
     label: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     steam: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    icon: Option<String>,
 }
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 enum Target {
     Exe { path: String },
+    Batch { path: String },
     Steam { uri: String },
 }
 #[derive(Clone, Serialize, Deserialize)]
@@ -175,12 +178,36 @@ fn executable(path: &Path) -> Result<PathBuf, String> {
     }
     Ok(path)
 }
+fn batch_file(path: &Path) -> Result<PathBuf, String> {
+    let path = local_path(path)?;
+    if !path
+        .extension()
+        .is_some_and(|v| v.eq_ignore_ascii_case("bat"))
+    {
+        return Err("Fichier .bat attendu.".into());
+    }
+    let text = path.to_string_lossy();
+    if text.chars().any(|c| {
+        matches!(
+            c,
+            '&' | '|' | '<' | '>' | '^' | '%' | '!' | '"' | '\r' | '\n'
+        )
+    }) {
+        return Err("Le chemin du fichier .bat contient des caractères non pris en charge.".into());
+    }
+    Ok(path)
+}
 // Keep the executable open without sharing write/delete access during verification and launch.
 fn fingerprint(target: &Target) -> Result<(String, Option<File>), String> {
     match target {
         Target::Steam { uri } => Ok((steam_uri(uri).ok_or("Lien Steam non autorisé.")?, None)),
-        Target::Exe { path } => {
-            let path = executable(Path::new(path))?;
+        Target::Exe { path } | Target::Batch { path } => {
+            let is_batch = matches!(target, Target::Batch { .. });
+            let path = if is_batch {
+                batch_file(Path::new(path))?
+            } else {
+                executable(Path::new(path))?
+            };
             let mut file = OpenOptions::new()
                 .read(true)
                 .share_mode(1)
@@ -191,7 +218,7 @@ fn fingerprint(target: &Target) -> Result<(String, Option<File>), String> {
             }
             let mut magic = [0; 2];
             file.read_exact(&mut magic).map_err(|e| e.to_string())?;
-            if magic != *b"MZ" {
+            if !is_batch && magic != *b"MZ" {
                 return Err("Ce fichier n’est pas un exécutable Windows.".into());
             }
             file.seek(SeekFrom::Start(0)).map_err(|e| e.to_string())?;
@@ -276,6 +303,7 @@ fn insert_target(app: &AppHandle, label: String, target: Target) -> Result<Appli
         reference,
         label: label.chars().take(100).collect(),
         steam,
+        icon: None,
     })
 }
 fn target_from_file(path: &Path) -> Result<(String, Target), String> {
@@ -291,6 +319,9 @@ fn target_from_file(path: &Path) -> Result<(String, Target), String> {
         .to_string_lossy()
         .to_lowercase();
     let target = match extension.as_str() {
+        "bat" => Target::Batch {
+            path: batch_file(&path)?.to_string_lossy().into_owned(),
+        },
         "exe" => Target::Exe {
             path: executable(&path)?.to_string_lossy().into_owned(),
         },
@@ -333,10 +364,21 @@ fn target_from_file(path: &Path) -> Result<(String, Target), String> {
             let value = String::from_utf16_lossy(
                 &buffer[..buffer.iter().position(|c| *c == 0).unwrap_or(buffer.len())],
             );
-            Target::Exe {
-                path: executable(Path::new(&value))?
-                    .to_string_lossy()
-                    .into_owned(),
+            if Path::new(&value)
+                .extension()
+                .is_some_and(|v| v.eq_ignore_ascii_case("bat"))
+            {
+                Target::Batch {
+                    path: batch_file(Path::new(&value))?
+                        .to_string_lossy()
+                        .into_owned(),
+                }
+            } else {
+                Target::Exe {
+                    path: executable(Path::new(&value))?
+                        .to_string_lossy()
+                        .into_owned(),
+                }
             }
         },
         _ => return Err("Dépose un .lnk, un .exe ou un raccourci Steam .url.".into()),
@@ -345,7 +387,113 @@ fn target_from_file(path: &Path) -> Result<(String, Target), String> {
 }
 fn from_file(app: &AppHandle, path: &Path) -> Result<Application, String> {
     let (label, target) = target_from_file(path)?;
-    insert_target(app, label, target)
+    let icon = match &target {
+        Target::Exe { path } | Target::Batch { path } => file_icon(Path::new(path)),
+        _ => None,
+    };
+    let mut application = insert_target(app, label, target)?;
+    application.icon = icon;
+    Ok(application)
+}
+fn file_icon(path: &Path) -> Option<String> {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+    use windows::Win32::{
+        Graphics::Gdi::{
+            CreateCompatibleDC, DeleteDC, DeleteObject, GetDIBits, GetObjectW, BITMAP, BITMAPINFO,
+            BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS,
+        },
+        Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES,
+        UI::{
+            Shell::{SHGetFileInfoW, SHFILEINFOW, SHGFI_ICON, SHGFI_LARGEICON},
+            WindowsAndMessaging::{DestroyIcon, GetIconInfo, ICONINFO},
+        },
+    };
+    let wide: Vec<u16> = path
+        .to_string_lossy()
+        .encode_utf16()
+        .chain(Some(0))
+        .collect();
+    unsafe {
+        let mut info = SHFILEINFOW::default();
+        if SHGetFileInfoW(
+            PCWSTR(wide.as_ptr()),
+            FILE_FLAGS_AND_ATTRIBUTES(0),
+            Some(&mut info),
+            std::mem::size_of::<SHFILEINFOW>() as u32,
+            SHGFI_ICON | SHGFI_LARGEICON,
+        ) == 0
+        {
+            return None;
+        }
+        let mut icon = ICONINFO::default();
+        if GetIconInfo(info.hIcon, &mut icon).is_err() {
+            let _ = DestroyIcon(info.hIcon);
+            return None;
+        }
+        let result = (|| {
+            let mut bitmap = BITMAP::default();
+            if GetObjectW(
+                windows::Win32::Graphics::Gdi::HGDIOBJ(icon.hbmColor.0),
+                std::mem::size_of::<BITMAP>() as i32,
+                Some(&mut bitmap as *mut _ as *mut _),
+            ) == 0
+            {
+                return None;
+            }
+            let (w, h) = (bitmap.bmWidth, bitmap.bmHeight.abs());
+            if w <= 0 || h <= 0 || w > 512 || h > 512 {
+                return None;
+            }
+            let dc = CreateCompatibleDC(None);
+            if dc.is_invalid() {
+                return None;
+            }
+            let mut pixels = vec![0u8; (w * h * 4) as usize];
+            let mut bmi = BITMAPINFO::default();
+            bmi.bmiHeader = BITMAPINFOHEADER {
+                biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
+                biWidth: w,
+                biHeight: -h,
+                biPlanes: 1,
+                biBitCount: 32,
+                biCompression: BI_RGB.0,
+                ..Default::default()
+            };
+            let ok = GetDIBits(
+                dc,
+                icon.hbmColor,
+                0,
+                h as u32,
+                Some(pixels.as_mut_ptr() as *mut _),
+                &mut bmi,
+                DIB_RGB_COLORS,
+            );
+            let _ = DeleteDC(dc);
+            if ok == 0 {
+                return None;
+            }
+            let has_alpha = pixels.chunks_exact(4).any(|p| p[3] != 0);
+            for p in pixels.chunks_exact_mut(4) {
+                p.swap(0, 2);
+                if !has_alpha {
+                    p[3] = 255;
+                }
+            }
+            let mut bytes = Vec::new();
+            {
+                let mut encoder = png::Encoder::new(&mut bytes, w as u32, h as u32);
+                encoder.set_color(png::ColorType::Rgba);
+                encoder.set_depth(png::BitDepth::Eight);
+                let mut writer = encoder.write_header().ok()?;
+                writer.write_image_data(&pixels).ok()?;
+            }
+            Some(format!("data:image/png;base64,{}", STANDARD.encode(bytes)))
+        })();
+        let _ = DeleteObject(windows::Win32::Graphics::Gdi::HGDIOBJ(icon.hbmColor.0));
+        let _ = DeleteObject(windows::Win32::Graphics::Gdi::HGDIOBJ(icon.hbmMask.0));
+        let _ = DestroyIcon(info.hIcon);
+        result
+    }
 }
 #[tauri::command]
 pub fn sync_application_blocks(app: AppHandle, blocks: Vec<LiveBlock>) -> Result<Status, String> {
@@ -441,7 +589,7 @@ fn launch(app: &AppHandle, id: &str, reference: &str) -> Result<bool, String> {
         let needs_consent = !enabled || !approved;
         if needs_consent {
             let destination = match &target {
-                Target::Exe { path } => path.as_str(),
+                Target::Exe { path } | Target::Batch { path } => path.as_str(),
                 Target::Steam { uri } => uri.as_str(),
             };
             let message=format!("Autoriser ce bloc à lancer cette application ?\n\n{label}\n{destination}\n\nCette autorisation est propre à ce bloc et à cet ordinateur. Elle sera supprimée avec le bloc.{}",if !enabled{"\nCela active aussi l’ouverture d’applications."}else{""});
@@ -489,11 +637,25 @@ fn launch(app: &AppHandle, id: &str, reference: &str) -> Result<bool, String> {
                 },
             );
             save(app, &s)?;
+            if needs_consent { return Ok(false); }
             match target {
                 Target::Exe { path } => {
                     use std::os::windows::process::CommandExt;
                     std::process::Command::new(path)
                         .creation_flags(0x08000000)
+                        .spawn()
+                        .map_err(|e| e.to_string())?;
+                }
+                Target::Batch { path } => {
+                    use std::os::windows::process::CommandExt;
+                    let path = batch_file(Path::new(&path))?;
+                    let text = path.to_string_lossy();
+                    let text = text.strip_prefix(r"\\?\").unwrap_or(&text);
+                    let system =
+                        std::env::var_os("SystemRoot").ok_or("Dossier Windows introuvable.")?;
+                    std::process::Command::new(Path::new(&system).join("System32").join("cmd.exe"))
+                        .args(["/d", "/s", "/c"])
+                        .raw_arg(format!("\"\"{}\"\"", text))
                         .spawn()
                         .map_err(|e| e.to_string())?;
                 }
@@ -516,7 +678,7 @@ pub async fn pick_application(app: AppHandle) -> Result<Option<Application>, Str
             .dialog()
             .file()
             .set_title("Ajouter une application Windows")
-            .add_filter("Applications et raccourcis", &["exe", "lnk", "url"])
+            .add_filter("Applications et raccourcis", &["exe", "lnk", "url", "bat"])
             .blocking_pick_file()
         else {
             return Ok(None);
@@ -627,6 +789,7 @@ mod tests {
             reference: reference.clone(),
             label: "App".into(),
             steam: None,
+            icon: None,
         };
         let mut s = Settings::default();
         s.approvals.insert(
@@ -659,6 +822,7 @@ mod tests {
             reference: "a".repeat(64),
             label: "App".into(),
             steam: None,
+            icon: None,
         };
         let live = HashMap::from([("clone".into(), clone)]);
         assert!(revoke_absent(&mut s, &live));
@@ -674,6 +838,7 @@ mod tests {
             reference: "b".repeat(64),
             label: "App".into(),
             steam: None,
+            icon: None,
         };
         assert!(revoke_absent(
             &mut s,
@@ -766,5 +931,66 @@ mod tests {
         assert!(decode_drop_message(&plain).is_some());
         assert!(decode_drop_message("{}").is_none());
         assert!(decode_drop_message(&"x".repeat(2049)).is_none());
+    }
+    #[test]
+    fn icon_can_be_extracted_from_a_local_windows_executable() {
+        let path = PathBuf::from(std::env::var_os("SystemRoot").unwrap()).join("explorer.exe");
+        let icon = file_icon(&path).expect("Windows icon extraction");
+        assert!(icon.starts_with("data:image/png;base64,"));
+    }
+    #[test]
+    fn batch_files_are_fingerprinted_and_do_not_run_during_registration() {
+        let mut bytes = [0u8; 8];
+        getrandom::fill(&mut bytes).unwrap();
+        let suffix = bytes.iter().map(|b| format!("{b:02x}")).collect::<String>();
+        let path = std::env::temp_dir().join(format!("bete-batch-test-{suffix}.bat"));
+        fs::write(&path, b"@echo off\r\nrem never executed\r\n").unwrap();
+        let (_, target) = target_from_file(&path).unwrap();
+        assert!(matches!(target, Target::Batch { .. }));
+        let (hash, guard) = fingerprint(&target).unwrap();
+        assert_eq!(hash.len(), 64);
+        drop(guard);
+        fs::remove_file(path).unwrap();
+    }
+    #[test]
+    fn shortcut_to_batch_is_recognized_without_running_it() {
+        use windows::Win32::System::Com::{
+            CoInitializeEx, CoUninitialize, COINIT_APARTMENTTHREADED,
+        };
+        unsafe {
+            CoInitializeEx(None, COINIT_APARTMENTTHREADED).ok().unwrap();
+        }
+        let mut bytes = [0u8; 8];
+        getrandom::fill(&mut bytes).unwrap();
+        let suffix = bytes.iter().map(|b| format!("{b:02x}")).collect::<String>();
+        let bat = std::env::temp_dir().join(format!("bete-shortcut-batch-{suffix}.bat"));
+        let lnk = bat.with_extension("lnk");
+        fs::write(&bat, b"@echo off\r\nrem never executed\r\n").unwrap();
+        unsafe {
+            let link: IShellLinkW =
+                CoCreateInstance(&ShellLink, None, CLSCTX_INPROC_SERVER).unwrap();
+            let path: Vec<u16> = bat
+                .to_string_lossy()
+                .encode_utf16()
+                .chain(Some(0))
+                .collect();
+            link.SetPath(PCWSTR(path.as_ptr())).unwrap();
+            let persist: IPersistFile = link.cast().unwrap();
+            let target: Vec<u16> = lnk
+                .to_string_lossy()
+                .encode_utf16()
+                .chain(Some(0))
+                .collect();
+            persist.Save(PCWSTR(target.as_ptr()), true).unwrap();
+            assert!(matches!(
+                target_from_file(&lnk).unwrap().1,
+                Target::Batch { .. }
+            ));
+        }
+        fs::remove_file(lnk).unwrap();
+        fs::remove_file(bat).unwrap();
+        unsafe {
+            CoUninitialize();
+        }
     }
 }

@@ -163,7 +163,7 @@
     Sous Windows, Bête ouvre l’autorisation dans ton navigateur et communique directement avec
     Google. Le jeton de renouvellement reste dans le Gestionnaire d’identifiants Windows et le
     jeton d’accès reste en mémoire. À la connexion, Bête recherche et peut restaurer la sauvegarde
-    Drive. Sous Windows, la fermeture optimise les images, vide l’historique et envoie le tableau sur Drive si le compte est connecté ; une fenêtre indique la progression et la fermeture attend la fin de la sauvegarde. En cas d’échec, l’application reste ouverte. Dans la version web, l’envoi du tableau reste manuel. La déconnexion
+    Drive. Sous Windows, la fermeture optimise les images, vide l’historique et envoie le tableau sur Drive si le compte est connecté ; une fenêtre indique la progression et la fermeture attend la fin de la sauvegarde. Si Drive est injoignable, Bête conserve les données localement et peut se fermer ; un conflit reste à résoudre avant la fermeture. Dans la version web, l’envoi du tableau reste manuel. La déconnexion
     Windows supprime le jeton de cet appareil. Tu peux retirer l’autorisation pour tout Bête
     depuis ton compte Google. Le service OAuth décrit ci-dessous est utilisé par la version web.
   </p>
@@ -411,11 +411,11 @@
     de configuration Windows de Bête. Les autorisations sont individuelles par bloc et conservées
     séparément, avec une empreinte de l’exécutable ; elles ne sont jamais incluses dans les tableaux,
     historiques, exports JSON, Drive ou groupes partagés. Le tableau contient seulement un nom,
-    une référence opaque et, pour Steam, l’identifiant public du jeu. La suppression d’un bloc révoque
+    une référence opaque, éventuellement l’icône de l’application convertie en image PNG et, pour Steam, l’identifiant public du jeu. L’icône suit les sauvegardes et partages du tableau. La suppression d’un bloc révoque
     son autorisation. Un import révoque les autorisations d’applications avant de charger ses blocs.</p>
   <p>Le lancement est désactivé au départ. Windows demande confirmation pour chaque nouveau bloc
     et pour activer ou désactiver le lancement global. Après autorisation, Bête peut lancer
-    l’exécutable désigné, ou transmettre un lien de lancement de jeu à Steam. Les applications
+    l’exécutable ou le script .bat désigné, ou transmettre un lien de lancement de jeu à Steam. Un script autorisé peut exécuter des commandes avec les droits de l’utilisateur. Les applications
     ainsi ouvertes suivent leurs propres règles de confidentialité. La version web ne lance rien.</p>
 
   <h2>6. Tes droits</h2>

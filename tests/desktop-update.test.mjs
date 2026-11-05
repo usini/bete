@@ -12,7 +12,7 @@ async function run(choice, saved=true, driveFail=false, pendingChanges=true) {
     document:{createElement:element,querySelector:element,body:{append(){}}},
     hasPendingDriveChanges:()=>pendingChanges,initApplications:async()=>{},flushApplicationWrites:async()=>{},initDesktopShortcuts:async()=>{},isEditing:()=>false,stopEdit(){},waitForDriveIdle:async()=>{calls.push(['idle']);},
     optimizeBoardImages:async()=>{calls.push(['optimize']);return {count:1,failures:0};},
-    saveDriveBeforeClose:async()=>{calls.push(['drive']);if(driveFail)throw new Error('Drive hors ligne');},
+    saveDriveBeforeClose:async()=>{calls.push(['drive']);if(driveFail)return {unavailable:true};},
     initDesktopCalendar(){},chooseUpdate:async()=>choice,saveNow:async()=>{calls.push(['save']);return saved;},flushLocalWrites:async()=>{calls.push(['flush']);return true;},
     notify:message=>calls.push(['error',message]),openLink(){},console,
   });
@@ -40,12 +40,12 @@ test('normal desktop close optimizes, saves Drive and only then destroys the win
  assert.ok(names.indexOf('flush')<names.indexOf('drive'));
  assert.ok(names.indexOf('drive')<names.indexOf('destroy'));
 });
-test('failed Drive backup keeps the app open and prevents update installation',async()=>{
- for(const choice of ['later','now']) {
+test('unavailable Drive permits closure after local save and keeps the update on close deferred',async()=>{
+ for(const choice of ['later','on-close']) {
   const {calls,close}=await run(choice,true,true);
-  if(choice==='later')await close({preventDefault(){}});
-  assert.ok(calls.some(([n])=>n==='error'));
-  assert.ok(!calls.some(([n])=>n==='destroy'||n==='install_update'));
+  await close({preventDefault(){}});
+  assert.ok(calls.some(([n])=>n==='destroy'));
+  assert.ok(!calls.some(([n])=>n==='install_update'));
  }
 });
 

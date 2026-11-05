@@ -22,3 +22,11 @@ test('WebView2 file drops use a JSON string so Wry does not swallow the addition
  vm.runInContext(source,ctx);ctx.file=file;assert.equal(vm.runInContext('dropApplicationFile(file,10,20)',ctx),true);
  assert.equal(typeof sent.message,'string');assert.equal(JSON.parse(sent.message).type,'bete-application-drop');assert.equal(sent.files[0],file);
 });
+
+test('application PNG icons survive sanitizing while unsafe image URLs are discarded',()=>{
+ const base={reference:'a'.repeat(64),label:'App'};
+ const icon='data:image/png;base64,aGVsbG8=';
+ assert.equal(cleanApplication({...base,icon}).icon,icon);
+ assert.equal(cleanValue({kind:'rect',application:{...base,icon}}).application.icon,icon);
+ for(const value of ['https://example.com/icon.png','data:image/svg+xml;base64,aGVsbG8=','data:image/png;base64,'+'a'.repeat(200001)])assert.equal(cleanApplication({...base,icon:value}).icon,undefined);
+});
