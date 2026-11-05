@@ -408,11 +408,10 @@ fn file_icon(path: &Path) -> Option<String> {
             WindowsAndMessaging::{DestroyIcon, GetIconInfo, ICONINFO},
         },
     };
-    let wide: Vec<u16> = path
-        .to_string_lossy()
-        .encode_utf16()
-        .chain(Some(0))
-        .collect();
+    // Shell APIs do not reliably accept the extended-length prefix returned by canonicalize.
+    let source = path.to_string_lossy();
+    let source = source.strip_prefix(r"\\?\").unwrap_or(&source);
+    let wide: Vec<u16> = source.encode_utf16().chain(Some(0)).collect();
     unsafe {
         let mut info = SHFILEINFOW::default();
         if SHGetFileInfoW(
@@ -494,6 +493,26 @@ fn file_icon(path: &Path) -> Option<String> {
         let _ = DestroyIcon(info.hIcon);
         result
     }
+}
+#[tauri::command]
+pub fn application_icon(
+    app: AppHandle,
+    block_id: String,
+    reference: String,
+) -> Result<Option<String>, String> {
+    let state = app.state::<ApplicationState>();
+    let settings = state.settings.lock().map_err(|e| e.to_string())?;
+    let live = state.live.lock().map_err(|e| e.to_string())?;
+    if !live
+        .get(&block_id)
+        .is_some_and(|b| b.reference == reference)
+    {
+        return Err("Bloc absent.".into());
+    }
+    Ok(match settings.targets.get(&reference) {
+        Some(Target::Exe { path } | Target::Batch { path }) => file_icon(Path::new(path)),
+        _ => None,
+    })
 }
 #[tauri::command]
 pub fn sync_application_blocks(app: AppHandle, blocks: Vec<LiveBlock>) -> Result<Status, String> {
@@ -637,7 +656,9 @@ fn launch(app: &AppHandle, id: &str, reference: &str) -> Result<bool, String> {
                 },
             );
             save(app, &s)?;
-            if needs_consent { return Ok(false); }
+            if needs_consent {
+                return Ok(false);
+            }
             match target {
                 Target::Exe { path } => {
                     use std::os::windows::process::CommandExt;
@@ -935,7 +956,8 @@ mod tests {
     #[test]
     fn icon_can_be_extracted_from_a_local_windows_executable() {
         let path = PathBuf::from(std::env::var_os("SystemRoot").unwrap()).join("explorer.exe");
-        let icon = file_icon(&path).expect("Windows icon extraction");
+        let path = fs::canonicalize(path).unwrap();
+        let icon = file_icon(&path).expect("Windows icon extraction from canonical path");
         assert!(icon.starts_with("data:image/png;base64,"));
     }
     #[test]

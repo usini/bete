@@ -83,3 +83,9 @@ Pour un changement réservé au web, ajoute `[skip windows]` au message du derni
 Par défaut, **Ctrl+Alt+Espace** restaure la fenêtre et ouvre la barre de commande même depuis une autre application. La section **Raccourci global Windows** du menu permet de choisir une combinaison et de l’activer/désactiver. Le choix est conservé dans le dossier de configuration local Windows de Bête. Bête doit rester lancée ; fermer l’application libère le raccourci. Un conflit n’empêche pas le démarrage et peut être corrigé dans le menu.
 
 La barre de commande Windows propose **Focus** (même cadrage global que le bouton près de la minimap) et **Réduire** (réduit la fenêtre sans quitter Bête). Elles apparaissent dès l’ouverture de la barre et peuvent être filtrées en tapant leur nom, avec ou sans accents.
+
+Par défaut, la croix masque la fenêtre et Bête continue de fonctionner dans la zone de notification près de l’horloge. Un clic sur son icône ou le raccourci global la rouvre. **Quitter Bête**, dans le menu ou le menu contextuel de l’icône, lance la sauvegarde puis quitte réellement. L’option du menu **Fermeture Windows** permet de retrouver une fermeture directe avec la croix et reste enregistrée localement.
+
+L’option **Lancer Bête au démarrage de Windows**, désactivée par défaut, ajoute un démarrage automatique pour le compte Windows courant. Au démarrage automatique, la fenêtre reste masquée et Bête est accessible via son icône près de l’horloge ou le raccourci global. Décocher l’option retire ce démarrage automatique.
+
+Le bouton **Vérifier les mises à jour** du menu permet de relancer la recherche sans quitter Bête. Il indique si l’application est à jour ou si la connexion échoue, et propose les mêmes choix d’installation qu’au démarrage.

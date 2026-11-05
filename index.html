@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Bête</title>
-  <link rel="stylesheet" href="css/style.css?v=mw3rh9st">
+  <link rel="stylesheet" href="css/style.css?v=mw3s4pp0">
 </head>
 <body>
   <canvas id="canvas"></canvas>
@@ -176,6 +176,13 @@
         <button type="button" id="application-launch-toggle">Activer l’ouverture d’applications</button>
         <p id="application-launch-status" class="hint">Ouverture désactivée.</p>
       </section>
+      <section id="desktop-close-mode" hidden>
+        <h2>Fermeture Windows</h2>
+        <label><input type="checkbox" id="close-to-tray" checked> La croix masque Bête dans la zone de notification</label>
+        <label><input type="checkbox" id="desktop-autostart"> Lancer Bête au démarrage de Windows</label>
+        <button type="button" id="desktop-check-update">Vérifier les mises à jour</button>
+        <button type="button" id="desktop-quit">Quitter Bête</button>
+      </section>
       <section id="desktop-shortcuts" hidden>
         <h2>Raccourci global Windows</h2>
         <label><input type="checkbox" id="global-shortcut-enabled"> Activer le raccourci global</label>
@@ -205,6 +212,6 @@
   <input type="file" id="image-file" accept="image/*" hidden>
   <input type="file" id="fileimport" accept="application/json,.json" hidden>
 
-  <script type="module" src="js/main.js?v=mw3rh9st"></script>
+  <script type="module" src="js/main.js?v=mw3s4pp0"></script>
 </body>
 </html>

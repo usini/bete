@@ -1,14 +1,14 @@
-import { initApplications, flushApplicationWrites } from './applications.js?v=mw3rh9st';
-import { initDesktopShortcuts } from './desktop-shortcuts.js?v=mw3rh9st';
-import { optimizeBoardImages } from './optimize.js?v=mw3rh9st';
-import { waitForDriveIdle, saveDriveBeforeClose, hasPendingDriveChanges } from './drive.js?v=mw3rh9st';
-import { isEditing, stopEdit } from './editor.js?v=mw3rh9st';
-import { initDesktopCalendar } from './calendar.js?v=mw3rh9st';
-import { saveNow } from './state.js?v=mw3rh9st';
-import { flushLocalWrites } from './local-store.js?v=mw3rh9st';
-import { openLink } from './links.js?v=mw3rh9st';
-import { notify } from './notifications.js?v=mw3rh9st';
-import { parseShareLink } from './group-share.js?v=mw3rh9st';
+import { initApplications, flushApplicationWrites } from './applications.js?v=mw3s4pp0';
+import { initDesktopShortcuts } from './desktop-shortcuts.js?v=mw3s4pp0';
+import { optimizeBoardImages } from './optimize.js?v=mw3s4pp0';
+import { waitForDriveIdle, saveDriveBeforeClose, hasPendingDriveChanges } from './drive.js?v=mw3s4pp0';
+import { isEditing, stopEdit } from './editor.js?v=mw3s4pp0';
+import { initDesktopCalendar } from './calendar.js?v=mw3s4pp0';
+import { saveNow } from './state.js?v=mw3s4pp0';
+import { flushLocalWrites } from './local-store.js?v=mw3s4pp0';
+import { openLink } from './links.js?v=mw3s4pp0';
+import { notify } from './notifications.js?v=mw3s4pp0';
+import { parseShareLink } from './group-share.js?v=mw3s4pp0';
 
 function chooseUpdate(version) {
   const dialog = document.createElement('dialog');
@@ -110,17 +110,61 @@ export async function initDesktop() {
   await appWindow.onCloseRequested(async event => {
     event.preventDefault();
     if (busy) return;
+    try {
+      if (await core.invoke('hide_on_close')) { saveNow(); await flushLocalWrites(); return; }
+    } catch (error) { notify(String(error), {type:'error'}); return; }
     const version = scheduledVersion;
     await finish(version);
   });
-  try {
-    const version = await core.invoke('check_update');
-    if (!version || busy) return;
-    busy = true;
-    const choice = await chooseUpdate(version).finally(() => { busy = false; });
-    if (choice === 'on-close') scheduledVersion = version;
-    if (choice === 'now') await finish(version, true);
-  } catch {
-    notify('La vérification des mises à jour a échoué.', { id: 'desktop-update', type: 'error' });
+  if (window.__TAURI__.event) {
+    const section = document.getElementById('desktop-close-mode');
+    const toggle = document.getElementById('close-to-tray');
+    toggle.checked = await core.invoke('get_close_to_tray');
+    section.hidden = false;
+    toggle.addEventListener('change', async () => {
+      toggle.disabled = true;
+      try { await core.invoke('set_close_to_tray', {enabled:toggle.checked}); }
+      catch(error) { toggle.checked = !toggle.checked; notify(String(error), {type:'error'}); }
+      finally { toggle.disabled = false; }
+    });
+    const autostart = document.getElementById('desktop-autostart');
+    autostart.checked = await core.invoke('get_autostart');
+    autostart.addEventListener('change', async () => {
+      autostart.disabled = true;
+      try { await core.invoke('set_autostart', {enabled:autostart.checked}); }
+      catch(error) { autostart.checked = !autostart.checked; notify(String(error), {type:'error'}); }
+      finally { autostart.disabled = false; }
+    });
+    const quit = async () => { if (!busy) await finish(scheduledVersion); };
+    await window.__TAURI__.event.listen('bete-quit-requested', quit);
+    document.getElementById('desktop-quit').addEventListener('click', quit);
   }
+  const updateButton = document.getElementById?.('desktop-check-update');
+  let checkingUpdate = false;
+  async function checkUpdates(manual = false) {
+    if (busy || checkingUpdate) return;
+    checkingUpdate = true;
+    if (updateButton) updateButton.disabled = true;
+    if (manual) notify('Recherche de mises à jour…', {id:'desktop-update',type:'progress',duration:0});
+    try {
+      const version = await core.invoke('check_update');
+      if (!version) {
+        if (manual) notify('Bête est à jour.', {id:'desktop-update',type:'success'});
+        return;
+      }
+      if (busy) return;
+      if (manual) notify('Une mise à jour est disponible : ' + version, {id:'desktop-update',type:'info'});
+      busy = true;
+      const choice = await chooseUpdate(version).finally(() => { busy = false; });
+      if (choice === 'on-close') scheduledVersion = version;
+      if (choice === 'now') await finish(version, true);
+    } catch {
+      notify('Impossible de vérifier les mises à jour. Vérifie ta connexion et réessaie.', {id:'desktop-update',type:'error'});
+    } finally {
+      checkingUpdate = false;
+      if (updateButton) updateButton.disabled = false;
+    }
+  }
+  updateButton?.addEventListener('click', () => checkUpdates(true));
+  await checkUpdates();
 }

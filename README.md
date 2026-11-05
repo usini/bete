@@ -307,3 +307,5 @@ Sous Windows, **Menu → Applications sur cet ordinateur → Ajouter une applica
 Si Google Drive est injoignable à la fermeture de la version Windows, Bête conserve le tableau localement et se ferme. Les modifications restent en attente : utilise Ctrl+S ou la disquette pour réessayer après le retour de la connexion. Un conflit entre deux versions reste à résoudre dans Bête.
 
 Les autorisations de lancement ne lancent plus immédiatement une application : refaire un double-clic après validation. Sur Windows, **Calc** ouvre la calculatrice depuis la barre de commande. **F** cadre tout le tableau. **R**, lorsqu’un groupe est sélectionné, uniformise ses blocs sur la largeur et la hauteur maximales puis les aligne ; le bouton **Redimensionner** est disponible dans l’éditeur de groupe. Sans groupe sélectionné, R conserve la création d’un rectangle. L’alignement évite les autres groupes indépendants. Les en-têtes des groupes adaptent leur hauteur au zoom. La recherche inclut le nom et la description des dépôts GitHub.
+
+Au dézoom, l’en-tête lisible du groupe s’étend vers le haut, sans empiéter sur la zone réservée aux blocs. Sa zone cliquable suit la barre affichée.

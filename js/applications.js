@@ -1,9 +1,9 @@
-import { screenToWorld, view } from './camera.js?v=mw3rh9st';
-import { state, events, addNode, getNode, emit } from './state.js?v=mw3rh9st';
-import { externalMode } from './external-board.js?v=mw3rh9st';
-import { isLocked } from './mobile-mode.js?v=mw3rh9st';
-import { notify, dismissNotification } from './notifications.js?v=mw3rh9st';
-import { cleanApplication, newSteamApplication } from './application-model.js?v=mw3rh9st';
+import { screenToWorld, view } from './camera.js?v=mw3s4pp0';
+import { state, events, addNode, getNode, emit } from './state.js?v=mw3s4pp0';
+import { externalMode } from './external-board.js?v=mw3s4pp0';
+import { isLocked } from './mobile-mode.js?v=mw3s4pp0';
+import { notify, dismissNotification } from './notifications.js?v=mw3s4pp0';
+import { cleanApplication, newSteamApplication } from './application-model.js?v=mw3s4pp0';
 export const applicationEvents=new EventTarget();
 let lastSnapshot=null;
 let native=null,queue=Promise.resolve(),status={enabled:false,approved:{}};
@@ -47,14 +47,20 @@ export async function openApplication(node){
   if(!native||externalMode){notify('L’ouverture d’applications est disponible uniquement dans Bête Windows, après autorisation locale.');return false;}
   if(opening||(lastBlock===node.id&&performance.now()-lastOpened<650))return false;
   opening=true;lastBlock=node.id;lastOpened=performance.now();
+  let keepLaunchNotice=false;
   try{
     await sync();
     if(getNode(node.id)!==node)return false;
     notify(node.application.label + ' est en cours de lancement…', {id:'application-launch',type:'progress',duration:0});
     const opened=await native.core.invoke('launch_application',{blockId:node.id,reference:node.application.reference});
-    status=await native.core.invoke('application_launch_status');repaint();return opened;
+    status=await native.core.invoke('application_launch_status');repaint();
+    if(opened){
+      keepLaunchNotice=true;
+      notify('Lancement de ' + node.application.label + ' demandé.', {id:'application-launch',type:'success',duration:5000});
+    }
+    return opened;
   }catch(error){notify(String(error),{type:'error',duration:0});return false;}
-  finally{dismissNotification('application-launch');opening=false;lastOpened=performance.now();}
+  finally{if(!keepLaunchNotice)dismissNotification('application-launch');opening=false;lastOpened=performance.now();}
 }
 export async function initApplications(desktop){
   native=desktop;
@@ -86,4 +92,17 @@ export async function initApplications(desktop){
     finally{button.disabled=false;}
   });
   section.hidden=false;await sync();update();
+  // Repair existing local blocks that were created before icon extraction worked.
+  (async()=>{
+    for(const node of state.nodes.filter(n=>n.application&&!n.application.icon)){
+      const reference=node.application.reference;
+      try{
+        const icon=await desktop.core.invoke('application_icon',{blockId:node.id,reference});
+        if(getNode(node.id)===node&&node.application.reference===reference&&typeof icon==='string'){
+          const clean=cleanApplication({...node.application,icon});
+          if(clean?.icon){node.application=clean;emit();}
+        }
+      }catch{/* The application may not be registered on this computer. */}
+    }
+  })();
 }

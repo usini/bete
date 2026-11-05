@@ -1,12 +1,12 @@
-import { cleanApplication } from './application-model.js?v=mw3rh9st';
-import { cleanGitHubData } from './github-repo.js?v=mw3rh9st';
-import { amazonBadgeLayout } from './amazon.js?v=mw3rh9st';
-import { labelLayout } from './labels.js?v=mw3rh9st';
-import { externalMode } from './external-board.js?v=mw3rh9st';
-import { localStore } from './local-store.js?v=mw3rh9st';
+import { cleanApplication } from './application-model.js?v=mw3s4pp0';
+import { cleanGitHubData } from './github-repo.js?v=mw3s4pp0';
+import { amazonBadgeLayout } from './amazon.js?v=mw3s4pp0';
+import { labelLayout } from './labels.js?v=mw3s4pp0';
+import { externalMode } from './external-board.js?v=mw3s4pp0';
+import { localStore } from './local-store.js?v=mw3s4pp0';
 // Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mw3rh9st';
+import { explode } from './fx.js?v=mw3s4pp0';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];
@@ -218,7 +218,13 @@ export function setGroupMemberFilter(filter, protectFit = () => {}) {
 const GROUP_HEADER_MIN = 64, GROUP_HEADER_MAX = 220, GROUP_HEADER_RATIO = 0.22;
 const GROUP_MIN_PADDING = 28, GROUP_PADDING_RATIO = 0.10;
 const headerForHeight = height => Math.min(GROUP_HEADER_MAX, Math.max(GROUP_HEADER_MIN, height * GROUP_HEADER_RATIO));
-export const groupHeaderHeight = group => Math.min(group.h, Math.max(24 / state.camera.zoom, Math.min(48 / state.camera.zoom, headerForHeight(group.h))));
+export const groupHeaderHeight = group => Math.min(group.h, headerForHeight(group.h));
+// Keep the body's reserved space stable. Extra screen-space height grows upward.
+export function groupHeaderBox(group) {
+  const reserved = groupHeaderHeight(group);
+  const h = Math.max(24 / state.camera.zoom, Math.min(48 / state.camera.zoom, reserved));
+  return { x: group.x, y: group.y + reserved - h, w: group.w, h };
+}
 
 function insideGroup(group, node) {
   if (node === group || (node.kind === 'group' && node.w * node.h >= group.w * group.h)) return false;

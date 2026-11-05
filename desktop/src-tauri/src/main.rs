@@ -4,6 +4,8 @@ mod calendar;
 mod drive;
 mod shortcuts;
 mod applications;
+mod tray;
+mod autostart;
 
 use std::time::Duration;
 use tauri::{AppHandle, Url, WebviewUrl, WebviewWindowBuilder};
@@ -85,6 +87,11 @@ fn main() {
     builder
         .invoke_handler(tauri::generate_handler![
             open_browser,
+            autostart::get_autostart,
+            autostart::set_autostart,
+            tray::get_close_to_tray,
+            tray::set_close_to_tray,
+            tray::hide_on_close,
             open_calculator,
             applications::sync_application_blocks,
             applications::revoke_all_application_permissions,
@@ -92,6 +99,7 @@ fn main() {
             applications::set_application_launch_enabled,
             applications::launch_application,
             applications::pick_application,
+            applications::application_icon,
             minimize_window,
             shortcuts::get_global_shortcut,
             shortcuts::set_global_shortcut,
@@ -108,6 +116,7 @@ fn main() {
             let main_window = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                 // Let WebView2 deliver HTML5 URL and file drops to the board.
                 .disable_drag_drop_handler()
+                .visible(!std::env::args().any(|arg| arg == "--background"))
                 .title("Bête")
                 .inner_size(1280.0, 850.0)
                 .min_inner_size(520.0, 360.0)
@@ -121,6 +130,7 @@ fn main() {
                 .build()?;
             applications::install_file_bridge(&main_window)?;
             shortcuts::init(app.handle());
+            tray::init(app.handle())?;
             Ok(())
         })
         .run(tauri::generate_context!())

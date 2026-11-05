@@ -1,18 +1,18 @@
-import { openApplication } from './applications.js?v=mw3rh9st';
-import { notify } from './notifications.js?v=mw3rh9st';
-import { flyToBlock } from './camera.js?v=mw3rh9st';
-import { linkOf } from './labels.js?v=mw3rh9st';
-import { openLink } from './links.js?v=mw3rh9st';
-import { serviceForNode } from './services.js?v=mw3rh9st';
-import { getNode, select, state } from './state.js?v=mw3rh9st';
-import { cachedYouTubeTitle, youTubeId } from './yt.js?v=mw3rh9st';
+import { openApplication } from './applications.js?v=mw3s4pp0';
+import { notify } from './notifications.js?v=mw3s4pp0';
+import { flyToBlock } from './camera.js?v=mw3s4pp0';
+import { linkOf } from './labels.js?v=mw3s4pp0';
+import { openLink } from './links.js?v=mw3s4pp0';
+import { serviceForNode } from './services.js?v=mw3s4pp0';
+import { getNode, select, state } from './state.js?v=mw3s4pp0';
+import { cachedYouTubeTitle, youTubeId } from './yt.js?v=mw3s4pp0';
 
 const normalize = text => text.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 
 function search(query) {
   const commands = window.__TAURI__ ? [
-    { command: 'calc', label: 'Calc' },
     { command: 'focus', label: 'Focus' },
+    { command: 'calc', label: 'Calc' },
     { command: 'minimize', label: 'Réduire' },
   ] : [];
   const commandMatches = commands.filter(item => normalize(item.label).startsWith(query));
