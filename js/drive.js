@@ -1,5 +1,5 @@
-import { localStore } from './local-store.js?v=mw3ifmhi';
-import { updateBackupSize } from './backup-size.js?v=mw3ifmhi';
+import { localStore } from './local-store.js?v=mw3jmzda';
+import { updateBackupSize } from './backup-size.js?v=mw3jmzda';
 // Optional backup of the board on Google Drive.
 //
 //  - Scope: drive.appdata only. The file (Bete.json) lives in a hidden folder reserved to this
@@ -7,12 +7,12 @@ import { updateBackupSize } from './backup-size.js?v=mw3ifmhi';
 //  - Sign-in: OAuth code flow through a stateless service. Access tokens stay in memory.
 //  - Drive transfers happen only on explicit save, restore or initial connection.
 //    Local autosave remains automatic; leaving with unsaved Drive changes warns the user.
-import { state, onSaved, saveNow, serialize } from './state.js?v=mw3ifmhi';
-import { exportData, importData } from './storage.js?v=mw3ifmhi';
+import { state, onSaved, saveNow, serialize } from './state.js?v=mw3jmzda';
+import { exportData, importData } from './storage.js?v=mw3jmzda';
 
-import { notify } from './notifications.js?v=mw3ifmhi';
+import { notify } from './notifications.js?v=mw3jmzda';
 
-import { modeEvents } from './mobile-mode.js?v=mw3ifmhi';
+import { modeEvents } from './mobile-mode.js?v=mw3jmzda';
 
 const AUTH_URL = 'https://auth-bete.usini.eu';
 const FILE_NAME = 'Bete.json';
@@ -30,6 +30,8 @@ let tokenExpiry = 0;
 let observed = '';
 let dirty = false;       // the board changed since the last sync
 let busy = false;
+let idleWaiters = [];
+const releaseIdle = () => { const waiters = idleWaiters; idleWaiters = []; for (const resolve of waiters) resolve(); };
 let conflictPending = false; // "Décider plus tard" was chosen: wait for the next explicit action
 let transferResult = '';
 let message = '';        // transient status line (progress, errors)
@@ -310,6 +312,7 @@ async function run(label, step, announce = false) {
     return false;
   } finally {
     busy = false;
+    releaseIdle();
     render();
   }
 }
@@ -440,7 +443,7 @@ async function disconnect() {
   } catch {
     driveFailed = true;
     say('Déconnexion non confirmée. Réessaie ou retire l’accès depuis ton compte Google.');
-  } finally { busy = false; render(); }
+  } finally { busy = false; releaseIdle(); render(); }
 }
 
 function restore() {
@@ -495,4 +498,23 @@ export function initDrive() {
   });
   render();
   if (meta) run('Vérification de la sauvegarde Google Drive…', checkRemoteBackup);
+}
+
+// Desktop shutdown must await existing transfers and never overwrite a newer remote backup.
+export async function waitForDriveIdle() {
+  while (busy) await new Promise(resolve => idleWaiters.push(resolve));
+}
+export async function saveDriveBeforeClose() {
+  await waitForDriveIdle();
+  if (!meta) return { skipped: true };
+  const ok = await run('Sauvegarde en cours…', async () => {
+    const remote = await findFile();
+    if (remote && (remote.id !== meta.fileId || remote.modifiedTime !== meta.remoteModified)) {
+      throw new Error('La sauvegarde Drive a changé. Résous le conflit avec la disquette avant de fermer.');
+    }
+    conflictPending = false;
+    await pushStep();
+  });
+  if (!ok || dirty || conflictPending) throw new Error(message || 'La sauvegarde Google Drive n’est pas terminée.');
+  return { skipped: false };
 }

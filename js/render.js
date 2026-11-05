@@ -1,26 +1,26 @@
-import { dropPreviewGroup } from './placement.js?v=mw3ifmhi';
-import { externalMode } from './external-board.js?v=mw3ifmhi';
-import { positionEmbeds } from './embed-view.js?v=mw3ifmhi';
+import { dropPreviewGroup } from './placement.js?v=mw3jmzda';
+import { externalMode } from './external-board.js?v=mw3jmzda';
+import { positionEmbeds } from './embed-view.js?v=mw3jmzda';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize, groupHeaderHeight } from './state.js?v=mw3ifmhi';
-import { view, screenToWorld } from './camera.js?v=mw3ifmhi';
-import { youTubeId, ytThumb } from './yt.js?v=mw3ifmhi';
-import { imageCaptionFraction, imageFor } from './images.js?v=mw3ifmhi';
-import { positionVideo, isVideoPlaying } from './video.js?v=mw3ifmhi';
-import { guides } from './snap.js?v=mw3ifmhi';
-import { renderMinimap } from './minimap.js?v=mw3ifmhi';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mw3ifmhi';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw3ifmhi';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw3ifmhi';
+import { state, events, getSelectedId, groupsBySize, groupHeaderHeight } from './state.js?v=mw3jmzda';
+import { view, screenToWorld } from './camera.js?v=mw3jmzda';
+import { youTubeId, ytThumb } from './yt.js?v=mw3jmzda';
+import { imageCaptionFraction, imageFor } from './images.js?v=mw3jmzda';
+import { positionVideo, isVideoPlaying } from './video.js?v=mw3jmzda';
+import { guides } from './snap.js?v=mw3jmzda';
+import { renderMinimap } from './minimap.js?v=mw3jmzda';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mw3jmzda';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw3jmzda';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw3jmzda';
 
-import { genericLinkOf, plainLink } from './links.js?v=mw3ifmhi';
-import { stepMotion } from './motion.js?v=mw3ifmhi';
-import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw3ifmhi';
+import { genericLinkOf, plainLink } from './links.js?v=mw3jmzda';
+import { stepMotion } from './motion.js?v=mw3jmzda';
+import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw3jmzda';
 
-import { isLocked } from './mobile-mode.js?v=mw3ifmhi';
+import { isLocked } from './mobile-mode.js?v=mw3jmzda';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mw3ifmhi';
-import { amazonBadgeLayout } from './amazon.js?v=mw3ifmhi';
+import { serviceForNode, serviceIcon } from './services.js?v=mw3jmzda';
+import { amazonBadgeLayout } from './amazon.js?v=mw3jmzda';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');

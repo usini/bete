@@ -1,9 +1,12 @@
-import { initDesktopCalendar } from './calendar.js?v=mw3ifmhi';
-import { saveNow } from './state.js?v=mw3ifmhi';
-import { flushLocalWrites } from './local-store.js?v=mw3ifmhi';
-import { openLink } from './links.js?v=mw3ifmhi';
-import { notify } from './notifications.js?v=mw3ifmhi';
-import { parseShareLink } from './group-share.js?v=mw3ifmhi';
+import { optimizeBoardImages } from './optimize.js?v=mw3jmzda';
+import { waitForDriveIdle, saveDriveBeforeClose } from './drive.js?v=mw3jmzda';
+import { isEditing, stopEdit } from './editor.js?v=mw3jmzda';
+import { initDesktopCalendar } from './calendar.js?v=mw3jmzda';
+import { saveNow } from './state.js?v=mw3jmzda';
+import { flushLocalWrites } from './local-store.js?v=mw3jmzda';
+import { openLink } from './links.js?v=mw3jmzda';
+import { notify } from './notifications.js?v=mw3jmzda';
+import { parseShareLink } from './group-share.js?v=mw3jmzda';
 
 function chooseUpdate(version) {
   const dialog = document.createElement('dialog');
@@ -60,19 +63,33 @@ export async function initDesktop() {
 
   let scheduledVersion = null;
   let busy = false;
-  async function finish(version) {
+  async function finish(version, restart = false) {
     let progress;
     busy = true;
     try {
+      if (isEditing()) {
+        await stopEdit(true);
+        if (isEditing()) throw new Error('Valide ou annule la modification du bloc avant de fermer.');
+      }
+      progress = document.createElement('dialog');
+      progress.className = 'share-approval';
+      progress.setAttribute('aria-live', 'polite');
+      progress.textContent = 'Sauvegarde en cours — optimisation des images…';
+      progress.addEventListener('cancel', event => event.preventDefault());
+      document.body.append(progress);
+      progress.show();
+      await waitForDriveIdle();
+      progress.close();
+      progress.showModal();
+      const optimized = await optimizeBoardImages();
+      if (optimized.failures) notify('Certaines images ont été conservées sans optimisation.', { type: 'info' });
       if (await saveNow() !== true || !await flushLocalWrites()) throw new Error('La sauvegarde locale a échoué. Exporte le tableau avant de continuer.');
+      progress.textContent = 'Sauvegarde en cours — Google Drive…';
+      await saveDriveBeforeClose();
+      if (await saveNow() !== true || !await flushLocalWrites()) throw new Error('La sauvegarde locale a échoué.');
       if (version) {
-        progress = document.createElement('dialog');
-        progress.className = 'share-approval';
         progress.textContent = 'Téléchargement de la mise à jour…';
-        progress.addEventListener('cancel', event => event.preventDefault());
-        document.body.append(progress);
-        progress.showModal();
-        await core.invoke('install_update', { version });
+        await core.invoke('install_update', { version, restart });
       } else await appWindow.destroy();
     } catch (error) {
       notify(String(error), { id: 'desktop-update', type: 'error', duration: 0 });
@@ -85,7 +102,6 @@ export async function initDesktop() {
     event.preventDefault();
     if (busy) return;
     const version = scheduledVersion;
-    scheduledVersion = null;
     await finish(version);
   });
   try {
@@ -94,7 +110,7 @@ export async function initDesktop() {
     busy = true;
     const choice = await chooseUpdate(version).finally(() => { busy = false; });
     if (choice === 'on-close') scheduledVersion = version;
-    if (choice === 'now') await finish(version);
+    if (choice === 'now') await finish(version, true);
   } catch {
     notify('La vérification des mises à jour a échoué.', { id: 'desktop-update', type: 'error' });
   }

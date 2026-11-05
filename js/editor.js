@@ -1,7 +1,7 @@
-import { alignmentPlan } from './alignment.js?v=mw3ifmhi';
-import { labelLayout } from './labels.js?v=mw3ifmhi';
-import { amazonBadgeLayout } from './amazon.js?v=mw3ifmhi';
-import { freeDropPosition } from './placement.js?v=mw3ifmhi';
+import { alignmentPlan } from './alignment.js?v=mw3jmzda';
+import { labelLayout } from './labels.js?v=mw3jmzda';
+import { amazonBadgeLayout } from './amazon.js?v=mw3jmzda';
+import { freeDropPosition } from './placement.js?v=mw3jmzda';
 // Edit mode: one popup (modal <dialog>) to change a block's text and link.
 // Opened by the 📝 button, a click on a label, Enter, or a double-click on a block with no link.
 //  - the text field is hidden for image blocks (they have no text)
@@ -9,18 +9,18 @@ import { freeDropPosition } from './placement.js?v=mw3ifmhi';
 //  - when the link is an Amazon address the popup becomes "Produit Amazon": name, price and
 //    delivery time fields appear (typed by hand, shown in the block's label)
 // It closes only with the Annuler / Valider buttons (Ctrl+Enter, or Enter in a one-line field, also validate).
-import { state, getNode, emit, membersOf, fitGroupsAround, saveNow } from './state.js?v=mw3ifmhi';
-import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw3ifmhi';
-import { youTubeId } from './yt.js?v=mw3ifmhi';
-import { addImageFile, imageFor } from './images.js?v=mw3ifmhi';
+import { state, getNode, emit, membersOf, fitGroupsAround, saveNow } from './state.js?v=mw3jmzda';
+import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw3jmzda';
+import { youTubeId } from './yt.js?v=mw3jmzda';
+import { addImageFile, imageFor } from './images.js?v=mw3jmzda';
 
-import { genericLink } from './links.js?v=mw3ifmhi';
+import { genericLink } from './links.js?v=mw3jmzda';
 
-import { isLocked } from './mobile-mode.js?v=mw3ifmhi';
+import { isLocked } from './mobile-mode.js?v=mw3jmzda';
 
-import { serviceForNode } from './services.js?v=mw3ifmhi';
-import { deliveryDelay } from './delivery.js?v=mw3ifmhi';
-import { googleMapsEmbed } from './google-maps.js?v=mw3ifmhi';
+import { serviceForNode } from './services.js?v=mw3jmzda';
+import { deliveryDelay } from './delivery.js?v=mw3jmzda';
+import { googleMapsEmbed } from './google-maps.js?v=mw3jmzda';
 
 const dlg = document.getElementById('textdialog');
 const title = document.getElementById('dialog-title');
@@ -178,6 +178,7 @@ export function stopEdit(commit) {
   editingId = null;
   dlg.close();
   let changed = false;
+  let imageSave = null;
   if (!isGroup && hideLinkLabel.checked !== (n.hideLinkLabel === true)) {
     if (hideLinkLabel.checked) n.hideLinkLabel = true;
     else delete n.hideLinkLabel;
@@ -205,7 +206,7 @@ export function stopEdit(commit) {
   if (!imageField.hidden) {
     if (pendingFile) {
       // Stored asynchronously (IndexedDB): the block is updated once the image is saved.
-      addImageFile(pendingFile).then((ref) => {
+      imageSave = addImageFile(pendingFile).then((ref) => {
         if (!isLocked() && getNode(n.id)) { n.image = ref; emit(); }
       });
     } else if (removeImage && n.image) {
@@ -228,6 +229,7 @@ export function stopEdit(commit) {
   }
   pendingAlignment = null;
   if (changed) emit();
+  return imageSave;
 }
 
 document.getElementById('text-ok').addEventListener('click', () => stopEdit(true));
@@ -238,7 +240,7 @@ dlg.addEventListener('cancel', (e) => e.preventDefault());
 // stopEdit() clears editingId before closing, so any other close is unwanted -> reopen.
 dlg.addEventListener('close', () => { if (editingId !== null) dlg.showModal(); });
 el.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+  if (e.key === 'Enter' && !e.isComposing && (!e.shiftKey || e.ctrlKey || e.metaKey)) {
     e.preventDefault();
     stopEdit(true);
   }
@@ -324,3 +326,8 @@ document.getElementById('group-align-button').addEventListener('click', () => {
     ctx.fillText((n.name||n.text||'Bloc').split('\n')[0].slice(0,45),n.x+n.w/2,n.y+n.h/2,Math.max(1,n.w-8/scale));ctx.restore();
   }
 });
+
+export function previewGroupAlignment(id) {
+  startEdit(id);
+  if (editingId === id && isGroup) document.getElementById('group-align-button').click();
+}

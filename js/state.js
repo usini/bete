@@ -1,10 +1,10 @@
-import { amazonBadgeLayout } from './amazon.js?v=mw3ifmhi';
-import { labelLayout } from './labels.js?v=mw3ifmhi';
-import { externalMode } from './external-board.js?v=mw3ifmhi';
-import { localStore } from './local-store.js?v=mw3ifmhi';
+import { amazonBadgeLayout } from './amazon.js?v=mw3jmzda';
+import { labelLayout } from './labels.js?v=mw3jmzda';
+import { externalMode } from './external-board.js?v=mw3jmzda';
+import { localStore } from './local-store.js?v=mw3jmzda';
 // Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mw3ifmhi';
+import { explode } from './fx.js?v=mw3jmzda';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];
@@ -45,6 +45,8 @@ export const MIN_ZOOM = 1e-9;
 export const state = { camera: { x: 0, y: 0, zoom: 1 }, nodes: [] };
 export const events = new EventTarget();
 let selectedId = null;
+let lastSelectedGroupId = null;
+export const getLastSelectedGroup = () => getNode(lastSelectedGroupId);
 
 export function newId() {
   if (globalThis.crypto && crypto.randomUUID) return crypto.randomUUID();
@@ -108,6 +110,7 @@ export function setDoc(raw) {
     .map(sanitizeNode)
     .filter(Boolean);
   selectedId = null;
+  lastSelectedGroupId = null;
   if (historyAdapter) historyAdapter.load(o.history);
   else pendingHistory = o.history;
   emit();
@@ -153,15 +156,18 @@ export function getSelectedId() { return selectedId; }
 
 export function select(id) {
   selectedId = id;
+  if (getNode(id)?.kind === 'group') lastSelectedGroupId = id;
   emit();
 }
 
 export function addNode(kind, cx, cy) {
   const s = lastSize[kind] || SIZES[kind];
   const n = { id: newId(), kind, x: cx - s.w / 2, y: cy - s.h / 2, w: s.w, h: s.h, text: '', color: lastColor };
+  if (kind !== 'group') n.hideLinkLabel = true;
   state.nodes.push(n);
   fitGroupsAround(n);
   selectedId = n.id;
+  if (kind === 'group') lastSelectedGroupId = n.id;
   emit();
   return n;
 }

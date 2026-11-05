@@ -1,33 +1,33 @@
-import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mw3ifmhi';
-import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mw3ifmhi';
-import { externalMode } from './external-board.js?v=mw3ifmhi';
+import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mw3jmzda';
+import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mw3jmzda';
+import { externalMode } from './external-board.js?v=mw3jmzda';
 // Pointer, wheel, keyboard, paste and drop handling for the canvas.
 //  - click on a label: edit popup, link field first (YouTube labels open the video instead)
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, COLORS } from './state.js?v=mw3ifmhi';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw3ifmhi';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mw3ifmhi';
-import { addDataUrl, addImageFile, imageCaptionFraction, imageFor } from './images.js?v=mw3ifmhi';
-import { playVideo } from './video.js?v=mw3ifmhi';
-import { youTubeId } from './yt.js?v=mw3ifmhi';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mw3ifmhi';
-import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mw3ifmhi';
-import { undo, redo } from './history.js?v=mw3ifmhi';
+import { state, getNode, getSelectedId, getLastSelectedGroup, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, COLORS } from './state.js?v=mw3jmzda';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw3jmzda';
+import { startEdit, stopEdit, isEditing, previewGroupAlignment } from './editor.js?v=mw3jmzda';
+import { addDataUrl, addImageFile, imageCaptionFraction, imageFor } from './images.js?v=mw3jmzda';
+import { playVideo } from './video.js?v=mw3jmzda';
+import { youTubeId } from './yt.js?v=mw3jmzda';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mw3jmzda';
+import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mw3jmzda';
+import { undo, redo } from './history.js?v=mw3jmzda';
 
-import { setDragging } from './motion.js?v=mw3ifmhi';
+import { setDragging } from './motion.js?v=mw3jmzda';
 
-import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw3ifmhi';
-import { shortenAmazonText, isAmazonUrl, amazonBadgeLayout } from './amazon.js?v=mw3ifmhi';
+import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw3jmzda';
+import { shortenAmazonText, isAmazonUrl, amazonBadgeLayout } from './amazon.js?v=mw3jmzda';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mw3ifmhi';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mw3jmzda';
 
-import { serviceForNode } from './services.js?v=mw3ifmhi';
+import { serviceForNode } from './services.js?v=mw3jmzda';
 
-import { requestRender } from './render.js?v=mw3ifmhi';
+import { requestRender } from './render.js?v=mw3jmzda';
 
-import { notify } from './notifications.js?v=mw3ifmhi';
+import { notify } from './notifications.js?v=mw3jmzda';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 const CLIPBOARD_BLOCK = 'application/x-bete-clipboard-block';
@@ -41,6 +41,7 @@ const MIN_SIZE = 20, MAX_SIZE = 1e5;
 const pointers = new Map(); // pointerId -> { x, y } (screen)
 let gesture = null;         // { type: 'pan' | 'move' | 'resize' | 'pinch', ... }
 let pickTarget = null;
+let cursorPosition = null;
 let lastTap = { t: 0, x: 0, y: 0 }; // previous touch tap on a block, for the double-tap
 
 // A double-click presses a button twice: ignore a repeat of the same action within 600 ms.
@@ -112,6 +113,8 @@ function pickColor(n, x, y) {
 function onPointerDown(e) {
   // Stops the browser from moving focus after this press (it would close the editors).
   e.preventDefault();
+  // The canvas prevents native focus changes, so release a previously focused toolbar button.
+  if (document.activeElement?.matches('button')) document.activeElement.blur();
   cancelFlight();
   if (isEditing()) stopEdit(true);
   canvas.setPointerCapture(e.pointerId);
@@ -207,7 +210,11 @@ function doubleAt(x, y) {
   const selected = getNode(getSelectedId());
   if (selected && actionHit(selected, w, state.camera.zoom)) return;
   const n = nodeAt(w);
-  if (!n) { addNode('rect', w.x, w.y); return; }
+  if (!n) {
+    const created = addNode('rect', w.x, w.y);
+    startEdit(created.id);
+    return;
+  }
   if (!n.image && isAmazonUrl(linkOf(n))) startEdit(n.id);
   else if (serviceForNode(n) && linkOf(n)) openLink(linkOf(n));
   else if (n.kind === 'group') startEdit(n.id);                               // group: edit its title
@@ -376,6 +383,12 @@ function confirmDelete(id) {
 }
 
 export function initInput() {
+  document.addEventListener('pointermove', e => { cursorPosition = { x: e.clientX, y: e.clientY }; }, { passive: true });
+  // Pointer clicks should not leave Space/Enter attached to the last action.
+  // Keyboard activation has detail=0, keeping Tab navigation and native button activation.
+  document.addEventListener('click', e => {
+    if (e.detail > 0 && document.activeElement?.matches('button')) document.activeElement.blur();
+  });
   modeEvents.addEventListener('change', () => {
     if (gesture?.type === 'move') setDragging(gesture.n, false);
     pointers.clear(); gesture = null; clearGuides(); setDropPreview(null);
@@ -437,6 +450,7 @@ export function initInput() {
       if (genericLink(url)) { n.link = url; n.text = droppedTitle(e.dataTransfer, url); }
       else n.text = shortenAmazonText(url);
       emit();
+      if (isAmazonUrl(url)) startEdit(n.id);
     }
   });
 
@@ -502,7 +516,9 @@ export function initInput() {
         selected.text = shortenAmazonText(url);
         delete selected.link;
       }
-      emit(); return;
+      emit();
+      if (isAmazonUrl(url)) startEdit(selected.id);
+      return;
     }
     const file = [...(e.clipboardData ? e.clipboardData.files : [])].find((f) => f.type.startsWith('image/'));
     const c = screenToWorld(view.w / 2, view.h / 2);
@@ -517,6 +533,7 @@ export function initInput() {
     if (url && genericLink(url)) n.link = url;
     else n.text = url ? shortenAmazonText(url) : pasted.slice(0, 20000);
     emit();
+    if (url && isAmazonUrl(url)) startEdit(n.id);
   });
 
   window.addEventListener('keydown', (e) => {
@@ -529,7 +546,27 @@ export function initInput() {
       if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
       if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); return; }
     }
-    if (inField) return;
+    if (inField || e.isComposing) return;
+    if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat && !gesture && !document.querySelector(':popover-open')) {
+      const key = e.key.toLowerCase();
+      if (['r', 'g', 'm', 't', 'a'].includes(key)) {
+        e.preventDefault();
+        if (key === 'r' || key === 'g') {
+          const point = cursorPosition || { x: view.w / 2, y: view.h / 2 };
+          const world = screenToWorld(point.x, point.y);
+          const created = addNode(key === 'r' ? 'rect' : 'group', world.x, world.y);
+          startEdit(created.id);
+        } else if (key === 'm') {
+          document.getElementById('panel-toggle').click();
+        } else if (key === 't') document.getElementById('open-group-index').click();
+        else {
+          const group = getLastSelectedGroup();
+          if (group) { previewGroupAlignment(group.id); stopEdit(true); }
+          else notify('Sélectionne un groupe avant de l’aligner.');
+        }
+        return;
+      }
+    }
     const id = getSelectedId();
     // Toolbar buttons can retain focus after a pointer click on the canvas.
     if (id && (e.key === 'Delete' || e.key === 'Backspace')) {

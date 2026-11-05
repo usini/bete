@@ -261,3 +261,15 @@ Au relâchement d’un bloc déplacé sur un autre, le bloc déplacé rejoint la
 Pendant le déplacement d’un bloc, le groupe visé est surligné en vert avec « Ajouter au groupe ». L’indicateur disparaît au relâchement ou lorsque le bloc quitte le groupe.
 
 Dans **Modifier le groupe → Aligner**, un aperçu propose une ligne, une colonne ou des rangées selon la disposition existante. Les proportions proches sont uniformisées dans une ligne/colonne ; les formats différents et les ensembles isolés sont conservés. **Valider** applique le rangement, **Annuler** ne change rien ; Ctrl+Z permet de revenir en arrière. Première version heuristique à ajuster à l’usage.
+
+Raccourcis hors saisie : **R** crée un rectangle au curseur et ouvre son éditeur, **G** fait de même pour un groupe, **M** ouvre ou ferme le menu, **T** ouvre le tableau des groupes et **A** applique directement l’alignement du dernier groupe sélectionné (annulable avec Ctrl+Z). Sans position connue du curseur, la création se fait au centre de la vue.
+
+Coller ou déposer un lien Amazon simple ouvre automatiquement l’éditeur du produit. Le bloc complet copié par l’extension conserve son import direct.
+
+**Optimiser les images** vide aussi l’historique annuler/rétablir après traitement. Les images protégées restent intactes. Le lien d’accueil `https://chatgpt.com` affiche une icône ChatGPT embarquée.
+
+Sur desktop, fermer Bête affiche **Sauvegarde en cours**, optimise les images, vide l’historique et attend la sauvegarde Google Drive si le compte est connecté, puis ferme la fenêtre. En cas d’erreur de sauvegarde ou de conflit Drive, l’application reste ouverte. Sans connexion Drive, seule la sauvegarde locale est effectuée.
+
+Les liens d’accueil Google Agenda acceptent aussi les variantes de compte et de langue, par exemple `https://calendar.google.com/calendar/u/1/r?hl=fr`.
+
+Les nouveaux blocs masquent par défaut l’étiquette de lien au-dessus du bloc. Décoche **Masquer le lien au-dessus du bloc** dans l’éditeur pour l’afficher. Les blocs existants et leurs réglages sont conservés.

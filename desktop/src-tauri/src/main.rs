@@ -41,14 +41,14 @@ async fn check_update(app: AppHandle) -> Result<Option<String>, String> {
 }
 
 #[tauri::command]
-async fn install_update(app: AppHandle, version: String) -> Result<(), String> {
+async fn install_update(app: AppHandle, version: String, restart: bool) -> Result<(), String> {
     if option_env!("BETE_UPDATER_PUBLIC_KEY").is_none() {
         return Err("Mises à jour désactivées dans cette compilation.".into());
     }
     let updater = app
         .updater_builder()
         .timeout(Duration::from_secs(120))
-        .restart_after_install(false)
+        .restart_after_install(restart)
         .build()
         .map_err(|e| e.to_string())?;
     let update = updater

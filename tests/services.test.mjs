@@ -37,3 +37,13 @@ test('lookalike domains, credentials, custom ports and non-rectangle blocks cann
   for (const url of ['https://mail.google.com.evil.example/','https://evil.example/?site=mail.google.com','https://user:pass@mail.google.com/','https://www.youtube.com:444/','javascript:alert(1)']) assert.equal(serviceForUrl(url),null);
   assert.equal(serviceForNode({kind:'group',text:'https://mail.google.com/'}),null);
 });
+
+test('ChatGPT homepage uses a local service icon, leaving conversations as links',()=>{
+ for(const url of ['https://chatgpt.com','https://chatgpt.com/','https://www.chatgpt.com/']) assert.equal(serviceForUrl(url)?.id,'chatgpt');
+ for(const url of ['https://chatgpt.com/c/private','https://chatgpt.com.evil.test/']) assert.equal(serviceForUrl(url),null);
+});
+
+test('Google Calendar entry URLs ignore account numbers, language parameters and fragments',()=>{
+ for(const url of ['https://calendar.google.com/calendar/u/1/r?hl=fr','https://calendar.google.com/calendar/u/23/r?hl=en#main','https://calendar.google.com/?hl=fr']) assert.equal(serviceForUrl(url)?.id,'googlecalendar',url);
+ for(const url of ['https://calendar.google.com.evil.test/calendar/u/1/r?hl=fr','https://calendar.google.com/calendar/u/1/r/eventedit?text=private']) assert.equal(serviceForUrl(url),null);
+});

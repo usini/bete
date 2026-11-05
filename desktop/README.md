@@ -52,7 +52,7 @@ Si tu n’as pas encore de clé, crée-la une fois avec `npx tauri signer genera
 2. Renseigne `BETE_UPDATER_PUBLIC_KEY` avec le contenu de la clé publique, `TAURI_SIGNING_PRIVATE_KEY` avec la clé privée ou son chemin et, si nécessaire, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
 3. Incrémente la version dans `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` et `package.json`, puis actualise les fichiers de verrouillage.
 4. Lance `npm run release:build`. Le dossier `release-output/bete-desktop-v<VERSION>/` contient l’installateur, la signature et le manifeste. Joins les trois fichiers à une release publique de `usini/bete` avec ce tag exact et définis-la comme dernière release. Le manifeste contient déjà l’URL de téléchargement et la signature.
-5. Teste la mise à jour depuis la version précédente avant d’annoncer la release. Au démarrage, l’application propose **Installer maintenant**, **Plus tard** ou **Installer à la fermeture**. **Plus tard** reporte la proposition au prochain lancement.
+5. Teste la mise à jour depuis la version précédente avant d’annoncer la release. Au démarrage, l’application propose **Installer maintenant**, **Plus tard** ou **Installer à la fermeture**. **Installer maintenant** installe la mise à jour et relance Bête. **Installer à la fermeture** installe sans relancer. **Plus tard** reporte la proposition au prochain lancement.
 
 L’installateur de test désactive la recherche de mises à jour. La signature Tauri authentifie les mises à jour. Pour identifier l’éditeur dans Windows, configure aussi la signature Authenticode.
 
@@ -73,3 +73,7 @@ Dans les paramètres du dépôt, crée un environnement **desktop-release** et l
 Dans **Actions → Publier Bête Windows → Run workflow**, sélectionne `main` et saisis une version supérieure à celle publiée. Le job de compilation signe les fichiers. Un job distinct vérifie le manifeste et la continuité de la clé de signature, puis publie la release. Chaque push sur `main` déclenche aussi une release Windows et incrémente la version publiée de `0.0.1`. Les publications passent une par une dans la file GitHub Actions.
 
 Pour un changement réservé au web, ajoute `[skip windows]` au message du dernier commit poussé. GitHub Pages se déploie et le job de compilation Windows est ignoré.
+
+## Fermeture et sauvegarde
+
+À la fermeture (ou avant installation d’une mise à jour), Bête affiche « Sauvegarde en cours », optimise les images et vide l’historique, sauvegarde localement puis sur Google Drive si connecté. La fenêtre se ferme une fois les écritures terminées. En cas d’échec ou de conflit Drive, elle reste ouverte pour réessayer ou résoudre le conflit. Sans compte Drive connecté, la sauvegarde reste locale.

@@ -169,5 +169,12 @@
     "slug": "amazon",
     "hex": "FF9900",
     "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/13.0.0/icons/amazon.svg"
+  },
+  {
+    "version": "11.0.0",
+    "title": "ChatGPT (OpenAI)",
+    "slug": "chatgpt",
+    "hex": "F2F2F2",
+    "source": "https://github.com/simple-icons/simple-icons/blob/11.0.0/icons/openai.svg"
   }
 ]

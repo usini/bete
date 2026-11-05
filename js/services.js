@@ -2,13 +2,14 @@
 const root = path => path === '/';
 const oneOf = (...paths) => path => paths.includes(path);
 const entries = [
+  { id: 'chatgpt', name: 'ChatGPT', hosts: ['chatgpt.com', 'www.chatgpt.com'], path: root },
   { id: 'gmail', name: 'Gmail', hosts: ['mail.google.com', 'gmail.com', 'www.gmail.com'], path: () => true, anyLocation: true },
   { id: 'youtube', name: 'YouTube', hosts: ['youtube.com', 'www.youtube.com'], path: root },
   { id: 'facebook', name: 'Facebook', hosts: ['facebook.com', 'www.facebook.com'], path: root },
   { id: 'x', name: 'X', hosts: ['x.com', 'www.x.com'], path: oneOf('/home') },
   { id: 'google', name: 'Google', hosts: ['google.com', 'www.google.com', 'google.fr', 'www.google.fr'], path: root },
   { id: 'googledrive', name: 'Google Drive', hosts: ['drive.google.com'], path: p => root(p) || /^\/drive(?:\/u\/\d+)?(?:\/(?:home|my-drive))?$/.test(p) },
-  { id: 'googlecalendar', name: 'Google Agenda', hosts: ['calendar.google.com'], path: p => root(p) || /^\/calendar(?:\/u\/\d+)?(?:\/r)?$/.test(p) },
+  { id: 'googlecalendar', name: 'Google Agenda', hosts: ['calendar.google.com'], path: p => root(p) || /^\/calendar(?:\/u\/\d+)?(?:\/r)?$/.test(p), anyLocation: true },
   { id: 'googlemaps', name: 'Google Maps', hosts: ['maps.google.com'], path: root },
   { id: 'googlemaps', name: 'Google Maps', hosts: ['google.com', 'www.google.com', 'google.fr', 'www.google.fr'], path: oneOf('/maps') },
   { id: 'googledocs', name: 'Google Docs', hosts: ['docs.google.com'], path: p => root(p) || /^\/document(?:\/u\/\d+)?$/.test(p) },

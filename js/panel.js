@@ -1,42 +1,23 @@
-import { externalMode, recentGithubBoards } from './external-board.js?v=mw3ifmhi';
+import { externalMode, recentGithubBoards } from './external-board.js?v=mw3jmzda';
 // Right-hand panel: draggable blocks, selection tools, file actions.
-import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mw3ifmhi';
-import { screenToWorld, view, flyToBlock } from './camera.js?v=mw3ifmhi';
-import { BLOCK_MIME, pickImage } from './input.js?v=mw3ifmhi';
-import { exportDoc, importFile } from './storage.js?v=mw3ifmhi';
+import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mw3jmzda';
+import { screenToWorld, view, flyToBlock } from './camera.js?v=mw3jmzda';
+import { BLOCK_MIME, pickImage } from './input.js?v=mw3jmzda';
+import { exportDoc, importFile } from './storage.js?v=mw3jmzda';
 
 
-import { optimizeImage } from './images.js?v=mw3ifmhi';
-import { notify } from './notifications.js?v=mw3ifmhi';
-import { localStore } from './local-store.js?v=mw3ifmhi';
+import { optimizeBoardImages as optimizeImages } from './optimize.js?v=mw3jmzda';
+import { notify } from './notifications.js?v=mw3jmzda';
+import { localStore } from './local-store.js?v=mw3jmzda';
 
 async function optimizeBoardImages(button) {
   const id = 'optimize-images';
   button.disabled = true;
   notify('Optimisation des images…', { id, type: 'progress', duration: 0 });
-  const candidates = new Map();
-  for (const node of state.nodes) {
-    if (!node.image || node.keepImageOriginal) continue;
-    if (!candidates.has(node.image)) candidates.set(node.image, []);
-    candidates.get(node.image).push(node);
-  }
-
-  let count = 0, failures = 0;
   try {
-    for (const [ref, nodes] of candidates) {
-      try {
-        const optimized = await optimizeImage(ref);
-        if (!optimized) continue;
-        const current = nodes.filter(node => getNode(node.id) === node && node.image === ref && !node.keepImageOriginal);
-        for (const node of current) node.image = optimized;
-        count += current.length;
-        if (current.length) emit();
-      } catch {
-        failures++;
-      }
-    }
+    const { count, failures } = await optimizeImages();
     const summary = count ? `${count} bloc(s) optimisé(s).` : 'Aucun bloc optimisé.';
-    notify(summary + (failures ? ` ${failures} image(s) en erreur.` : ''), { id, type: failures ? 'error' : 'success' });
+    notify(summary + ' Historique vidé.' + (failures ? ` ${failures} image(s) en erreur.` : ''), { id, type: failures ? 'error' : 'success' });
   } finally {
     button.disabled = false;
   }
