@@ -1,0 +1,1 @@
+body { width: 290px; padding: 16px; font: 14px system-ui; background: #10171b; color: #f5f5f5; } h1 { font-size: 19px; } button { width: 100%; padding: 12px; border: 0; border-radius: 8px; background: #00b7eb; color: #00131b; font: bold 15px system-ui; cursor: pointer; } button:disabled { opacity: .6; } #status { white-space: pre-line; line-height: 1.5; }

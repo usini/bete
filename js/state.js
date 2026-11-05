@@ -1,8 +1,10 @@
-import { externalMode } from './external-board.js?v=mw2pob0u';
-import { localStore } from './local-store.js?v=mw2pob0u';
+import { amazonBadgeLayout } from './amazon.js?v=mw3ifmhi';
+import { labelLayout } from './labels.js?v=mw3ifmhi';
+import { externalMode } from './external-board.js?v=mw3ifmhi';
+import { localStore } from './local-store.js?v=mw3ifmhi';
 // Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mw2pob0u';
+import { explode } from './fx.js?v=mw3ifmhi';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];
@@ -218,20 +220,30 @@ export function containingGroups(node) {
 }
 
 // Fit the affected frames after the gesture, keeping their contents in world coordinates.
-export function fitGroupsAround(node, previous = [], keepMembership = false) {
+export function fitGroupsAround(node, previous = [], keepMembership = false, targetGroup = null) {
   const affected = new Set([...previous, ...(node ? containingGroups(node) : [])]);
+  if (targetGroup) affected.add(targetGroup);
   const fittedChildren = new Map();
   for (const group of groupsBySize().reverse()) {
     if (!affected.has(group)) continue;
     const members = new Set([...membersOf(group), ...(fittedChildren.get(group) || [])]);
-    if (keepMembership && previous.includes(group)) members.add(node);
+    if (targetGroup === group || (keepMembership && previous.includes(group))) members.add(node);
     if (!members.size) continue; // Keep an empty frame available for the next drop.
     let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
     for (const member of members) {
-      left = Math.min(left, member.x);
-      right = Math.max(right, member.x + member.w);
-      top = Math.min(top, member.y);
-      bottom = Math.max(bottom, member.y + member.h);
+      const badge = amazonBadgeLayout(member);
+      const boxes = [member];
+      if (badge) {
+        boxes.push(badge);
+        const label = labelLayout(member);
+        if (label) boxes.push(label);
+      }
+      for (const box of boxes) {
+        left = Math.min(left, box.x);
+        right = Math.max(right, box.x + box.w);
+        top = Math.min(top, box.y);
+        bottom = Math.max(bottom, box.y + box.h);
+      }
     }
     const width = right - left, height = bottom - top;
     const padX = Math.max(GROUP_MIN_PADDING, width * GROUP_PADDING_RATIO);

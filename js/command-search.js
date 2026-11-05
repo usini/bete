@@ -1,9 +1,9 @@
-import { flyToBlock } from './camera.js?v=mw2pob0u';
-import { linkOf } from './labels.js?v=mw2pob0u';
-import { openLink } from './links.js?v=mw2pob0u';
-import { serviceForNode } from './services.js?v=mw2pob0u';
-import { getNode, select, state } from './state.js?v=mw2pob0u';
-import { cachedYouTubeTitle, youTubeId } from './yt.js?v=mw2pob0u';
+import { flyToBlock } from './camera.js?v=mw3ifmhi';
+import { linkOf } from './labels.js?v=mw3ifmhi';
+import { openLink } from './links.js?v=mw3ifmhi';
+import { serviceForNode } from './services.js?v=mw3ifmhi';
+import { getNode, select, state } from './state.js?v=mw3ifmhi';
+import { cachedYouTubeTitle, youTubeId } from './yt.js?v=mw3ifmhi';
 
 const normalize = text => text.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 

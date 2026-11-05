@@ -1,3 +1,7 @@
+import { alignmentPlan } from './alignment.js?v=mw3ifmhi';
+import { labelLayout } from './labels.js?v=mw3ifmhi';
+import { amazonBadgeLayout } from './amazon.js?v=mw3ifmhi';
+import { freeDropPosition } from './placement.js?v=mw3ifmhi';
 // Edit mode: one popup (modal <dialog>) to change a block's text and link.
 // Opened by the 📝 button, a click on a label, Enter, or a double-click on a block with no link.
 //  - the text field is hidden for image blocks (they have no text)
@@ -5,18 +9,18 @@
 //  - when the link is an Amazon address the popup becomes "Produit Amazon": name, price and
 //    delivery time fields appear (typed by hand, shown in the block's label)
 // It closes only with the Annuler / Valider buttons (Ctrl+Enter, or Enter in a one-line field, also validate).
-import { getNode, emit } from './state.js?v=mw2pob0u';
-import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw2pob0u';
-import { youTubeId } from './yt.js?v=mw2pob0u';
-import { addImageFile, imageFor } from './images.js?v=mw2pob0u';
+import { state, getNode, emit, membersOf, fitGroupsAround, saveNow } from './state.js?v=mw3ifmhi';
+import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw3ifmhi';
+import { youTubeId } from './yt.js?v=mw3ifmhi';
+import { addImageFile, imageFor } from './images.js?v=mw3ifmhi';
 
-import { genericLink } from './links.js?v=mw2pob0u';
+import { genericLink } from './links.js?v=mw3ifmhi';
 
-import { isLocked } from './mobile-mode.js?v=mw2pob0u';
+import { isLocked } from './mobile-mode.js?v=mw3ifmhi';
 
-import { serviceForNode } from './services.js?v=mw2pob0u';
-import { deliveryDelay } from './delivery.js?v=mw2pob0u';
-import { googleMapsEmbed } from './google-maps.js?v=mw2pob0u';
+import { serviceForNode } from './services.js?v=mw3ifmhi';
+import { deliveryDelay } from './delivery.js?v=mw3ifmhi';
+import { googleMapsEmbed } from './google-maps.js?v=mw3ifmhi';
 
 const dlg = document.getElementById('textdialog');
 const title = document.getElementById('dialog-title');
@@ -36,6 +40,10 @@ const pickBtn = document.getElementById('image-pick');
 const removeBtn = document.getElementById('image-remove');
 const fileEl = document.getElementById('image-file');
 const FIELD_MAX = 100;
+const alignSection = document.getElementById('group-align');
+const alignStatus = document.getElementById('group-align-status');
+const alignPreview = document.getElementById('group-align-preview');
+let pendingAlignment = null;
 let editingId = null;
 let ytBlock = false; // no link / image fields: the block is a YouTube block or a group
 let isGroup = false; // the block being edited is a group (its text is its title)
@@ -99,6 +107,10 @@ export function startEdit(id, focus = 'text') {
   const n = getNode(id);
   if (isLocked() || !n || dlg.open) return;
   editingId = id;
+  pendingAlignment = null;
+  alignSection.hidden = n.kind !== 'group';
+  alignPreview.hidden = true;
+  alignStatus.textContent = 'Prépare un aperçu du rangement des blocs.';
   textField.hidden = n.kind === 'image';
   isGroup = n.kind === 'group';
   ytBlock = isGroup || (!serviceForNode(n) && !!youTubeId(n.text));
@@ -147,6 +159,7 @@ export function stopEdit(commit) {
   if (editingId === null) return;
   const n = getNode(editingId);
   if (!commit || !n) {
+    pendingAlignment = null;
     editingId = null;
     releasePending();
     if (dlg.open) dlg.close();
@@ -161,6 +174,7 @@ export function stopEdit(commit) {
       return;
     }
   }
+  if (pendingAlignment) saveNow();
   editingId = null;
   dlg.close();
   let changed = false;
@@ -201,6 +215,18 @@ export function stopEdit(commit) {
   }
   pendingFile = null; // already handed over above
   releasePending();
+  if (pendingAlignment && isGroup) {
+    for (const placement of pendingAlignment.nodes) {
+      const block = getNode(placement.id);
+      if (!block) continue;
+      const dx = placement.x - block.x, dy = placement.y - block.y;
+      if (block.kind === 'group') for (const child of membersOf(block)) { child.x += dx; child.y += dy; }
+      Object.assign(block, { x: placement.x, y: placement.y, w: placement.w, h: placement.h });
+    }
+    fitGroupsAround(null, [n]);
+    changed = true;
+  }
+  pendingAlignment = null;
   if (changed) emit();
 }
 
@@ -259,4 +285,42 @@ dlg.addEventListener('paste', (e) => {
   if (!file) return; // plain text: let the field handle it
   e.preventDefault();
   setPendingImage(file);
+});
+
+function alignmentBounds(n) {
+  const boxes=[n,labelLayout(n),amazonBadgeLayout(n)].filter(Boolean);
+  const x=Math.min(...boxes.map(b=>b.x)),y=Math.min(...boxes.map(b=>b.y));
+  return {x,y,w:Math.max(...boxes.map(b=>b.x+b.w))-x,h:Math.max(...boxes.map(b=>b.y+b.h))-y};
+}
+document.getElementById('group-align-button').addEventListener('click', () => {
+  const group=getNode(editingId);
+  if (isLocked() || group?.kind !== 'group') return;
+  const all=membersOf(group);
+  const nested=all.filter(n=>n.kind==='group');
+  const descendants=new Set(nested.flatMap(n=>membersOf(n)));
+  const members=all.filter(n=>!descendants.has(n));
+  pendingAlignment=alignmentPlan(group,members,alignmentBounds);
+  const ids=new Set(pendingAlignment.nodes.map(n=>n.id));
+  const obstacles=state.nodes.filter(n=>n.kind!=='group'&&!ids.has(n.id)&&!descendants.has(n));
+  for(const block of pendingAlignment.nodes){
+    Object.assign(block,freeDropPosition(block,obstacles,alignmentBounds));
+    obstacles.push(block);
+  }
+  alignStatus.textContent=pendingAlignment.mode+(pendingAlignment.nodes.length?' — Valider pour appliquer, Annuler pour conserver.':'');
+  const displayed=members.map(n=>pendingAlignment.nodes.find(p=>p.id===n.id)||n);
+  alignPreview.hidden=!displayed.length;
+  if(!displayed.length)return;
+  const ctx=alignPreview.getContext('2d'), boxes=displayed.map(alignmentBounds);
+  const x=Math.min(...boxes.map(b=>b.x)), y=Math.min(...boxes.map(b=>b.y));
+  const w=Math.max(...boxes.map(b=>b.x+b.w))-x,h=Math.max(...boxes.map(b=>b.y+b.h))-y;
+  const scale=Math.min(560/Math.max(1,w),220/Math.max(1,h));
+  ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,600,260);
+  ctx.translate((600-w*scale)/2,(260-h*scale)/2);ctx.scale(scale,scale);ctx.translate(-x,-y);
+  for(const n of displayed){
+    ctx.fillStyle='#14171d';ctx.fillRect(n.x,n.y,n.w,n.h);
+    ctx.strokeStyle=n.color==='transparent'?'#aaa':n.color;ctx.lineWidth=1.5/scale;ctx.strokeRect(n.x,n.y,n.w,n.h);
+    ctx.save();ctx.beginPath();ctx.rect(n.x,n.y,n.w,n.h);ctx.clip();
+    ctx.fillStyle='#eee';ctx.font=12/scale+'px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText((n.name||n.text||'Bloc').split('\n')[0].slice(0,45),n.x+n.w/2,n.y+n.h/2,Math.max(1,n.w-8/scale));ctx.restore();
+  }
 });

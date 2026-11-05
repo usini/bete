@@ -1,25 +1,26 @@
-import { externalMode } from './external-board.js?v=mw2pob0u';
-import { positionEmbeds } from './embed-view.js?v=mw2pob0u';
+import { dropPreviewGroup } from './placement.js?v=mw3ifmhi';
+import { externalMode } from './external-board.js?v=mw3ifmhi';
+import { positionEmbeds } from './embed-view.js?v=mw3ifmhi';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize, groupHeaderHeight } from './state.js?v=mw2pob0u';
-import { view, screenToWorld } from './camera.js?v=mw2pob0u';
-import { youTubeId, ytThumb } from './yt.js?v=mw2pob0u';
-import { imageCaptionFraction, imageFor } from './images.js?v=mw2pob0u';
-import { positionVideo, isVideoPlaying } from './video.js?v=mw2pob0u';
-import { guides } from './snap.js?v=mw2pob0u';
-import { renderMinimap } from './minimap.js?v=mw2pob0u';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mw2pob0u';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw2pob0u';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw2pob0u';
+import { state, events, getSelectedId, groupsBySize, groupHeaderHeight } from './state.js?v=mw3ifmhi';
+import { view, screenToWorld } from './camera.js?v=mw3ifmhi';
+import { youTubeId, ytThumb } from './yt.js?v=mw3ifmhi';
+import { imageCaptionFraction, imageFor } from './images.js?v=mw3ifmhi';
+import { positionVideo, isVideoPlaying } from './video.js?v=mw3ifmhi';
+import { guides } from './snap.js?v=mw3ifmhi';
+import { renderMinimap } from './minimap.js?v=mw3ifmhi';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mw3ifmhi';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw3ifmhi';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw3ifmhi';
 
-import { genericLinkOf, plainLink } from './links.js?v=mw2pob0u';
-import { stepMotion } from './motion.js?v=mw2pob0u';
-import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw2pob0u';
+import { genericLinkOf, plainLink } from './links.js?v=mw3ifmhi';
+import { stepMotion } from './motion.js?v=mw3ifmhi';
+import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw3ifmhi';
 
-import { isLocked } from './mobile-mode.js?v=mw2pob0u';
+import { isLocked } from './mobile-mode.js?v=mw3ifmhi';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mw2pob0u';
-import { isAmazonUrl } from './amazon.js?v=mw2pob0u';
+import { serviceForNode, serviceIcon } from './services.js?v=mw3ifmhi';
+import { amazonBadgeLayout } from './amazon.js?v=mw3ifmhi';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -100,6 +101,7 @@ function draw() {
   const cursorMoving = drawRemoteCursors(zoom);
   renderFx(ctx); // deletion animation, above the blocks
   drawGuides(zoom);
+  drawDropPreview(zoom);
   positionVideo();
   if (!externalMode) positionEmbeds();
   renderMinimap();
@@ -208,9 +210,9 @@ function drawNode(n, selected, zoom) {
 
 // A local brand tag outside the product image, aligned with the block's top-left edge.
 function drawAmazonBadge(n) {
-  if (!isAmazonUrl(n.link || String(n.text || '').trim())) return;
-  const w = Math.min(n.w, n.h) * 0.16, h = w * 1.25;
-  const x = n.x - w, y = n.y;
+  const badge = amazonBadgeLayout(n);
+  if (!badge) return;
+  const { x, y, w, h } = badge;
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(x, y, w, h);
   const icon = serviceIcon({ id: 'amazon' }, requestRender);
@@ -502,3 +504,26 @@ function drawBlockText(text, n, color) {
 }
 
 function firstLine(text) { return String(text).split('\n')[0]; }
+
+function drawDropPreview(zoom) {
+  const group = dropPreviewGroup;
+  if (!group || isLocked() || !state.nodes.includes(group)) return;
+  ctx.save();
+  ctx.fillStyle = '#39ff1418';
+  ctx.fillRect(group.x, group.y, group.w, group.h);
+  ctx.strokeStyle = '#39ff14';
+  ctx.lineWidth = 3 / zoom;
+  ctx.setLineDash([8 / zoom, 5 / zoom]);
+  ctx.strokeRect(group.x, group.y, group.w, group.h);
+  ctx.setLineDash([]);
+  const text = '＋ Ajouter au groupe';
+  ctx.font = '600 ' + 14 / zoom + 'px ' + FONT_FAMILY;
+  const width = ctx.measureText(text).width + 20 / zoom;
+  const x = group.x + (group.w - width) / 2, y = group.y - 34 / zoom;
+  ctx.fillStyle = '#39ff14';
+  ctx.fillRect(x, y, width, 26 / zoom);
+  ctx.fillStyle = '#10200c';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, x + width / 2, y + 13 / zoom);
+  ctx.restore();
+}

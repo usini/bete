@@ -79,6 +79,7 @@ python -m http.server 8000
 - **Blocs** : rectangle (texte, couleur, image facultative) et groupe.
   Le texte se redimensionne automatiquement pour remplir le bloc.
 - **Groupe** : une zone colorée avec un titre ; déplacer le groupe déplace les blocs qu'il contient.
+  Le redimensionnement automatique inclut le logo et l’étiquette produit des blocs Amazon.
   Chaque groupe a un lien dans le menu pour s'y rendre d'un clic.
 - **Vidéos YouTube** : un lien YouTube dans le texte d'un bloc affiche la miniature et le titre ;
   un double-clic lance la vidéo.
@@ -250,3 +251,13 @@ Tous les imports d'un même module doivent porter la même version.
 ## Licence
 
 [MIT](LICENSE)
+
+### Copier un produit Amazon depuis le navigateur
+
+L’extension locale Chrome/Edge est dans `extension-amazon/` : voir son [guide](extension-amazon/README.md). Sur une fiche Amazon, clique sur **Copier le bloc**, puis fais **Ctrl+V** dans Bête web ou desktop (version contenant cette fonctionnalité). Un nouveau bloc est créé avec les champs trouvés et l’image intégrée. Le prix et la livraison sont une photographie des informations affichées, sans suivi automatique.
+
+Au relâchement d’un bloc déplacé sur un autre, le bloc déplacé rejoint la position libre la plus proche, avec une marge. Les étiquettes et logos sont inclus. Un bloc déplacé au contact d’un groupe y est ajouté, à une position libre sans chevaucher les autres blocs ; le groupe s’agrandit si nécessaire. Un groupe déplacé sur un bloc extérieur est repoussé avec son contenu initial, sans intégrer ce bloc.
+
+Pendant le déplacement d’un bloc, le groupe visé est surligné en vert avec « Ajouter au groupe ». L’indicateur disparaît au relâchement ou lorsque le bloc quitte le groupe.
+
+Dans **Modifier le groupe → Aligner**, un aperçu propose une ligne, une colonne ou des rangées selon la disposition existante. Les proportions proches sont uniformisées dans une ligne/colonne ; les formats différents et les ensembles isolés sont conservés. **Valider** applique le rangement, **Annuler** ne change rien ; Ctrl+Z permet de revenir en arrière. Première version heuristique à ajuster à l’usage.

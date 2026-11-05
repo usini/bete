@@ -2,7 +2,7 @@
 // or affiliate parameters. Other links (and short links like amzn.to) are left unchanged.
 export function shortenAmazon(full) {
   const u = new URL(full);
-  if (!/^(www\.)?amazon\.[a-z.]+$/i.test(u.hostname)) return full;
+  if (!/^(www\.)?amazon\.(?:com(?:\.(?:au|br|mx|be|tr))?|co\.(?:uk|jp|za)|fr|de|it|es|nl|se|pl|ca|in|ae|sa|sg|eg|ie)$/i.test(u.hostname)) return full;
   const m = u.pathname.match(/\/(?:dp|gp\/product|gp\/aw\/d|exec\/obidos\/ASIN)\/([A-Z0-9]{10})(?:[/?]|$)/i);
   return m ? 'https://' + u.hostname + '/dp/' + m[1].toUpperCase() : full;
 }
@@ -10,7 +10,7 @@ export function shortenAmazon(full) {
 // True for an Amazon address: amazon.<tld>, with or without www, and the short links.
 export function isAmazonUrl(url) {
   try {
-    return /^(www\.)?(amazon\.[a-z.]+|amzn\.[a-z]+|a\.co)$/i.test(new URL(url).hostname);
+    return /^(www\.)?(amazon\.(?:com(?:\.(?:au|br|mx|be|tr))?|co\.(?:uk|jp|za)|fr|de|it|es|nl|se|pl|ca|in|ae|sa|sg|eg|ie)|amzn\.[a-z]+|a\.co)$/i.test(new URL(url).hostname);
   } catch {
     return false;
   }
@@ -33,4 +33,11 @@ export function shortenAmazonText(text) {
   } catch {
     return text;
   }
+}
+
+// Shared world-space geometry for the brand tag drawn beside Amazon blocks.
+export function amazonBadgeLayout(n) {
+  if (n.kind === 'group' || !isAmazonUrl(n.link || String(n.text || '').trim())) return null;
+  const w = Math.min(n.w, n.h) * 0.16;
+  return { x: n.x - w, y: n.y, w, h: w * 1.25 };
 }

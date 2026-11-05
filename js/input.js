@@ -1,31 +1,33 @@
-import { externalMode } from './external-board.js?v=mw2pob0u';
+import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mw3ifmhi';
+import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mw3ifmhi';
+import { externalMode } from './external-board.js?v=mw3ifmhi';
 // Pointer, wheel, keyboard, paste and drop handling for the canvas.
 //  - click on a label: edit popup, link field first (YouTube labels open the video instead)
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, COLORS } from './state.js?v=mw2pob0u';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw2pob0u';
-import { startEdit, stopEdit, isEditing } from './editor.js?v=mw2pob0u';
-import { addImageFile, imageCaptionFraction, imageFor } from './images.js?v=mw2pob0u';
-import { playVideo } from './video.js?v=mw2pob0u';
-import { youTubeId } from './yt.js?v=mw2pob0u';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mw2pob0u';
-import { labelHit, labelInfo, actionHit, linkOf } from './labels.js?v=mw2pob0u';
-import { undo, redo } from './history.js?v=mw2pob0u';
+import { state, getNode, getSelectedId, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, COLORS } from './state.js?v=mw3ifmhi';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight } from './camera.js?v=mw3ifmhi';
+import { startEdit, stopEdit, isEditing } from './editor.js?v=mw3ifmhi';
+import { addDataUrl, addImageFile, imageCaptionFraction, imageFor } from './images.js?v=mw3ifmhi';
+import { playVideo } from './video.js?v=mw3ifmhi';
+import { youTubeId } from './yt.js?v=mw3ifmhi';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mw3ifmhi';
+import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mw3ifmhi';
+import { undo, redo } from './history.js?v=mw3ifmhi';
 
-import { setDragging } from './motion.js?v=mw2pob0u';
+import { setDragging } from './motion.js?v=mw3ifmhi';
 
-import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw2pob0u';
-import { shortenAmazonText, isAmazonUrl } from './amazon.js?v=mw2pob0u';
+import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw3ifmhi';
+import { shortenAmazonText, isAmazonUrl, amazonBadgeLayout } from './amazon.js?v=mw3ifmhi';
 
-import { isLocked, modeEvents } from './mobile-mode.js?v=mw2pob0u';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mw3ifmhi';
 
-import { serviceForNode } from './services.js?v=mw2pob0u';
+import { serviceForNode } from './services.js?v=mw3ifmhi';
 
-import { requestRender } from './render.js?v=mw2pob0u';
+import { requestRender } from './render.js?v=mw3ifmhi';
 
-import { notify } from './notifications.js?v=mw2pob0u';
+import { notify } from './notifications.js?v=mw3ifmhi';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 const CLIPBOARD_BLOCK = 'application/x-bete-clipboard-block';
@@ -75,6 +77,7 @@ function onHandle(n, sx, sy) {
 }
 
 function pinchStart() {
+  setDropPreview(null);
   if (gesture?.type === 'move') setDragging(gesture.n, false);
   const [a, b] = [...pointers.values()];
   return { type: 'pinch', d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
@@ -252,6 +255,7 @@ function onPointerMove(e) {
       }
     }
     if (Math.hypot(e.clientX - g.sx, e.clientY - g.sy) > MOVE_PX) g.moved = true;
+    setDropPreview(g.moved ? dropTargetGroup(g.n, state.nodes, visualBounds) : null);
   } else if (g.type === 'resize') {
     const z = state.camera.zoom;
     const w = g.ox + (e.clientX - g.sx) / z;
@@ -297,16 +301,38 @@ function onPointerMove(e) {
   emit();
 }
 
+function visualBounds(node) {
+        const boxes = [node, labelLayout(node), amazonBadgeLayout(node)].filter(Boolean);
+        const x = Math.min(...boxes.map(b => b.x)), y = Math.min(...boxes.map(b => b.y));
+        return { x, y, w: Math.max(...boxes.map(b => b.x + b.w)) - x, h: Math.max(...boxes.map(b => b.y + b.h)) - y };
+}
+
 function onPointerEnd(e) {
   if (!pointers.has(e.pointerId)) return;
   pointers.delete(e.pointerId);
+  setDropPreview(null);
   clearGuides();
   const g = gesture;
-  if (g?.type === 'move') setDragging(g.n, false);
+  if (g?.type === 'move') {
+    if (g.moved) {
+      g.targetGroup = dropTargetGroup(g.n, state.nodes, visualBounds);
+      if (g.targetGroup) {
+        // Move the visual box into the body before finding space among its members.
+        const box = visualBounds(g.n), group = g.targetGroup;
+        const minX = group.x + 16, minY = group.y + groupHeaderHeight(group) + 16;
+        const maxX = Math.max(minX, group.x + group.w - box.w - 16);
+        const maxY = Math.max(minY, group.y + group.h - box.h - 16);
+        g.n.x += Math.max(minX, Math.min(maxX, box.x)) - box.x;
+        g.n.y += Math.max(minY, Math.min(maxY, box.y)) - box.y;
+      }
+      settleDrop(g.n, state.nodes, (g.members || []).map(entry => entry.m), visualBounds);
+    }
+    setDragging(g.n, false);
+  }
   if (g && g.type === 'resize') rememberSize(g.n.kind, g.n.w, g.n.h);
   if (g && ((g.type === 'move' && g.moved) || g.type === 'resize')) {
     document.dispatchEvent(new CustomEvent('bete-node-moved', { detail: g.n.id }));
-    fitGroupsAround(g.n, g.previousGroups, g.type === 'resize');
+    fitGroupsAround(g.n, g.previousGroups, g.type === 'resize', g.targetGroup);
   }
   // Touch: a phone does not reliably send 'dblclick', so a double-tap on a block (two taps,
   // 400 ms and 30 px apart, without dragging) is detected here.
@@ -352,7 +378,7 @@ function confirmDelete(id) {
 export function initInput() {
   modeEvents.addEventListener('change', () => {
     if (gesture?.type === 'move') setDragging(gesture.n, false);
-    pointers.clear(); gesture = null; clearGuides();
+    pointers.clear(); gesture = null; clearGuides(); setDropPreview(null);
     const palette = document.getElementById('color-palette');
     if (palette.matches(':popover-open')) palette.hidePopover();
     if (isLocked() && isEditing()) stopEdit(false);
@@ -429,6 +455,23 @@ export function initInput() {
 
   window.addEventListener('paste', async (e) => {
     if (clipboardBlocked(e)) return;
+    const productText = e.clipboardData?.getData('text/plain');
+    if (isProductClipboard(productText)) {
+      e.preventDefault();
+      const product = parseProductClipboard(productText);
+      if (!product) { notify('Bloc Amazon invalide ou trop volumineux.'); return; }
+      const center = screenToWorld(view.w / 2, view.h / 2);
+      if (product.image) {
+        try { product.image = await addDataUrl(product.image); }
+        catch { delete product.image; notify('Image indisponible ; produit collé sans image.'); }
+      }
+      if (isLocked() || externalMode) return;
+      const block = sanitizeNode({ ...product, id: newId(), x: center.x - product.w / 2, y: center.y - product.h / 2 });
+      state.nodes.push(block);
+      fitGroupsAround(block);
+      select(block.id);
+      return;
+    }
     const copied = e.clipboardData?.getData(CLIPBOARD_BLOCK);
     if (copied) {
       let block;
