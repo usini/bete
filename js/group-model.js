@@ -1,5 +1,5 @@
-import { cleanApplication } from './application-model.js?v=mw4vr6ei';
-import { cleanGitHubData } from './github-repo.js?v=mw4vr6ei';
+import { cleanApplication } from './application-model.js?v=mw560w8m';
+import { cleanGitHubData } from './github-repo.js?v=mw560w8m';
 // Shared groups use relative geometry and a bounded last-writer-wins register per block.
 // Lamport clocks avoid depending on the devices' wall clocks. Tombstones survive reconnection.
 export const MAX_MEMBERS = 1000;

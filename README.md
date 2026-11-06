@@ -325,3 +325,5 @@ La barre de commande Windows propose aussi **Capture d’une zone de l’écran*
 Sur Windows, Bête ne s’ouvre qu’en un seul exemplaire. Relancer l’application restaure la fenêtre existante, même réduite ou masquée dans la zone de notification. Un lancement automatique en arrière-plan la laisse masquée.
 
 Après une capture de zone, Bête revient au premier plan dès que Windows copie l’image dans le presse-papiers (attente limitée à trois minutes). Il reste alors possible de coller la capture avec Ctrl+V. Une capture annulée ne restaure pas automatiquement la fenêtre.
+
+Colle un export JSON xTool Studio (format xtool-studio-processing-settings, version 1), ou dépose son fichier JSON, pour créer un bloc xTool. Le résumé utilise le profil actif et ses remplacements. L’éditeur permet de consulter et copier le JSON complet. Les paramètres sont conservés dans les sauvegardes du tableau ; aucune commande n’est envoyée à la machine.

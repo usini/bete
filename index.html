@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Bête</title>
-  <link rel="stylesheet" href="css/style.css?v=mw4vr6ei">
+  <link rel="stylesheet" href="css/style.css?v=mw560w8m">
 </head>
 <body>
   <canvas id="canvas"></canvas>
@@ -75,6 +75,10 @@
     </div>
     <button type="button" id="application-change" hidden>Changer l’application…</button>
     <button type="button" id="github-refresh" hidden>Actualiser les informations GitHub</button>
+    <section id="xtool-settings" hidden>
+      <label class="field"><span>Paramètres xTool Studio (JSON complet)</span><textarea id="xtool-json" readonly rows="8"></textarea></label>
+      <button type="button" id="xtool-copy">Copier les paramètres xTool</button>
+    </section>
     <section id="group-align" hidden>
       <button type="button" id="group-align-button">Aligner</button>
       <button type="button" id="group-resize-button">Redimensionner</button>
@@ -214,6 +218,6 @@
   <input type="file" id="image-file" accept="image/*" hidden>
   <input type="file" id="fileimport" accept="application/json,.json" hidden>
 
-  <script type="module" src="js/main.js?v=mw4vr6ei"></script>
+  <script type="module" src="js/main.js?v=mw560w8m"></script>
 </body>
 </html>

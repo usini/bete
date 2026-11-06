@@ -1,28 +1,29 @@
-import { applicationAllowed, applicationEvents } from './applications.js?v=mw4vr6ei';
-import { githubRepository, cleanGitHubData } from './github-repo.js?v=mw4vr6ei';
-import { dropPreviewGroup } from './placement.js?v=mw4vr6ei';
-import { externalMode } from './external-board.js?v=mw4vr6ei';
-import { positionEmbeds } from './embed-view.js?v=mw4vr6ei';
+import { xtoolSummary } from './xtool.js?v=mw560w8m';
+import { applicationAllowed, applicationEvents } from './applications.js?v=mw560w8m';
+import { githubRepository, cleanGitHubData } from './github-repo.js?v=mw560w8m';
+import { dropPreviewGroup } from './placement.js?v=mw560w8m';
+import { externalMode } from './external-board.js?v=mw560w8m';
+import { positionEmbeds } from './embed-view.js?v=mw560w8m';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize, groupHeaderHeight, groupHeaderBox } from './state.js?v=mw4vr6ei';
-import { view, screenToWorld } from './camera.js?v=mw4vr6ei';
-import { youTubeId, ytThumb } from './yt.js?v=mw4vr6ei';
-import { imageCaptionFraction, imageFor } from './images.js?v=mw4vr6ei';
-import { positionVideo, isVideoPlaying } from './video.js?v=mw4vr6ei';
-import { guides } from './snap.js?v=mw4vr6ei';
-import { renderMinimap } from './minimap.js?v=mw4vr6ei';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mw4vr6ei';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw4vr6ei';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw4vr6ei';
+import { state, events, getSelectedId, groupsBySize, groupHeaderHeight, groupHeaderBox } from './state.js?v=mw560w8m';
+import { view, screenToWorld } from './camera.js?v=mw560w8m';
+import { youTubeId, ytThumb } from './yt.js?v=mw560w8m';
+import { imageCaptionFraction, imageFor } from './images.js?v=mw560w8m';
+import { positionVideo, isVideoPlaying } from './video.js?v=mw560w8m';
+import { guides } from './snap.js?v=mw560w8m';
+import { renderMinimap } from './minimap.js?v=mw560w8m';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mw560w8m';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw560w8m';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw560w8m';
 
-import { genericLinkOf, plainLink } from './links.js?v=mw4vr6ei';
-import { stepMotion } from './motion.js?v=mw4vr6ei';
-import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw4vr6ei';
+import { genericLinkOf, plainLink } from './links.js?v=mw560w8m';
+import { stepMotion } from './motion.js?v=mw560w8m';
+import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw560w8m';
 
-import { isLocked } from './mobile-mode.js?v=mw4vr6ei';
+import { isLocked } from './mobile-mode.js?v=mw560w8m';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mw4vr6ei';
-import { amazonBadgeLayout } from './amazon.js?v=mw4vr6ei';
+import { serviceForNode, serviceIcon } from './services.js?v=mw560w8m';
+import { amazonBadgeLayout } from './amazon.js?v=mw560w8m';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -180,7 +181,9 @@ function drawNode(n, selected, zoom) {
   const linkTitle = link ? ((!plainLink(n.text) && n.text.trim()) || new URL(link).hostname) : '';
   const src = yt && !externalMode ? thumb(yt) : n.image ? imageFor(n.image, requestRender) : null;
   const captionHeight = !yt && src ? n.h * imageCaptionFraction(n) : 0;
-  if (n.application) {
+  if (n.xtool) {
+    drawXtoolBlock(n);
+  } else if (n.application) {
     drawApplicationBlock(n);
   } else if (src) {
     const pad = yt ? PAD : 0;
@@ -546,6 +549,41 @@ function drawDropPreview(zoom) {
   ctx.fillStyle = '#10200c';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(text, x + width / 2, y + 13 / zoom);
+  ctx.restore();
+}
+
+function drawXtoolBlock(n) {
+  const lines = xtoolSummary(n.xtool).split('\n');
+  const colors = { Puissance: '#943d30', Vitesse: '#175d83', Passages: '#67469a', DPI: '#28654b', Épaisseur: '#795820', Tramage: '#67469a', Mode: '#175d83', 'Durée du point': '#795820', Fréquence: '#28654b', 'Plage puissance': '#943d30', Traitement: '#943d30', 'Source laser': '#465568' };
+  const pad = Math.min(n.w, n.h) * .07;
+  const width = n.w - pad * 2;
+  const row = (n.h - pad * 2) / lines.length;
+  let font = row * .48;
+  ctx.save();
+  ctx.font = `600 ${font}px ${FONT_FAMILY}`;
+  const longest = Math.max(...lines.map(line => ctx.measureText(line).width + font * 1.7));
+  font *= Math.min(1, width / longest);
+  ctx.font = `600 ${font}px ${FONT_FAMILY}`;
+  ctx.textBaseline = 'middle';
+  lines.forEach((line, i) => {
+    const y = n.y + pad + row * (i + .5);
+    const separator = line.indexOf(' : ');
+    if (separator < 0) {
+      ctx.fillStyle = i === 0 ? '#ffffff' : '#b9c7d3';
+      ctx.textAlign = 'center';
+      ctx.fillText(line, n.x + n.w / 2, y);
+      return;
+    }
+    const label = line.slice(0, separator), value = line.slice(separator + 3);
+    const pill = ctx.measureText(label).width + font;
+    const total = pill + font * .5 + ctx.measureText(': ' + value).width;
+    const x = n.x + (n.w - total) / 2;
+    ctx.fillStyle = colors[label] || '#465568';
+    ctx.beginPath();ctx.roundRect(x, y - font * .8, pill, font * 1.6, font * .8);ctx.fill();
+    ctx.textAlign = 'left';ctx.fillStyle = '#ffffff';
+    ctx.fillText(label, x + font * .5, y);
+    ctx.fillText(': ' + value, x + pill + font * .5, y);
+  });
   ctx.restore();
 }
 

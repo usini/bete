@@ -1,12 +1,13 @@
-import { cleanApplication } from './application-model.js?v=mw4vr6ei';
-import { cleanGitHubData } from './github-repo.js?v=mw4vr6ei';
-import { amazonBadgeLayout } from './amazon.js?v=mw4vr6ei';
-import { labelLayout } from './labels.js?v=mw4vr6ei';
-import { externalMode } from './external-board.js?v=mw4vr6ei';
-import { localStore } from './local-store.js?v=mw4vr6ei';
+import { cleanXtool } from './xtool.js?v=mw560w8m';
+import { cleanApplication } from './application-model.js?v=mw560w8m';
+import { cleanGitHubData } from './github-repo.js?v=mw560w8m';
+import { amazonBadgeLayout } from './amazon.js?v=mw560w8m';
+import { labelLayout } from './labels.js?v=mw560w8m';
+import { externalMode } from './external-board.js?v=mw560w8m';
+import { localStore } from './local-store.js?v=mw560w8m';
 // Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mw4vr6ei';
+import { explode } from './fx.js?v=mw560w8m';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];
@@ -92,6 +93,10 @@ export function sanitizeNode(raw) {
   if (n.kind === 'rect' && raw.github) {
     const github = cleanGitHubData(raw.github, n.link || n.text);
     if (github) n.github = github;
+  }
+  if (n.kind === 'rect' && raw.xtool) {
+    const xtool = cleanXtool(raw.xtool);
+    if (xtool) n.xtool = xtool;
   }
   if (n.kind === 'rect' && raw.application) {
     const application = cleanApplication(raw.application);
