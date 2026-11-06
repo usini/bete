@@ -1,5 +1,5 @@
-import { openDatabase } from './database.js?v=mw4v3cov';
-import { notify } from './notifications.js?v=mw4v3cov';
+import { openDatabase } from './database.js?v=mw4vr6ei';
+import { notify } from './notifications.js?v=mw4vr6ei';
 
 // Consumers read a preloaded cache; every mutation creates an IndexedDB transaction.
 // This preserves synchronous change detection without retaining the Web Storage quota.

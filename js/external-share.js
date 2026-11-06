@@ -1,5 +1,5 @@
-import { loadShareScript } from './group-share.js?v=mw4v3cov';
-import { notify } from './notifications.js?v=mw4v3cov';
+import { loadShareScript } from './group-share.js?v=mw4vr6ei';
+import { notify } from './notifications.js?v=mw4vr6ei';
 export const externalBoardShareUrl = board => 'https://bete.usini.eu/?' + new URLSearchParams({github:board.id});
 export async function copyExternalBoardLink(board) {
   try { await navigator.clipboard.writeText(externalBoardShareUrl(board)); notify('Lien du tableau copié.'); }

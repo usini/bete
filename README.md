@@ -319,3 +319,5 @@ Les liens de fichiers GitHub tels que `https://github.com/remisarrailh/bete-page
 - **Ctrl+S** : optimise les images, vide l’historique et sauvegarde localement ; lance aussi la sauvegarde Drive si connecté. La taille JSON apparaît dans le bouton disquette.
 - Les blocs YouTube conservent le ratio vidéo (16:9 par défaut, 9:16 pour les Shorts) au redimensionnement. Les groupes s’adaptent pendant le redimensionnement de leurs blocs.
 - **Windows + Maj + S** : capturer une zone de l’écran, puis **Ctrl+V** pour coller la capture dans Bête.
+
+La barre de commande Windows propose aussi **Capture d’une zone de l’écran** (outil de capture Windows, après réduction de Bête), **Étendre le bureau** et **Écran du PC seul** (modes de projection Windows).

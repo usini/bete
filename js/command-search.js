@@ -1,11 +1,11 @@
-import { openApplication } from './applications.js?v=mw4v3cov';
-import { notify } from './notifications.js?v=mw4v3cov';
-import { flyToBlock } from './camera.js?v=mw4v3cov';
-import { linkOf } from './labels.js?v=mw4v3cov';
-import { openLink } from './links.js?v=mw4v3cov';
-import { serviceForNode } from './services.js?v=mw4v3cov';
-import { getNode, select, state } from './state.js?v=mw4v3cov';
-import { cachedYouTubeTitle, youTubeId } from './yt.js?v=mw4v3cov';
+import { openApplication } from './applications.js?v=mw4vr6ei';
+import { notify } from './notifications.js?v=mw4vr6ei';
+import { flyToBlock } from './camera.js?v=mw4vr6ei';
+import { linkOf } from './labels.js?v=mw4vr6ei';
+import { openLink } from './links.js?v=mw4vr6ei';
+import { serviceForNode } from './services.js?v=mw4vr6ei';
+import { getNode, select, state } from './state.js?v=mw4vr6ei';
+import { cachedYouTubeTitle, youTubeId } from './yt.js?v=mw4vr6ei';
 
 const normalize = text => text.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 
@@ -14,6 +14,9 @@ function search(query) {
     { command: 'focus', label: 'Focus' },
     { command: 'calc', label: 'Calc' },
     { command: 'minimize', label: 'Réduire' },
+    { command: 'capture_screen', label: 'Capture d’une zone de l’écran' },
+    { command: 'extend_desktop', label: 'Étendre le bureau' },
+    { command: 'pc_screen_only', label: 'Écran du PC seul' },
   ] : [];
   const commandMatches = commands.filter(item => normalize(item.label).startsWith(query));
   if (!query) return commandMatches;
@@ -81,6 +84,7 @@ export function initCommandSearch() {
       dialog.close();
       if (match.command === 'focus') document.getElementById('fit-board').click();
       else if (match.command === 'calc') window.__TAURI__.core.invoke('open_calculator').catch(() => notify('Impossible d’ouvrir la calculatrice.', {type:'error'}));
+      else if (['capture_screen', 'extend_desktop', 'pc_screen_only'].includes(match.command)) window.__TAURI__.core.invoke(match.command).catch(() => notify('Impossible d’exécuter cette commande Windows.', {type:'error'}));
       else window.__TAURI__.core.invoke('minimize_window').catch(() => notify('Impossible de réduire la fenêtre.', { type: 'error' }));
       return;
     }

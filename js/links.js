@@ -1,9 +1,9 @@
-import { notify } from './notifications.js?v=mw4v3cov';
-import { youTubeId } from './youtube-url.js?v=mw4v3cov';
-import { isAmazonUrl } from './amazon.js?v=mw4v3cov';
+import { notify } from './notifications.js?v=mw4vr6ei';
+import { youTubeId } from './youtube-url.js?v=mw4vr6ei';
+import { isAmazonUrl } from './amazon.js?v=mw4vr6ei';
 
-import { serviceForUrl } from './services.js?v=mw4v3cov';
-import { googleMapsEmbed } from './google-maps.js?v=mw4v3cov';
+import { serviceForUrl } from './services.js?v=mw4vr6ei';
+import { googleMapsEmbed } from './google-maps.js?v=mw4vr6ei';
 
 export function plainLink(raw) {
   const map = googleMapsEmbed(raw);

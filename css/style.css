@@ -501,8 +501,9 @@ button:hover { border-color: var(--accent); }
 @media (prefers-reduced-motion: reduce) { #drive-save[data-state="error"] { animation: none; } }
 
 #drive-save { position: relative; }
-#drive-save[data-working="true"]::after {
-  content: ''; position: absolute; inset: 4px; border: 2px solid transparent;
+#drive-save .drive-icon { position: relative; display: flex; width: 24px; height: 24px; flex: none; }
+#drive-save[data-working="true"] .drive-icon::after {
+  content: ''; position: absolute; inset: -5px; border: 2px solid transparent; pointer-events: none;
   border-top-color: currentColor; border-radius: 50%; animation: drive-spin 0.8s linear infinite;
 }
 #notifications {
@@ -524,7 +525,7 @@ button:hover { border-color: var(--accent); }
 .toast-close { flex: none; width: 26px; height: 26px; margin: 0; padding: 0; border: none; background: none; color: var(--muted); font-size: 20px; }
 @keyframes drive-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
-  #drive-save[data-working="true"]::after, .toast[data-type="progress"] .toast-icon { animation: none; }
+  #drive-save[data-working="true"] .drive-icon::after, .toast[data-type="progress"] .toast-icon { animation: none; }
 }
 
 #mobile-lock { margin-bottom: 16px; border-color: var(--accent); }

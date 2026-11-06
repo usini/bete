@@ -25,6 +25,30 @@ fn minimize_window(window: tauri::WebviewWindow) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn capture_screen(app: AppHandle, window: tauri::WebviewWindow) -> Result<(), String> {
+    window.minimize().map_err(|error| error.to_string())?;
+    app.opener().open_url("ms-screenclip:", None::<&str>).map_err(|error| error.to_string())
+}
+
+fn switch_display(mode: &str) -> Result<(), String> {
+    use std::os::windows::process::CommandExt;
+    let root = std::env::var_os("SystemRoot").ok_or("Dossier Windows introuvable")?;
+    std::process::Command::new(std::path::Path::new(&root).join("System32").join("DisplaySwitch.exe"))
+        .arg(mode).creation_flags(0x08000000).spawn().map_err(|error| error.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+fn extend_desktop() -> Result<(), String> {
+    switch_display("/extend")
+}
+
+#[tauri::command]
+fn pc_screen_only() -> Result<(), String> {
+    switch_display("/internal")
+}
+
+#[tauri::command]
 fn open_browser(app: AppHandle, url: String) -> Result<(), String> {
     let parsed = Url::parse(&url).map_err(|_| "Adresse invalide.")?;
     if !matches!(parsed.scheme(), "https" | "http")
@@ -93,6 +117,9 @@ fn main() {
             tray::set_close_to_tray,
             tray::hide_on_close,
             open_calculator,
+            capture_screen,
+            extend_desktop,
+            pc_screen_only,
             applications::sync_application_blocks,
             applications::revoke_all_application_permissions,
             applications::application_launch_status,

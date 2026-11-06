@@ -1,15 +1,15 @@
-import { externalMode } from './external-board.js?v=mw4v3cov';
+import { externalMode } from './external-board.js?v=mw4vr6ei';
 // Labels: the tab above a block. It shows the YouTube title (YouTube blocks) or the block's
 // link URL; a block with neither has no label. The layout and the hit-testing live here,
 // so the renderer and the pointer handling always agree on where the label is.
-import { state } from './state.js?v=mw4v3cov';
-import { youTubeId, youTubeTitle } from './yt.js?v=mw4v3cov';
-import { FONT_FAMILY } from './text.js?v=mw4v3cov';
-import { isAmazonUrl, isAmazonText } from './amazon.js?v=mw4v3cov';
+import { state } from './state.js?v=mw4vr6ei';
+import { youTubeId, youTubeTitle } from './yt.js?v=mw4vr6ei';
+import { FONT_FAMILY } from './text.js?v=mw4vr6ei';
+import { isAmazonUrl, isAmazonText } from './amazon.js?v=mw4vr6ei';
 
-import { genericLink } from './links.js?v=mw4v3cov';
+import { genericLink } from './links.js?v=mw4vr6ei';
 
-import { serviceForNode } from './services.js?v=mw4v3cov';
+import { serviceForNode } from './services.js?v=mw4vr6ei';
 
 export const LABEL_SIZE = 26;                       // font size, world units
 export const LABEL_FONT = '600 ' + LABEL_SIZE + 'px ' + FONT_FAMILY;
