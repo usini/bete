@@ -1,7 +1,8 @@
-import { localStore } from './local-store.js?v=mw443e0p';
+import { localStore } from './local-store.js?v=mw4v3cov';
 // YouTube helpers: URL detection, thumbnail / embed URLs, and video titles.
 // A rectangle whose text contains a YouTube URL is rendered as a video.
-export { youTubeId } from './youtube-url.js?v=mw443e0p';
+import { youTubeId } from './youtube-url.js?v=mw4v3cov';
+export { youTubeId } from './youtube-url.js?v=mw4v3cov';
 export function ytThumb(id) { return 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg'; }
 export function ytEmbed(id) { return 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0&playsinline=1'; }
 
@@ -10,6 +11,8 @@ export function ytEmbed(id) { return 'https://www.youtube-nocookie.com/embed/' +
 // video) is cached as null; a network error is retried after RETRY_MS.
 const TITLE_KEY = 'bete2:ytTitles';
 const RETRY_MS = 60000;
+const ratios = new Map();
+export const youTubeRatio = text => ratios.get(youTubeId(text)) || (/youtube\.com\/shorts\//i.test(text) ? 9 / 16 : 16 / 9);
 const titles = new Map();   // id -> title | null
 const pending = new Set();
 const failedAt = new Map(); // id -> timestamp of last network failure
@@ -51,6 +54,7 @@ async function fetchTitle(id) {
     const r = await fetch(url);
     if (!r.ok) return null;
     const j = await r.json();
+    if (Number.isFinite(j.width) && Number.isFinite(j.height) && j.width > 0 && j.height > 0) ratios.set(id, j.width / j.height);
     return typeof j.title === 'string' ? j.title.slice(0, 200) : null;
   } catch {
     return undefined;

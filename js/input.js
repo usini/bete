@@ -1,37 +1,39 @@
-import { pasteGroup } from './group-transfer.js?v=mw443e0p';
-import { addSteamBlock, dropApplicationFile, openApplication } from './applications.js?v=mw443e0p';
-import { steamApplicationUri } from './application-model.js?v=mw443e0p';
-import { updateGitHubCard } from './github-cards.js?v=mw443e0p';
-import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mw443e0p';
-import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mw443e0p';
-import { externalMode } from './external-board.js?v=mw443e0p';
+import { optimizeBoardImages } from './optimize.js?v=mw4v3cov';
+import { saveNow } from './state.js?v=mw4v3cov';
+import { pasteGroup } from './group-transfer.js?v=mw4v3cov';
+import { addSteamBlock, dropApplicationFile, openApplication } from './applications.js?v=mw4v3cov';
+import { steamApplicationUri } from './application-model.js?v=mw4v3cov';
+import { updateGitHubCard } from './github-cards.js?v=mw4v3cov';
+import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mw4v3cov';
+import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mw4v3cov';
+import { externalMode } from './external-board.js?v=mw4v3cov';
 // Pointer, wheel, keyboard, paste and drop handling for the canvas.
 //  - click on a label: edit popup, link field first (YouTube labels open the video instead)
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, getLastSelectedGroup, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, groupHeaderBox, COLORS } from './state.js?v=mw443e0p';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight, flyToBlock } from './camera.js?v=mw443e0p';
-import { startEdit, stopEdit, isEditing, previewGroupAlignment, resizeGroupBlocks } from './editor.js?v=mw443e0p';
-import { addDataUrl, addImageFile, fitNodeImage, imageCaptionFraction, imageFor } from './images.js?v=mw443e0p';
-import { playVideo } from './video.js?v=mw443e0p';
-import { youTubeId } from './yt.js?v=mw443e0p';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mw443e0p';
-import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mw443e0p';
-import { undo, redo } from './history.js?v=mw443e0p';
+import { state, getNode, getSelectedId, getLastSelectedGroup, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, groupHeaderBox, COLORS } from './state.js?v=mw4v3cov';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight, flyToBlock } from './camera.js?v=mw4v3cov';
+import { startEdit, stopEdit, isEditing, previewGroupAlignment, resizeGroupBlocks } from './editor.js?v=mw4v3cov';
+import { addDataUrl, addImageFile, fitNodeImage, imageCaptionFraction, imageFor } from './images.js?v=mw4v3cov';
+import { playVideo } from './video.js?v=mw4v3cov';
+import { youTubeId, youTubeRatio } from './yt.js?v=mw4v3cov';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mw4v3cov';
+import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mw4v3cov';
+import { undo, redo } from './history.js?v=mw4v3cov';
 
-import { setDragging } from './motion.js?v=mw443e0p';
+import { setDragging } from './motion.js?v=mw4v3cov';
 
-import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw443e0p';
-import { shortenAmazonText, isAmazonUrl, amazonBadgeLayout } from './amazon.js?v=mw443e0p';
+import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw4v3cov';
+import { shortenAmazonText, isAmazonUrl, amazonBadgeLayout } from './amazon.js?v=mw4v3cov';
 
-import { isLocked, setLocked, modeEvents } from './mobile-mode.js?v=mw443e0p';
+import { isLocked, setLocked, modeEvents } from './mobile-mode.js?v=mw4v3cov';
 
-import { serviceForNode } from './services.js?v=mw443e0p';
+import { serviceForNode } from './services.js?v=mw4v3cov';
 
-import { requestRender } from './render.js?v=mw443e0p';
+import { requestRender } from './render.js?v=mw4v3cov';
 
-import { notify } from './notifications.js?v=mw443e0p';
+import { notify } from './notifications.js?v=mw4v3cov';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 const CLIPBOARD_BLOCK = 'application/x-bete-clipboard-block';
@@ -292,12 +294,14 @@ function onPointerMove(e) {
         m.h = h * scale;
       }
       clearGuides();
+      fitGroupsAround(g.n, g.previousGroups, true);
       emit();
       return;
     }
     const image = g.n.image && imageFor(g.n.image, requestRender);
-    if (image) {
-      const ratio = image.naturalWidth / image.naturalHeight * (1 - imageCaptionFraction(g.n));
+    const video = !g.n.image && youTubeId(g.n.text);
+    if (image || video) {
+      const ratio = video ? youTubeRatio(g.n.text) : image.naturalWidth / image.naturalHeight * (1 - imageCaptionFraction(g.n));
       // Project the dragged corner onto the line of valid sizes.
       const width = (w + h / ratio) / (1 + 1 / (ratio * ratio));
       const maxWidth = Math.min(MAX_SIZE, MAX_SIZE * ratio);
@@ -310,6 +314,7 @@ function onPointerMove(e) {
       g.n.w = size.w;
       g.n.h = size.h;
     }
+    fitGroupsAround(g.n, g.previousGroups, true);
   }
   emit();
 }
@@ -577,16 +582,26 @@ export function initInput() {
     if (url && isAmazonUrl(url)) startEdit(n.id);
   });
 
-  window.addEventListener('keydown', (e) => {
+  let saving = false;
+  window.addEventListener('keydown', async (e) => {
     const targetField = e.target instanceof Element && (e.target.closest('input, textarea, select') || e.target.isContentEditable);
     if (e.isComposing) return;
     if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 's') {
       e.preventDefault();
-      if (e.repeat || externalMode) return;
+      if (e.repeat || externalMode || saving || targetField) return;
       if (isEditing() || document.querySelector('dialog[open]')) { notify('Valide ou ferme la fenêtre en cours avant de sauvegarder sur Google Drive.'); return; }
       const button = document.getElementById('drive-save');
-      if (button.hidden) notify('Connecte Google Drive depuis le menu pour sauvegarder.');
-      else if (!button.disabled) button.click();
+      if (button.disabled || isLocked()) return;
+      saving = true;
+      try {
+        notify('Optimisation et sauvegarde…', { id: 'shortcut-save', type: 'progress', duration: 0 });
+        const result = await optimizeBoardImages();
+        if (await saveNow() !== true) throw new Error('La sauvegarde locale a échoué.');
+        if (!button.hidden && !button.disabled) button.click();
+        notify('Tableau optimisé et sauvegardé localement.' + (result.failures ? ' Certaines images ont été conservées sans optimisation.' : ''), { id: 'shortcut-save', type: 'success' });
+      } catch (error) {
+        notify(String(error), { id: 'shortcut-save', type: 'error' });
+      } finally { saving = false; }
       return;
     }
     if (!targetField && !e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat && !document.querySelector('dialog[open], :popover-open') && e.key.toLowerCase() === 'v') {

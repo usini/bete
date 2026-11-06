@@ -1,9 +1,9 @@
-import { screenToWorld, view } from './camera.js?v=mw443e0p';
-import { state, events, addNode, getNode, emit } from './state.js?v=mw443e0p';
-import { externalMode } from './external-board.js?v=mw443e0p';
-import { isLocked } from './mobile-mode.js?v=mw443e0p';
-import { notify, dismissNotification } from './notifications.js?v=mw443e0p';
-import { cleanApplication, newSteamApplication } from './application-model.js?v=mw443e0p';
+import { screenToWorld, view } from './camera.js?v=mw4v3cov';
+import { state, events, addNode, getNode, emit } from './state.js?v=mw4v3cov';
+import { externalMode } from './external-board.js?v=mw4v3cov';
+import { isLocked } from './mobile-mode.js?v=mw4v3cov';
+import { notify, dismissNotification } from './notifications.js?v=mw4v3cov';
+import { cleanApplication, newSteamApplication } from './application-model.js?v=mw4v3cov';
 export const applicationEvents=new EventTarget();
 let lastSnapshot=null;
 let native=null,queue=Promise.resolve(),status={enabled:false,approved:{}};

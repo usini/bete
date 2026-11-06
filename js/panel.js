@@ -1,15 +1,16 @@
-import { isLocked, modeEvents } from './mobile-mode.js?v=mw443e0p';
-import { externalMode, recentGithubBoards, addExternalBoard, removeExternalBoard } from './external-board.js?v=mw443e0p';
+import { showExternalBoardQR, copyExternalBoardLink } from './external-share.js?v=mw4v3cov';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mw4v3cov';
+import { externalMode, recentGithubBoards, addExternalBoard, removeExternalBoard } from './external-board.js?v=mw4v3cov';
 // Right-hand panel: draggable blocks, selection tools, file actions.
-import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mw443e0p';
-import { screenToWorld, view, flyToBlock } from './camera.js?v=mw443e0p';
-import { BLOCK_MIME, pickImage } from './input.js?v=mw443e0p';
-import { exportDoc, importFile } from './storage.js?v=mw443e0p';
+import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mw4v3cov';
+import { screenToWorld, view, flyToBlock } from './camera.js?v=mw4v3cov';
+import { BLOCK_MIME, pickImage } from './input.js?v=mw4v3cov';
+import { exportDoc, importFile } from './storage.js?v=mw4v3cov';
 
 
-import { optimizeBoardImages as optimizeImages } from './optimize.js?v=mw443e0p';
-import { notify } from './notifications.js?v=mw443e0p';
-import { localStore } from './local-store.js?v=mw443e0p';
+import { optimizeBoardImages as optimizeImages } from './optimize.js?v=mw4v3cov';
+import { notify } from './notifications.js?v=mw4v3cov';
+import { localStore } from './local-store.js?v=mw4v3cov';
 
 async function optimizeBoardImages(button) {
   const id = 'optimize-images';
@@ -179,7 +180,9 @@ export function initPanel() {
         try { await removeExternalBoard(board.id); refreshExternalBoards(); externalMessage.textContent = 'Lien retiré de cet appareil.'; }
         catch (error) { externalMessage.textContent = error.message; remove.disabled = false; }
       });
-      row.append(link, remove);
+      const qr=document.createElement('button');qr.type='button';qr.textContent='QR code';qr.setAttribute('aria-label','QR code de '+board.name);qr.addEventListener('click',()=>showExternalBoardQR(board));
+      const copy=document.createElement('button');copy.type='button';copy.textContent='Copier le lien';copy.addEventListener('click',()=>copyExternalBoardLink(board));
+      row.append(link, qr, copy, remove);
       return row;
     }));
     if (!boards.length) externalMessage.textContent = 'Aucun tableau externe enregistré.';

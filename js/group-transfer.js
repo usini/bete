@@ -1,13 +1,14 @@
-import { state, membersOf, sanitizeNode, newId, select } from './state.js?v=mw443e0p';
-import { exportData } from './storage.js?v=mw443e0p';
-import { addDataUrl } from './images.js?v=mw443e0p';
+import { state, membersOf, sanitizeNode, newId, select } from './state.js?v=mw4v3cov';
+import { exportData } from './storage.js?v=mw4v3cov';
+import { addDataUrl } from './images.js?v=mw4v3cov';
 export const GROUP_PREFIX='BETE_GROUP_V1\n';
-export async function exportGroup(group, title=group.text) {
-  const nodes=[group,...membersOf(group)].map(node=>{
+export async function exportGroup(group, title=group.text, includeFrame=true) {
+  const contents=membersOf(group);
+  const nodes=(includeFrame?[group,...contents]:contents).map(node=>{
     const {shareId,...copy}=node;
     return {...copy,x:node.x-group.x,y:node.y-group.y};
   });
-  nodes[0].text=title;
+  if(includeFrame) nodes[0].text=title;
   return exportData({app:'bete2',nodes,camera:{x:group.w/2,y:group.h/2,zoom:1}});
 }
 export async function pasteGroup(text,center) {

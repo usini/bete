@@ -15,3 +15,9 @@ test('manual links deduplicate, persist and can be removed without downloading o
  assert.equal(vm.runInContext('recentGithubBoards().length',ctx),1);await vm.runInContext('removeExternalBoard("usini/bete/demo")',ctx);assert.equal(vm.runInContext('recentGithubBoards().length',ctx),0);assert.equal(writes,3);
  await assert.rejects(vm.runInContext('addExternalBoard("https://evil.test")',ctx));assert.equal(writes,3);
 });
+
+test('the GitHub Electronique link is accepted directly from the file page',()=>{
+ const board=parseExternalBoardLink('https://github.com/remisarrailh/bete-pages/blob/main/Electronique.json');
+ assert.equal(board.id,'remisarrailh/bete-pages/Electronique');
+ assert.equal(board.url,'https://raw.githubusercontent.com/remisarrailh/bete-pages/main/Electronique.json');
+});

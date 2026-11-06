@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Bête</title>
-  <link rel="stylesheet" href="css/style.css?v=mw443e0p">
+  <link rel="stylesheet" href="css/style.css?v=mw4v3cov">
 </head>
 <body>
   <canvas id="canvas"></canvas>
@@ -27,11 +27,11 @@
     </button>
     <button type="button" id="drive-save" class="tool-btn" hidden title="Sauvegarde Google Drive" aria-label="Sauvegarde Google Drive">
       <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 3h13l4 4v14H3V3h1ZM7 3v6h10V3M7 21v-8h10v8"/><path d="M14 4v3"/></svg>
+      <span id="drive-size" hidden title="Taille du prochain JSON Drive, images et historique compris">…</span>
     </button>
     <span id="mobile-lock-indicator" hidden role="img" aria-label="Tableau verrouillé" title="Tableau verrouillé — déverrouiller depuis le menu">
       <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4M12 14v3"/></svg>
     </span>
-    <span id="drive-size" hidden title="Taille du prochain JSON Drive, images et historique compris">…</span>
     <div id="history-list" hidden></div>
   </div>
   <dialog id="textdialog">
@@ -119,7 +119,7 @@
     <section id="external-boards">
       <h3>Tableaux externes</h3>
       <form id="external-board-add">
-        <label class="field"><span>Lien du tableau externe</span><input id="external-board-link" type="text" maxlength="2048" placeholder="https://bete.usini.eu/?github=…" autocomplete="off" spellcheck="false"></label>
+        <label class="field"><span>Lien du tableau externe</span><input id="external-board-link" type="text" maxlength="2048" placeholder="https://github.com/compte/depot/blob/main/tableau.json" autocomplete="off" spellcheck="false"></label>
         <button type="submit">Ajouter le lien</button>
       </form>
       <p id="external-board-message" class="hint" role="status"></p>
@@ -214,6 +214,6 @@
   <input type="file" id="image-file" accept="image/*" hidden>
   <input type="file" id="fileimport" accept="application/json,.json" hidden>
 
-  <script type="module" src="js/main.js?v=mw443e0p"></script>
+  <script type="module" src="js/main.js?v=mw4v3cov"></script>
 </body>
 </html>

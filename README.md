@@ -311,3 +311,11 @@ Les autorisations de lancement ne lancent plus immédiatement une application : 
 Au dézoom, l’en-tête lisible du groupe s’étend vers le haut, sans empiéter sur la zone réservée aux blocs. Sa zone cliquable suit la barre affichée.
 
 Dans l’éditeur d’un groupe, **Télécharger comme tableau JSON** crée `nomdugroupe.json`, contenant seulement le groupe et ses blocs, images intégrées et sans historique ni partage actif. Ce fichier peut servir de tableau externe. **Copier le groupe pour Ctrl+V** copie le même contenu pour l’ajouter à un tableau existant sans le remplacer. Les blocs collés reçoivent de nouveaux identifiants et ne reprennent aucune autorisation de lancement.
+
+Le téléchargement **comme tableau JSON** exclut le cadre du groupe sélectionné et conserve uniquement son contenu (y compris les sous-groupes éventuels). La copie pour Ctrl+V conserve le cadre et ses blocs.
+
+Les liens de fichiers GitHub tels que `https://github.com/remisarrailh/bete-pages/blob/main/Electronique.json` sont acceptés directement dans l’ajout de tableaux externes. Chaque entrée propose **QR code**, affiché en grand, et **Copier le lien**. Le lien partagé ouvre le lecteur Bête public, sans dépendre de l’adresse locale ou de l’application Windows.
+
+- **Ctrl+S** : optimise les images, vide l’historique et sauvegarde localement ; lance aussi la sauvegarde Drive si connecté. La taille JSON apparaît dans le bouton disquette.
+- Les blocs YouTube conservent le ratio vidéo (16:9 par défaut, 9:16 pour les Shorts) au redimensionnement. Les groupes s’adaptent pendant le redimensionnement de leurs blocs.
+- **Windows + Maj + S** : capturer une zone de l’écran, puis **Ctrl+V** pour coller la capture dans Bête.
