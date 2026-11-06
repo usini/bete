@@ -8,7 +8,7 @@ mod tray;
 mod autostart;
 
 use std::time::Duration;
-use tauri::{AppHandle, Url, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Manager, Url, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_updater::UpdaterExt;
 
@@ -26,8 +26,36 @@ fn minimize_window(window: tauri::WebviewWindow) -> Result<(), String> {
 
 #[tauri::command]
 fn capture_screen(app: AppHandle, window: tauri::WebviewWindow) -> Result<(), String> {
+    use windows::Win32::System::DataExchange::{GetClipboardSequenceNumber, IsClipboardFormatAvailable};
+    let sequence = unsafe { GetClipboardSequenceNumber() };
     window.minimize().map_err(|error| error.to_string())?;
-    app.opener().open_url("ms-screenclip:", None::<&str>).map_err(|error| error.to_string())
+    if let Err(error) = app.opener().open_url("ms-screenclip:", None::<&str>) {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+        return Err(error.to_string());
+    }
+    std::thread::spawn(move || {
+        // The snipping overlay writes its completed image to the Windows clipboard.
+        // Do not restore Bête while the user is still selecting a region.
+        let deadline = std::time::Instant::now() + Duration::from_secs(180);
+        while std::time::Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(150));
+            let captured = unsafe {
+                GetClipboardSequenceNumber() != sequence
+                    && (IsClipboardFormatAvailable(8).is_ok()
+                        || IsClipboardFormatAvailable(17).is_ok()
+                        || IsClipboardFormatAvailable(2).is_ok())
+            };
+            if captured {
+                let _ = window.unminimize();
+                let _ = window.show();
+                let _ = window.set_focus();
+                break;
+            }
+        }
+    });
+    Ok(())
 }
 
 fn switch_display(mode: &str) -> Result<(), String> {
@@ -104,7 +132,17 @@ async fn install_update(app: AppHandle, version: String, restart: bool) -> Resul
 }
 
 fn main() {
-    let mut builder = tauri::Builder::default().plugin(tauri_plugin_opener::init()).plugin(shortcuts::plugin()).plugin(tauri_plugin_dialog::init());
+    let mut builder = tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            // An automatic startup must not reveal an already running background instance.
+            if args.iter().any(|arg| arg == "--background") { return; }
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.unminimize();
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
+        .plugin(tauri_plugin_opener::init()).plugin(shortcuts::plugin()).plugin(tauri_plugin_dialog::init());
     if option_env!("BETE_UPDATER_PUBLIC_KEY").is_some() {
         builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     }

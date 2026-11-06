@@ -321,3 +321,7 @@ Les liens de fichiers GitHub tels que `https://github.com/remisarrailh/bete-page
 - **Windows + Maj + S** : capturer une zone de l’écran, puis **Ctrl+V** pour coller la capture dans Bête.
 
 La barre de commande Windows propose aussi **Capture d’une zone de l’écran** (outil de capture Windows, après réduction de Bête), **Étendre le bureau** et **Écran du PC seul** (modes de projection Windows).
+
+Sur Windows, Bête ne s’ouvre qu’en un seul exemplaire. Relancer l’application restaure la fenêtre existante, même réduite ou masquée dans la zone de notification. Un lancement automatique en arrière-plan la laisse masquée.
+
+Après une capture de zone, Bête revient au premier plan dès que Windows copie l’image dans le presse-papiers (attente limitée à trois minutes). Il reste alors possible de coller la capture avec Ctrl+V. Une capture annulée ne restaure pas automatiquement la fenêtre.
