@@ -2,10 +2,11 @@
 let opening;
 export function openDatabase() {
   if (!opening) opening = new Promise((resolve, reject) => {
-    const request = indexedDB.open('bete2', 2);
+    const request = indexedDB.open('bete2', 3);
     let blocked = false;
     request.onupgradeneeded = () => {
       const db = request.result;
+      if (!db.objectStoreNames.contains('media')) db.createObjectStore('media').createIndex('savedAt', 'savedAt');
       for (const store of ['images', 'local']) if (!db.objectStoreNames.contains(store)) db.createObjectStore(store);
     };
     request.onblocked = () => {

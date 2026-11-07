@@ -1,29 +1,30 @@
-import { xtoolSummary } from './xtool.js?v=mw6rq16y';
-import { applicationAllowed, applicationEvents } from './applications.js?v=mw6rq16y';
-import { githubRepository, cleanGitHubData } from './github-repo.js?v=mw6rq16y';
-import { dropPreviewGroup } from './placement.js?v=mw6rq16y';
-import { externalMode } from './external-board.js?v=mw6rq16y';
-import { positionEmbeds } from './embed-view.js?v=mw6rq16y';
+import { youTubeThumbnail } from './youtube-thumbnails.js?v=mw6xpxbq';
+import { xtoolSummary } from './xtool.js?v=mw6xpxbq';
+import { applicationAllowed, applicationEvents } from './applications.js?v=mw6xpxbq';
+import { githubRepository, cleanGitHubData } from './github-repo.js?v=mw6xpxbq';
+import { dropPreviewGroup } from './placement.js?v=mw6xpxbq';
+import { externalMode } from './external-board.js?v=mw6xpxbq';
+import { positionEmbeds } from './embed-view.js?v=mw6xpxbq';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize, groupHeaderHeight, groupHeaderBox } from './state.js?v=mw6rq16y';
-import { view, screenToWorld } from './camera.js?v=mw6rq16y';
-import { youTubeId, ytThumb } from './yt.js?v=mw6rq16y';
-import { imageCaptionFraction, imageFor } from './images.js?v=mw6rq16y';
-import { positionVideo, isVideoPlaying } from './video.js?v=mw6rq16y';
-import { guides } from './snap.js?v=mw6rq16y';
-import { renderMinimap } from './minimap.js?v=mw6rq16y';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mw6rq16y';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw6rq16y';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw6rq16y';
+import { state, events, getSelectedId, groupsBySize, groupHeaderHeight, groupHeaderBox } from './state.js?v=mw6xpxbq';
+import { view, screenToWorld } from './camera.js?v=mw6xpxbq';
+import { youTubeId, youTubeTitle } from './yt.js?v=mw6xpxbq';
+import { imageCaptionFraction, imageFor } from './images.js?v=mw6xpxbq';
+import { positionVideo, isVideoPlaying } from './video.js?v=mw6xpxbq';
+import { guides } from './snap.js?v=mw6xpxbq';
+import { renderMinimap } from './minimap.js?v=mw6xpxbq';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mw6xpxbq';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw6xpxbq';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw6xpxbq';
 
-import { genericLinkOf, plainLink } from './links.js?v=mw6rq16y';
-import { stepMotion } from './motion.js?v=mw6rq16y';
-import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw6rq16y';
+import { genericLinkOf, plainLink } from './links.js?v=mw6xpxbq';
+import { stepMotion } from './motion.js?v=mw6xpxbq';
+import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw6xpxbq';
 
-import { isLocked } from './mobile-mode.js?v=mw6rq16y';
+import { isLocked } from './mobile-mode.js?v=mw6xpxbq';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mw6rq16y';
-import { amazonBadgeLayout } from './amazon.js?v=mw6rq16y';
+import { serviceForNode, serviceIcon } from './services.js?v=mw6xpxbq';
+import { amazonBadgeLayout } from './amazon.js?v=mw6xpxbq';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -37,8 +38,9 @@ shareEvents.addEventListener('presence', () => requestRender());
 shareEvents.addEventListener('change', () => requestRender());
 reducedMotion.addEventListener('change', () => requestRender());
 document.addEventListener('visibilitychange', () => requestRender());
+window.addEventListener('online',requestRender);
+window.addEventListener('offline',requestRender);
 let sharedGlowVisible = false;
-const thumbs = new Map(); // youtube id -> HTMLImageElement
 const ICON_ANIM_MS = 220;  // appearance animation of the 📝 button
 let iconSelId = null;      // selection the animation was started for
 let iconStart = 0;         // when that selection happened
@@ -167,6 +169,7 @@ function drawNode(n, selected, zoom) {
   const service = serviceForNode(n);
   const repository = n.kind === 'rect' ? githubRepository(n.link || n.text) : null;
   const yt = service || n.image ? null : youTubeId(n.text);
+  if (yt && !externalMode) youTubeTitle(yt, requestRender);
   if (n.color !== 'transparent') {
     ctx.fillStyle = '#14171d';
     ctx.fillRect(n.x, n.y, n.w, n.h);
@@ -325,16 +328,7 @@ function hexAlpha(hex, a) {
   return 'rgba(' + parseInt(m[1], 16) + ',' + parseInt(m[2], 16) + ',' + parseInt(m[3], 16) + ',' + a + ')';
 }
 
-function thumb(id) {
-  let img = thumbs.get(id);
-  if (!img) {
-    img = new Image();
-    img.onload = requestRender;
-    img.src = ytThumb(id);
-    thumbs.set(id, img);
-  }
-  return img.complete && img.naturalWidth > 0 ? img : null;
-}
+function thumb(id) { return youTubeThumbnail(id, requestRender); }
 
 function drawContained(img, x, y, w, h) {
   const s = Math.min(w / img.naturalWidth, h / img.naturalHeight);

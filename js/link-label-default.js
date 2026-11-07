@@ -1,10 +1,14 @@
-import { youTubeId } from './youtube-url.js?v=mw6rq16y';
-import { isAmazonUrl } from './amazon.js?v=mw6rq16y';
+import { youTubeId } from './youtube-url.js?v=mw6xpxbq';
+import { isAmazonUrl } from './amazon.js?v=mw6xpxbq';
 
 // Only newly pasted/dropped links use this default; saved visibility is preserved.
 export function showLinkByDefault(value) {
   if (youTubeId(value)) return true;
   if (isAmazonUrl(value)) return true;
+  return isSocialUrl(value);
+}
+
+export function isSocialUrl(value) {
   try {
     const url = new URL(value);
     if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return false;

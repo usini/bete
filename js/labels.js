@@ -1,15 +1,16 @@
-import { externalMode } from './external-board.js?v=mw6rq16y';
+import { isSocialUrl } from './link-label-default.js?v=mw6xpxbq';
+import { externalMode } from './external-board.js?v=mw6xpxbq';
 // Labels: the tab above a block. It shows the YouTube title (YouTube blocks) or the block's
 // link URL; a block with neither has no label. The layout and the hit-testing live here,
 // so the renderer and the pointer handling always agree on where the label is.
-import { state } from './state.js?v=mw6rq16y';
-import { youTubeId, youTubeTitle } from './yt.js?v=mw6rq16y';
-import { FONT_FAMILY } from './text.js?v=mw6rq16y';
-import { isAmazonUrl, isAmazonText } from './amazon.js?v=mw6rq16y';
+import { state } from './state.js?v=mw6xpxbq';
+import { youTubeId, youTubeTitle } from './yt.js?v=mw6xpxbq';
+import { FONT_FAMILY } from './text.js?v=mw6xpxbq';
+import { isAmazonUrl, isAmazonText } from './amazon.js?v=mw6xpxbq';
 
-import { genericLink } from './links.js?v=mw6rq16y';
+import { genericLink, plainLink } from './links.js?v=mw6xpxbq';
 
-import { serviceForNode } from './services.js?v=mw6rq16y';
+import { serviceForNode } from './services.js?v=mw6xpxbq';
 
 export const LABEL_SIZE = 26;                       // font size, world units
 export const LABEL_FONT = '600 ' + LABEL_SIZE + 'px ' + FONT_FAMILY;
@@ -43,7 +44,7 @@ export function labelInfo(n) {
     if (!n.link && !parts.length && !genericLink(n.text)) return null;
     return {
       kind: 'link',
-      text: parts.length ? parts.join(' · ') : link,
+      text: parts.length ? parts.join(' · ') : (isSocialUrl(link) && n.text?.trim() && !plainLink(n.text) ? n.text.trim() : link),
       href: link,
       product: parts.length ? { name: n.name || '', price: n.price || '', delivery: n.delivery || '' } : null,
     };

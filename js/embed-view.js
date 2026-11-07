@@ -1,8 +1,8 @@
-import { state, select } from './state.js?v=mw6rq16y';
-import { worldToScreen, view } from './camera.js?v=mw6rq16y';
-import { facebookPostOf, facebookEmbed } from './facebook.js?v=mw6rq16y';
-import { googleMapsEmbedOf } from './google-maps.js?v=mw6rq16y';
-import { socialEmbedOf } from './social-embeds.js?v=mw6rq16y';
+import { state, select } from './state.js?v=mw6xpxbq';
+import { worldToScreen, view } from './camera.js?v=mw6xpxbq';
+import { facebookPostOf, facebookEmbed } from './facebook.js?v=mw6xpxbq';
+import { googleMapsEmbedOf } from './google-maps.js?v=mw6xpxbq';
+import { socialEmbedOf } from './social-embeds.js?v=mw6xpxbq';
 
 const frames = new Map();
 
@@ -27,6 +27,7 @@ export function positionEmbeds() {
     const map = googleMapsEmbedOf(n);
     const social = socialEmbedOf(n);
     const post = social?.key || map || facebookPostOf(n);
+    if (navigator.onLine === false && !map) continue;
     if (!post) continue;
     const p = worldToScreen(n.x + 8, n.y + 8);
     const w = Math.max(1, n.w - 16) * state.camera.zoom;

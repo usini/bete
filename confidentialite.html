@@ -127,11 +127,12 @@
     Quand un bloc contient un lien YouTube, ton navigateur contacte directement YouTube (Google) :
   </p>
   <ul>
-    <li><code>i.ytimg.com</code> pour afficher la miniature ;</li>
+    <li><code>i.ytimg.com</code> pour afficher et mettre en cache localement la miniature ;</li>
     <li><code>www.youtube.com/oembed</code> pour récupérer le titre de la vidéo ;</li>
     <li><code>www.youtube-nocookie.com</code> pour lire la vidéo, uniquement quand tu la lances.</li>
   </ul>
   <p>
+    Les titres et proportions YouTube sont conservés localement. Jusqu’à 200 miniatures (1 Mio maximum par image) sont mises en cache dans IndexedDB, puis les plus anciennes sont supprimées. Ce cache reste propre à chaque appareil et n’est pas inclus dans les sauvegardes Drive. Les titres de liens sociaux fournis lors d’un collage ou glisser-déposer sont conservés dans le texte des blocs et leurs sauvegardes ; aucun service de récupération tiers n’est ajouté.
     YouTube reçoit alors l'identifiant de la vidéo et les informations techniques habituelles d'une
     requête web (adresse IP, navigateur). Leur usage est régi par les conditions et la politique de
     confidentialité de <a href="https://policies.google.com/privacy">Google</a>.

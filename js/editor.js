@@ -1,11 +1,11 @@
-import { exportGroup, GROUP_PREFIX } from './group-transfer.js?v=mw6rq16y';
-import { notify } from './notifications.js?v=mw6rq16y';
-import { githubRepository } from './github-repo.js?v=mw6rq16y';
-import { updateGitHubCard } from './github-cards.js?v=mw6rq16y';
-import { alignmentPlan } from './alignment.js?v=mw6rq16y';
-import { labelLayout } from './labels.js?v=mw6rq16y';
-import { amazonBadgeLayout } from './amazon.js?v=mw6rq16y';
-import { freeDropPosition } from './placement.js?v=mw6rq16y';
+import { exportGroup, GROUP_PREFIX } from './group-transfer.js?v=mw6xpxbq';
+import { notify } from './notifications.js?v=mw6xpxbq';
+import { githubRepository } from './github-repo.js?v=mw6xpxbq';
+import { updateGitHubCard } from './github-cards.js?v=mw6xpxbq';
+import { alignmentPlan } from './alignment.js?v=mw6xpxbq';
+import { labelLayout } from './labels.js?v=mw6xpxbq';
+import { amazonBadgeLayout } from './amazon.js?v=mw6xpxbq';
+import { freeDropPosition } from './placement.js?v=mw6xpxbq';
 // Edit mode: one popup (modal <dialog>) to change a block's text and link.
 // Opened by the 📝 button, a click on a label, Enter, or a double-click on a block with no link.
 //  - the text field is hidden for image blocks (they have no text)
@@ -13,18 +13,18 @@ import { freeDropPosition } from './placement.js?v=mw6rq16y';
 //  - when the link is an Amazon address the popup becomes "Produit Amazon": name, price and
 //    delivery time fields appear (typed by hand, shown in the block's label)
 // It closes only with the Annuler / Valider buttons (Ctrl+Enter, or Enter in a one-line field, also validate).
-import { state, getNode, emit, membersOf, fitGroupsAround, containingGroups, saveNow } from './state.js?v=mw6rq16y';
-import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw6rq16y';
-import { youTubeId } from './yt.js?v=mw6rq16y';
-import { addImageFile, imageFor, fitNodeImage } from './images.js?v=mw6rq16y';
+import { state, getNode, emit, membersOf, fitGroupsAround, containingGroups, saveNow } from './state.js?v=mw6xpxbq';
+import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw6xpxbq';
+import { youTubeId } from './yt.js?v=mw6xpxbq';
+import { addImageFile, imageFor, fitNodeImage } from './images.js?v=mw6xpxbq';
 
-import { genericLink } from './links.js?v=mw6rq16y';
+import { genericLink } from './links.js?v=mw6xpxbq';
 
-import { isLocked } from './mobile-mode.js?v=mw6rq16y';
+import { isLocked } from './mobile-mode.js?v=mw6xpxbq';
 
-import { serviceForNode } from './services.js?v=mw6rq16y';
-import { deliveryDelay } from './delivery.js?v=mw6rq16y';
-import { googleMapsEmbed } from './google-maps.js?v=mw6rq16y';
+import { serviceForNode } from './services.js?v=mw6xpxbq';
+import { deliveryDelay } from './delivery.js?v=mw6xpxbq';
+import { googleMapsEmbed } from './google-maps.js?v=mw6xpxbq';
 
 const dlg = document.getElementById('textdialog');
 const title = document.getElementById('dialog-title');

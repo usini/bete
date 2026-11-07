@@ -1,6 +1,6 @@
-import { state, getNode, emit } from './state.js?v=mw6rq16y';
-import { optimizeImage } from './images.js?v=mw6rq16y';
-import { clearHistory } from './history.js?v=mw6rq16y';
+import { state, getNode, emit } from './state.js?v=mw6xpxbq';
+import { optimizeImage } from './images.js?v=mw6xpxbq';
+import { clearHistory } from './history.js?v=mw6xpxbq';
 
 let pending = null;
 // One optimization at a time, shared by the menu and desktop shutdown.

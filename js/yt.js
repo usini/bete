@@ -1,8 +1,8 @@
-import { localStore } from './local-store.js?v=mw6rq16y';
+import { localStore } from './local-store.js?v=mw6xpxbq';
 // YouTube helpers: URL detection, thumbnail / embed URLs, and video titles.
 // A rectangle whose text contains a YouTube URL is rendered as a video.
-import { youTubeId } from './youtube-url.js?v=mw6rq16y';
-export { youTubeId } from './youtube-url.js?v=mw6rq16y';
+import { youTubeId } from './youtube-url.js?v=mw6xpxbq';
+export { youTubeId } from './youtube-url.js?v=mw6xpxbq';
 export function ytThumb(id) { return 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg'; }
 export function ytEmbed(id) { return 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0&playsinline=1'; }
 
@@ -10,6 +10,7 @@ export function ytEmbed(id) { return 'https://www.youtube-nocookie.com/embed/' +
 // Cached in IndexedDB so titles survive offline. A missing title (deleted/private
 // video) is cached as null; a network error is retried after RETRY_MS.
 const TITLE_KEY = 'bete2:ytTitles';
+const RATIO_KEY = 'bete2:ytRatios';
 const RETRY_MS = 60000;
 const ratios = new Map();
 export const youTubeRatio = text => ratios.get(youTubeId(text)) || (/youtube\.com\/shorts\//i.test(text) ? 9 / 16 : 16 / 9);
@@ -19,18 +20,21 @@ const failedAt = new Map(); // id -> timestamp of last network failure
 
 try {
   const saved = JSON.parse(localStore.getItem(TITLE_KEY) || '{}');
-  for (const id of Object.keys(saved)) titles.set(id, saved[id]);
+  for (const id of Object.keys(saved)) if (/^[A-Za-z0-9_-]{11}$/.test(id) && (saved[id]===null || typeof saved[id]==='string')) titles.set(id, typeof saved[id]==='string'?saved[id].slice(0,200):null);
+  const savedRatios=JSON.parse(localStore.getItem(RATIO_KEY)||'{}');
+  for (const [id,ratio] of Object.entries(savedRatios)) if (/^[A-Za-z0-9_-]{11}$/.test(id) && Number.isFinite(ratio) && ratio>0) ratios.set(id,ratio);
 } catch { /* no cache available */ }
 
 function saveTitles() {
-  try { localStore.setItem(TITLE_KEY, JSON.stringify(Object.fromEntries(titles))); }
+  try { localStore.setItem(TITLE_KEY, JSON.stringify(Object.fromEntries(titles))); localStore.setItem(RATIO_KEY, JSON.stringify(Object.fromEntries(ratios))); }
   catch { /* storage full or blocked: titles just won't persist */ }
 }
 
 export const cachedYouTubeTitle = id => titles.get(id) || null;
 
 // Returns the cached title (or null while unknown); onReady is called once it arrives.
-export function youTubeTitle(id, onReady) {
+export function youTubeTitle(id, onReady = () => {}) {
+  if (typeof id!=='string' || !/^[A-Za-z0-9_-]{11}$/.test(id)) return null;
   if (titles.has(id)) return titles.get(id);
   if (pending.has(id)) return null;
   const last = failedAt.get(id);
@@ -51,8 +55,8 @@ async function fetchTitle(id) {
   try {
     const url = 'https://www.youtube.com/oembed?format=json&url='
       + encodeURIComponent('https://www.youtube.com/watch?v=' + id);
-    const r = await fetch(url);
-    if (!r.ok) return null;
+    const r = await fetch(url,{credentials:'omit',referrerPolicy:'no-referrer',signal:AbortSignal.timeout(10000)});
+    if (!r.ok) return [404,410].includes(r.status) ? null : undefined;
     const j = await r.json();
     if (Number.isFinite(j.width) && Number.isFinite(j.height) && j.width > 0 && j.height > 0) ratios.set(id, j.width / j.height);
     return typeof j.title === 'string' ? j.title.slice(0, 200) : null;

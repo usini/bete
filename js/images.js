@@ -1,8 +1,8 @@
-import { fittedImageSize } from './image-size.js?v=mw6rq16y';
+import { fittedImageSize } from './image-size.js?v=mw6xpxbq';
 // Image blobs live in IndexedDB; nodes only keep a reference 'idb:<id>'.
-import { newId, getNode } from './state.js?v=mw6rq16y';
+import { newId, getNode } from './state.js?v=mw6xpxbq';
 
-import { openDatabase } from './database.js?v=mw6rq16y';
+import { openDatabase } from './database.js?v=mw6xpxbq';
 const STORE = 'images';
 
 async function run(mode, op) {
