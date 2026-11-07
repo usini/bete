@@ -1,4 +1,5 @@
-import ICAL from './vendor/ical.min.js?v=mw560w8m';
+import ICAL from './vendor/ical.min.js?v=mw62ezdd';
+import { cleanCalendarSnapshot } from './calendar-snapshot.js?v=mw62ezdd';
 
 const day = (date, offset = 0) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + offset);
 const month = (date, offset = 0) => new Date(date.getFullYear(), date.getMonth() + offset, 1);
@@ -39,7 +40,8 @@ export function calendarEvents(source, from, until) {
   return items.sort((a, b) => a.start - b.start);
 }
 
-export function initDesktopCalendar(invoke) {
+export async function initDesktopCalendar(invoke) {
+  const { state, events: changes, emit } = await import('./state.js?v=mw62ezdd');
   const trigger = document.createElement('button');
   trigger.type = 'button';
   trigger.id = 'clock-calendar';
@@ -84,6 +86,18 @@ export function initDesktopCalendar(invoke) {
   let selected = day(new Date()), current = month(selected);
   let source = null, events = [], upcoming = [], busy = false;
   let nextTimer;
+  const savedEvents = () => (state.calendar || []).map(event => ({...event, start:new Date(event.start), end:new Date(event.end)}));
+  const restoreSnapshot = () => {
+    if (source) return;
+    upcoming = savedEvents();
+    showNextEvent();
+    if (dialog.open) renderMonth();
+  };
+  changes.addEventListener('change', restoreSnapshot);
+  if (!invoke) {
+    form.hidden = true;
+    get('status').textContent = 'Les deux prochains événements sont synchronisés depuis Bête sur Windows via la sauvegarde du tableau.';
+  }
 
   function showNextEvent() {
     clearTimeout(nextTimer);
@@ -121,7 +135,7 @@ export function initDesktopCalendar(invoke) {
 
   function renderMonth() {
     const first = day(current, -((current.getDay() + 6) % 7));
-    events = source ? calendarEvents(source, first, day(first, 42)) : [];
+    events = source ? calendarEvents(source, first, day(first, 42)) : savedEvents();
     dialog.querySelector('h2').textContent = monthLabel.format(current);
     const cells = ['Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.', 'Dim.'].map(text => {
       const cell = document.createElement('span');
@@ -161,8 +175,13 @@ export function initDesktopCalendar(invoke) {
     try {
       const next = await invoke('calendar_feed', { url });
       const now = new Date();
-      upcoming = next ? calendarEvents(next, now, month(now, 13)) : [];
+      upcoming = next ? calendarEvents(next, now, month(now, 13)) : url === '' ? [] : savedEvents();
       source = next;
+      const snapshot = cleanCalendarSnapshot(upcoming.filter(event => event.start >= now));
+      if ((next || url === '') && JSON.stringify(state.calendar) !== JSON.stringify(snapshot)) {
+        state.calendar = snapshot;
+        emit();
+      }
       showNextEvent();
       input.value = '';
       get('remove').hidden = !source;
@@ -180,7 +199,7 @@ export function initDesktopCalendar(invoke) {
     if (dialog.open) return;
     dialog.showModal();
     renderMonth();
-    void load(null);
+    if (invoke) void load(null);
   });
   get('prev').addEventListener('click', () => { current = month(current, -1); selected = current; renderMonth(); });
   get('next').addEventListener('click', () => { current = month(current, 1); selected = current; renderMonth(); });
@@ -194,5 +213,7 @@ export function initDesktopCalendar(invoke) {
     if (url) void load(url);
   });
   dialog.addEventListener('close', () => { input.value = ''; });
-  void load(null);
+  restoreSnapshot();
+  if (invoke) void load(null);
+  if (invoke) setInterval(() => { if (source) void load(null); }, 5 * 60 * 1000);
 }

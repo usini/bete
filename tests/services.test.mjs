@@ -47,3 +47,9 @@ test('Google Calendar entry URLs ignore account numbers, language parameters and
  for(const url of ['https://calendar.google.com/calendar/u/1/r?hl=fr','https://calendar.google.com/calendar/u/23/r?hl=en#main','https://calendar.google.com/?hl=fr']) assert.equal(serviceForUrl(url)?.id,'googlecalendar',url);
  for(const url of ['https://calendar.google.com.evil.test/calendar/u/1/r?hl=fr','https://calendar.google.com/calendar/u/1/r/eventedit?text=private']) assert.equal(serviceForUrl(url),null);
 });
+
+test('Google Maps and MSN weather entry links use local icons including location parameters',()=>{
+ for(const url of ['https://www.google.fr/maps/','https://www.google.fr/maps/?hl=fr','https://maps.google.com/?hl=fr'])assert.equal(serviceForUrl(url)?.id,'googlemaps',url);
+ for(const url of ['https://www.msn.com/fr-fr/meteo/previsions/','https://www.msn.com/fr-fr/meteo/previsions/in-Montpellier?loc=abc#today'])assert.equal(serviceForUrl(url)?.id,'msnweather',url);
+ for(const url of ['https://www.msn.com/fr-fr/actualite','https://www.msn.com.evil.test/fr-fr/meteo/previsions/','https://www.google.fr/maps/embed?pb=123','https://user:pass@www.msn.com/fr-fr/meteo/previsions/'])assert.equal(serviceForUrl(url),null,url);
+});

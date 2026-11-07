@@ -1,5 +1,5 @@
-import { deliveryDelay } from './delivery.js?v=mw560w8m';
-import { isAmazonUrl, shortenAmazon } from './amazon.js?v=mw560w8m';
+import { deliveryDelay } from './delivery.js?v=mw62ezdd';
+import { isAmazonUrl, shortenAmazon } from './amazon.js?v=mw62ezdd';
 export const PRODUCT_CLIPBOARD_PREFIX = 'BETE_BLOCK_V1\n';
 // Windows clipboard transfers may turn LF into CRLF. Accept either header separator.
 const PRODUCT_HEADER = /^\uFEFF?BETE_BLOCK_V1\r?\n/;

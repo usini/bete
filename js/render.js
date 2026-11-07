@@ -1,29 +1,29 @@
-import { xtoolSummary } from './xtool.js?v=mw560w8m';
-import { applicationAllowed, applicationEvents } from './applications.js?v=mw560w8m';
-import { githubRepository, cleanGitHubData } from './github-repo.js?v=mw560w8m';
-import { dropPreviewGroup } from './placement.js?v=mw560w8m';
-import { externalMode } from './external-board.js?v=mw560w8m';
-import { positionEmbeds } from './embed-view.js?v=mw560w8m';
+import { xtoolSummary } from './xtool.js?v=mw62ezdd';
+import { applicationAllowed, applicationEvents } from './applications.js?v=mw62ezdd';
+import { githubRepository, cleanGitHubData } from './github-repo.js?v=mw62ezdd';
+import { dropPreviewGroup } from './placement.js?v=mw62ezdd';
+import { externalMode } from './external-board.js?v=mw62ezdd';
+import { positionEmbeds } from './embed-view.js?v=mw62ezdd';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize, groupHeaderHeight, groupHeaderBox } from './state.js?v=mw560w8m';
-import { view, screenToWorld } from './camera.js?v=mw560w8m';
-import { youTubeId, ytThumb } from './yt.js?v=mw560w8m';
-import { imageCaptionFraction, imageFor } from './images.js?v=mw560w8m';
-import { positionVideo, isVideoPlaying } from './video.js?v=mw560w8m';
-import { guides } from './snap.js?v=mw560w8m';
-import { renderMinimap } from './minimap.js?v=mw560w8m';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mw560w8m';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw560w8m';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw560w8m';
+import { state, events, getSelectedId, groupsBySize, groupHeaderHeight, groupHeaderBox } from './state.js?v=mw62ezdd';
+import { view, screenToWorld } from './camera.js?v=mw62ezdd';
+import { youTubeId, ytThumb } from './yt.js?v=mw62ezdd';
+import { imageCaptionFraction, imageFor } from './images.js?v=mw62ezdd';
+import { positionVideo, isVideoPlaying } from './video.js?v=mw62ezdd';
+import { guides } from './snap.js?v=mw62ezdd';
+import { renderMinimap } from './minimap.js?v=mw62ezdd';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mw62ezdd';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw62ezdd';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw62ezdd';
 
-import { genericLinkOf, plainLink } from './links.js?v=mw560w8m';
-import { stepMotion } from './motion.js?v=mw560w8m';
-import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw560w8m';
+import { genericLinkOf, plainLink } from './links.js?v=mw62ezdd';
+import { stepMotion } from './motion.js?v=mw62ezdd';
+import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw62ezdd';
 
-import { isLocked } from './mobile-mode.js?v=mw560w8m';
+import { isLocked } from './mobile-mode.js?v=mw62ezdd';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mw560w8m';
-import { amazonBadgeLayout } from './amazon.js?v=mw560w8m';
+import { serviceForNode, serviceIcon } from './services.js?v=mw62ezdd';
+import { amazonBadgeLayout } from './amazon.js?v=mw62ezdd';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');

@@ -1,13 +1,14 @@
-import { cleanXtool } from './xtool.js?v=mw560w8m';
-import { cleanApplication } from './application-model.js?v=mw560w8m';
-import { cleanGitHubData } from './github-repo.js?v=mw560w8m';
-import { amazonBadgeLayout } from './amazon.js?v=mw560w8m';
-import { labelLayout } from './labels.js?v=mw560w8m';
-import { externalMode } from './external-board.js?v=mw560w8m';
-import { localStore } from './local-store.js?v=mw560w8m';
+import { cleanCalendarSnapshot } from './calendar-snapshot.js?v=mw62ezdd';
+import { cleanXtool } from './xtool.js?v=mw62ezdd';
+import { cleanApplication } from './application-model.js?v=mw62ezdd';
+import { cleanGitHubData } from './github-repo.js?v=mw62ezdd';
+import { amazonBadgeLayout } from './amazon.js?v=mw62ezdd';
+import { labelLayout } from './labels.js?v=mw62ezdd';
+import { externalMode } from './external-board.js?v=mw62ezdd';
+import { localStore } from './local-store.js?v=mw62ezdd';
 // Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mw560w8m';
+import { explode } from './fx.js?v=mw62ezdd';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];
@@ -45,7 +46,7 @@ const LIMITS = { pos: 1e6, size: 1e5, minSize: 20, text: 20000, maxNodes: 5000, 
 
 // Keep camera transforms numerically stable even far below normal viewing scales.
 export const MIN_ZOOM = 1e-9;
-export const state = { camera: { x: 0, y: 0, zoom: 1 }, nodes: [] };
+export const state = { camera: { x: 0, y: 0, zoom: 1 }, nodes: [], calendar: [] };
 export const events = new EventTarget();
 let selectedId = null;
 let lastSelectedGroupId = null;
@@ -115,6 +116,7 @@ export function registerHistory(adapter) {
 
 export function setDoc(raw) {
   const o = raw && typeof raw === 'object' ? raw : {};
+  state.calendar = cleanCalendarSnapshot(o.calendar);
   const c = o.camera && typeof o.camera === 'object' ? o.camera : {};
   state.camera = {
     x: num(c.x, -LIMITS.pos, LIMITS.pos, 0),
@@ -132,7 +134,7 @@ export function setDoc(raw) {
 }
 
 export function serialize() {
-  return { app: 'bete2', version: 1, camera: state.camera, nodes: state.nodes,
+  return { app: 'bete2', version: 1, camera: state.camera, nodes: state.nodes, calendar: state.calendar,
     ...(historyAdapter ? { history: historyAdapter.save() } : {}) };
 }
 

@@ -1,4 +1,4 @@
-import { githubRepository } from './github-repo.js?v=mw560w8m';
+import { githubRepository } from './github-repo.js?v=mw62ezdd';
 // Explicit host/path rules only. Never fetch metadata or a favicon from a linked service.
 const root = path => path === '/';
 const oneOf = (...paths) => path => paths.includes(path);
@@ -11,8 +11,9 @@ const entries = [
   { id: 'google', name: 'Google', hosts: ['google.com', 'www.google.com', 'google.fr', 'www.google.fr'], path: root },
   { id: 'googledrive', name: 'Google Drive', hosts: ['drive.google.com'], path: p => root(p) || /^\/drive(?:\/u\/\d+)?(?:\/(?:home|my-drive))?$/.test(p) },
   { id: 'googlecalendar', name: 'Google Agenda', hosts: ['calendar.google.com'], path: p => root(p) || /^\/calendar(?:\/u\/\d+)?(?:\/r)?$/.test(p), anyLocation: true },
-  { id: 'googlemaps', name: 'Google Maps', hosts: ['maps.google.com'], path: root },
-  { id: 'googlemaps', name: 'Google Maps', hosts: ['google.com', 'www.google.com', 'google.fr', 'www.google.fr'], path: oneOf('/maps') },
+  { id: 'googlemaps', name: 'Google Maps', hosts: ['maps.google.com'], path: root, anyLocation: true },
+  { id: 'googlemaps', name: 'Google Maps', hosts: ['google.com', 'www.google.com', 'google.fr', 'www.google.fr'], path: oneOf('/maps'), anyLocation: true },
+  { id: 'msnweather', name: 'MSN Météo', hosts: ['msn.com', 'www.msn.com'], path: p => /^\/fr-fr\/meteo\/previsions(?:\/.*)?$/.test(p), anyLocation: true },
   { id: 'googledocs', name: 'Google Docs', hosts: ['docs.google.com'], path: p => root(p) || /^\/document(?:\/u\/\d+)?$/.test(p) },
   { id: 'googlesheets', name: 'Google Sheets', hosts: ['docs.google.com'], path: p => /^\/spreadsheets(?:\/u\/\d+)?$/.test(p) },
   { id: 'googleslides', name: 'Google Slides', hosts: ['docs.google.com'], path: p => /^\/presentation(?:\/u\/\d+)?$/.test(p) },
