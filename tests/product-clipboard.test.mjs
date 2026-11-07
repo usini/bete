@@ -8,7 +8,7 @@ test('product clipboard preserves product fields, strips tracking and ignores id
   const block = parseProductClipboard(encode({...product,id:'private',shareId:'secret',x:9000,color:'bad'}));
   assert.equal(block.link,'https://www.amazon.fr/dp/B0CT2WVY9B');
   assert.equal(block.text,block.link); assert.equal(block.name,'Acier');
-  assert.equal(block.hideLinkLabel,true);
+  assert.equal(block.hideLinkLabel,false);
   assert.equal(block.image,product.image); assert.equal(block.h,500);
   assert.equal(block.id,undefined); assert.equal(block.shareId,undefined); assert.equal(block.x,undefined);
 });

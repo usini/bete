@@ -1,5 +1,5 @@
-import { deliveryDelay } from './delivery.js?v=mw62ezdd';
-import { isAmazonUrl, shortenAmazon } from './amazon.js?v=mw62ezdd';
+import { deliveryDelay } from './delivery.js?v=mw62q2s5';
+import { isAmazonUrl, shortenAmazon } from './amazon.js?v=mw62q2s5';
 export const PRODUCT_CLIPBOARD_PREFIX = 'BETE_BLOCK_V1\n';
 // Windows clipboard transfers may turn LF into CRLF. Accept either header separator.
 const PRODUCT_HEADER = /^\uFEFF?BETE_BLOCK_V1\r?\n/;
@@ -13,7 +13,7 @@ export function parseProductClipboard(text, today = new Date()) {
     const url = new URL(raw.link);
     if (url.protocol !== 'https:' || url.username || url.password || url.port) return null;
     const link = shortenAmazon(raw.link);
-    const block = { kind: 'rect', text: link, link, w: 400, h: 300, hideLinkLabel: true };
+    const block = { kind: 'rect', text: link, link, w: 400, h: 300, hideLinkLabel: false };
     for (const field of ['name', 'price', 'delivery']) if (typeof raw[field] === 'string') block[field] = raw[field].trim().slice(0,100);
     if (block.delivery) block.delivery = deliveryDelay(raw.delivery, today) || block.delivery;
     if (typeof raw.image === 'string' && /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(raw.image)) {

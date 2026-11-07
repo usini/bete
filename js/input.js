@@ -1,40 +1,41 @@
-import { optimizeBoardImages } from './optimize.js?v=mw62ezdd';
-import { saveNow } from './state.js?v=mw62ezdd';
-import { cleanXtool, xtoolSummary } from './xtool.js?v=mw62ezdd';
-import { pasteGroup } from './group-transfer.js?v=mw62ezdd';
-import { addSteamBlock, dropApplicationFile, openApplication } from './applications.js?v=mw62ezdd';
-import { steamApplicationUri } from './application-model.js?v=mw62ezdd';
-import { updateGitHubCard } from './github-cards.js?v=mw62ezdd';
-import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mw62ezdd';
-import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mw62ezdd';
-import { externalMode } from './external-board.js?v=mw62ezdd';
+import { optimizeBoardImages } from './optimize.js?v=mw62q2s5';
+import { saveNow } from './state.js?v=mw62q2s5';
+import { showLinkByDefault } from './link-label-default.js?v=mw62q2s5';
+import { cleanXtool, xtoolSummary } from './xtool.js?v=mw62q2s5';
+import { pasteGroup } from './group-transfer.js?v=mw62q2s5';
+import { addSteamBlock, dropApplicationFile, openApplication } from './applications.js?v=mw62q2s5';
+import { steamApplicationUri } from './application-model.js?v=mw62q2s5';
+import { updateGitHubCard } from './github-cards.js?v=mw62q2s5';
+import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mw62q2s5';
+import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mw62q2s5';
+import { externalMode } from './external-board.js?v=mw62q2s5';
 // Pointer, wheel, keyboard, paste and drop handling for the canvas.
 //  - click on a label: edit popup, link field first (YouTube labels open the video instead)
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, getLastSelectedGroup, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, groupHeaderBox, COLORS } from './state.js?v=mw62ezdd';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight, flyToBlock } from './camera.js?v=mw62ezdd';
-import { startEdit, stopEdit, isEditing, previewGroupAlignment, resizeGroupBlocks } from './editor.js?v=mw62ezdd';
-import { addDataUrl, addImageFile, fitNodeImage, imageCaptionFraction, imageFor } from './images.js?v=mw62ezdd';
-import { playVideo } from './video.js?v=mw62ezdd';
-import { youTubeId, youTubeRatio } from './yt.js?v=mw62ezdd';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mw62ezdd';
-import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mw62ezdd';
-import { undo, redo } from './history.js?v=mw62ezdd';
+import { state, getNode, getSelectedId, getLastSelectedGroup, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, groupHeaderBox, COLORS } from './state.js?v=mw62q2s5';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight, flyToBlock } from './camera.js?v=mw62q2s5';
+import { startEdit, stopEdit, isEditing, previewGroupAlignment, resizeGroupBlocks } from './editor.js?v=mw62q2s5';
+import { addDataUrl, addImageFile, fitNodeImage, imageCaptionFraction, imageFor } from './images.js?v=mw62q2s5';
+import { playVideo } from './video.js?v=mw62q2s5';
+import { youTubeId, youTubeRatio } from './yt.js?v=mw62q2s5';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mw62q2s5';
+import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mw62q2s5';
+import { undo, redo } from './history.js?v=mw62q2s5';
 
-import { setDragging } from './motion.js?v=mw62ezdd';
+import { setDragging } from './motion.js?v=mw62q2s5';
 
-import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw62ezdd';
-import { shortenAmazonText, isAmazonUrl, amazonBadgeLayout } from './amazon.js?v=mw62ezdd';
+import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw62q2s5';
+import { shortenAmazonText, isAmazonUrl, amazonBadgeLayout } from './amazon.js?v=mw62q2s5';
 
-import { isLocked, setLocked, modeEvents } from './mobile-mode.js?v=mw62ezdd';
+import { isLocked, setLocked, modeEvents } from './mobile-mode.js?v=mw62q2s5';
 
-import { serviceForNode } from './services.js?v=mw62ezdd';
+import { serviceForNode } from './services.js?v=mw62q2s5';
 
-import { requestRender } from './render.js?v=mw62ezdd';
+import { requestRender } from './render.js?v=mw62q2s5';
 
-import { notify } from './notifications.js?v=mw62ezdd';
+import { notify } from './notifications.js?v=mw62q2s5';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 const CLIPBOARD_BLOCK = 'application/x-bete-clipboard-block';
@@ -485,6 +486,7 @@ export function initInput() {
       const n = addNode('rect', w.x, w.y);
       if (genericLink(url)) { n.link = url; n.text = droppedTitle(e.dataTransfer, url); }
       else n.text = shortenAmazonText(url);
+      if (showLinkByDefault(url)) delete n.hideLinkLabel;
       emit();
       updateGitHubCard(n);
       if (isAmazonUrl(url)) startEdit(n.id);
@@ -578,6 +580,7 @@ export function initInput() {
         selected.text = shortenAmazonText(url);
         delete selected.link;
       }
+      if (showLinkByDefault(url)) delete selected.hideLinkLabel;
       emit();
       updateGitHubCard(selected);
       if (isAmazonUrl(url)) startEdit(selected.id);
@@ -595,6 +598,7 @@ export function initInput() {
     const n = addNode('rect', c.x, c.y);
     if (url && genericLink(url)) n.link = url;
     else n.text = url ? shortenAmazonText(url) : pasted.slice(0, 20000);
+    if (url && showLinkByDefault(url)) delete n.hideLinkLabel;
     emit();
     if (url) updateGitHubCard(n);
     if (url && isAmazonUrl(url)) startEdit(n.id);

@@ -329,3 +329,7 @@ Après une capture de zone, Bête revient au premier plan dès que Windows copie
 Colle un export JSON xTool Studio (format xtool-studio-processing-settings, version 1), ou dépose son fichier JSON, pour créer un bloc xTool. Le résumé utilise le profil actif et ses remplacements. L’éditeur permet de consulter et copier le JSON complet. Les paramètres sont conservés dans les sauvegardes du tableau ; aucune commande n’est envoyée à la machine.
 
 L’horloge ouvre aussi le calendrier sur le web. Windows conserve les deux prochains événements dans la sauvegarde du tableau ; ils deviennent consultables sur le web après synchronisation Drive ou import JSON. Le lien iCal reste dans le coffre Windows et n’est jamais exporté. Sans connexion, les événements déjà sauvegardés restent consultables. Seul desktop actualise le flux, toutes les cinq minutes et à l’ouverture du calendrier.
+
+Les nouveaux liens YouTube et réseaux sociaux collés ou déposés affichent leur étiquette de lien par défaut. L’option Masquer le lien reste disponible dans l’éditeur ; les blocs déjà sauvegardés conservent leur réglage.
+
+Les nouveaux blocs Amazon affichent aussi leur étiquette par défaut, y compris lors du collage depuis l’extension. Elle peut toujours être masquée dans l’éditeur.
