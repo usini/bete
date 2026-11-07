@@ -1,5 +1,5 @@
-import { getNode, emit } from './state.js?v=mw62q2s5';
-import { githubRepository, fetchGitHubData } from './github-repo.js?v=mw62q2s5';
+import { getNode, emit } from './state.js?v=mw6rq16y';
+import { githubRepository, fetchGitHubData } from './github-repo.js?v=mw6rq16y';
 const cache=new Map();
 const requests=new WeakMap();
 export async function updateGitHubCard(node, refresh=false) {

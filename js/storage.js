@@ -1,7 +1,7 @@
 // Export / import of a board. Images are embedded as data URLs so the board is
 // self-contained: it can be a JSON file, or the file saved on Google Drive (drive.js).
-import { state, serialize, setDoc } from './state.js?v=mw62q2s5';
-import { addDataUrl, refToDataUrl } from './images.js?v=mw62q2s5';
+import { state, serialize, setDoc } from './state.js?v=mw6rq16y';
+import { addDataUrl, refToDataUrl } from './images.js?v=mw6rq16y';
 
 
 function download(blob, name) {
@@ -54,7 +54,9 @@ export async function importData(doc) {
   const restore = async (nodes) => Promise.all((Array.isArray(nodes) ? nodes.slice(0, 5000) : []).map(async n => {
     if (typeof n?.image === 'string' && n.image.startsWith('asset:')) n = { ...n, image: assetData(n.image) };
     if (n && typeof n.image === 'string' && n.image.startsWith('data:image/') && n.image.length < 20e6) {
-      if (!images.has(n.image)) images.set(n.image, addDataUrl(n.image));
+      if (!images.has(n.image)) images.set(n.image, addDataUrl(n.image).catch(error => {
+        throw new Error('Impossible de restaurer une image de la sauvegarde. Le tableau local a été conservé.', { cause: error });
+      }));
       return { ...n, image: await images.get(n.image) };
     }
     return n;
@@ -66,8 +68,8 @@ export async function importData(doc) {
       ...s, nodes: await restore(s?.nodes),
     }))),
   };
-  if (doc.nodes?.some(n => n?.application) && globalThis.__TAURI__) {
-    await globalThis.__TAURI__.core.invoke('revoke_all_application_permissions');
+  if (doc.nodes?.some(n => n?.application) && (globalThis.__TAURI__ || globalThis.__BETE_ANDROID_NATIVE__)) {
+    await (globalThis.__TAURI__ || globalThis.__BETE_ANDROID_NATIVE__).core.invoke('revoke_all_application_permissions');
   }
   setDoc(doc);
 }

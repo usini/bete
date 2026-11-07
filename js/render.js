@@ -1,29 +1,29 @@
-import { xtoolSummary } from './xtool.js?v=mw62q2s5';
-import { applicationAllowed, applicationEvents } from './applications.js?v=mw62q2s5';
-import { githubRepository, cleanGitHubData } from './github-repo.js?v=mw62q2s5';
-import { dropPreviewGroup } from './placement.js?v=mw62q2s5';
-import { externalMode } from './external-board.js?v=mw62q2s5';
-import { positionEmbeds } from './embed-view.js?v=mw62q2s5';
+import { xtoolSummary } from './xtool.js?v=mw6rq16y';
+import { applicationAllowed, applicationEvents } from './applications.js?v=mw6rq16y';
+import { githubRepository, cleanGitHubData } from './github-repo.js?v=mw6rq16y';
+import { dropPreviewGroup } from './placement.js?v=mw6rq16y';
+import { externalMode } from './external-board.js?v=mw6rq16y';
+import { positionEmbeds } from './embed-view.js?v=mw6rq16y';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize, groupHeaderHeight, groupHeaderBox } from './state.js?v=mw62q2s5';
-import { view, screenToWorld } from './camera.js?v=mw62q2s5';
-import { youTubeId, ytThumb } from './yt.js?v=mw62q2s5';
-import { imageCaptionFraction, imageFor } from './images.js?v=mw62q2s5';
-import { positionVideo, isVideoPlaying } from './video.js?v=mw62q2s5';
-import { guides } from './snap.js?v=mw62q2s5';
-import { renderMinimap } from './minimap.js?v=mw62q2s5';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mw62q2s5';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw62q2s5';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw62q2s5';
+import { state, events, getSelectedId, groupsBySize, groupHeaderHeight, groupHeaderBox } from './state.js?v=mw6rq16y';
+import { view, screenToWorld } from './camera.js?v=mw6rq16y';
+import { youTubeId, ytThumb } from './yt.js?v=mw6rq16y';
+import { imageCaptionFraction, imageFor } from './images.js?v=mw6rq16y';
+import { positionVideo, isVideoPlaying } from './video.js?v=mw6rq16y';
+import { guides } from './snap.js?v=mw6rq16y';
+import { renderMinimap } from './minimap.js?v=mw6rq16y';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mw6rq16y';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw6rq16y';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw6rq16y';
 
-import { genericLinkOf, plainLink } from './links.js?v=mw62q2s5';
-import { stepMotion } from './motion.js?v=mw62q2s5';
-import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw62q2s5';
+import { genericLinkOf, plainLink } from './links.js?v=mw6rq16y';
+import { stepMotion } from './motion.js?v=mw6rq16y';
+import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw6rq16y';
 
-import { isLocked } from './mobile-mode.js?v=mw62q2s5';
+import { isLocked } from './mobile-mode.js?v=mw6rq16y';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mw62q2s5';
-import { amazonBadgeLayout } from './amazon.js?v=mw62q2s5';
+import { serviceForNode, serviceIcon } from './services.js?v=mw6rq16y';
+import { amazonBadgeLayout } from './amazon.js?v=mw6rq16y';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -515,16 +515,23 @@ function textOn(hex) {
 // Text of a text block: centred horizontally and vertically, font size auto-fitted.
 function drawBlockText(text, n, color) {
   if (!text) return;
-  const { size, lines } = fitText(text, n.w - 2 * TEXT_PAD, n.h - 2 * TEXT_PAD);
+  // Fit in a bounded local coordinate space: the world-space font cap must not
+  // make a large block's text microscopic when the board is zoomed out.
+  const scale = Math.min(n.w, n.h) / 400;
+  const w = n.w / scale, h = n.h / scale;
+  const { size, lines } = fitText(text, w - 2 * TEXT_PAD, h - 2 * TEXT_PAD);
   const lh = size * LINE;
-  const top = n.y + (n.h - lines.length * lh) / 2;
+  const top = (h - lines.length * lh) / 2;
+  ctx.save();
+  ctx.translate(n.x, n.y);
+  ctx.scale(scale, scale);
   ctx.font = size + 'px ' + FONT_FAMILY;
   ctx.fillStyle = color;
   ctx.textAlign = 'center';
   // 'middle' baseline on each line's centre: the glyphs sit in the middle of their line box.
   ctx.textBaseline = 'middle';
-  lines.forEach((l, i) => ctx.fillText(l, n.x + n.w / 2, top + (i + 0.5) * lh));
-  ctx.textAlign = 'left';
+  lines.forEach((l, i) => ctx.fillText(l, w / 2, top + (i + 0.5) * lh));
+  ctx.restore();
 }
 
 function firstLine(text) { return String(text).split('\n')[0]; }

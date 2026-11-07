@@ -1,9 +1,9 @@
-import { screenToWorld, view } from './camera.js?v=mw62q2s5';
-import { state, events, addNode, getNode, emit } from './state.js?v=mw62q2s5';
-import { externalMode } from './external-board.js?v=mw62q2s5';
-import { isLocked } from './mobile-mode.js?v=mw62q2s5';
-import { notify, dismissNotification } from './notifications.js?v=mw62q2s5';
-import { cleanApplication, newSteamApplication } from './application-model.js?v=mw62q2s5';
+import { screenToWorld, view } from './camera.js?v=mw6rq16y';
+import { state, events, addNode, getNode, emit } from './state.js?v=mw6rq16y';
+import { externalMode } from './external-board.js?v=mw6rq16y';
+import { isLocked } from './mobile-mode.js?v=mw6rq16y';
+import { notify, dismissNotification } from './notifications.js?v=mw6rq16y';
+import { cleanApplication, newSteamApplication } from './application-model.js?v=mw6rq16y';
 export const applicationEvents=new EventTarget();
 let lastSnapshot=null;
 let native=null,queue=Promise.resolve(),status={enabled:false,approved:{}};
@@ -44,7 +44,7 @@ export function dropApplicationFile(file,x,y){
 }
 export async function openApplication(node){
   if(!node?.application)return false;
-  if(!native||externalMode){notify('L’ouverture d’applications est disponible uniquement dans Bête Windows, après autorisation locale.');return false;}
+  if(!native||externalMode){notify('L’ouverture d’applications est disponible dans l’application native, après autorisation locale.');return false;}
   if(opening||(lastBlock===node.id&&performance.now()-lastOpened<650))return false;
   opening=true;lastBlock=node.id;lastOpened=performance.now();
   let keepLaunchNotice=false;
@@ -65,7 +65,7 @@ export async function openApplication(node){
 export async function initApplications(desktop){
   native=desktop;
   const section=document.getElementById('desktop-applications'),button=document.getElementById('application-launch-toggle'),label=document.getElementById('application-launch-status');
-  const update=()=>{button.textContent=status.enabled?'Désactiver l’ouverture d’applications':'Activer l’ouverture d’applications';label.textContent=status.enabled?'Chaque nouveau bloc nécessite aussi une autorisation individuelle.':'Ouverture désactivée sur cet ordinateur.';};
+  const update=()=>{button.textContent=status.enabled?'Désactiver l’ouverture d’applications':'Activer l’ouverture d’applications';label.textContent=status.enabled?'Chaque nouveau bloc nécessite aussi une autorisation individuelle.':'Ouverture désactivée sur cet appareil.';};
   applicationEvents.addEventListener('change',update);
   await desktop.event.listen('bete-application-dropped',event=>{
     finishDrop(event.payload.requestId);

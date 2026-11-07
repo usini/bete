@@ -9,3 +9,8 @@ desktop/dist/
 desktop/src-tauri/target/
 desktop/src-tauri/gen/
 desktop/release-output/
+android/dist/
+android/src-tauri/target/
+android/src-tauri/gen/
+android/src-tauri/icons/*
+!android/src-tauri/icons/icon.png

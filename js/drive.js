@@ -1,5 +1,5 @@
-import { localStore } from './local-store.js?v=mw62q2s5';
-import { updateBackupSize } from './backup-size.js?v=mw62q2s5';
+import { localStore } from './local-store.js?v=mw6rq16y';
+import { updateBackupSize } from './backup-size.js?v=mw6rq16y';
 // Optional backup of the board on Google Drive.
 //
 //  - Scope: drive.appdata only. The file (Bete.json) lives in a hidden folder reserved to this
@@ -7,12 +7,12 @@ import { updateBackupSize } from './backup-size.js?v=mw62q2s5';
 //  - Sign-in: OAuth code flow through a stateless service. Access tokens stay in memory.
 //  - Drive transfers happen only on explicit save, restore or initial connection.
 //    Local autosave remains automatic; leaving with unsaved Drive changes warns the user.
-import { state, onSaved, saveNow, serialize } from './state.js?v=mw62q2s5';
-import { exportData, importData } from './storage.js?v=mw62q2s5';
+import { state, onSaved, saveNow, serialize } from './state.js?v=mw6rq16y';
+import { exportData, importData } from './storage.js?v=mw6rq16y';
 
-import { notify } from './notifications.js?v=mw62q2s5';
+import { notify } from './notifications.js?v=mw6rq16y';
 
-import { modeEvents } from './mobile-mode.js?v=mw62q2s5';
+import { modeEvents } from './mobile-mode.js?v=mw6rq16y';
 
 const AUTH_URL = 'https://auth-bete.usini.eu';
 const FILE_NAME = 'Bete.json';
@@ -62,13 +62,13 @@ let connecting = false;
 let driveFailed = false;
 async function desktopAuth(command) {
   let result;
-  try { result = await globalThis.__TAURI__.core.invoke(command); }
+  try { result = await (globalThis.__TAURI__ || globalThis.__BETE_ANDROID_NATIVE__).core.invoke(command); }
   catch (error) { throw new Error(String(error)); }
   if (command === 'drive_token' && !result) throw new AuthNeeded();
   return result;
 }
 async function authRequest(path) {
-  if (globalThis.__TAURI__) return desktopAuth(path === '/logout' ? 'drive_logout' : 'drive_token');
+  if (globalThis.__TAURI__ || globalThis.__BETE_ANDROID_NATIVE__) return desktopAuth(path === '/logout' ? 'drive_logout' : 'drive_token');
   const r = await fetch(AUTH_URL + path, {
     method: 'POST', credentials: 'include', headers: { 'X-Bete-Request': '1' },
     signal: AbortSignal.timeout(20000),
@@ -120,7 +120,7 @@ function hash(str) { // cyrb53, 53 bits, plenty to detect a change
 
 // Opens synchronously from the click, so popup blockers can allow it.
 async function requestToken() {
-  if (globalThis.__TAURI__) {
+  if (globalThis.__TAURI__ || globalThis.__BETE_ANDROID_NATIVE__) {
     const response = await desktopAuth('drive_login');
     token = response.access_token;
     tokenExpiry = Date.now() + (response.expires_in - 60) * 1000;
@@ -421,11 +421,11 @@ async function connect() {
     return;
   }
   connecting = false;
-  if (!meta || globalThis.__TAURI__) {
+  if (!meta || globalThis.__TAURI__ || globalThis.__BETE_ANDROID_NATIVE__) {
     meta = { linked: true, fileId: '', remoteModified: '', lastSyncedAt: 0, sig: '' };
     saveMeta();
   }
-  if (globalThis.__TAURI__) {
+  if (globalThis.__TAURI__ || globalThis.__BETE_ANDROID_NATIVE__) {
     dirty = !!state.nodes.length;
     await run('Recherche de la sauvegarde Google Drive…', () => checkRemoteBackup(true));
     return;

@@ -1,11 +1,11 @@
-import { openApplication } from './applications.js?v=mw62q2s5';
-import { notify } from './notifications.js?v=mw62q2s5';
-import { flyToBlock } from './camera.js?v=mw62q2s5';
-import { linkOf } from './labels.js?v=mw62q2s5';
-import { openLink } from './links.js?v=mw62q2s5';
-import { serviceForNode } from './services.js?v=mw62q2s5';
-import { getNode, select, state } from './state.js?v=mw62q2s5';
-import { cachedYouTubeTitle, youTubeId } from './yt.js?v=mw62q2s5';
+import { openApplication } from './applications.js?v=mw6rq16y';
+import { notify } from './notifications.js?v=mw6rq16y';
+import { flyToBlock } from './camera.js?v=mw6rq16y';
+import { linkOf } from './labels.js?v=mw6rq16y';
+import { openLink } from './links.js?v=mw6rq16y';
+import { serviceForNode } from './services.js?v=mw6rq16y';
+import { getNode, select, state } from './state.js?v=mw6rq16y';
+import { cachedYouTubeTitle, youTubeId } from './yt.js?v=mw6rq16y';
 
 const normalize = text => text.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 
@@ -137,6 +137,13 @@ export function initCommandSearch() {
     dialog.showModal();
     input.focus();
   };
+  const searchButton = document.createElement('button');
+  searchButton.type = 'button'; searchButton.id = 'open-command-search'; searchButton.className = 'tool-btn';
+  searchButton.setAttribute('aria-label', 'Rechercher un bloc ou une application');
+  searchButton.title = 'Rechercher';
+  searchButton.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="m15 15 6 6" stroke="currentColor" stroke-width="2"/></svg>';
+  searchButton.addEventListener('click', () => openCommands());
+  document.getElementById('map-controls').append(searchButton);
   window.addEventListener('bete-open-command-search', event => openCommands(event.detail?.global === true));
   window.addEventListener('keydown', event => {
     if (event.code !== 'Space' || event.defaultPrevented || event.repeat || event.isComposing ||

@@ -1,14 +1,15 @@
-import { cleanCalendarSnapshot } from './calendar-snapshot.js?v=mw62q2s5';
-import { cleanXtool } from './xtool.js?v=mw62q2s5';
-import { cleanApplication } from './application-model.js?v=mw62q2s5';
-import { cleanGitHubData } from './github-repo.js?v=mw62q2s5';
-import { amazonBadgeLayout } from './amazon.js?v=mw62q2s5';
-import { labelLayout } from './labels.js?v=mw62q2s5';
-import { externalMode } from './external-board.js?v=mw62q2s5';
-import { localStore } from './local-store.js?v=mw62q2s5';
+import { creationSize, freeCreationPosition } from './creation.js?v=mw6rq16y';
+import { cleanCalendarSnapshot } from './calendar-snapshot.js?v=mw6rq16y';
+import { cleanXtool } from './xtool.js?v=mw6rq16y';
+import { cleanApplication } from './application-model.js?v=mw6rq16y';
+import { cleanGitHubData } from './github-repo.js?v=mw6rq16y';
+import { amazonBadgeLayout } from './amazon.js?v=mw6rq16y';
+import { labelLayout } from './labels.js?v=mw6rq16y';
+import { externalMode } from './external-board.js?v=mw6rq16y';
+import { localStore } from './local-store.js?v=mw6rq16y';
 // Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mw62q2s5';
+import { explode } from './fx.js?v=mw6rq16y';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];
@@ -177,12 +178,30 @@ export function select(id) {
   emit();
 }
 
+// Called again after a newly pasted image has acquired its final aspect ratio.
+export function finishNodeCreation(node) {
+  const zoom = state.camera.zoom;
+  const size = creationSize(node, zoom, {w:globalThis.innerWidth || 800,h:globalThis.innerHeight || 600});
+  node.x += (node.w-size.w)/2; node.y += (node.h-size.h)/2;
+  node.w=size.w; node.h=size.h;
+  const boundsOf = n => {
+    const boxes=[n, n.kind==='group' ? groupHeaderBox(n) : labelLayout(n), amazonBadgeLayout(n)].filter(Boolean);
+    const x=Math.min(...boxes.map(b=>b.x)),y=Math.min(...boxes.map(b=>b.y));
+    return {x,y,w:Math.max(...boxes.map(b=>b.x+b.w))-x,h:Math.max(...boxes.map(b=>b.y+b.h))-y};
+  };
+  const position=freeCreationPosition(node,state.nodes,boundsOf,32/Math.max(zoom,.001));
+  const moved=position.x!==node.x || position.y!==node.y;
+  Object.assign(node,position);
+  const tooSmall=Math.max(node.w,node.h)*zoom<40;
+  if(moved || tooSmall) events.dispatchEvent(new CustomEvent('created-away',{detail:{id:node.id,fit:tooSmall}}));
+}
+
 export function addNode(kind, cx, cy) {
   const s = lastSize[kind] || SIZES[kind];
   const n = { id: newId(), kind, x: cx - s.w / 2, y: cy - s.h / 2, w: s.w, h: s.h, text: '', color: lastColor };
   if (kind !== 'group') n.hideLinkLabel = true;
   state.nodes.push(n);
-  fitGroupsAround(n);
+  finishNodeCreation(n);
   selectedId = n.id;
   if (kind === 'group') lastSelectedGroupId = n.id;
   emit();

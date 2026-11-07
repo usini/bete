@@ -1,0 +1,22 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Bête Proto",
+  "version": "0.1.0",
+  "identifier": "eu.usini.bete2.android.proto",
+  "build": {
+    "frontendDist": "../dist",
+    "beforeBuildCommand": "node stage.mjs",
+    "beforeDevCommand": "node stage.mjs"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' data: blob: ipc: http://ipc.localhost https: wss:; frame-src https:; object-src 'none'; base-uri 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all"
+  }
+}

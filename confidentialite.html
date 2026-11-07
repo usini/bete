@@ -282,6 +282,10 @@
     consultables en lecture seule et leur contenu est séparé de la sauvegarde du tableau personnel.
   </p>
 
+  <h2>Google Drive dans le prototype Android</h2>
+  <p>La connexion utilise Google Play Services avec l’autorisation limitée au dossier privé de Bête (drive.appdata). Les identifiants de compte sont gérés par Google Play Services ; Bête ne conserve que l’état de connexion dans les préférences privées et garde les jetons d’accès en mémoire. Aucun secret client ni jeton de renouvellement n’est enregistré dans le tableau ou dans ses sauvegardes. Le contenu du tableau est transféré directement entre le téléphone et Google Drive. La déconnexion retire l’état local et le jeton en cache sans supprimer la sauvegarde ni révoquer l’accès des autres plateformes.</p>
+  <h2>Prototype Android : lancement local d’applications</h2>
+  <p>Le sélecteur natif consulte les applications possédant une entrée de lancement sur ce téléphone. Le nom et l’icône de l’application choisie sont intégrés au bloc. Sa cible et ses autorisations de lancement restent dans les préférences privées Android, exclues des tableaux et des sauvegardes Android. Chaque bloc doit être autorisé individuellement ; sa suppression ou le changement de sa cible retire son autorisation locale. Le prototype ne permet aucune commande à distance.</p>
   <h2>Calendrier iCal sous Windows (facultatif)</h2>
   <p>
     Si tu renseignes un lien iCal, Bête contacte directement son fournisseur pour charger

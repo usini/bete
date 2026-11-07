@@ -1,41 +1,41 @@
-import { optimizeBoardImages } from './optimize.js?v=mw62q2s5';
-import { saveNow } from './state.js?v=mw62q2s5';
-import { showLinkByDefault } from './link-label-default.js?v=mw62q2s5';
-import { cleanXtool, xtoolSummary } from './xtool.js?v=mw62q2s5';
-import { pasteGroup } from './group-transfer.js?v=mw62q2s5';
-import { addSteamBlock, dropApplicationFile, openApplication } from './applications.js?v=mw62q2s5';
-import { steamApplicationUri } from './application-model.js?v=mw62q2s5';
-import { updateGitHubCard } from './github-cards.js?v=mw62q2s5';
-import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mw62q2s5';
-import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mw62q2s5';
-import { externalMode } from './external-board.js?v=mw62q2s5';
+import { optimizeBoardImages } from './optimize.js?v=mw6rq16y';
+import { saveNow } from './state.js?v=mw6rq16y';
+import { showLinkByDefault } from './link-label-default.js?v=mw6rq16y';
+import { cleanXtool, xtoolSummary } from './xtool.js?v=mw6rq16y';
+import { pasteGroup } from './group-transfer.js?v=mw6rq16y';
+import { addSteamBlock, dropApplicationFile, openApplication } from './applications.js?v=mw6rq16y';
+import { steamApplicationUri } from './application-model.js?v=mw6rq16y';
+import { updateGitHubCard } from './github-cards.js?v=mw6rq16y';
+import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mw6rq16y';
+import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mw6rq16y';
+import { externalMode } from './external-board.js?v=mw6rq16y';
 // Pointer, wheel, keyboard, paste and drop handling for the canvas.
 //  - click on a label: edit popup, link field first (YouTube labels open the video instead)
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, getLastSelectedGroup, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, groupHeaderBox, COLORS } from './state.js?v=mw62q2s5';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight, flyToBlock } from './camera.js?v=mw62q2s5';
-import { startEdit, stopEdit, isEditing, previewGroupAlignment, resizeGroupBlocks } from './editor.js?v=mw62q2s5';
-import { addDataUrl, addImageFile, fitNodeImage, imageCaptionFraction, imageFor } from './images.js?v=mw62q2s5';
-import { playVideo } from './video.js?v=mw62q2s5';
-import { youTubeId, youTubeRatio } from './yt.js?v=mw62q2s5';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mw62q2s5';
-import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mw62q2s5';
-import { undo, redo } from './history.js?v=mw62q2s5';
+import { state, getNode, getSelectedId, getLastSelectedGroup, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, finishNodeCreation, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, groupHeaderBox, COLORS } from './state.js?v=mw6rq16y';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight, flyToBlock } from './camera.js?v=mw6rq16y';
+import { startEdit, stopEdit, isEditing, previewGroupAlignment, resizeGroupBlocks } from './editor.js?v=mw6rq16y';
+import { addDataUrl, addImageFile, fitNodeImage, imageCaptionFraction, imageFor } from './images.js?v=mw6rq16y';
+import { playVideo } from './video.js?v=mw6rq16y';
+import { youTubeId, youTubeRatio } from './yt.js?v=mw6rq16y';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mw6rq16y';
+import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mw6rq16y';
+import { undo, redo } from './history.js?v=mw6rq16y';
 
-import { setDragging } from './motion.js?v=mw62q2s5';
+import { setDragging } from './motion.js?v=mw6rq16y';
 
-import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw62q2s5';
-import { shortenAmazonText, isAmazonUrl, amazonBadgeLayout } from './amazon.js?v=mw62q2s5';
+import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw6rq16y';
+import { shortenAmazonText, isAmazonUrl, amazonBadgeLayout } from './amazon.js?v=mw6rq16y';
 
-import { isLocked, setLocked, modeEvents } from './mobile-mode.js?v=mw62q2s5';
+import { isLocked, setLocked, modeEvents } from './mobile-mode.js?v=mw6rq16y';
 
-import { serviceForNode } from './services.js?v=mw62q2s5';
+import { serviceForNode } from './services.js?v=mw6rq16y';
 
-import { requestRender } from './render.js?v=mw62q2s5';
+import { requestRender } from './render.js?v=mw6rq16y';
 
-import { notify } from './notifications.js?v=mw62q2s5';
+import { notify } from './notifications.js?v=mw6rq16y';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 const CLIPBOARD_BLOCK = 'application/x-bete-clipboard-block';
@@ -380,14 +380,15 @@ export function pickImage(n) {
   picker.click();
 }
 
-async function imageToNode(file, n) {
+async function imageToNode(file, n, newlyCreated = false) {
   const ref = await addImageFile(file);
   if (isLocked() || getNode(n.id) !== n) return;
   const previousGroups = containingGroups(n);
   n.image = ref;
   await fitNodeImage(n);
   if (getNode(n.id) !== n) return;
-  fitGroupsAround(n, previousGroups, true);
+  if (newlyCreated) finishNodeCreation(n);
+  else fitGroupsAround(n, previousGroups, true);
   emit();
 }
 
@@ -475,7 +476,7 @@ export function initInput() {
     if (steam) { addSteamBlock(steam, w.x, w.y); return; }
     const file = [...e.dataTransfer.files].find((f) => f.type.startsWith('image/'));
     if (file) {
-      await imageToNode(file, addNode('image', w.x, w.y));
+      await imageToNode(file, addNode('image', w.x, w.y), true);
       return;
     }
     const url = droppedLink(e.dataTransfer);
@@ -535,11 +536,10 @@ export function initInput() {
       // Use the same remembered size and colour as a newly created rectangle.
       const { w, h, ...content } = product;
       const block = addNode('rect', center.x, center.y);
-      const previousGroups = containingGroups(block);
       Object.assign(block, content);
       await fitNodeImage(block);
       if (getNode(block.id) !== block) return;
-      fitGroupsAround(block, previousGroups, true);
+      finishNodeCreation(block);
       select(block.id);
       return;
     }
@@ -563,7 +563,7 @@ export function initInput() {
         block.x = center.x - block.w / 2 + offset;
         block.y = center.y - block.h / 2 + offset;
         state.nodes.push(block);
-        fitGroupsAround(block);
+        finishNodeCreation(block);
         select(block.id);
         return;
       }
@@ -590,7 +590,7 @@ export function initInput() {
     const c = screenToWorld(view.w / 2, view.h / 2);
     if (file) {
       e.preventDefault();
-      await imageToNode(file, addNode('image', c.x, c.y));
+      await imageToNode(file, addNode('image', c.x, c.y), true);
       return;
     }
     if (!pasted?.trim()) return;

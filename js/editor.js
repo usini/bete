@@ -1,11 +1,11 @@
-import { exportGroup, GROUP_PREFIX } from './group-transfer.js?v=mw62q2s5';
-import { notify } from './notifications.js?v=mw62q2s5';
-import { githubRepository } from './github-repo.js?v=mw62q2s5';
-import { updateGitHubCard } from './github-cards.js?v=mw62q2s5';
-import { alignmentPlan } from './alignment.js?v=mw62q2s5';
-import { labelLayout } from './labels.js?v=mw62q2s5';
-import { amazonBadgeLayout } from './amazon.js?v=mw62q2s5';
-import { freeDropPosition } from './placement.js?v=mw62q2s5';
+import { exportGroup, GROUP_PREFIX } from './group-transfer.js?v=mw6rq16y';
+import { notify } from './notifications.js?v=mw6rq16y';
+import { githubRepository } from './github-repo.js?v=mw6rq16y';
+import { updateGitHubCard } from './github-cards.js?v=mw6rq16y';
+import { alignmentPlan } from './alignment.js?v=mw6rq16y';
+import { labelLayout } from './labels.js?v=mw6rq16y';
+import { amazonBadgeLayout } from './amazon.js?v=mw6rq16y';
+import { freeDropPosition } from './placement.js?v=mw6rq16y';
 // Edit mode: one popup (modal <dialog>) to change a block's text and link.
 // Opened by the 📝 button, a click on a label, Enter, or a double-click on a block with no link.
 //  - the text field is hidden for image blocks (they have no text)
@@ -13,18 +13,18 @@ import { freeDropPosition } from './placement.js?v=mw62q2s5';
 //  - when the link is an Amazon address the popup becomes "Produit Amazon": name, price and
 //    delivery time fields appear (typed by hand, shown in the block's label)
 // It closes only with the Annuler / Valider buttons (Ctrl+Enter, or Enter in a one-line field, also validate).
-import { state, getNode, emit, membersOf, fitGroupsAround, containingGroups, saveNow } from './state.js?v=mw62q2s5';
-import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw62q2s5';
-import { youTubeId } from './yt.js?v=mw62q2s5';
-import { addImageFile, imageFor, fitNodeImage } from './images.js?v=mw62q2s5';
+import { state, getNode, emit, membersOf, fitGroupsAround, containingGroups, saveNow } from './state.js?v=mw6rq16y';
+import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw6rq16y';
+import { youTubeId } from './yt.js?v=mw6rq16y';
+import { addImageFile, imageFor, fitNodeImage } from './images.js?v=mw6rq16y';
 
-import { genericLink } from './links.js?v=mw62q2s5';
+import { genericLink } from './links.js?v=mw6rq16y';
 
-import { isLocked } from './mobile-mode.js?v=mw62q2s5';
+import { isLocked } from './mobile-mode.js?v=mw6rq16y';
 
-import { serviceForNode } from './services.js?v=mw62q2s5';
-import { deliveryDelay } from './delivery.js?v=mw62q2s5';
-import { googleMapsEmbed } from './google-maps.js?v=mw62q2s5';
+import { serviceForNode } from './services.js?v=mw6rq16y';
+import { deliveryDelay } from './delivery.js?v=mw6rq16y';
+import { googleMapsEmbed } from './google-maps.js?v=mw6rq16y';
 
 const dlg = document.getElementById('textdialog');
 const title = document.getElementById('dialog-title');
@@ -118,7 +118,7 @@ export function startEdit(id, focus = 'text') {
   document.getElementById('github-refresh').textContent = 'Actualiser les informations GitHub';
   pendingAlignment = null;
   pendingApplication = null;
-  document.getElementById('application-change').hidden = !n.application || !window.__TAURI__;
+  document.getElementById('application-change').hidden = !n.application || !(window.__TAURI__ || window.__BETE_ANDROID_NATIVE__);
   document.getElementById('application-change').textContent = 'Changer l’application…';
   alignSection.hidden = n.kind !== 'group';
   alignPreview.hidden = true;
@@ -382,10 +382,10 @@ document.getElementById('github-refresh').addEventListener('click',async()=>{
 document.getElementById('application-change').addEventListener('click', async () => {
   const id = editingId;
   const button = document.getElementById('application-change');
-  if (!id || isLocked() || !window.__TAURI__) return;
+  if (!id || isLocked() || !(window.__TAURI__ || window.__BETE_ANDROID_NATIVE__)) return;
   button.disabled = true;
   try {
-    const chosen = await window.__TAURI__.core.invoke('pick_application');
+    const chosen = await (window.__TAURI__ || window.__BETE_ANDROID_NATIVE__).core.invoke('pick_application');
     if (chosen && editingId === id) { pendingApplication = chosen; button.textContent = 'Nouvelle application : ' + chosen.label; }
   } catch (error) { alert(String(error)); }
   finally { button.disabled = false; }

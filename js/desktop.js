@@ -1,14 +1,14 @@
-import { initApplications, flushApplicationWrites } from './applications.js?v=mw62q2s5';
-import { initDesktopShortcuts } from './desktop-shortcuts.js?v=mw62q2s5';
-import { optimizeBoardImages } from './optimize.js?v=mw62q2s5';
-import { waitForDriveIdle, saveDriveBeforeClose, hasPendingDriveChanges } from './drive.js?v=mw62q2s5';
-import { isEditing, stopEdit } from './editor.js?v=mw62q2s5';
-import { initDesktopCalendar } from './calendar.js?v=mw62q2s5';
-import { saveNow } from './state.js?v=mw62q2s5';
-import { flushLocalWrites } from './local-store.js?v=mw62q2s5';
-import { openLink } from './links.js?v=mw62q2s5';
-import { notify } from './notifications.js?v=mw62q2s5';
-import { parseShareLink } from './group-share.js?v=mw62q2s5';
+import { initApplications, flushApplicationWrites } from './applications.js?v=mw6rq16y';
+import { initDesktopShortcuts } from './desktop-shortcuts.js?v=mw6rq16y';
+import { optimizeBoardImages } from './optimize.js?v=mw6rq16y';
+import { waitForDriveIdle, saveDriveBeforeClose, hasPendingDriveChanges } from './drive.js?v=mw6rq16y';
+import { isEditing, stopEdit } from './editor.js?v=mw6rq16y';
+import { initDesktopCalendar } from './calendar.js?v=mw6rq16y';
+import { saveNow } from './state.js?v=mw6rq16y';
+import { flushLocalWrites } from './local-store.js?v=mw6rq16y';
+import { openLink } from './links.js?v=mw6rq16y';
+import { notify } from './notifications.js?v=mw6rq16y';
+import { parseShareLink } from './group-share.js?v=mw6rq16y';
 
 function chooseUpdate(version) {
   const dialog = document.createElement('dialog');

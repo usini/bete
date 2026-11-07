@@ -1,9 +1,9 @@
-import { notify } from './notifications.js?v=mw62q2s5';
-import { youTubeId } from './youtube-url.js?v=mw62q2s5';
-import { isAmazonUrl } from './amazon.js?v=mw62q2s5';
+import { notify } from './notifications.js?v=mw6rq16y';
+import { youTubeId } from './youtube-url.js?v=mw6rq16y';
+import { isAmazonUrl } from './amazon.js?v=mw6rq16y';
 
-import { serviceForUrl } from './services.js?v=mw62q2s5';
-import { googleMapsEmbed } from './google-maps.js?v=mw62q2s5';
+import { serviceForUrl } from './services.js?v=mw6rq16y';
+import { googleMapsEmbed } from './google-maps.js?v=mw6rq16y';
 
 export function plainLink(raw) {
   const map = googleMapsEmbed(raw);
@@ -54,7 +54,7 @@ export function genericLinkOf(node) {
 }
 
 export function openLink(url) {
-  const desktop = window.__TAURI__;
+  const desktop = window.__TAURI__ || window.__BETE_ANDROID_NATIVE__;
   if (!desktop) {
     window.open(url, '_blank', 'noopener');
     return Promise.resolve(true);

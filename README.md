@@ -333,3 +333,7 @@ L’horloge ouvre aussi le calendrier sur le web. Windows conserve les deux proc
 Les nouveaux liens YouTube et réseaux sociaux collés ou déposés affichent leur étiquette de lien par défaut. L’option Masquer le lien reste disponible dans l’éditeur ; les blocs déjà sauvegardés conservent leur réglage.
 
 Les nouveaux blocs Amazon affichent aussi leur étiquette par défaut, y compris lors du collage depuis l’extension. Elle peut toujours être masquée dans l’éditeur.
+
+Un prototype Android séparé est disponible dans android/ (voir android/README.md) : tableau local, mode lecture par défaut, loupe de recherche et applications locales avec validation individuelle. La connexion Google Drive native est branchée via Google Play Services ; le partage entrant Android reste à implémenter.
+
+La création adapte la taille mémorisée au zoom si elle serait illisible ou démesurée à l’écran. Les nouveaux blocs et groupes sont placés dans une zone libre avec une marge autour des éléments existants, sans intégration automatique dans un groupe. Si le placement les décale, la vue suit le nouveau bloc. Le glisser-déposer d’un bloc existant dans un groupe conserve son fonctionnement.

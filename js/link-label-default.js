@@ -1,5 +1,5 @@
-import { youTubeId } from './youtube-url.js?v=mw62q2s5';
-import { isAmazonUrl } from './amazon.js?v=mw62q2s5';
+import { youTubeId } from './youtube-url.js?v=mw6rq16y';
+import { isAmazonUrl } from './amazon.js?v=mw6rq16y';
 
 // Only newly pasted/dropped links use this default; saved visibility is preserved.
 export function showLinkByDefault(value) {
