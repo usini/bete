@@ -1,11 +1,14 @@
-import { extractAmazonProduct } from './extract.js';
+import { extractAmazonProduct, extractAliExpressProduct } from './extract.js';
 const button = document.getElementById('copy');
 const status = document.getElementById('status');
 
 async function embeddedImage(url) {
   const source = new URL(url);
-  if (source.protocol !== 'https:' || !['m.media-amazon.com', 'images-na.ssl-images-amazon.com', 'images-eu.ssl-images-amazon.com'].includes(source.hostname)) return null;
-  const response = await fetch(source.href, { credentials: 'omit', signal: AbortSignal.timeout(10000) });
+  const amazonImage = ['m.media-amazon.com', 'images-na.ssl-images-amazon.com', 'images-eu.ssl-images-amazon.com'].includes(source.hostname);
+  const aliExpressImage = /^(?:ae\d+\.alicdn\.com|ae-pic-[a-z0-9-]+\.aliexpress-media\.com)$/.test(source.hostname)
+    && source.pathname.startsWith('/kf/');
+  if (source.protocol !== 'https:' || source.username || source.password || source.port || !(amazonImage || aliExpressImage)) return null;
+  const response = await fetch(source.href, { credentials: 'omit', redirect: 'error', signal: AbortSignal.timeout(10000) });
   if (!response.ok) return null;
   const blob = await response.blob();
   if (!blob.type.startsWith('image/') || blob.size > 10 * 1024 * 1024) return null;
@@ -27,15 +30,18 @@ button.addEventListener('click', async () => {
   status.textContent = 'Lecture du produit…';
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    const [injection] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: extractAmazonProduct });
+    const hostname = new URL(tab?.url || 'about:blank').hostname;
+    const aliExpress = /^(?:[a-z]{2}\.|www\.|m\.)?aliexpress\.(?:com|us)$/i.test(hostname);
+    const extract = aliExpress ? extractAliExpressProduct : extractAmazonProduct;
+    const [injection] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: extract });
     const product = injection.result;
-    if (!product?.link) throw new Error('Impossible de lire cette fiche produit Amazon.');
+    if (!product?.link) throw new Error('Impossible de lire cette fiche produit.');
     let picture = null;
     try { if (product.imageUrl) picture = await embeddedImage(product.imageUrl); } catch { /* Metadata can still be copied. */ }
     const block = { kind: 'rect', text: product.link, link: product.link, name: product.name, price: product.price, delivery: product.delivery, w: 400, h: 300, ...picture };
     await navigator.clipboard.writeText('BETE_BLOCK_V1\n' + JSON.stringify(block));
     status.textContent = 'Bloc copié ! Colle-le dans Bête avec Ctrl+V.' + (!picture ? '\nImage indisponible : les autres informations sont copiées.' : '') + (!product.price ? '\nPrix non trouvé.' : '') + (!product.delivery ? '\nLivraison non trouvée.' : '');
   } catch (error) {
-    status.textContent = error.message || 'Copie impossible. Réessaie depuis une fiche Amazon.';
+    status.textContent = error.message || 'Copie impossible. Réessaie depuis une fiche Amazon ou AliExpress.';
   } finally { button.disabled = false; }
 });

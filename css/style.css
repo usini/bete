@@ -258,6 +258,10 @@ html, body {
 #textdialog.amazon h3 { color: #ff9900; }
 #textdialog.amazon .field input:focus,
 #textdialog.amazon #editor:focus { border-color: #ff9900; }
+#textdialog.aliexpress { border-color: #ff4747; }
+#textdialog.aliexpress h3 { color: #ff4747; }
+#textdialog.aliexpress .field input:focus,
+#textdialog.aliexpress #editor:focus { border-color: #ff4747; }
 #link-error { display: block; margin-top: 4px; font-size: 12px; color: #ff6b6b; }
 .dialog-actions {
   display: flex;

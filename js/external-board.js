@@ -1,6 +1,6 @@
-import { githubSource, parseExternalBoardLink } from './external-source.js?v=mw6xpxbq';
-export { githubSource } from './external-source.js?v=mw6xpxbq';
-import { localStore } from './local-store.js?v=mw6xpxbq';
+import { githubSource, parseExternalBoardLink } from './external-source.js?v=mwag82om';
+export { githubSource } from './external-source.js?v=mwag82om';
+import { localStore } from './local-store.js?v=mwag82om';
 
 export const githubBoard = new URLSearchParams(location.search).get('github');
 export const externalMode = githubBoard !== null;

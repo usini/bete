@@ -1,30 +1,30 @@
-import { youTubeThumbnail } from './youtube-thumbnails.js?v=mw6xpxbq';
-import { xtoolSummary } from './xtool.js?v=mw6xpxbq';
-import { applicationAllowed, applicationEvents } from './applications.js?v=mw6xpxbq';
-import { githubRepository, cleanGitHubData } from './github-repo.js?v=mw6xpxbq';
-import { dropPreviewGroup } from './placement.js?v=mw6xpxbq';
-import { externalMode } from './external-board.js?v=mw6xpxbq';
-import { positionEmbeds } from './embed-view.js?v=mw6xpxbq';
+import { youTubeThumbnail } from './youtube-thumbnails.js?v=mwag82om';
+import { xtoolSummary } from './xtool.js?v=mwag82om';
+import { applicationAllowed, applicationEvents } from './applications.js?v=mwag82om';
+import { githubRepository, cleanGitHubData } from './github-repo.js?v=mwag82om';
+import { dropPreviewGroup } from './placement.js?v=mwag82om';
+import { externalMode } from './external-board.js?v=mwag82om';
+import { positionEmbeds } from './embed-view.js?v=mwag82om';
 // Canvas drawing: grid, blocks (text / image / YouTube thumbnail), labels, snap guides, selection.
-import { state, events, getSelectedId, groupsBySize, groupHeaderHeight, groupHeaderBox } from './state.js?v=mw6xpxbq';
-import { view, screenToWorld } from './camera.js?v=mw6xpxbq';
-import { youTubeId, youTubeTitle } from './yt.js?v=mw6xpxbq';
-import { imageCaptionFraction, imageFor } from './images.js?v=mw6xpxbq';
-import { positionVideo, isVideoPlaying } from './video.js?v=mw6xpxbq';
-import { guides } from './snap.js?v=mw6xpxbq';
-import { renderMinimap } from './minimap.js?v=mw6xpxbq';
-import { updateFx, renderFx, hasParticles } from './fx.js?v=mw6xpxbq';
-import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mw6xpxbq';
-import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mw6xpxbq';
+import { state, events, getSelectedId, groupsBySize, groupHeaderHeight, groupHeaderBox } from './state.js?v=mwag82om';
+import { view, screenToWorld } from './camera.js?v=mwag82om';
+import { youTubeId, youTubeTitle } from './yt.js?v=mwag82om';
+import { imageCaptionFraction, imageFor } from './images.js?v=mwag82om';
+import { positionVideo, isVideoPlaying } from './video.js?v=mwag82om';
+import { guides } from './snap.js?v=mwag82om';
+import { renderMinimap } from './minimap.js?v=mwag82om';
+import { updateFx, renderFx, hasParticles } from './fx.js?v=mwag82om';
+import { fitText, fitLine, TEXT_PAD, LINE, FONT_FAMILY } from './text.js?v=mwag82om';
+import { labelLayout, editIconBox, colorIconBox, imageIconBox, shareIconBox, deleteIconBox, optimizeIconBox, setLabelRedraw, LABEL_FONT, LABEL_SEP, ICON, ICON_GAP, LABEL_PAD } from './labels.js?v=mwag82om';
 
-import { genericLinkOf, plainLink } from './links.js?v=mw6xpxbq';
-import { stepMotion } from './motion.js?v=mw6xpxbq';
-import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mw6xpxbq';
+import { genericLinkOf, plainLink } from './links.js?v=mwag82om';
+import { stepMotion } from './motion.js?v=mwag82om';
+import { remoteCursors, shareEvents, isGroupShared } from './group-share.js?v=mwag82om';
 
-import { isLocked } from './mobile-mode.js?v=mw6xpxbq';
+import { isLocked } from './mobile-mode.js?v=mwag82om';
 
-import { serviceForNode, serviceIcon } from './services.js?v=mw6xpxbq';
-import { amazonBadgeLayout } from './amazon.js?v=mw6xpxbq';
+import { serviceForNode, serviceIcon } from './services.js?v=mwag82om';
+import { productBadgeLayout } from './products.js?v=mwag82om';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -219,17 +219,17 @@ function drawNode(n, selected, zoom) {
 
   drawSelection(n, selected, zoom);
   drawLabel(n, zoom);
-  drawAmazonBadge(n);
+  drawProductBadge(n);
 }
 
 // A local brand tag outside the product image, aligned with the block's top-left edge.
-function drawAmazonBadge(n) {
-  const badge = amazonBadgeLayout(n);
+function drawProductBadge(n) {
+  const badge = productBadgeLayout(n);
   if (!badge) return;
   const { x, y, w, h } = badge;
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(x, y, w, h);
-  const icon = serviceIcon({ id: 'amazon' }, requestRender);
+  const icon = serviceIcon(badge.brand, requestRender);
   if (icon) drawContained(icon, x + w * 0.12, y + h * 0.12, w * 0.76, h * 0.76);
 }
 
@@ -420,7 +420,7 @@ function drawScaledLabel(n, L, zoom) {
   ctx.fillText(L.text, tx, cy);
 }
 
-// Amazon product label content: name | 🏷️ price | 🚚 delivery, with a thin divider between parts.
+// Product label content: name | 🏷️ price | 🚚 delivery, with a thin divider between parts.
 function drawProductSegments(L, tx, cy, fg) {
   ctx.font = LABEL_FONT;
   ctx.textBaseline = 'middle';

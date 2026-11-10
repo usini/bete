@@ -1,23 +1,23 @@
-import { isSocialUrl } from './link-label-default.js?v=mw6xpxbq';
-import { externalMode } from './external-board.js?v=mw6xpxbq';
+import { isSocialUrl } from './link-label-default.js?v=mwag82om';
+import { externalMode } from './external-board.js?v=mwag82om';
 // Labels: the tab above a block. It shows the YouTube title (YouTube blocks) or the block's
 // link URL; a block with neither has no label. The layout and the hit-testing live here,
 // so the renderer and the pointer handling always agree on where the label is.
-import { state } from './state.js?v=mw6xpxbq';
-import { youTubeId, youTubeTitle } from './yt.js?v=mw6xpxbq';
-import { FONT_FAMILY } from './text.js?v=mw6xpxbq';
-import { isAmazonUrl, isAmazonText } from './amazon.js?v=mw6xpxbq';
+import { state } from './state.js?v=mwag82om';
+import { youTubeId, youTubeTitle } from './yt.js?v=mwag82om';
+import { FONT_FAMILY } from './text.js?v=mwag82om';
+import { isProductUrl, isProductText } from './products.js?v=mwag82om';
 
-import { genericLink, plainLink } from './links.js?v=mw6xpxbq';
+import { genericLink, plainLink } from './links.js?v=mwag82om';
 
-import { serviceForNode } from './services.js?v=mw6xpxbq';
+import { serviceForNode } from './services.js?v=mwag82om';
 
 export const LABEL_SIZE = 26;                       // font size, world units
 export const LABEL_FONT = '600 ' + LABEL_SIZE + 'px ' + FONT_FAMILY;
 export const LABEL_H = 40, LABEL_GAP = 6, LABEL_PAD = 12;
 export const ICON = 14, ICON_GAP = 12;             // play icon, YouTube blocks only
 
-const PRODUCT_W_FACTOR = 2.5;                      // Amazon product labels may be wider (up to 2.5x)
+const PRODUCT_W_FACTOR = 2.5;                      // Product labels may be wider (up to 2.5x)
 const measurer = document.createElement('canvas').getContext('2d');
 
 // Called when an async value (a YouTube title) arrives: set by the renderer.
@@ -37,9 +37,9 @@ export function labelInfo(n) {
   }
   const link = linkOf(n);
   if (link) {
-    // An Amazon link shows the product name, price and delivery time when they were filled in.
-    const parts = isAmazonUrl(link) ? [n.name, n.price, n.delivery].filter(Boolean) : [];
-    // When the link is only the block's own text (an Amazon URL), the URL is already visible
+    // A product link shows the product name, price and delivery time when they were filled in.
+    const parts = isProductUrl(link) ? [n.name, n.price, n.delivery].filter(Boolean) : [];
+    // When the link is only the block's own text (a product URL), the URL is already visible
     // in the block: the label appears once there are product details to show.
     if (!n.link && !parts.length && !genericLink(n.text)) return null;
     return {
@@ -52,11 +52,11 @@ export function labelInfo(n) {
   return null;
 }
 
-// The address a block opens: its link, or its text when that text is an Amazon URL.
+// The address a block opens: its link, or its text when that text is a product URL.
 export function linkOf(n) {
   if (n.kind === 'group' || n.application) return null;
   if (n.link) return n.link;
-  return isAmazonText(n.text) ? n.text.trim() : genericLink(n.text);
+  return isProductText(n.text) ? n.text.trim() : genericLink(n.text);
 }
 
 function fitLabel(text, maxW) {
@@ -67,7 +67,7 @@ function fitLabel(text, maxW) {
   return t + '…';
 }
 
-// Product label (Amazon): name | 🏷️ price | 🚚 delivery. Each part is a segment with its own x
+// Product label: name | 🏷️ price | 🚚 delivery. Each part is a segment with its own x
 // offset (relative to the start of the text); the renderer draws a divider in the gap
 // between two segments. Only the name is shortened, so price and delivery stay readable.
 const PRICE_ICON = '\u{1F3F7}️';

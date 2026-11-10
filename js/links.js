@@ -1,9 +1,9 @@
-import { notify } from './notifications.js?v=mw6xpxbq';
-import { youTubeId } from './youtube-url.js?v=mw6xpxbq';
-import { isAmazonUrl } from './amazon.js?v=mw6xpxbq';
+import { notify } from './notifications.js?v=mwag82om';
+import { youTubeId } from './youtube-url.js?v=mwag82om';
+import { isProductUrl } from './products.js?v=mwag82om';
 
-import { serviceForUrl } from './services.js?v=mw6xpxbq';
-import { googleMapsEmbed } from './google-maps.js?v=mw6xpxbq';
+import { serviceForUrl } from './services.js?v=mwag82om';
+import { googleMapsEmbed } from './google-maps.js?v=mwag82om';
 
 export function plainLink(raw) {
   const map = googleMapsEmbed(raw);
@@ -19,7 +19,7 @@ export function plainLink(raw) {
 }
 export function genericLink(raw) {
   const url = plainLink(raw);
-  return url && (serviceForUrl(url) || (!youTubeId(url) && !isAmazonUrl(url))) ? url : null;
+  return url && (serviceForUrl(url) || (!youTubeId(url) && !isProductUrl(url))) ? url : null;
 }
 export function droppedLink(data) {
   // Native browser links/bookmarks use URI lists; Firefox can also include a title below the URL.

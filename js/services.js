@@ -1,4 +1,5 @@
-import { githubRepository } from './github-repo.js?v=mw6xpxbq';
+import { githubRepository } from './github-repo.js?v=mwag82om';
+import { isAmazonHome } from './amazon.js?v=mwag82om';
 // Explicit host/path rules only. Never fetch metadata or a favicon from a linked service.
 const root = path => path === '/';
 const oneOf = (...paths) => path => paths.includes(path);
@@ -9,7 +10,7 @@ const entries = [
   { id: 'facebook', name: 'Facebook', hosts: ['facebook.com', 'www.facebook.com'], path: root },
   { id: 'x', name: 'X', hosts: ['x.com', 'www.x.com'], path: oneOf('/home') },
   { id: 'google', name: 'Google', hosts: ['google.com', 'www.google.com', 'google.fr', 'www.google.fr'], path: root },
-  { id: 'googledrive', name: 'Google Drive', hosts: ['drive.google.com'], path: p => root(p) || /^\/drive(?:\/u\/\d+)?(?:\/(?:home|my-drive))?$/.test(p) },
+  { id: 'googledrive', name: 'Google Drive', hosts: ['drive.google.com'], path: () => true, anyLocation: true },
   { id: 'googlecalendar', name: 'Google Agenda', hosts: ['calendar.google.com'], path: p => root(p) || /^\/calendar(?:\/u\/\d+)?(?:\/r)?$/.test(p), anyLocation: true },
   { id: 'googlemaps', name: 'Google Maps', hosts: ['maps.google.com'], path: root, anyLocation: true },
   { id: 'googlemaps', name: 'Google Maps', hosts: ['google.com', 'www.google.com', 'google.fr', 'www.google.fr'], path: oneOf('/maps'), anyLocation: true },
@@ -33,6 +34,7 @@ export function serviceForUrl(value) {
   try {
     const url = new URL(String(value).trim());
     if (url.protocol !== 'https:' || url.username || url.password || url.port) return null;
+    if (isAmazonHome(url)) return { id: 'amazon', name: 'Amazon' };
     if (githubRepository(url.href)) return { id: 'github', name: 'GitHub' };
     const path = url.pathname === '/' ? '/' : url.pathname.replace(/\/$/, '');
     const service = entries.find(entry => entry.hosts.includes(url.hostname) && entry.path(path)

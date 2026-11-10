@@ -31,10 +31,10 @@ le bloc par défaut ; « Interagir avec la carte » active ses commandes, puis �
 ou un clic en dehors revient au tableau. Une image personnalisée prend la priorité. Les cartes
 hors écran sont déchargées et leur URL suit les sauvegardes et le partage du groupe.
 
-Les blocs contenant un lien Amazon affichent une petite étiquette avec le logo à gauche de leur
+Les blocs contenant un lien Amazon hors accueil ou une fiche AliExpress affichent une petite étiquette avec le logo à gauche de leur
 coin supérieur. Elle est accolée au bloc et sa taille suit ses dimensions. Le logo est embarqué
-localement, sans requête vers Amazon.
-Un double-clic sur un bloc Amazon sans image ouvre l’édition ; une fois l’image ajoutée, il ouvre
+localement, sans requête vers le marchand.
+Un double-clic sur un bloc produit sans image ouvre l’édition ; une fois l’image ajoutée, il ouvre
 le lien produit. Le mode lecture seule sur mobile continue d’interdire l’édition.
 Dans « Livraison », coller un texte comme « Livraison GRATUITE vendredi 6 novembre pour les
 membres Prime » extrait la date française et la convertit en nombre de jours calendaires depuis
@@ -79,17 +79,17 @@ python -m http.server 8000
 - **Blocs** : rectangle (texte, couleur, image facultative) et groupe.
   Le texte se redimensionne automatiquement pour remplir le bloc.
 - **Groupe** : une zone colorée avec un titre ; déplacer le groupe déplace les blocs qu'il contient.
-  Le redimensionnement automatique inclut le logo et l’étiquette produit des blocs Amazon.
+  Le redimensionnement automatique inclut le logo et l’étiquette produit des blocs Amazon et AliExpress.
   Chaque groupe a un lien dans le menu pour s'y rendre d'un clic.
 - **Vidéos YouTube** : un lien YouTube dans le texte d'un bloc affiche la miniature et le titre ;
   un double-clic lance la vidéo.
-- **Lien glissé depuis le navigateur** : crée un rectangle à l’endroit du dépôt. Le titre ou texte du lien fourni par le navigateur est placé dans le bloc, et l’URL dans son champ lien. Aucune récupération du titre sur le réseau ; sans titre, le nom du site est affiché. YouTube et Amazon gardent leur présentation habituelle.
-- **Lien collé dans un rectangle** : hors YouTube et Amazon, l’adresse passe dans le label et le nom du site apparaît dans le rectangle. Aucun favicon ni aperçu n’est demandé au site lié.
+- **Lien glissé depuis le navigateur** : crée un rectangle à l’endroit du dépôt. Le titre ou texte du lien fourni par le navigateur est placé dans le bloc, et l’URL dans son champ lien. Aucune récupération du titre sur le réseau ; sans titre, le nom du site est affiché. YouTube et les fiches produits gardent leur présentation dédiée.
+- **Lien collé dans un rectangle** : hors YouTube et fiches produits, l’adresse passe dans le label et le nom du site apparaît dans le rectangle. Aucun favicon ni aperçu n’est demandé au site lié.
 - **Ctrl+V sur le tableau** : le texte du presse-papiers crée un rectangle au centre de la vue,
   en conservant les retours à la ligne (20 000 caractères maximum). Une URL sans rectangle
   sélectionné crée aussi son bloc. Dans les champs d’édition, le collage reste normal.
 - **Liens** : chaque bloc peut avoir un lien, affiché dans une pastille au-dessus ; un double-clic l'ouvre.
-- **Produits Amazon** : un lien Amazon est raccourci, et on peut y noter nom, prix et délai de livraison.
+- **Produits Amazon et AliExpress** : le lien produit est raccourci, et on peut y noter nom, prix et délai de livraison.
 - **Actions du bloc sélectionné** : édition, palette de couleurs et corbeille directement à côté du bloc. La corbeille demande une confirmation ; les touches Suppr et Retour arrière suppriment immédiatement (annulable dans l’historique).
   La palette inclut le rouge et le transparent : fond et bordure du bloc transparents, label blanc
   avec texte noir. Le titre d’un groupe transparent reste sur fond blanc. Ces couleurs sont conservées
@@ -152,7 +152,8 @@ manuellement reste prioritaire. Aucun favicon, téléchargement d’icône tiers
 | Facebook | `facebook.com` / `www.facebook.com`, accueil `/` uniquement |
 | X | `x.com/home` uniquement (avec ou sans `www`) |
 | Google | accueil `google.com` ou `google.fr` |
-| Drive | accueil et `/drive[/u/N][/home ou /my-drive]` |
+| Drive | `drive.google.com`, y compris les fichiers et dossiers partagés, avec leurs paramètres et fragments |
+| Amazon | accueil des sites Amazon, par exemple `amazon.fr` ou `amazon.co.uk` |
 | Agenda | accueil et `/calendar[/u/N][/r]` |
 | Maps | `maps.google.com` à l’accueil ou `google.com/maps` (aussi `.fr`) |
 | Docs / Sheets / Slides | accueil du service sur `docs.google.com`, y compris `/u/N/` ; pas les fichiers `/d/…` |
@@ -166,9 +167,8 @@ manuellement reste prioritaire. Aucun favicon, téléchargement d’icône tiers
 | Reddit / Twitch | accueil uniquement |
 | Telegram | accueil de `web.telegram.org`, `/a` ou `/k` |
 
-Hors Gmail, la reconnaissance est volontairement limitée aux entrées de l’application **sans
-paramètres ni fragment**, en HTTPS, sur les domaines exacts. Les vidéos, profils, publications,
-recherches et fichiers précis conservent leur traitement habituel. Les liens ordinaires restent du texte.
+La reconnaissance s’effectue en HTTPS sur les domaines exacts. Pour la plupart des services,
+elle se limite à l’accueil sans paramètres ni fragment. Les liens ordinaires restent du texte.
 Les icônes et leurs sources se trouvent dans [img/services](img/services/README.md).
 
 ## Mobile : lecture seule par défaut
@@ -252,9 +252,9 @@ Tous les imports d'un même module doivent porter la même version.
 
 [MIT](LICENSE)
 
-### Copier un produit Amazon depuis le navigateur
+### Copier un produit Amazon ou AliExpress depuis le navigateur
 
-L’extension locale Chrome/Edge est dans `extension-amazon/` : voir son [guide](extension-amazon/README.md). Sur une fiche Amazon, clique sur **Copier le bloc**, puis fais **Ctrl+V** dans Bête web ou desktop (version contenant cette fonctionnalité). Un nouveau bloc est créé avec les champs trouvés et l’image intégrée. Le prix et la livraison sont une photographie des informations affichées, sans suivi automatique.
+L’extension locale Chrome/Edge est dans `extension-amazon/` : voir son [guide](extension-amazon/README.md). Sur une fiche Amazon ou AliExpress, clique sur **Copier le bloc**, puis fais **Ctrl+V** dans Bête web ou desktop (version contenant cette fonctionnalité). Un nouveau bloc est créé avec les champs trouvés et l’image intégrée. Le prix et la livraison sont une photographie des informations affichées, sans suivi automatique.
 
 Au relâchement d’un bloc déplacé sur un autre, le bloc déplacé rejoint la position libre la plus proche, avec une marge. Les étiquettes et logos sont inclus. Un bloc déplacé au contact d’un groupe y est ajouté, à une position libre sans chevaucher les autres blocs ; le groupe s’agrandit si nécessaire. Un groupe déplacé sur un bloc extérieur est repoussé avec son contenu initial, sans intégrer ce bloc.
 
@@ -264,7 +264,7 @@ Dans **Modifier le groupe → Aligner**, un aperçu propose une ligne, une colon
 
 Raccourcis hors saisie : **R** crée un rectangle au curseur et ouvre son éditeur, **G** fait de même pour un groupe, **M** ouvre ou ferme le menu, **T** ouvre le tableau des groupes et **A** applique directement l’alignement du dernier groupe sélectionné (annulable avec Ctrl+Z). Sans position connue du curseur, la création se fait au centre de la vue.
 
-Coller ou déposer un lien Amazon simple ouvre automatiquement l’éditeur du produit. Le bloc complet copié par l’extension conserve son import direct.
+Coller ou déposer un lien Amazon hors accueil ou une fiche AliExpress ouvre automatiquement l’éditeur du produit. Le bloc complet copié par l’extension conserve son import direct.
 
 **Optimiser les images** vide aussi l’historique annuler/rétablir après traitement. Les images protégées restent intactes. Le lien d’accueil `https://chatgpt.com` affiche une icône ChatGPT embarquée.
 
@@ -276,9 +276,9 @@ Les nouveaux blocs masquent par défaut l’étiquette de lien au-dessus du bloc
 
 Les liens de dépôts GitHub publics collés ou déposés affichent le nom, la description, le langage, la licence, les étoiles, la dernière version publiée et la date d’activité lorsque disponibles. Les informations sont demandées directement à l’API GitHub sans connexion, puis conservées avec le bloc. **Actualiser les informations GitHub** dans l’éditeur relance la récupération. Pour un dépôt privé, inexistant, une erreur réseau ou une limite API, seule l’icône GitHub et `compte/repo` sont affichés. Le lien d’accueil GitHub garde son icône. Aucun chargement automatique au simple affichage d’un tableau importé ou partagé.
 
-Les produits Amazon collés depuis l’extension reprennent la taille de création des rectangles (dernière taille utilisée), au lieu des dimensions de l’image fournies par l’extension.
+Les produits collés depuis l’extension reprennent la taille de création des rectangles (dernière taille utilisée), au lieu des dimensions de l’image fournies par l’extension.
 
-Dès l’ajout ou le remplacement d’une image (collage, dépôt, éditeur ou extension Amazon), le bloc conserve sa largeur de création et ajuste sa hauteur au ratio de l’image, en réservant la place du texte éventuel.
+Dès l’ajout ou le remplacement d’une image (collage, dépôt, éditeur ou extension produit), le bloc conserve sa largeur de création et ajuste sa hauteur au ratio de l’image, en réservant la place du texte éventuel.
 
 Sur Windows, **Ctrl+Alt+Espace** restaure Bête et ouvre sa barre de commande depuis une autre application. Le menu permet de modifier, activer ou désactiver le raccourci ; ces réglages sont conservés sur l’appareil. En cas de conflit, choisis une autre combinaison. Bête doit rester lancée, éventuellement réduite.
 
@@ -332,7 +332,7 @@ L’horloge ouvre aussi le calendrier sur le web. Windows conserve les deux proc
 
 Les nouveaux liens YouTube et réseaux sociaux collés ou déposés affichent leur étiquette de lien par défaut. L’option Masquer le lien reste disponible dans l’éditeur ; les blocs déjà sauvegardés conservent leur réglage.
 
-Les nouveaux blocs Amazon affichent aussi leur étiquette par défaut, y compris lors du collage depuis l’extension. Elle peut toujours être masquée dans l’éditeur.
+Les nouveaux blocs Amazon et AliExpress affichent aussi leur étiquette par défaut, y compris lors du collage depuis l’extension. Elle peut toujours être masquée dans l’éditeur.
 
 Un prototype Android séparé est disponible dans android/ (voir android/README.md) : tableau local, mode lecture par défaut, loupe de recherche et applications locales avec validation individuelle. La connexion Google Drive native est branchée via Google Play Services ; le partage entrant Android reste à implémenter.
 

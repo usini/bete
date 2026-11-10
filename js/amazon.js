@@ -1,8 +1,10 @@
+const storeHost = /^(www\.)?amazon\.(?:com(?:\.(?:au|br|mx|be|tr))?|co\.(?:uk|jp|za)|fr|de|it|es|nl|se|pl|ca|in|ae|sa|sg|eg|ie)$/i;
+
 // Amazon product links are cut down to https://<host>/dp/<ASIN>: no title slug, no tracking
 // or affiliate parameters. Other links (and short links like amzn.to) are left unchanged.
 export function shortenAmazon(full) {
   const u = new URL(full);
-  if (!/^(www\.)?amazon\.(?:com(?:\.(?:au|br|mx|be|tr))?|co\.(?:uk|jp|za)|fr|de|it|es|nl|se|pl|ca|in|ae|sa|sg|eg|ie)$/i.test(u.hostname)) return full;
+  if (!storeHost.test(u.hostname)) return full;
   const m = u.pathname.match(/\/(?:dp|gp\/product|gp\/aw\/d|exec\/obidos\/ASIN)\/([A-Z0-9]{10})(?:[/?]|$)/i);
   return m ? 'https://' + u.hostname + '/dp/' + m[1].toUpperCase() : full;
 }
@@ -10,34 +12,13 @@ export function shortenAmazon(full) {
 // True for an Amazon address: amazon.<tld>, with or without www, and the short links.
 export function isAmazonUrl(url) {
   try {
-    return /^(www\.)?(amazon\.(?:com(?:\.(?:au|br|mx|be|tr))?|co\.(?:uk|jp|za)|fr|de|it|es|nl|se|pl|ca|in|ae|sa|sg|eg|ie)|amzn\.[a-z]+|a\.co)$/i.test(new URL(url).hostname);
+    const { hostname } = new URL(url);
+    return storeHost.test(hostname) || /^(?:www\.)?(?:amzn\.[a-z]+|a\.co)$/i.test(hostname);
   } catch {
     return false;
   }
 }
 
-// True when a block's text is nothing but an Amazon address.
-export function isAmazonText(text) {
-  const s = String(text).trim();
-  return /^https?:\/\/\S+$/i.test(s) && isAmazonUrl(s);
-}
-
-// If a block's text is nothing but an Amazon product URL, returns it shortened;
-// any other text is returned untouched.
-export function shortenAmazonText(text) {
-  const s = text.trim();
-  if (!/^https?:\/\/\S+$/i.test(s)) return text;
-  try {
-    const short = shortenAmazon(s);
-    return short === s ? text : short;
-  } catch {
-    return text;
-  }
-}
-
-// Shared world-space geometry for the brand tag drawn beside Amazon blocks.
-export function amazonBadgeLayout(n) {
-  if (n.kind === 'group' || !isAmazonUrl(n.link || String(n.text || '').trim())) return null;
-  const w = Math.min(n.w, n.h) * 0.16;
-  return { x: n.x - w, y: n.y, w, h: w * 1.25 };
+export function isAmazonHome(url) {
+  return url.protocol === 'https:' && url.pathname === '/' && storeHost.test(url.hostname);
 }

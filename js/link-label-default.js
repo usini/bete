@@ -1,10 +1,10 @@
-import { youTubeId } from './youtube-url.js?v=mw6xpxbq';
-import { isAmazonUrl } from './amazon.js?v=mw6xpxbq';
+import { youTubeId } from './youtube-url.js?v=mwag82om';
+import { isProductUrl } from './products.js?v=mwag82om';
 
 // Only newly pasted/dropped links use this default; saved visibility is preserved.
 export function showLinkByDefault(value) {
   if (youTubeId(value)) return true;
-  if (isAmazonUrl(value)) return true;
+  if (isProductUrl(value)) return true;
   return isSocialUrl(value);
 }
 

@@ -1,16 +1,16 @@
-import { showExternalBoardQR, copyExternalBoardLink } from './external-share.js?v=mw6xpxbq';
-import { isLocked, modeEvents } from './mobile-mode.js?v=mw6xpxbq';
-import { externalMode, recentGithubBoards, addExternalBoard, removeExternalBoard } from './external-board.js?v=mw6xpxbq';
+import { showExternalBoardQR, copyExternalBoardLink } from './external-share.js?v=mwag82om';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mwag82om';
+import { externalMode, recentGithubBoards, addExternalBoard, removeExternalBoard } from './external-board.js?v=mwag82om';
 // Right-hand panel: draggable blocks, selection tools, file actions.
-import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mw6xpxbq';
-import { screenToWorld, view, flyToBlock } from './camera.js?v=mw6xpxbq';
-import { BLOCK_MIME, pickImage } from './input.js?v=mw6xpxbq';
-import { exportDoc, importFile } from './storage.js?v=mw6xpxbq';
+import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mwag82om';
+import { screenToWorld, view, flyToBlock } from './camera.js?v=mwag82om';
+import { BLOCK_MIME, pickImage } from './input.js?v=mwag82om';
+import { exportDoc, importFile } from './storage.js?v=mwag82om';
 
 
-import { optimizeBoardImages as optimizeImages } from './optimize.js?v=mw6xpxbq';
-import { notify } from './notifications.js?v=mw6xpxbq';
-import { localStore } from './local-store.js?v=mw6xpxbq';
+import { optimizeBoardImages as optimizeImages } from './optimize.js?v=mwag82om';
+import { notify } from './notifications.js?v=mwag82om';
+import { localStore } from './local-store.js?v=mwag82om';
 
 async function optimizeBoardImages(button) {
   const id = 'optimize-images';

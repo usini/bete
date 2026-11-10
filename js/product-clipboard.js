@@ -1,5 +1,5 @@
-import { deliveryDelay } from './delivery.js?v=mw6xpxbq';
-import { isAmazonUrl, shortenAmazon } from './amazon.js?v=mw6xpxbq';
+import { deliveryDelay } from './delivery.js?v=mwag82om';
+import { isProductUrl, shortenProduct } from './products.js?v=mwag82om';
 export const PRODUCT_CLIPBOARD_PREFIX = 'BETE_BLOCK_V1\n';
 // Windows clipboard transfers may turn LF into CRLF. Accept either header separator.
 const PRODUCT_HEADER = /^\uFEFF?BETE_BLOCK_V1\r?\n/;
@@ -9,10 +9,10 @@ export function parseProductClipboard(text, today = new Date()) {
   if (!isProductClipboard(text) || text.length > 5 * 1024 * 1024) return null;
   try {
     const raw = JSON.parse(text.replace(PRODUCT_HEADER, ''));
-    if (!raw || typeof raw.link !== 'string' || raw.link.length > 2000 || !isAmazonUrl(raw.link)) return null;
+    if (!raw || typeof raw.link !== 'string' || raw.link.length > 2000 || !isProductUrl(raw.link)) return null;
     const url = new URL(raw.link);
     if (url.protocol !== 'https:' || url.username || url.password || url.port) return null;
-    const link = shortenAmazon(raw.link);
+    const link = shortenProduct(raw.link);
     const block = { kind: 'rect', text: link, link, w: 400, h: 300, hideLinkLabel: false };
     for (const field of ['name', 'price', 'delivery']) if (typeof raw[field] === 'string') block[field] = raw[field].trim().slice(0,100);
     if (block.delivery) block.delivery = deliveryDelay(raw.delivery, today) || block.delivery;

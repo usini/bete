@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Bête — Copier un produit Amazon",
-  "version": "0.1.0",
-  "description": "Copie une fiche produit Amazon pour la coller dans Bête.",
+  "name": "Bête — Copier un produit",
+  "version": "0.2.0",
+  "description": "Copie une fiche Amazon ou AliExpress pour la coller dans Bête.",
   "permissions": [
     "activeTab",
     "scripting",
@@ -11,7 +11,9 @@
   "host_permissions": [
     "https://m.media-amazon.com/*",
     "https://images-na.ssl-images-amazon.com/*",
-    "https://images-eu.ssl-images-amazon.com/*"
+    "https://images-eu.ssl-images-amazon.com/*",
+    "https://*.alicdn.com/*",
+    "https://*.aliexpress-media.com/*"
   ],
   "action": {
     "default_popup": "popup.html",

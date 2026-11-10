@@ -1,15 +1,15 @@
-import { creationSize, freeCreationPosition } from './creation.js?v=mw6xpxbq';
-import { cleanCalendarSnapshot } from './calendar-snapshot.js?v=mw6xpxbq';
-import { cleanXtool } from './xtool.js?v=mw6xpxbq';
-import { cleanApplication } from './application-model.js?v=mw6xpxbq';
-import { cleanGitHubData } from './github-repo.js?v=mw6xpxbq';
-import { amazonBadgeLayout } from './amazon.js?v=mw6xpxbq';
-import { labelLayout } from './labels.js?v=mw6xpxbq';
-import { externalMode } from './external-board.js?v=mw6xpxbq';
-import { localStore } from './local-store.js?v=mw6xpxbq';
+import { creationSize, freeCreationPosition } from './creation.js?v=mwag82om';
+import { cleanCalendarSnapshot } from './calendar-snapshot.js?v=mwag82om';
+import { cleanXtool } from './xtool.js?v=mwag82om';
+import { cleanApplication } from './application-model.js?v=mwag82om';
+import { cleanGitHubData } from './github-repo.js?v=mwag82om';
+import { productBadgeLayout } from './products.js?v=mwag82om';
+import { labelLayout } from './labels.js?v=mwag82om';
+import { externalMode } from './external-board.js?v=mwag82om';
+import { localStore } from './local-store.js?v=mwag82om';
 // Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mw6xpxbq';
+import { explode } from './fx.js?v=mwag82om';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];
@@ -88,7 +88,7 @@ export function sanitizeNode(raw) {
   if (typeof raw.link === 'string' && raw.link.length <= 2000 && /^https?:\/\//i.test(raw.link)) {
     n.link = raw.link;
   }
-  // Amazon product details, typed by hand in the edit popup (shown in the label).
+  // Product details, typed by hand in the edit popup (shown in the label).
   for (const k of ['name', 'price', 'delivery']) {
     if (typeof raw[k] === 'string' && raw[k].trim()) n[k] = raw[k].trim().slice(0, 100);
   }
@@ -185,7 +185,7 @@ export function finishNodeCreation(node) {
   node.x += (node.w-size.w)/2; node.y += (node.h-size.h)/2;
   node.w=size.w; node.h=size.h;
   const boundsOf = n => {
-    const boxes=[n, n.kind==='group' ? groupHeaderBox(n) : labelLayout(n), amazonBadgeLayout(n)].filter(Boolean);
+    const boxes=[n, n.kind==='group' ? groupHeaderBox(n) : labelLayout(n), productBadgeLayout(n)].filter(Boolean);
     const x=Math.min(...boxes.map(b=>b.x)),y=Math.min(...boxes.map(b=>b.y));
     return {x,y,w:Math.max(...boxes.map(b=>b.x+b.w))-x,h:Math.max(...boxes.map(b=>b.y+b.h))-y};
   };
@@ -279,7 +279,7 @@ export function fitGroupsAround(node, previous = [], keepMembership = false, tar
     if (!members.size) continue; // Keep an empty frame available for the next drop.
     let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
     for (const member of members) {
-      const badge = amazonBadgeLayout(member);
+      const badge = productBadgeLayout(member);
       const boxes = [member];
       if (badge) {
         boxes.push(badge);

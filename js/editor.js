@@ -1,30 +1,30 @@
-import { exportGroup, GROUP_PREFIX } from './group-transfer.js?v=mw6xpxbq';
-import { notify } from './notifications.js?v=mw6xpxbq';
-import { githubRepository } from './github-repo.js?v=mw6xpxbq';
-import { updateGitHubCard } from './github-cards.js?v=mw6xpxbq';
-import { alignmentPlan } from './alignment.js?v=mw6xpxbq';
-import { labelLayout } from './labels.js?v=mw6xpxbq';
-import { amazonBadgeLayout } from './amazon.js?v=mw6xpxbq';
-import { freeDropPosition } from './placement.js?v=mw6xpxbq';
+import { exportGroup, GROUP_PREFIX } from './group-transfer.js?v=mwag82om';
+import { notify } from './notifications.js?v=mwag82om';
+import { githubRepository } from './github-repo.js?v=mwag82om';
+import { updateGitHubCard } from './github-cards.js?v=mwag82om';
+import { alignmentPlan } from './alignment.js?v=mwag82om';
+import { labelLayout } from './labels.js?v=mwag82om';
+import { productBadgeLayout } from './products.js?v=mwag82om';
+import { freeDropPosition } from './placement.js?v=mwag82om';
 // Edit mode: one popup (modal <dialog>) to change a block's text and link.
 // Opened by the 📝 button, a click on a label, Enter, or a double-click on a block with no link.
 //  - the text field is hidden for image blocks (they have no text)
 //  - the link field is hidden for YouTube blocks (their link is the video itself)
-//  - when the link is an Amazon address the popup becomes "Produit Amazon": name, price and
+//  - when the link is a product address the popup shows its brand: name, price and
 //    delivery time fields appear (typed by hand, shown in the block's label)
 // It closes only with the Annuler / Valider buttons (Ctrl+Enter, or Enter in a one-line field, also validate).
-import { state, getNode, emit, membersOf, fitGroupsAround, containingGroups, saveNow } from './state.js?v=mw6xpxbq';
-import { shortenAmazon, shortenAmazonText, isAmazonUrl, isAmazonText } from './amazon.js?v=mw6xpxbq';
-import { youTubeId } from './yt.js?v=mw6xpxbq';
-import { addImageFile, imageFor, fitNodeImage } from './images.js?v=mw6xpxbq';
+import { state, getNode, emit, membersOf, fitGroupsAround, containingGroups, saveNow } from './state.js?v=mwag82om';
+import { shortenProduct, shortenProductText, isProductUrl, isProductText, productBrand } from './products.js?v=mwag82om';
+import { youTubeId } from './yt.js?v=mwag82om';
+import { addImageFile, imageFor, fitNodeImage } from './images.js?v=mwag82om';
 
-import { genericLink } from './links.js?v=mw6xpxbq';
+import { genericLink } from './links.js?v=mwag82om';
 
-import { isLocked } from './mobile-mode.js?v=mw6xpxbq';
+import { isLocked } from './mobile-mode.js?v=mwag82om';
 
-import { serviceForNode } from './services.js?v=mw6xpxbq';
-import { deliveryDelay } from './delivery.js?v=mw6xpxbq';
-import { googleMapsEmbed } from './google-maps.js?v=mw6xpxbq';
+import { serviceForNode } from './services.js?v=mwag82om';
+import { deliveryDelay } from './delivery.js?v=mwag82om';
+import { googleMapsEmbed } from './google-maps.js?v=mwag82om';
 
 const dlg = document.getElementById('textdialog');
 const title = document.getElementById('dialog-title');
@@ -95,17 +95,19 @@ function setPendingImage(file) {
 
 export function isEditing() { return editingId !== null; }
 
-// Special Amazon mode, while the block's text is an Amazon address (the text IS the link then,
+// Product mode, while the block's text is a product address (the text IS the link then,
 // so the separate link field is hidden), or the link field holds one (image blocks have no text).
 // Shows the product fields and the special look.
-function refreshAmazon() {
-  const amazonText = !textField.hidden && !isGroup && !isApplication && isAmazonText(shortenAmazonText(el.value));
-  linkField.hidden = ytBlock || amazonText;
-  const amazonLink = !linkField.hidden && isAmazonUrl(normalizeLink(linkEl.value) || '');
-  const on = amazonText || amazonLink;
+function refreshProduct() {
+  const productText = !textField.hidden && !isGroup && !isApplication && isProductText(el.value);
+  linkField.hidden = ytBlock || productText;
+  const address = productText ? el.value.trim() : linkField.hidden ? '' : normalizeLink(linkEl.value);
+  const brand = productBrand(address);
+  const on = !!brand;
   amazonBox.hidden = !on;
-  dlg.classList.toggle('amazon', on);
-  title.textContent = on ? 'Produit Amazon' : isGroup ? 'Modifier le groupe' : isApplication ? 'Modifier l’application' : 'Modifier le bloc';
+  dlg.classList.toggle('amazon', brand?.id === 'amazon');
+  dlg.classList.toggle('aliexpress', brand?.id === 'aliexpress');
+  title.textContent = on ? 'Produit ' + brand.name : isGroup ? 'Modifier le groupe' : isApplication ? 'Modifier l’application' : 'Modifier le bloc';
 }
 
 // focus: 'text' or 'link' — which field gets the cursor (when both are shown).
@@ -139,7 +141,7 @@ export function startEdit(id, focus = 'text') {
   releasePending();
   imageField.hidden = ytBlock; // a YouTube block shows its video thumbnail
   showCurrentImage(n);
-  refreshAmazon();
+  refreshProduct();
   document.getElementById('github-refresh').hidden = !githubRepository(n.link || n.text);
   dlg.showModal();
   const target = textField.hidden || (focus === 'link' && !linkField.hidden) ? linkEl : el;
@@ -148,7 +150,7 @@ export function startEdit(id, focus = 'text') {
 }
 
 // '' (no link), a valid http(s) URL, or undefined (invalid). "example.com" gets https://.
-// Amazon product links are shortened.
+// Product links are shortened.
 export function normalizeLink(raw) {
   const map = googleMapsEmbed(raw);
   if (map) return map;
@@ -156,7 +158,7 @@ export function normalizeLink(raw) {
   if (!s) return '';
   const full = /^https?:\/\//i.test(s) ? s : /^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(s) ? 'https://' + s : null;
   if (!full || full.length > 2000) return undefined;
-  try { return shortenAmazon(full); } catch { return undefined; }
+  try { return shortenProduct(full); } catch { return undefined; }
 }
 
 // Sets (or removes, when empty) an optional text field of the block. Returns true if it changed.
@@ -208,7 +210,7 @@ export function stopEdit(commit) {
   }
   let text = n.text;
   if (!textField.hidden) {
-    text = isGroup ? el.value : shortenAmazonText(el.value);
+    text = isGroup ? el.value : shortenProductText(el.value);
     if (text !== n.text) { n.text = text; changed = true; }
     if (n.application) n.application.label = text.trim().slice(0,100) || 'Application';
   }
@@ -221,11 +223,11 @@ export function stopEdit(commit) {
   if (pastedLink) {
     n.link = pastedLink; n.text = ''; text = ''; link = pastedLink; changed = true;
   }
-  // Product details only make sense on an Amazon address (text or link): cleared otherwise.
-  const amazon = (!isGroup && isAmazonText(text)) || (!!link && isAmazonUrl(link));
-  changed = setField(n, 'name', amazon ? nameEl.value : '') || changed;
-  changed = setField(n, 'price', amazon ? priceEl.value : '') || changed;
-  changed = setField(n, 'delivery', amazon ? (deliveryDelay(deliveryEl.value) || deliveryEl.value) : '') || changed;
+  // Product details only make sense on a product address (text or link): cleared otherwise.
+  const product = (!isGroup && isProductText(text)) || (!!link && isProductUrl(link));
+  changed = setField(n, 'name', product ? nameEl.value : '') || changed;
+  changed = setField(n, 'price', product ? priceEl.value : '') || changed;
+  changed = setField(n, 'delivery', product ? (deliveryDelay(deliveryEl.value) || deliveryEl.value) : '') || changed;
   if (!imageField.hidden) {
     if (pendingFile) {
       // Stored asynchronously (IndexedDB): the block is updated once the image is saved.
@@ -305,9 +307,9 @@ for (const input of [linkEl, nameEl, priceEl, deliveryEl]) {
 }
 linkEl.addEventListener('input', () => {
   errEl.hidden = true;
-  refreshAmazon();
+  refreshProduct();
 });
-el.addEventListener('input', refreshAmazon);
+el.addEventListener('input', refreshProduct);
 
 // Image: pick a file, or paste an image (Ctrl+V) anywhere in the popup.
 pickBtn.addEventListener('click', () => { fileEl.value = ''; fileEl.click(); });
@@ -329,7 +331,7 @@ dlg.addEventListener('paste', (e) => {
 });
 
 function alignmentBounds(n) {
-  const boxes=[n,labelLayout(n),amazonBadgeLayout(n)].filter(Boolean);
+  const boxes=[n,labelLayout(n),productBadgeLayout(n)].filter(Boolean);
   const x=Math.min(...boxes.map(b=>b.x)),y=Math.min(...boxes.map(b=>b.y));
   return {x,y,w:Math.max(...boxes.map(b=>b.x+b.w))-x,h:Math.max(...boxes.map(b=>b.y+b.h))-y};
 }

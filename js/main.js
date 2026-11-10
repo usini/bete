@@ -1,19 +1,19 @@
-import { flyTo, flyToBlock } from './camera.js?v=mw6xpxbq';
-import { externalMode, githubBoard, loadGithubBoard } from './external-board.js?v=mw6xpxbq';
+import { flyTo, flyToBlock } from './camera.js?v=mwag82om';
+import { externalMode, githubBoard, loadGithubBoard } from './external-board.js?v=mwag82om';
 // Bootstrap: load the saved board, wire the UI, start rendering.
-import { loadFromStorage, saveNow, setDoc, events, getNode, state } from './state.js?v=mw6xpxbq';
-import { resize, requestRender } from './render.js?v=mw6xpxbq';
-import { initInput } from './input.js?v=mw6xpxbq';
-import { initCommandSearch } from './command-search.js?v=mw6xpxbq';
-import { initPanel } from './panel.js?v=mw6xpxbq';
-import { initMinimap } from './minimap.js?v=mw6xpxbq';
-import { initClock } from './clock.js?v=mw6xpxbq';
-import { initHistory } from './history.js?v=mw6xpxbq';
-import { initGroupSharing } from './group-share.js?v=mw6xpxbq';
-import { initGroupShareUI } from './group-share-ui.js?v=mw6xpxbq';
+import { loadFromStorage, saveNow, setDoc, events, getNode, state } from './state.js?v=mwag82om';
+import { resize, requestRender } from './render.js?v=mwag82om';
+import { initInput } from './input.js?v=mwag82om';
+import { initCommandSearch } from './command-search.js?v=mwag82om';
+import { initPanel } from './panel.js?v=mwag82om';
+import { initMinimap } from './minimap.js?v=mwag82om';
+import { initClock } from './clock.js?v=mwag82om';
+import { initHistory } from './history.js?v=mwag82om';
+import { initGroupSharing } from './group-share.js?v=mwag82om';
+import { initGroupShareUI } from './group-share-ui.js?v=mwag82om';
 
-import { initMobileMode } from './mobile-mode.js?v=mw6xpxbq';
-import { localStorageFailed } from './local-store.js?v=mw6xpxbq';
+import { initMobileMode } from './mobile-mode.js?v=mwag82om';
+import { localStorageFailed } from './local-store.js?v=mwag82om';
 
 initMobileMode();
 if (externalMode) {
@@ -50,9 +50,9 @@ initMinimap();
 initClock();
 if (!externalMode) {
   initHistory();
-  const { initDrive } = await import('./drive.js?v=mw6xpxbq');
+  const { initDrive } = await import('./drive.js?v=mwag82om');
   if (window.__BETE_ANDROID_NATIVE__) {
-    const { initAndroid } = await import('./android.js?v=mw6xpxbq');
+    const { initAndroid } = await import('./android.js?v=mwag82om');
     await initAndroid();
   } else if (window.__TAURI__) {
     const driveSection = document.getElementById('drive-status').closest('section');
@@ -62,10 +62,10 @@ if (!externalMode) {
       driveSection.hidden = false;
       initDrive();
     }).catch(console.error);
-    import('./desktop.js?v=mw6xpxbq').then(({ initDesktop }) => initDesktop());
+    import('./desktop.js?v=mwag82om').then(({ initDesktop }) => initDesktop());
   } else {
     initDrive();
-    const { initDesktopCalendar } = await import('./calendar.js?v=mw6xpxbq');
+    const { initDesktopCalendar } = await import('./calendar.js?v=mwag82om');
     await initDesktopCalendar();
   }
   initGroupSharing();

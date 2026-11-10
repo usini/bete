@@ -1,41 +1,41 @@
-import { optimizeBoardImages } from './optimize.js?v=mw6xpxbq';
-import { saveNow } from './state.js?v=mw6xpxbq';
-import { showLinkByDefault } from './link-label-default.js?v=mw6xpxbq';
-import { cleanXtool, xtoolSummary } from './xtool.js?v=mw6xpxbq';
-import { pasteGroup } from './group-transfer.js?v=mw6xpxbq';
-import { addSteamBlock, dropApplicationFile, openApplication } from './applications.js?v=mw6xpxbq';
-import { steamApplicationUri } from './application-model.js?v=mw6xpxbq';
-import { updateGitHubCard } from './github-cards.js?v=mw6xpxbq';
-import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mw6xpxbq';
-import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mw6xpxbq';
-import { externalMode } from './external-board.js?v=mw6xpxbq';
+import { optimizeBoardImages } from './optimize.js?v=mwag82om';
+import { saveNow } from './state.js?v=mwag82om';
+import { showLinkByDefault } from './link-label-default.js?v=mwag82om';
+import { cleanXtool, xtoolSummary } from './xtool.js?v=mwag82om';
+import { pasteGroup } from './group-transfer.js?v=mwag82om';
+import { addSteamBlock, dropApplicationFile, openApplication } from './applications.js?v=mwag82om';
+import { steamApplicationUri } from './application-model.js?v=mwag82om';
+import { updateGitHubCard } from './github-cards.js?v=mwag82om';
+import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mwag82om';
+import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mwag82om';
+import { externalMode } from './external-board.js?v=mwag82om';
 // Pointer, wheel, keyboard, paste and drop handling for the canvas.
 //  - click on a label: edit popup, link field first (YouTube labels open the video instead)
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, getLastSelectedGroup, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, finishNodeCreation, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, groupHeaderBox, COLORS } from './state.js?v=mw6xpxbq';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight, flyToBlock } from './camera.js?v=mw6xpxbq';
-import { startEdit, stopEdit, isEditing, previewGroupAlignment, resizeGroupBlocks } from './editor.js?v=mw6xpxbq';
-import { addDataUrl, addImageFile, fitNodeImage, imageCaptionFraction, imageFor } from './images.js?v=mw6xpxbq';
-import { playVideo } from './video.js?v=mw6xpxbq';
-import { youTubeId, youTubeRatio } from './yt.js?v=mw6xpxbq';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mw6xpxbq';
-import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mw6xpxbq';
-import { undo, redo } from './history.js?v=mw6xpxbq';
+import { state, getNode, getSelectedId, getLastSelectedGroup, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, finishNodeCreation, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, groupHeaderBox, COLORS } from './state.js?v=mwag82om';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight, flyToBlock } from './camera.js?v=mwag82om';
+import { startEdit, stopEdit, isEditing, previewGroupAlignment, resizeGroupBlocks } from './editor.js?v=mwag82om';
+import { addDataUrl, addImageFile, fitNodeImage, imageCaptionFraction, imageFor } from './images.js?v=mwag82om';
+import { playVideo } from './video.js?v=mwag82om';
+import { youTubeId, youTubeRatio } from './yt.js?v=mwag82om';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mwag82om';
+import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mwag82om';
+import { undo, redo } from './history.js?v=mwag82om';
 
-import { setDragging } from './motion.js?v=mw6xpxbq';
+import { setDragging } from './motion.js?v=mwag82om';
 
-import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mw6xpxbq';
-import { shortenAmazonText, isAmazonUrl, amazonBadgeLayout } from './amazon.js?v=mw6xpxbq';
+import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mwag82om';
+import { shortenProductText, isProductUrl, productBadgeLayout } from './products.js?v=mwag82om';
 
-import { isLocked, setLocked, modeEvents } from './mobile-mode.js?v=mw6xpxbq';
+import { isLocked, setLocked, modeEvents } from './mobile-mode.js?v=mwag82om';
 
-import { serviceForNode } from './services.js?v=mw6xpxbq';
+import { serviceForNode } from './services.js?v=mwag82om';
 
-import { requestRender } from './render.js?v=mw6xpxbq';
+import { requestRender } from './render.js?v=mwag82om';
 
-import { notify } from './notifications.js?v=mw6xpxbq';
+import { notify } from './notifications.js?v=mwag82om';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 const CLIPBOARD_BLOCK = 'application/x-bete-clipboard-block';
@@ -225,7 +225,7 @@ function doubleAt(x, y) {
     startEdit(created.id);
     return;
   }
-  if (!n.image && isAmazonUrl(linkOf(n))) startEdit(n.id);
+  if (!n.image && isProductUrl(linkOf(n))) startEdit(n.id);
   else if (serviceForNode(n) && linkOf(n)) openLink(linkOf(n));
   else if (n.kind === 'group') startEdit(n.id);                               // group: edit its title
   else if (youTubeId(n.text)) playVideo(n);                              // YouTube: play
@@ -322,7 +322,7 @@ function onPointerMove(e) {
 }
 
 function visualBounds(node) {
-        const boxes = [node, labelLayout(node), amazonBadgeLayout(node)].filter(Boolean);
+        const boxes = [node, labelLayout(node), productBadgeLayout(node)].filter(Boolean);
         const x = Math.min(...boxes.map(b => b.x)), y = Math.min(...boxes.map(b => b.y));
         return { x, y, w: Math.max(...boxes.map(b => b.x + b.w)) - x, h: Math.max(...boxes.map(b => b.y + b.h)) - y };
 }
@@ -486,11 +486,11 @@ export function initInput() {
     if (url) {
       const n = addNode('rect', w.x, w.y);
       if (genericLink(url)) { n.link = url; n.text = droppedTitle(e.dataTransfer, url); }
-      else n.text = shortenAmazonText(url);
+      else n.text = shortenProductText(url);
       if (showLinkByDefault(url)) delete n.hideLinkLabel;
       emit();
       updateGitHubCard(n);
-      if (isAmazonUrl(url)) startEdit(n.id);
+      if (isProductUrl(url)) startEdit(n.id);
     }
   });
 
@@ -526,7 +526,7 @@ export function initInput() {
     if (isProductClipboard(productText)) {
       e.preventDefault();
       const product = parseProductClipboard(productText);
-      if (!product) { notify('Bloc Amazon invalide ou trop volumineux.'); return; }
+      if (!product) { notify('Bloc produit invalide ou trop volumineux.'); return; }
       const center = screenToWorld(view.w / 2, view.h / 2);
       if (product.image) {
         try { product.image = await addDataUrl(product.image); }
@@ -577,13 +577,13 @@ export function initInput() {
         if (plainLink(selected.text)) selected.text = '';
         selected.link = url;
       } else {
-        selected.text = shortenAmazonText(url);
+        selected.text = shortenProductText(url);
         delete selected.link;
       }
       if (showLinkByDefault(url)) delete selected.hideLinkLabel;
       emit();
       updateGitHubCard(selected);
-      if (isAmazonUrl(url)) startEdit(selected.id);
+      if (isProductUrl(url)) startEdit(selected.id);
       return;
     }
     const file = [...(e.clipboardData ? e.clipboardData.files : [])].find((f) => f.type.startsWith('image/'));
@@ -597,11 +597,11 @@ export function initInput() {
     e.preventDefault();
     const n = addNode('rect', c.x, c.y);
     if (url && genericLink(url)) { n.link = url; n.text = droppedTitle(e.clipboardData, url); }
-    else n.text = url ? shortenAmazonText(url) : pasted.slice(0, 20000);
+    else n.text = url ? shortenProductText(url) : pasted.slice(0, 20000);
     if (url && showLinkByDefault(url)) delete n.hideLinkLabel;
     emit();
     if (url) updateGitHubCard(n);
-    if (url && isAmazonUrl(url)) startEdit(n.id);
+    if (url && isProductUrl(url)) startEdit(n.id);
   });
 
   let saving = false;

@@ -18,6 +18,8 @@ test('YouTube and Facebook are restricted to the homepage, X to /home', () => {
 test('app entry points are recognized while documents, profiles, songs and repositories stay links', () => {
   const cases = [
     ['https://drive.google.com/drive/u/1/my-drive','googledrive'],
+    ['https://drive.google.com/file/d/123/view?usp=sharing','googledrive'],
+    ['https://drive.google.com/drive/u/1/folders/123?resourcekey=example#view','googledrive'],
     ['https://calendar.google.com/calendar/u/0/r','googlecalendar'],
     ['https://www.google.com/maps','googlemaps'],
     ['https://docs.google.com/document/u/0/','googledocs'],
@@ -30,7 +32,7 @@ test('app entry points are recognized while documents, profiles, songs and repos
     ['https://www.reddit.com/','reddit'],['https://www.twitch.tv/','twitch'],['https://web.telegram.org/k/','telegram'],
   ];
   for (const [url,id] of cases) assert.equal(serviceForUrl(url).id,id,url);
-  for (const url of ['https://docs.google.com/document/d/private/edit','https://drive.google.com/file/d/123/view','https://instagram.com/profile','https://open.spotify.com/track/123','https://google.com/search?q=private','https://twitch.tv/channel']) assert.equal(serviceForUrl(url),null,url);
+  for (const url of ['https://docs.google.com/document/d/private/edit','https://drive.google.com.example.org/file/d/123/view','https://instagram.com/profile','https://open.spotify.com/track/123','https://google.com/search?q=private','https://twitch.tv/channel']) assert.equal(serviceForUrl(url),null,url);
 });
 
 test('lookalike domains, credentials, custom ports and non-rectangle blocks cannot get branded icons', () => {
