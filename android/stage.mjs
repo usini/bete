@@ -12,6 +12,7 @@ const manifest=new URL('app/src/main/AndroidManifest.xml',gen);
 let xml=readFileSync(manifest,'utf8');
 if(!xml.includes('android:allowBackup=')) xml=xml.replace('<application','<application android:allowBackup="false"');
 if(!xml.includes('<queries>'))xml=xml.replace('<application','<queries><intent><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent></queries>\n<application');
+xml = xml.replace(/android:label="@string\/(?:app_name|main_activity_title)"/g, 'android:label="${beteAppName}"');
 writeFileSync(manifest,xml);
 // Use the installed stable Android toolchain for this isolated prototype.
 const rootGradle=new URL('build.gradle.kts',gen);
@@ -20,8 +21,23 @@ const wrapper=new URL('gradle/wrapper/gradle-wrapper.properties',gen);
 writeFileSync(wrapper,readFileSync(wrapper,'utf8').replace(/gradle-[\d.]+-bin.zip/,'gradle-8.14.3-bin.zip'));
 const appGradle=new URL('app/build.gradle.kts',gen);
 let gradle=readFileSync(appGradle,'utf8').replace('compileSdk = 37','compileSdk = 36').replace('targetSdk = 37','targetSdk = 35').replace(/optimization\s*\{\s*enable = true\s*\}/,'isMinifyEnabled = true');
+// Keep the Kotlin/JNI namespace fixed. Only the installed app identity changes.
+const distribution = 'providers.environmentVariable("BETE_ANDROID_RELEASE").orNull == "1"';
+gradle = gradle.replace(
+  'applicationId = "eu.usini.bete2.android.proto"',
+  `applicationId = if (${distribution}) "eu.usini.bete2.android" else "eu.usini.bete2.android.proto"`,
+);
+if (!gradle.includes('manifestPlaceholders["beteAppName"]')) {
+  gradle = gradle.replace('defaultConfig {', `defaultConfig {
+        manifestPlaceholders["beteAppName"] = if (${distribution}) "Bête" else "Bête Proto"`);
+}
 writeFileSync(appGradle,gradle);
-console.log('Prototype Android préparé, sans installation sur le téléphone.');
+
+// The Rust bridge loads the Kotlin plugin by its class name.
+const proguard = new URL('app/proguard-rules.pro', gen);
+const keepPlugin = '-keep class eu.usini.bete2.android.proto.BetePlugin { *; }';
+const rules = readFileSync(proguard, 'utf8');
+if (!rules.includes(keepPlugin)) writeFileSync(proguard, rules + '\n' + keepPlugin + '\n');
 
 const buildSrc=new URL('buildSrc/build.gradle.kts',gen);
 writeFileSync(buildSrc,readFileSync(buildSrc,'utf8').replace(/gradle:[^"]+/, 'gradle:8.11.0'));
@@ -39,3 +55,4 @@ if(!dependencies.includes('play-services-auth:')) dependencies=dependencies.repl
 writeFileSync(appGradle,dependencies);
 
 cpSync(new URL('./native/launcher/',import.meta.url),new URL('app/src/main/res/',gen),{recursive:true});
+console.log('Sources Android préparées.');

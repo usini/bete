@@ -1,0 +1,154 @@
+name: Publier Bête Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version Android au format X.Y.Z
+        required: true
+        type: string
+      publish:
+        description: Publier la préversion sur GitHub Releases
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bete-android-release
+
+jobs:
+  build:
+    if: github.repository == 'usini/bete' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment: android-release
+    env:
+      BETE_ANDROID_RELEASE: '1'
+      BETE_ANDROID_VERSION: ${{ inputs.version }}
+      NDK_VERSION: '27.0.12077973'
+      BUILD_TOOLS_VERSION: '36.0.0'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-tags: true
+
+      - name: Vérifier la version
+        shell: bash
+        run: |
+          version="$BETE_ANDROID_VERSION"
+          if [[ ! "$version" =~ ^(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})$ || "$version" == 0.0.0 ]]; then
+            echo 'Version attendue au format X.Y.Z (0 à 999 par segment, hors 0.0.0).' >&2
+            exit 1
+          fi
+          if git show-ref --verify --quiet "refs/tags/bete-android-v$version"; then
+            echo 'Ce tag Android existe déjà.' >&2
+            exit 1
+          fi
+          latest=$(git for-each-ref --count=1 --sort=-version:refname --format='%(refname:short)' 'refs/tags/bete-android-v*')
+          if [[ -n "$latest" && "$(printf '%s\n' "$latest" "bete-android-v$version" | sort -V | tail -n 1)" == "$latest" ]]; then
+            echo "La version doit être supérieure à ${latest#bete-android-v}." >&2
+            exit 1
+          fi
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+
+      - name: Préparer les outils Android
+        shell: bash
+        run: |
+          echo "JAVA_HOME=$JAVA_HOME_21_X64" >> "$GITHUB_ENV"
+          export JAVA_HOME="$JAVA_HOME_21_X64"
+          sdkmanager --install "platforms;android-36" "build-tools;$BUILD_TOOLS_VERSION" "ndk;$NDK_VERSION"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+          rustup target add aarch64-linux-android
+          npm ci --ignore-scripts --prefix desktop
+
+      - name: Compiler l’APK ARM64
+        working-directory: android
+        shell: bash
+        run: |
+          tauri=../desktop/node_modules/.bin/tauri
+          "$tauri" android init --ci --skip-targets-install
+          config=$(node -p 'JSON.stringify({version:process.env.BETE_ANDROID_VERSION})')
+          "$tauri" android build --apk --target aarch64 --split-per-abi --ci --config "$config"
+
+      - name: Signer et vérifier l’APK
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 || secrets.ANDROID_CERT_SHA256 }}
+        run: |
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_STORE_PASSWORD ANDROID_KEY_PASSWORD ANDROID_CERT_SHA256; do
+            if [[ -z "${!name}" ]]; then
+              echo "Configuration manquante dans android-release ($name)." >&2
+              exit 1
+            fi
+          done
+          umask 077
+          keystore=$(mktemp)
+          trap 'rm -f "$keystore"' EXIT
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          build_tools="$ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION"
+          version="$BETE_ANDROID_VERSION"
+          apk="Bete-Android-$version-arm64.apk"
+          input=android/src-tauri/gen/android/app/build/outputs/apk/arm64/release/app-arm64-release-unsigned.apk
+          mkdir -p android-release
+          "$build_tools/apksigner" sign --ks "$keystore" --ks-key-alias bete-android \
+            --ks-pass env:ANDROID_STORE_PASSWORD --key-pass env:ANDROID_KEY_PASSWORD \
+            --out "android-release/$apk" "$input"
+          verification=$("$build_tools/apksigner" verify --print-certs "android-release/$apk")
+          digest=$(printf '%s\n' "$verification" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          expected=$(printf '%s' "$ANDROID_CERT_SHA256" | tr -d ':[:space:]' | tr 'A-F' 'a-f')
+          [[ "$digest" == "$expected" ]] || { echo 'Certificat Android inattendu.' >&2; exit 1; }
+          badging=$("$build_tools/aapt" dump badging "android-release/$apk")
+          IFS=. read -r major minor patch <<< "$version"
+          code=$((major * 1000000 + minor * 1000 + patch))
+          grep -Fq "package: name='eu.usini.bete2.android' versionCode='$code' versionName='$version'" <<< "$badging"
+          grep -Fq "native-code: 'arm64-v8a'" <<< "$badging"
+          if grep -q '^application-debuggable' <<< "$badging"; then
+            echo 'APK débogable refusé.' >&2
+            exit 1
+          fi
+          sha=$(sha256sum "android-release/$apk" | cut -d ' ' -f1)
+          node -e '
+            const [apk, versionCode, sha256] = process.argv.slice(1);
+            const version = process.env.BETE_ANDROID_VERSION;
+            const url = "https://github.com/usini/bete/releases/download/bete-android-v" + version + "/" + apk;
+            process.stdout.write(JSON.stringify({ version, versionCode: Number(versionCode), url, sha256 }, null, 2) + "\n");
+          ' "$apk" "$code" "$sha" > android-release/bete-android-update.json
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: bete-android-release
+          path: android-release/
+          if-no-files-found: error
+          retention-days: 3
+
+  publish:
+    if: inputs.publish
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: bete-android-release
+          path: android-release
+
+      - name: Publier le téléchargement Android
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BETE_ANDROID_VERSION: ${{ inputs.version }}
+        run: |
+          version="$BETE_ANDROID_VERSION"
+          gh release create "bete-android-v$version" \
+            "android-release/Bete-Android-$version-arm64.apk" android-release/bete-android-update.json \
+            --repo usini/bete --target "$GITHUB_SHA" --prerelease --latest=false \
+            --title "Bête Android $version" --notes 'APK Android ARM64 pour installation directe.'
