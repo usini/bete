@@ -42,6 +42,14 @@ if (!rules.includes(keepPlugin)) writeFileSync(proguard, rules + '\n' + keepPlug
 const buildSrc=new URL('buildSrc/build.gradle.kts',gen);
 writeFileSync(buildSrc,readFileSync(buildSrc,'utf8').replace(/gradle:[^"]+/, 'gradle:8.11.0'));
 
+// The generated Gradle task runs Node from android/src-tauri. Resolve the shared CLI from there.
+const buildTask = new URL('buildSrc/src/main/java/eu/usini/bete2/android/proto/kotlin/BuildTask.kt', gen);
+const task = readFileSync(buildTask, 'utf8');
+writeFileSync(buildTask, task.replace(
+  'listOf("tauri", "android", "android-studio-script")',
+  'listOf("../../desktop/node_modules/@tauri-apps/cli/tauri.js", "android", "android-studio-script")',
+));
+
 const props=new URL('gradle.properties',gen);
 let properties=readFileSync(props,'utf8');
 if(!properties.includes('android.useAndroidX=true')) properties+='\nandroid.useAndroidX=true\norg.gradle.configuration-cache=false\n';
