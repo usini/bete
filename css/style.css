@@ -279,6 +279,9 @@ html, body {
   background: #000;
 }
 .vp iframe { width: 100%; height: 100%; border: 0; display: block; }
+.vp-music { right: 12px; bottom: 12px; width: min(356px, calc(100vw - 24px)); border: 1px solid var(--line); }
+.vp-music iframe { aspect-ratio: 16 / 9; height: auto; min-height: 200px; }
+.vp-music > div { display: flex; justify-content: center; gap: 8px; padding: 5px; }
 .vp-x {
   position: absolute;
   top: 4px;

@@ -1,5 +1,5 @@
-import ICAL from './vendor/ical.min.js?v=mwt2c0kj';
-import { cleanCalendarSnapshot } from './calendar-snapshot.js?v=mwt2c0kj';
+import ICAL from './vendor/ical.min.js?v=mwt31xgb';
+import { cleanCalendarSnapshot } from './calendar-snapshot.js?v=mwt31xgb';
 
 const day = (date, offset = 0) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + offset);
 const month = (date, offset = 0) => new Date(date.getFullYear(), date.getMonth() + offset, 1);
@@ -41,7 +41,7 @@ export function calendarEvents(source, from, until) {
 }
 
 export async function initDesktopCalendar(invoke) {
-  const { state, events: changes, emit } = await import('./state.js?v=mwt2c0kj');
+  const { state, events: changes, emit } = await import('./state.js?v=mwt31xgb');
   const trigger = document.createElement('button');
   trigger.type = 'button';
   trigger.id = 'clock-calendar';

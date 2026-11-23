@@ -1,4 +1,4 @@
-import { isAmazonHome, isAmazonUrl, shortenAmazon } from './amazon.js?v=mwt2c0kj';
+import { isAmazonHome, isAmazonUrl, shortenAmazon } from './amazon.js?v=mwt31xgb';
 
 const brands = {
   amazon: { id: 'amazon', name: 'Amazon' },

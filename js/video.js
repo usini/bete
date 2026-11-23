@@ -1,8 +1,8 @@
 // Inline YouTube player: an iframe laid over the block, following the camera.
 // Only one player at a time. Started by a click on a selected video block.
-import { state, getNode } from './state.js?v=mwt2c0kj';
-import { worldToScreen, view } from './camera.js?v=mwt2c0kj';
-import { youTubeId, ytEmbed } from './yt.js?v=mwt2c0kj';
+import { state, getNode } from './state.js?v=mwt31xgb';
+import { worldToScreen, view } from './camera.js?v=mwt31xgb';
+import { youTubeId, ytEmbed } from './yt.js?v=mwt31xgb';
 
 let activeId = null;
 let wrap = null;
@@ -19,13 +19,37 @@ export function playVideo(n) {
   const frame = document.createElement('iframe');
   frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
   frame.allowFullscreen = true;
-  frame.src = ytEmbed(vid);
+  const url = new URL(ytEmbed(vid));
+  if (n.musicMode) {
+    url.searchParams.set('enablejsapi', '1');
+    url.searchParams.set('origin', location.origin);
+  }
+  frame.title = 'Lecteur YouTube';
+  frame.src = url.href;
   const close = document.createElement('button');
   close.className = 'vp-x';
   close.textContent = '✕';
   close.title = 'Fermer la vidéo';
   close.addEventListener('click', (e) => { e.stopPropagation(); stopVideo(); });
-  wrap.append(frame, close);
+  if (n.musicMode) {
+    wrap.classList.add('vp-music');
+    const controls = document.createElement('div');
+    for (const [label, command] of [['▶ Lire', 'playVideo'], ['⏸ Pause', 'pauseVideo']]) {
+      const button = document.createElement('button');
+      button.textContent = label;
+      button.onclick = () => frame.contentWindow.postMessage(JSON.stringify({
+        event: 'command', func: command, args: [],
+      }), url.origin);
+      controls.append(button);
+    }
+    close.className = '';
+    close.textContent = '■ Stop';
+    close.title = 'Arrêter et fermer le lecteur';
+    controls.append(close);
+    wrap.append(frame, controls);
+  } else {
+    wrap.append(frame, close);
+  }
   document.body.append(wrap);
   positionVideo();
 }
@@ -40,6 +64,7 @@ export function positionVideo() {
   if (!wrap) return;
   const n = getNode(activeId);
   if (!n || !youTubeId(n.text)) { stopVideo(); return; }
+  if (wrap.classList.contains('vp-music')) return;
   const z = state.camera.zoom;
   const p = worldToScreen(n.x, n.y);
   const w = n.w * z, h = n.h * z;

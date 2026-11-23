@@ -1,11 +1,11 @@
-import { exportGroup, GROUP_PREFIX } from './group-transfer.js?v=mwt2c0kj';
-import { notify } from './notifications.js?v=mwt2c0kj';
-import { githubRepository } from './github-repo.js?v=mwt2c0kj';
-import { updateGitHubCard } from './github-cards.js?v=mwt2c0kj';
-import { alignmentPlan } from './alignment.js?v=mwt2c0kj';
-import { labelLayout } from './labels.js?v=mwt2c0kj';
-import { productBadgeLayout } from './products.js?v=mwt2c0kj';
-import { freeDropPosition } from './placement.js?v=mwt2c0kj';
+import { exportGroup, GROUP_PREFIX } from './group-transfer.js?v=mwt31xgb';
+import { notify } from './notifications.js?v=mwt31xgb';
+import { githubRepository } from './github-repo.js?v=mwt31xgb';
+import { updateGitHubCard } from './github-cards.js?v=mwt31xgb';
+import { alignmentPlan } from './alignment.js?v=mwt31xgb';
+import { labelLayout } from './labels.js?v=mwt31xgb';
+import { productBadgeLayout } from './products.js?v=mwt31xgb';
+import { freeDropPosition } from './placement.js?v=mwt31xgb';
 // Edit mode: one popup (modal <dialog>) to change a block's text and link.
 // Opened by the 📝 button, a click on a label, Enter, or a double-click on a block with no link.
 //  - the text field is hidden for image blocks (they have no text)
@@ -13,18 +13,18 @@ import { freeDropPosition } from './placement.js?v=mwt2c0kj';
 //  - when the link is a product address the popup shows its brand: name, price and
 //    delivery time fields appear (typed by hand, shown in the block's label)
 // It closes only with the Annuler / Valider buttons (Ctrl+Enter, or Enter in a one-line field, also validate).
-import { state, getNode, emit, membersOf, fitGroupsAround, containingGroups, saveNow } from './state.js?v=mwt2c0kj';
-import { shortenProduct, shortenProductText, isProductUrl, isProductText, productBrand } from './products.js?v=mwt2c0kj';
-import { youTubeId } from './yt.js?v=mwt2c0kj';
-import { addImageFile, imageFor, fitNodeImage } from './images.js?v=mwt2c0kj';
+import { state, getNode, emit, membersOf, fitGroupsAround, containingGroups, saveNow } from './state.js?v=mwt31xgb';
+import { shortenProduct, shortenProductText, isProductUrl, isProductText, productBrand } from './products.js?v=mwt31xgb';
+import { youTubeId } from './yt.js?v=mwt31xgb';
+import { addImageFile, imageFor, fitNodeImage } from './images.js?v=mwt31xgb';
 
-import { genericLink } from './links.js?v=mwt2c0kj';
+import { genericLink } from './links.js?v=mwt31xgb';
 
-import { isLocked } from './mobile-mode.js?v=mwt2c0kj';
+import { isLocked } from './mobile-mode.js?v=mwt31xgb';
 
-import { serviceForNode } from './services.js?v=mwt2c0kj';
-import { deliveryDelay } from './delivery.js?v=mwt2c0kj';
-import { googleMapsEmbed } from './google-maps.js?v=mwt2c0kj';
+import { serviceForNode } from './services.js?v=mwt31xgb';
+import { deliveryDelay } from './delivery.js?v=mwt31xgb';
+import { googleMapsEmbed } from './google-maps.js?v=mwt31xgb';
 
 const dlg = document.getElementById('textdialog');
 const title = document.getElementById('dialog-title');
@@ -33,6 +33,7 @@ const linkField = document.getElementById('link-field');
 const amazonBox = document.getElementById('amazon-fields');
 const el = document.getElementById('editor');
 const linkEl = document.getElementById('linkinput');
+const musicMode = document.getElementById('music-mode');
 const hideLinkLabel = document.getElementById('hide-link-label');
 const errEl = document.getElementById('link-error');
 const nameEl = document.getElementById('am-name');
@@ -133,6 +134,8 @@ export function startEdit(id, focus = 'text') {
   el.value = n.text;
   linkEl.value = n.link || '';
   hideLinkLabel.closest('label').hidden = isGroup || isApplication;
+  musicMode.closest('label').hidden = isGroup || isApplication || !ytBlock;
+  musicMode.checked = n.musicMode === true;
   hideLinkLabel.checked = n.hideLinkLabel === true;
   nameEl.value = n.name || '';
   priceEl.value = n.price || '';
@@ -222,6 +225,12 @@ export function stopEdit(commit) {
   const pastedLink = !isGroup && n.kind === 'rect' && genericLink(n.text);
   if (pastedLink) {
     n.link = pastedLink; n.text = ''; text = ''; link = pastedLink; changed = true;
+  }
+  const music = !isGroup && !!youTubeId(n.text) && musicMode.checked;
+  if (music !== (n.musicMode === true)) {
+    if (music) n.musicMode = true;
+    else delete n.musicMode;
+    changed = true;
   }
   // Product details only make sense on a product address (text or link): cleared otherwise.
   const product = (!isGroup && isProductText(text)) || (!!link && isProductUrl(link));

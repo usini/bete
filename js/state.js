@@ -1,15 +1,15 @@
-import { creationSize, freeCreationPosition } from './creation.js?v=mwt2c0kj';
-import { cleanCalendarSnapshot } from './calendar-snapshot.js?v=mwt2c0kj';
-import { cleanXtool } from './xtool.js?v=mwt2c0kj';
-import { cleanApplication } from './application-model.js?v=mwt2c0kj';
-import { cleanGitHubData } from './github-repo.js?v=mwt2c0kj';
-import { productBadgeLayout } from './products.js?v=mwt2c0kj';
-import { labelLayout } from './labels.js?v=mwt2c0kj';
-import { externalMode } from './external-board.js?v=mwt2c0kj';
-import { localStore } from './local-store.js?v=mwt2c0kj';
+import { creationSize, freeCreationPosition } from './creation.js?v=mwt31xgb';
+import { cleanCalendarSnapshot } from './calendar-snapshot.js?v=mwt31xgb';
+import { cleanXtool } from './xtool.js?v=mwt31xgb';
+import { cleanApplication } from './application-model.js?v=mwt31xgb';
+import { cleanGitHubData } from './github-repo.js?v=mwt31xgb';
+import { productBadgeLayout } from './products.js?v=mwt31xgb';
+import { labelLayout } from './labels.js?v=mwt31xgb';
+import { externalMode } from './external-board.js?v=mwt31xgb';
+import { localStore } from './local-store.js?v=mwt31xgb';
 // Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mwt2c0kj';
+import { explode } from './fx.js?v=mwt31xgb';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];
@@ -78,6 +78,7 @@ export function sanitizeNode(raw) {
     text: typeof raw.text === 'string' ? raw.text.slice(0, LIMITS.text) : '',
     color: raw.color === 'transparent' ? 'transparent' : /^#[0-9a-f]{6}$/i.test(raw.color) ? raw.color : DEFAULT_COLOR,
   };
+  if (kind !== 'group' && raw.musicMode === true) n.musicMode = true;
   if (kind !== 'group' && raw.hideLinkLabel === true) n.hideLinkLabel = true;
   if (kind === 'group' && typeof raw.shareId === 'string' && /^[a-zA-Z0-9_-]{8,80}$/.test(raw.shareId)) n.shareId = raw.shareId;
   if (typeof raw.image === 'string' && raw.image.length < LIMITS.dataUrl

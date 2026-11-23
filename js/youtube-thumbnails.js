@@ -1,4 +1,4 @@
-import { openDatabase } from './database.js?v=mwt2c0kj';
+import { openDatabase } from './database.js?v=mwt31xgb';
 const MAX_ENTRIES = 200, RETRY_MS = 60000;
 const images = new Map();
 const validId = id => typeof id === 'string' && /^[A-Za-z0-9_-]{11}$/.test(id);

@@ -1,5 +1,5 @@
-import { cleanApplication } from './application-model.js?v=mwt2c0kj';
-import { cleanGitHubData } from './github-repo.js?v=mwt2c0kj';
+import { cleanApplication } from './application-model.js?v=mwt31xgb';
+import { cleanGitHubData } from './github-repo.js?v=mwt31xgb';
 // Shared groups use relative geometry and a bounded last-writer-wins register per block.
 // Lamport clocks avoid depending on the devices' wall clocks. Tombstones survive reconnection.
 export const MAX_MEMBERS = 1000;
@@ -26,6 +26,7 @@ export function cleanValue(raw, root = false) {
     color: raw.color === 'transparent' ? 'transparent' : /^#[a-f0-9]{6}$/i.test(raw.color) ? raw.color.toLowerCase() : '#00b7eb',
   };
   if (validImage(raw.image)) n.image = raw.image;
+  if (n.kind !== 'group' && raw.musicMode === true) n.musicMode = true;
   if (n.kind !== 'group' && raw.hideLinkLabel === true) n.hideLinkLabel = true;
   if (typeof raw.link === 'string' && /^https?:\/\//i.test(raw.link) && raw.link.length <= 2000) n.link = raw.link;
   for (const k of ['name', 'price', 'delivery']) if (typeof raw[k] === 'string' && raw[k].trim()) n[k] = raw[k].trim().slice(0, 100);
