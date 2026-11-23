@@ -1,41 +1,41 @@
-import { optimizeBoardImages } from './optimize.js?v=mwag82om';
-import { saveNow } from './state.js?v=mwag82om';
-import { showLinkByDefault } from './link-label-default.js?v=mwag82om';
-import { cleanXtool, xtoolSummary } from './xtool.js?v=mwag82om';
-import { pasteGroup } from './group-transfer.js?v=mwag82om';
-import { addSteamBlock, dropApplicationFile, openApplication } from './applications.js?v=mwag82om';
-import { steamApplicationUri } from './application-model.js?v=mwag82om';
-import { updateGitHubCard } from './github-cards.js?v=mwag82om';
-import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mwag82om';
-import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mwag82om';
-import { externalMode } from './external-board.js?v=mwag82om';
+import { optimizeBoardImages } from './optimize.js?v=mwt1ps8b';
+import { saveNow } from './state.js?v=mwt1ps8b';
+import { showLinkByDefault } from './link-label-default.js?v=mwt1ps8b';
+import { cleanXtool, xtoolSummary } from './xtool.js?v=mwt1ps8b';
+import { pasteGroup } from './group-transfer.js?v=mwt1ps8b';
+import { addSteamBlock, dropApplicationFile, openApplication } from './applications.js?v=mwt1ps8b';
+import { steamApplicationUri } from './application-model.js?v=mwt1ps8b';
+import { updateGitHubCard } from './github-cards.js?v=mwt1ps8b';
+import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mwt1ps8b';
+import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mwt1ps8b';
+import { externalMode } from './external-board.js?v=mwt1ps8b';
 // Pointer, wheel, keyboard, paste and drop handling for the canvas.
 //  - click on a label: edit popup, link field first (YouTube labels open the video instead)
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, getLastSelectedGroup, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, finishNodeCreation, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderHeight, groupHeaderBox, COLORS } from './state.js?v=mwag82om';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight, flyToBlock } from './camera.js?v=mwag82om';
-import { startEdit, stopEdit, isEditing, previewGroupAlignment, resizeGroupBlocks } from './editor.js?v=mwag82om';
-import { addDataUrl, addImageFile, fitNodeImage, imageCaptionFraction, imageFor } from './images.js?v=mwag82om';
-import { playVideo } from './video.js?v=mwag82om';
-import { youTubeId, youTubeRatio } from './yt.js?v=mwag82om';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mwag82om';
-import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mwag82om';
-import { undo, redo } from './history.js?v=mwag82om';
+import { state, getNode, getSelectedId, getLastSelectedGroup, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, finishNodeCreation, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderBox, COLORS } from './state.js?v=mwt1ps8b';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight, flyToBlock } from './camera.js?v=mwt1ps8b';
+import { startEdit, stopEdit, isEditing, previewGroupAlignment, resizeGroupBlocks } from './editor.js?v=mwt1ps8b';
+import { addDataUrl, addImageFile, fitNodeImage, imageCaptionFraction, imageFor } from './images.js?v=mwt1ps8b';
+import { playVideo } from './video.js?v=mwt1ps8b';
+import { youTubeId, youTubeRatio } from './yt.js?v=mwt1ps8b';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mwt1ps8b';
+import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mwt1ps8b';
+import { undo, redo } from './history.js?v=mwt1ps8b';
 
-import { setDragging } from './motion.js?v=mwag82om';
+import { setDragging } from './motion.js?v=mwt1ps8b';
 
-import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mwag82om';
-import { shortenProductText, isProductUrl, productBadgeLayout } from './products.js?v=mwag82om';
+import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mwt1ps8b';
+import { shortenProductText, isProductUrl, productBadgeLayout } from './products.js?v=mwt1ps8b';
 
-import { isLocked, setLocked, modeEvents } from './mobile-mode.js?v=mwag82om';
+import { isLocked, setLocked, modeEvents } from './mobile-mode.js?v=mwt1ps8b';
 
-import { serviceForNode } from './services.js?v=mwag82om';
+import { serviceForNode } from './services.js?v=mwt1ps8b';
 
-import { requestRender } from './render.js?v=mwag82om';
+import { requestRender } from './render.js?v=mwt1ps8b';
 
-import { notify } from './notifications.js?v=mwag82om';
+import { notify } from './notifications.js?v=mwt1ps8b';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 const CLIPBOARD_BLOCK = 'application/x-bete-clipboard-block';
@@ -118,6 +118,18 @@ function pickColor(n, x, y) {
   palette.style.top = Math.max(8, Math.min(y + 8, window.innerHeight - box.height - 8)) + 'px';
 }
 
+// Only a selected frame exposes its edges, so an overlapping frame cannot steal a drag.
+function frameEdge(group, point) {
+  if (group?.kind !== 'group') return null;
+  const tolerance = Math.min(7 / state.camera.zoom, group.w / 4, group.h / 4);
+  const x = point.x - group.x, y = point.y - group.y;
+  if (x < -tolerance || y < -tolerance || x > group.w + tolerance || y > group.h + tolerance) return null;
+  const sides = [['left', Math.abs(x)], ['right', Math.abs(x - group.w)],
+    ['top', Math.abs(y)], ['bottom', Math.abs(y - group.h)]];
+  const [edge, distance] = sides.sort((a, b) => a[1] - b[1])[0];
+  return distance <= tolerance ? edge : null;
+}
+
 function onPointerDown(e) {
   // Stops the browser from moving focus after this press (it would close the editors).
   e.preventDefault();
@@ -164,6 +176,11 @@ function onPointerDown(e) {
       else if (action === 'share') document.dispatchEvent(new CustomEvent('bete-share-group', { detail: sel.id }));
       else startEdit(sel.id);                 // 📝: edit popup (text and link)
     }
+    return;
+  }
+  const edge = frameEdge(sel, w);
+  if (edge) {
+    gesture = { type: 'frame', n: sel, edge, sx, sy, x: sel.x, y: sel.y, w: sel.w, h: sel.h };
     return;
   }
   const labelled = labelHit(w);
@@ -237,6 +254,9 @@ function doubleAt(x, y) {
 function onPointerMove(e) {
   if (!gesture && e.pointerType === 'mouse') {
     const selected = getNode(getSelectedId());
+    const edge = !isLocked() && selected && !onHandle(selected, e.clientX, e.clientY)
+      && frameEdge(selected, screenToWorld(e.clientX, e.clientY));
+    canvas.style.cursor = edge ? (edge === 'left' || edge === 'right' ? 'ew-resize' : 'ns-resize') : '';
     const overToggle = selected?.image && actionHit(selected, screenToWorld(e.clientX, e.clientY), state.camera.zoom) === 'optimize-image';
     canvas.title = overToggle ? (selected.keepImageOriginal ? 'Autoriser l’optimisation' : 'Ne pas optimiser') : '';
   }
@@ -273,6 +293,16 @@ function onPointerMove(e) {
     }
     if (Math.hypot(e.clientX - g.sx, e.clientY - g.sy) > MOVE_PX) g.moved = true;
     setDropPreview(g.moved ? dropTargetGroup(g.n, state.nodes, visualBounds) : null);
+  } else if (g.type === 'frame') {
+    const dx = (e.clientX - g.sx) / state.camera.zoom;
+    const dy = (e.clientY - g.sy) / state.camera.zoom;
+    if (g.edge === 'left' || g.edge === 'right') {
+      g.n.w = clamp(g.w + (g.edge === 'left' ? -dx : dx));
+      if (g.edge === 'left') g.n.x = g.x + g.w - g.n.w;
+    } else {
+      g.n.h = clamp(g.h + (g.edge === 'top' ? -dy : dy));
+      if (g.edge === 'top') g.n.y = g.y + g.h - g.n.h;
+    }
   } else if (g.type === 'resize') {
     const z = state.camera.zoom;
     const w = g.ox + (e.clientX - g.sx) / z;
@@ -336,15 +366,6 @@ function onPointerEnd(e) {
   if (g?.type === 'move') {
     if (g.moved) {
       g.targetGroup = dropTargetGroup(g.n, state.nodes, visualBounds);
-      if (g.targetGroup) {
-        // Move the visual box into the body before finding space among its members.
-        const box = visualBounds(g.n), group = g.targetGroup;
-        const minX = group.x + 16, minY = group.y + groupHeaderHeight(group) + 16;
-        const maxX = Math.max(minX, group.x + group.w - box.w - 16);
-        const maxY = Math.max(minY, group.y + group.h - box.h - 16);
-        g.n.x += Math.max(minX, Math.min(maxX, box.x)) - box.x;
-        g.n.y += Math.max(minY, Math.min(maxY, box.y)) - box.y;
-      }
       settleDrop(g.n, state.nodes, (g.members || []).map(entry => entry.m), visualBounds);
     }
     setDragging(g.n, false);

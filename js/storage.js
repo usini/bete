@@ -1,7 +1,7 @@
 // Export / import of a board. Images are embedded as data URLs so the board is
 // self-contained: it can be a JSON file, or the file saved on Google Drive (drive.js).
-import { state, serialize, setDoc } from './state.js?v=mwag82om';
-import { addDataUrl, refToDataUrl } from './images.js?v=mwag82om';
+import { state, serialize, setDoc } from './state.js?v=mwt1ps8b';
+import { addDataUrl, refToDataUrl } from './images.js?v=mwt1ps8b';
 
 
 function download(blob, name) {
@@ -77,7 +77,13 @@ export async function importData(doc) {
 export async function exportDoc() {
   const doc = await exportData();
   const stamp = new Date().toISOString().slice(0, 10);
-  download(new Blob([JSON.stringify(doc, null, 1)], { type: 'application/json' }), `bete-${stamp}.json`);
+  const name = `bete-${stamp}.json`;
+  const json = JSON.stringify(doc, null, 1);
+  if (globalThis.__TAURI__) {
+    await globalThis.__TAURI__.core.invoke('export_json', { name, json });
+  } else {
+    download(new Blob([json], { type: 'application/json' }), name);
+  }
 }
 
 export async function importFile(file) {

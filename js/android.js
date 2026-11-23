@@ -1,6 +1,6 @@
-import { initDrive } from './drive.js?v=mwag82om';
-import { initApplications } from './applications.js?v=mwag82om';
-import { initDesktopCalendar } from './calendar.js?v=mwag82om';
+import { initDrive } from './drive.js?v=mwt1ps8b';
+import { initApplications } from './applications.js?v=mwt1ps8b';
+import { initDesktopCalendar } from './calendar.js?v=mwt1ps8b';
 export async function initAndroid() {
   const native = window.__BETE_ANDROID_NATIVE__;
   document.getElementById('drive-status').closest('section').hidden = false;

@@ -1,4 +1,4 @@
-import { externalMode } from './external-board.js?v=mwag82om';
+import { externalMode } from './external-board.js?v=mwt1ps8b';
 // Local interaction lock only: remote updates, navigation and exports remain available.
 // Desktop windows are not classified as mobile just because they are narrow.
 export const isMobile = matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches;

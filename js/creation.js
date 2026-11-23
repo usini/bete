@@ -1,4 +1,4 @@
-import { freeDropPosition } from './placement.js?v=mwag82om';
+import { freeDropPosition } from './placement.js?v=mwt1ps8b';
 
 // Reuse the last size only while it remains usable in the current viewport.
 export function creationSize(size, zoom, viewport = {w:800,h:600}) {

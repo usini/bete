@@ -1,5 +1,5 @@
-import { githubRepository } from './github-repo.js?v=mwag82om';
-import { isAmazonHome } from './amazon.js?v=mwag82om';
+import { githubRepository } from './github-repo.js?v=mwt1ps8b';
+import { isAmazonHome } from './amazon.js?v=mwt1ps8b';
 // Explicit host/path rules only. Never fetch metadata or a favicon from a linked service.
 const root = path => path === '/';
 const oneOf = (...paths) => path => paths.includes(path);

@@ -1,15 +1,15 @@
-import { creationSize, freeCreationPosition } from './creation.js?v=mwag82om';
-import { cleanCalendarSnapshot } from './calendar-snapshot.js?v=mwag82om';
-import { cleanXtool } from './xtool.js?v=mwag82om';
-import { cleanApplication } from './application-model.js?v=mwag82om';
-import { cleanGitHubData } from './github-repo.js?v=mwag82om';
-import { productBadgeLayout } from './products.js?v=mwag82om';
-import { labelLayout } from './labels.js?v=mwag82om';
-import { externalMode } from './external-board.js?v=mwag82om';
-import { localStore } from './local-store.js?v=mwag82om';
+import { creationSize, freeCreationPosition } from './creation.js?v=mwt1ps8b';
+import { cleanCalendarSnapshot } from './calendar-snapshot.js?v=mwt1ps8b';
+import { cleanXtool } from './xtool.js?v=mwt1ps8b';
+import { cleanApplication } from './application-model.js?v=mwt1ps8b';
+import { cleanGitHubData } from './github-repo.js?v=mwt1ps8b';
+import { productBadgeLayout } from './products.js?v=mwt1ps8b';
+import { labelLayout } from './labels.js?v=mwt1ps8b';
+import { externalMode } from './external-board.js?v=mwt1ps8b';
+import { localStore } from './local-store.js?v=mwt1ps8b';
 // Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mwag82om';
+import { explode } from './fx.js?v=mwt1ps8b';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];

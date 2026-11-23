@@ -1,5 +1,5 @@
-import { localStore } from './local-store.js?v=mwag82om';
-import { updateBackupSize } from './backup-size.js?v=mwag82om';
+import { localStore } from './local-store.js?v=mwt1ps8b';
+import { updateBackupSize } from './backup-size.js?v=mwt1ps8b';
 // Optional backup of the board on Google Drive.
 //
 //  - Scope: drive.appdata only. The file (Bete.json) lives in a hidden folder reserved to this
@@ -7,12 +7,12 @@ import { updateBackupSize } from './backup-size.js?v=mwag82om';
 //  - Sign-in: OAuth code flow through a stateless service. Access tokens stay in memory.
 //  - Drive transfers happen only on explicit save, restore or initial connection.
 //    Local autosave remains automatic; leaving with unsaved Drive changes warns the user.
-import { state, onSaved, saveNow, serialize } from './state.js?v=mwag82om';
-import { exportData, importData } from './storage.js?v=mwag82om';
+import { state, onSaved, saveNow, serialize } from './state.js?v=mwt1ps8b';
+import { exportData, importData } from './storage.js?v=mwt1ps8b';
 
-import { notify } from './notifications.js?v=mwag82om';
+import { notify } from './notifications.js?v=mwt1ps8b';
 
-import { modeEvents } from './mobile-mode.js?v=mwag82om';
+import { modeEvents } from './mobile-mode.js?v=mwt1ps8b';
 
 const AUTH_URL = 'https://auth-bete.usini.eu';
 const FILE_NAME = 'Bete.json';
@@ -151,10 +151,12 @@ async function requestToken() {
 // ---- Drive API ----
 async function api(url, opts = {}) {
   await ensureToken();
-  let r = await fetch(url, { ...(globalThis.AbortSignal?.timeout ? { signal: AbortSignal.timeout(10000) } : {}), ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + token } });
+  // Large board uploads and downloads can take much longer than metadata requests.
+  const timeout = url.startsWith(UPLOAD) || url.includes('alt=media') ? 300000 : 30000;
+  let r = await fetch(url, { ...(globalThis.AbortSignal?.timeout ? { signal: AbortSignal.timeout(timeout) } : {}), ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + token } });
   if (r.status === 401) {
     token = null; await ensureToken();
-    r = await fetch(url, { ...(globalThis.AbortSignal?.timeout ? { signal: AbortSignal.timeout(10000) } : {}), ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + token } });
+    r = await fetch(url, { ...(globalThis.AbortSignal?.timeout ? { signal: AbortSignal.timeout(timeout) } : {}), ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + token } });
     if (r.status === 401) { token = null; throw new AuthNeeded(); }
   }
   if (!r.ok) {

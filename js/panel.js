@@ -1,16 +1,16 @@
-import { showExternalBoardQR, copyExternalBoardLink } from './external-share.js?v=mwag82om';
-import { isLocked, modeEvents } from './mobile-mode.js?v=mwag82om';
-import { externalMode, recentGithubBoards, addExternalBoard, removeExternalBoard } from './external-board.js?v=mwag82om';
+import { showExternalBoardQR, copyExternalBoardLink } from './external-share.js?v=mwt1ps8b';
+import { isLocked, modeEvents } from './mobile-mode.js?v=mwt1ps8b';
+import { externalMode, recentGithubBoards, addExternalBoard, removeExternalBoard } from './external-board.js?v=mwt1ps8b';
 // Right-hand panel: draggable blocks, selection tools, file actions.
-import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mwag82om';
-import { screenToWorld, view, flyToBlock } from './camera.js?v=mwag82om';
-import { BLOCK_MIME, pickImage } from './input.js?v=mwag82om';
-import { exportDoc, importFile } from './storage.js?v=mwag82om';
+import { state, getNode, getSelectedId, select, addNode, events, emit } from './state.js?v=mwt1ps8b';
+import { screenToWorld, view, flyToBlock } from './camera.js?v=mwt1ps8b';
+import { BLOCK_MIME, pickImage } from './input.js?v=mwt1ps8b';
+import { exportDoc, importFile } from './storage.js?v=mwt1ps8b';
 
 
-import { optimizeBoardImages as optimizeImages } from './optimize.js?v=mwag82om';
-import { notify } from './notifications.js?v=mwag82om';
-import { localStore } from './local-store.js?v=mwag82om';
+import { optimizeBoardImages as optimizeImages } from './optimize.js?v=mwt1ps8b';
+import { notify } from './notifications.js?v=mwt1ps8b';
+import { localStore } from './local-store.js?v=mwt1ps8b';
 
 async function optimizeBoardImages(button) {
   const id = 'optimize-images';
@@ -213,7 +213,9 @@ export function initPanel() {
   // File actions.
   const optimize = document.getElementById('optimize-images');
   optimize.addEventListener('click', () => { if (!isLocked()) optimizeBoardImages(optimize); });
-  document.getElementById('export').addEventListener('click', () => { exportDoc(); });
+  document.getElementById('export').addEventListener('click', () => {
+    exportDoc().catch(error => { console.error('bete2: export failed', error); alert('Impossible d’exporter le tableau : ' + (error?.message || error)); });
+  });
   const fileIn = document.getElementById('fileimport');
   document.getElementById('import').addEventListener('click', () => {
     if (isLocked()) return;

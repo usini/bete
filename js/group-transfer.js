@@ -1,6 +1,6 @@
-import { state, membersOf, sanitizeNode, newId, select } from './state.js?v=mwag82om';
-import { exportData } from './storage.js?v=mwag82om';
-import { addDataUrl } from './images.js?v=mwag82om';
+import { state, membersOf, sanitizeNode, newId, select } from './state.js?v=mwt1ps8b';
+import { exportData } from './storage.js?v=mwt1ps8b';
+import { addDataUrl } from './images.js?v=mwt1ps8b';
 export const GROUP_PREFIX='BETE_GROUP_V1\n';
 export async function exportGroup(group, title=group.text, includeFrame=true) {
   const contents=membersOf(group);

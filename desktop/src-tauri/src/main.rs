@@ -10,7 +10,20 @@ mod autostart;
 use std::time::Duration;
 use tauri::{AppHandle, Manager, Url, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_opener::OpenerExt;
+use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_updater::UpdaterExt;
+
+#[tauri::command]
+async fn export_json(app: AppHandle, name: String, json: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let Some(file) = app.dialog().file().set_title("Exporter le tableau")
+            .set_file_name(&name).add_filter("Fichier JSON", &["json"]).blocking_save_file() else {
+            return Ok(());
+        };
+        let path = file.into_path().map_err(|error| error.to_string())?;
+        std::fs::write(path, json).map_err(|error| error.to_string())
+    }).await.map_err(|error| error.to_string())?
+}
 
 #[tauri::command]
 fn open_calculator() -> Result<(), String> {
@@ -149,6 +162,7 @@ fn main() {
     builder
         .invoke_handler(tauri::generate_handler![
             open_browser,
+            export_json,
             autostart::get_autostart,
             autostart::set_autostart,
             tray::get_close_to_tray,
