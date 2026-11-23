@@ -1,15 +1,15 @@
-import { creationSize, freeCreationPosition } from './creation.js?v=mwt1ps8b';
-import { cleanCalendarSnapshot } from './calendar-snapshot.js?v=mwt1ps8b';
-import { cleanXtool } from './xtool.js?v=mwt1ps8b';
-import { cleanApplication } from './application-model.js?v=mwt1ps8b';
-import { cleanGitHubData } from './github-repo.js?v=mwt1ps8b';
-import { productBadgeLayout } from './products.js?v=mwt1ps8b';
-import { labelLayout } from './labels.js?v=mwt1ps8b';
-import { externalMode } from './external-board.js?v=mwt1ps8b';
-import { localStore } from './local-store.js?v=mwt1ps8b';
+import { creationSize, freeCreationPosition } from './creation.js?v=mwt2c0kj';
+import { cleanCalendarSnapshot } from './calendar-snapshot.js?v=mwt2c0kj';
+import { cleanXtool } from './xtool.js?v=mwt2c0kj';
+import { cleanApplication } from './application-model.js?v=mwt2c0kj';
+import { cleanGitHubData } from './github-repo.js?v=mwt2c0kj';
+import { productBadgeLayout } from './products.js?v=mwt2c0kj';
+import { labelLayout } from './labels.js?v=mwt2c0kj';
+import { externalMode } from './external-board.js?v=mwt2c0kj';
+import { localStore } from './local-store.js?v=mwt2c0kj';
 // Data model, sanitizers and local autosave (IndexedDB).
 // Image bytes are NOT stored here: a node only keeps a reference ('idb:<id>').
-import { explode } from './fx.js?v=mwt1ps8b';
+import { explode } from './fx.js?v=mwt2c0kj';
 
 export const COLORS = ['#39ff14', '#00b7eb', '#e3008c', '#ff8c00', '#9b30ff', '#ffd400', '#f2f2f2', '#ff3030', 'transparent'];
 export const DEFAULT_COLOR = COLORS[1];
@@ -143,13 +143,16 @@ export function serialize() {
 const savedListeners = [];
 export function onSaved(fn) { savedListeners.push(fn); }
 
-export function saveNow() {
+let contentPending = true;
+export function saveNow(cameraOnly = false) {
   if (externalMode) return;
   clearTimeout(saveTimer);
   let saved;
   try { saved = localStore.setItem(KEY, JSON.stringify(serialize())); }
   catch (err) { console.warn('bete2: save failed', err); }
-  for (const fn of savedListeners) fn();
+  const viewOnly = cameraOnly === true && !contentPending;
+  if (saved) contentPending = false;
+  for (const fn of savedListeners) fn(viewOnly);
   return saved;
 }
 
@@ -162,11 +165,12 @@ export function loadFromStorage() {
 
 let saveTimer = null;
 // Every change goes through emit(): notifies the UI and schedules an autosave.
-export function emit() {
-  events.dispatchEvent(new Event('change'));
+export function emit(cameraOnly = false) {
+  if (cameraOnly !== true) contentPending = true;
+  events.dispatchEvent(new Event(cameraOnly === true ? 'camera' : 'change'));
   if (externalMode) return;
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveNow, 300);
+  saveTimer = setTimeout(() => saveNow(cameraOnly), 300);
 }
 
 export function getNode(id) { return state.nodes.find((n) => n.id === id) || null; }

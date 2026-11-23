@@ -1,16 +1,16 @@
-import { isSocialUrl } from './link-label-default.js?v=mwt1ps8b';
-import { externalMode } from './external-board.js?v=mwt1ps8b';
+import { isSocialUrl } from './link-label-default.js?v=mwt2c0kj';
+import { externalMode } from './external-board.js?v=mwt2c0kj';
 // Labels: the tab above a block. It shows the YouTube title (YouTube blocks) or the block's
 // link URL; a block with neither has no label. The layout and the hit-testing live here,
 // so the renderer and the pointer handling always agree on where the label is.
-import { state } from './state.js?v=mwt1ps8b';
-import { youTubeId, youTubeTitle } from './yt.js?v=mwt1ps8b';
-import { FONT_FAMILY } from './text.js?v=mwt1ps8b';
-import { isProductUrl, isProductText } from './products.js?v=mwt1ps8b';
+import { state } from './state.js?v=mwt2c0kj';
+import { youTubeId, youTubeTitle } from './yt.js?v=mwt2c0kj';
+import { FONT_FAMILY } from './text.js?v=mwt2c0kj';
+import { isProductUrl, isProductText } from './products.js?v=mwt2c0kj';
 
-import { genericLink, plainLink } from './links.js?v=mwt1ps8b';
+import { genericLink, plainLink } from './links.js?v=mwt2c0kj';
 
-import { serviceForNode } from './services.js?v=mwt1ps8b';
+import { serviceForNode } from './services.js?v=mwt2c0kj';
 
 export const LABEL_SIZE = 26;                       // font size, world units
 export const LABEL_FONT = '600 ' + LABEL_SIZE + 'px ' + FONT_FAMILY;

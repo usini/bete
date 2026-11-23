@@ -1,8 +1,8 @@
-import { state, select } from './state.js?v=mwt1ps8b';
-import { worldToScreen, view } from './camera.js?v=mwt1ps8b';
-import { facebookPostOf, facebookEmbed } from './facebook.js?v=mwt1ps8b';
-import { googleMapsEmbedOf } from './google-maps.js?v=mwt1ps8b';
-import { socialEmbedOf } from './social-embeds.js?v=mwt1ps8b';
+import { state, select } from './state.js?v=mwt2c0kj';
+import { worldToScreen, view } from './camera.js?v=mwt2c0kj';
+import { facebookPostOf, facebookEmbed } from './facebook.js?v=mwt2c0kj';
+import { googleMapsEmbedOf } from './google-maps.js?v=mwt2c0kj';
+import { socialEmbedOf } from './social-embeds.js?v=mwt2c0kj';
 
 const frames = new Map();
 
@@ -21,9 +21,9 @@ window.addEventListener('keydown', e => {
 });
 
 // Keep visible embeds attached to their blocks. Offscreen content is unloaded.
-export function positionEmbeds() {
+export function positionEmbeds(nodes = state.nodes) {
   const visible = new Set();
-  for (const n of state.nodes) {
+  for (const n of nodes) {
     const map = googleMapsEmbedOf(n);
     const social = socialEmbedOf(n);
     const post = social?.key || map || facebookPostOf(n);

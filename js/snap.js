@@ -1,6 +1,6 @@
 // Alignment snapping: a moving or resizing block snaps its edges and centre to
 // the edges and centres of the other blocks. Guide lines are drawn while it applies.
-import { state } from './state.js?v=mwt1ps8b';
+import { state } from './state.js?v=mwt2c0kj';
 
 const TOL_PX = 8;
 const MIN = 20, MAX = 1e5;
@@ -14,12 +14,15 @@ export function clearGuides() {
 }
 
 // Smallest offset that brings one of `mine` onto one of `theirs`, within tolerance.
-function bestDelta(mine, theirs, tol) {
+function bestDelta(mine, others, axis, size, tol) {
   let best = null;
   for (const a of mine) {
-    for (const b of theirs) {
-      const d = b - a;
-      if (Math.abs(d) <= tol && (best === null || Math.abs(d) < Math.abs(best))) best = d;
+    for (const node of others) {
+      for (let edge = 0; edge < 3; edge++) {
+        const d = node[axis] + edge * 0.5 * node[size] - a;
+        if (d === 0) return 0;
+        if (Math.abs(d) <= tol && (best === null || Math.abs(d) < Math.abs(best))) best = d;
+      }
     }
   }
   return best;
@@ -34,8 +37,8 @@ const clampSize = (v) => Math.min(MAX, Math.max(MIN, v));
 export function snapMove(n, x, y, skip) {
   const tol = TOL_PX / state.camera.zoom;
   const others = state.nodes.filter((o) => o !== n && !(skip && skip.has(o)));
-  const dx = bestDelta([x, x + n.w / 2, x + n.w], others.flatMap(xsOf), tol) ?? 0;
-  const dy = bestDelta([y, y + n.h / 2, y + n.h], others.flatMap(ysOf), tol) ?? 0;
+  const dx = bestDelta([x, x + n.w / 2, x + n.w], others, 'x', 'w', tol) ?? 0;
+  const dy = bestDelta([y, y + n.h / 2, y + n.h], others, 'y', 'h', tol) ?? 0;
   x += dx;
   y += dy;
   buildGuides(x, y, n.w, n.h, others);
@@ -46,8 +49,8 @@ export function snapMove(n, x, y, skip) {
 export function snapResize(n, w, h) {
   const tol = TOL_PX / state.camera.zoom;
   const others = state.nodes.filter((o) => o !== n);
-  const dw = bestDelta([n.x + w], others.flatMap(xsOf), tol);
-  const dh = bestDelta([n.y + h], others.flatMap(ysOf), tol);
+  const dw = bestDelta([n.x + w], others, 'x', 'w', tol);
+  const dh = bestDelta([n.y + h], others, 'y', 'h', tol);
   if (dw !== null) w += dw;
   if (dh !== null) h += dh;
   w = clampSize(w);

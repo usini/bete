@@ -1,7 +1,7 @@
 // Minimap (bottom-left): all the blocks in their colour + the current view as a white frame.
 // Click or drag on it to move the view there.
-import { state, emit, groupsBySize } from './state.js?v=mwt1ps8b';
-import { cancelFlight, flyTo, view } from './camera.js?v=mwt1ps8b';
+import { state, emit, events, groupsBySize } from './state.js?v=mwt2c0kj';
+import { cancelFlight, flyTo, view } from './camera.js?v=mwt2c0kj';
 
 const canvas = document.getElementById('minimap');
 const ctx = canvas.getContext('2d');
@@ -17,13 +17,22 @@ function viewport() {
 
 // Scale and offset that fit every block and the current view inside a W x H minimap
 // (aspect ratio kept, centred): screen = world * s + (ox, oy).
+let boardBounds, layerKey;
+const layer = document.createElement('canvas');
+events.addEventListener('change', () => { boardBounds = layerKey = null; });
+
 function fit(W, H) {
   const v = viewport();
-  let minx = v.x, miny = v.y, maxx = v.x + v.w, maxy = v.y + v.h;
-  for (const n of state.nodes) {
-    minx = Math.min(minx, n.x); miny = Math.min(miny, n.y);
-    maxx = Math.max(maxx, n.x + n.w); maxy = Math.max(maxy, n.y + n.h);
+  if (!boardBounds) {
+    let minx = Infinity, miny = Infinity, maxx = -Infinity, maxy = -Infinity;
+    for (const n of state.nodes) {
+      minx = Math.min(minx, n.x); miny = Math.min(miny, n.y);
+      maxx = Math.max(maxx, n.x + n.w); maxy = Math.max(maxy, n.y + n.h);
+    }
+    boardBounds = { minx, miny, maxx, maxy };
   }
+  let minx = Math.min(v.x, boardBounds.minx), miny = Math.min(v.y, boardBounds.miny);
+  let maxx = Math.max(v.x + v.w, boardBounds.maxx), maxy = Math.max(v.y + v.h, boardBounds.maxy);
   const pad = Math.max(maxx - minx, maxy - miny) * 0.08 + 20;
   minx -= pad; miny -= pad; maxx += pad; maxy += pad;
   const bw = maxx - minx, bh = maxy - miny;
@@ -43,15 +52,24 @@ export function renderMinimap() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, W, H);
   const t = frozen || fit(W, H);
-  const rect = (n) => {
-    ctx.fillStyle = n.color === 'transparent' ? '#ffffff' : n.color;
-    ctx.fillRect(n.x * t.s + t.ox, n.y * t.s + t.oy, Math.max(2, n.w * t.s), Math.max(2, n.h * t.s));
-  };
-  // Groups first and translucent (the biggest underneath), then the other blocks on top.
-  ctx.globalAlpha = 0.3;
-  for (const n of groupsBySize()) rect(n);
-  ctx.globalAlpha = 1;
-  for (const n of state.nodes) if (n.kind !== 'group') rect(n);
+  const key = [canvas.width, canvas.height, dpr, t.s, t.ox, t.oy].join(',');
+  if (layerKey !== key) {
+    layer.width = canvas.width;
+    layer.height = canvas.height;
+    const paint = layer.getContext('2d');
+    paint.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const rect = (n) => {
+      paint.fillStyle = n.color === 'transparent' ? '#ffffff' : n.color;
+      paint.fillRect(n.x * t.s + t.ox, n.y * t.s + t.oy, Math.max(2, n.w * t.s), Math.max(2, n.h * t.s));
+    };
+    // Groups first and translucent (the biggest underneath), then the other blocks on top.
+    paint.globalAlpha = 0.3;
+    for (const n of groupsBySize()) rect(n);
+    paint.globalAlpha = 1;
+    for (const n of state.nodes) if (n.kind !== 'group') rect(n);
+    layerKey = key;
+  }
+  ctx.drawImage(layer, 0, 0, W, H);
   const v = viewport();
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 1.5;
@@ -63,7 +81,7 @@ function recenter(e) {
   const r = canvas.getBoundingClientRect();
   state.camera.x = (e.clientX - r.left - frozen.ox) / frozen.s;
   state.camera.y = (e.clientY - r.top - frozen.oy) / frozen.s;
-  emit();
+  emit(true);
 }
 
 export function initMinimap() {
@@ -87,7 +105,7 @@ export function initMinimap() {
     recenter(e);
   });
   canvas.addEventListener('pointermove', (e) => { if (frozen) recenter(e); });
-  const end = () => { frozen = null; emit(); };
+  const end = () => { frozen = null; emit(true); };
   canvas.addEventListener('pointerup', end);
   canvas.addEventListener('pointercancel', end);
 }

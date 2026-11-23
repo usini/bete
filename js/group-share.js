@@ -1,9 +1,9 @@
-import { localStore } from './local-store.js?v=mwt1ps8b';
-import { state, events, onSaved, newId, sanitizeNode, emit, select, getNode, setGroupMemberFilter } from './state.js?v=mwt1ps8b';
-import { imageBlob, storeSharedImage } from './images.js?v=mwt1ps8b';
-import { flyTo, view, screenToWorld } from './camera.js?v=mwt1ps8b';
-import { MAX_MEMBERS, MAX_RECORDS, ROOT, validId, validImage, cleanValue, cleanRecord, mergeRecord, groupMembers, emptyPlacement, intersects, imageChunkBytes } from './group-model.js?v=mwt1ps8b';
-import { smoothPointer } from './motion.js?v=mwt1ps8b';
+import { localStore } from './local-store.js?v=mwt2c0kj';
+import { state, events, onSaved, newId, sanitizeNode, emit, select, getNode, setGroupMemberFilter } from './state.js?v=mwt2c0kj';
+import { imageBlob, storeSharedImage } from './images.js?v=mwt2c0kj';
+import { flyTo, view, screenToWorld } from './camera.js?v=mwt2c0kj';
+import { MAX_MEMBERS, MAX_RECORDS, ROOT, validId, validImage, cleanValue, cleanRecord, mergeRecord, groupMembers, emptyPlacement, intersects, imageChunkBytes } from './group-model.js?v=mwt2c0kj';
+import { smoothPointer } from './motion.js?v=mwt2c0kj';
 
 // Explicit ICE config is essential: PeerJS's defaults include public TURN relays.
 export const peerConfig = {

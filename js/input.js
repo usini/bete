@@ -1,41 +1,41 @@
-import { optimizeBoardImages } from './optimize.js?v=mwt1ps8b';
-import { saveNow } from './state.js?v=mwt1ps8b';
-import { showLinkByDefault } from './link-label-default.js?v=mwt1ps8b';
-import { cleanXtool, xtoolSummary } from './xtool.js?v=mwt1ps8b';
-import { pasteGroup } from './group-transfer.js?v=mwt1ps8b';
-import { addSteamBlock, dropApplicationFile, openApplication } from './applications.js?v=mwt1ps8b';
-import { steamApplicationUri } from './application-model.js?v=mwt1ps8b';
-import { updateGitHubCard } from './github-cards.js?v=mwt1ps8b';
-import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mwt1ps8b';
-import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mwt1ps8b';
-import { externalMode } from './external-board.js?v=mwt1ps8b';
+import { optimizeBoardImages } from './optimize.js?v=mwt2c0kj';
+import { saveNow } from './state.js?v=mwt2c0kj';
+import { showLinkByDefault } from './link-label-default.js?v=mwt2c0kj';
+import { cleanXtool, xtoolSummary } from './xtool.js?v=mwt2c0kj';
+import { pasteGroup } from './group-transfer.js?v=mwt2c0kj';
+import { addSteamBlock, dropApplicationFile, openApplication } from './applications.js?v=mwt2c0kj';
+import { steamApplicationUri } from './application-model.js?v=mwt2c0kj';
+import { updateGitHubCard } from './github-cards.js?v=mwt2c0kj';
+import { settleDrop, dropTargetGroup, setDropPreview } from './placement.js?v=mwt2c0kj';
+import { parseProductClipboard, isProductClipboard } from './product-clipboard.js?v=mwt2c0kj';
+import { externalMode } from './external-board.js?v=mwt2c0kj';
 // Pointer, wheel, keyboard, paste and drop handling for the canvas.
 //  - click on a label: edit popup, link field first (YouTube labels open the video instead)
 //  - double-click on a block: play it (YouTube), open its link, pick an image (image block), or edit its text
 //  - click on the 📝 button of a selected block: edit popup (text and link)
 //  - click on the 🖼️ button of a selected image block: change its picture
-import { state, getNode, getSelectedId, getLastSelectedGroup, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, finishNodeCreation, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderBox, COLORS } from './state.js?v=mwt1ps8b';
-import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight, flyToBlock } from './camera.js?v=mwt1ps8b';
-import { startEdit, stopEdit, isEditing, previewGroupAlignment, resizeGroupBlocks } from './editor.js?v=mwt1ps8b';
-import { addDataUrl, addImageFile, fitNodeImage, imageCaptionFraction, imageFor } from './images.js?v=mwt1ps8b';
-import { playVideo } from './video.js?v=mwt1ps8b';
-import { youTubeId, youTubeRatio } from './yt.js?v=mwt1ps8b';
-import { snapMove, snapResize, clearGuides } from './snap.js?v=mwt1ps8b';
-import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mwt1ps8b';
-import { undo, redo } from './history.js?v=mwt1ps8b';
+import { state, getNode, getSelectedId, getLastSelectedGroup, select, addNode, newId, sanitizeNode, removeNode, raise, emit, rememberColor, rememberSize, finishNodeCreation, groupsBySize, membersOf, containingGroups, fitGroupsAround, groupHeaderBox, COLORS } from './state.js?v=mwt2c0kj';
+import { screenToWorld, worldToScreen, zoomAt, panBy, view, cancelFlight, flyToBlock } from './camera.js?v=mwt2c0kj';
+import { startEdit, stopEdit, isEditing, previewGroupAlignment, resizeGroupBlocks } from './editor.js?v=mwt2c0kj';
+import { addDataUrl, addImageFile, fitNodeImage, imageCaptionFraction, imageFor } from './images.js?v=mwt2c0kj';
+import { playVideo } from './video.js?v=mwt2c0kj';
+import { youTubeId, youTubeRatio } from './yt.js?v=mwt2c0kj';
+import { snapMove, snapResize, clearGuides } from './snap.js?v=mwt2c0kj';
+import { labelHit, labelInfo, labelLayout, actionHit, linkOf } from './labels.js?v=mwt2c0kj';
+import { undo, redo } from './history.js?v=mwt2c0kj';
 
-import { setDragging } from './motion.js?v=mwt1ps8b';
+import { setDragging } from './motion.js?v=mwt2c0kj';
 
-import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mwt1ps8b';
-import { shortenProductText, isProductUrl, productBadgeLayout } from './products.js?v=mwt1ps8b';
+import { plainLink, genericLink, droppedLink, droppedTitle, openLink } from './links.js?v=mwt2c0kj';
+import { shortenProductText, isProductUrl, productBadgeLayout } from './products.js?v=mwt2c0kj';
 
-import { isLocked, setLocked, modeEvents } from './mobile-mode.js?v=mwt1ps8b';
+import { isLocked, setLocked, modeEvents } from './mobile-mode.js?v=mwt2c0kj';
 
-import { serviceForNode } from './services.js?v=mwt1ps8b';
+import { serviceForNode } from './services.js?v=mwt2c0kj';
 
-import { requestRender } from './render.js?v=mwt1ps8b';
+import { requestRender } from './render.js?v=mwt2c0kj';
 
-import { notify } from './notifications.js?v=mwt1ps8b';
+import { notify } from './notifications.js?v=mwt2c0kj';
 
 export const BLOCK_MIME = 'application/x-bete-block';
 const CLIPBOARD_BLOCK = 'application/x-bete-clipboard-block';
@@ -348,7 +348,7 @@ function onPointerMove(e) {
     }
     fitGroupsAround(g.n, g.previousGroups, true);
   }
-  emit();
+  emit(g.type === 'pan' || g.type === 'pinch');
 }
 
 function visualBounds(node) {
@@ -391,7 +391,7 @@ function onPointerEnd(e) {
     if (once('pick')) pickImage(g.n); // 'once': a double-click would otherwise open the picker twice
   }
   if (pointers.size === 0 || (g && g.type === 'pinch')) gesture = null;
-  emit();
+  emit(g?.type === 'pan' || g?.type === 'pinch');
 }
 
 export function pickImage(n) {
@@ -461,7 +461,7 @@ export function initInput() {
     e.preventDefault();
     cancelFlight();
     zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.0015));
-    emit();
+    emit(true);
   }, { passive: false });
 
   canvas.addEventListener('dragover', (e) => {

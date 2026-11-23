@@ -1,5 +1,5 @@
 // World <-> screen transforms (screen = CSS pixels, world = abstract units).
-import { state, emit, MIN_ZOOM } from './state.js?v=mwt1ps8b';
+import { state, emit, MIN_ZOOM } from './state.js?v=mwt2c0kj';
 
 export const view = { w: window.innerWidth, h: window.innerHeight };
 
@@ -48,7 +48,7 @@ export function flyTo(x, y, zoom, ms = 450) {
     state.camera.zoom = from.zoom * Math.pow(zoom / from.zoom, e); // zoom interpolated in log space
     state.camera.x = from.x + (x - from.x) * e;
     state.camera.y = from.y + (y - from.y) * e;
-    emit();
+    emit(true);
     if (t < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
